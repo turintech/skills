@@ -196,6 +196,8 @@ Use `PYTHONUNBUFFERED=1` or `python -u` for real-time log streaming.
 
 Artemis can track custom performance measurements across code versions. The benchmark script writes an output file, and Artemis reads it automatically.
 
+> **All metric values must be numbers (integers or floats) for now.** Strings, booleans, `null`, and nested objects are not supported — the runner will reject the file or drop the metric.
+
 ### How It Works
 
 1. Benchmark script runs normally.
@@ -204,6 +206,8 @@ Artemis can track custom performance measurements across code versions. The benc
 4. Results appear in the Artemis UI metrics pages.
 
 ### File Format
+
+Values must be numeric in every example below.
 
 **JSON — single measurement:**
 ```json
@@ -218,7 +222,13 @@ Artemis can track custom performance measurements across code versions. The benc
 ]
 ```
 
-**CSV:**
+**Not supported (for now):**
+```json
+{"status": "passed", "git_sha": "abc123", "passed": true, "layers": {"n": 12}}
+```
+String, boolean, and nested-object values are rejected — reduce them to numbers (e.g. `"passed": 1` / `"failed": 0`).
+
+**CSV:** every non-header cell must parse as a number.
 ```csv
 accuracy,f1_score,inference_ms
 0.95,0.89,12.3
@@ -245,10 +255,10 @@ with open("artemis_results.json", "w") as f:
 4. **Verify locally** — run the benchmark and check the file appears in the project root.
 
 5. **Constraints:**
+   - Every metric value must be a number (integer or float). Non-numeric values are not supported for now.
+   - Metric names consistent across runs
    - Must be in the working directory, not a subdirectory
    - Filename must be exactly `artemis_results.json` or `artemis_results.csv`
-   - All values must be numeric
-   - Metric names consistent across runs
 
 6. **For Strategies B/C/D:** Copy results back to the temp folder:
 ```bash
@@ -266,7 +276,7 @@ ORIG=$(pwd) && cd /path/to/your/local/clone && <benchmark-command> && cp -f arte
 - **Permission denied:** Check file permissions on permanent clone.
 - **Server didn't restart:** Increase sleep, add health check, check port.
 - **Logs don't show in UI:** Commands must write to stdout/stderr. Use `python -u`.
-- **Custom metrics not showing:** File in working directory? Name exact? Format correct?
+- **Custom metrics not showing:** File in working directory? Name exact? Format correct? Every value numeric?
 
 ---
 
