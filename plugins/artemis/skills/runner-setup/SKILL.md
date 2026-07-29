@@ -20,7 +20,7 @@ A runner executes project-supplied compile, test, and benchmark commands on the 
 - The toolchains required by the projects assigned to this runner installed on that machine — Artemis runs their commands as-is from the repository root.
 - Enough disk, memory, and network access for builds.
 - A meaningful, unique runner name that identifies its owner or host.
-- Browser access to the Artemis Web UI (Settings → Runners & Tools, or Project Settings → Execution) to generate the registration command/token.
+- An API key for the deployment, created by the user at `https://artemis.turintech.ai/settings/api-keys`. One key can serve both the CLI and the runner.
 - An authenticated `artemis` CLI on the target deployment for verification.
 
 ## Get the runner
@@ -42,13 +42,23 @@ https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-latest-l
 
 This direct location saves navigation when it matches the requested platform and setup flow. If the artifact, platform, or registration instructions differ or the download fails, return to the Web UI and use its generated instructions.
 
-The generated setup command may contain a short-lived registration token. Have the user run it in their own terminal; never ask them to paste it into chat or store it in the repository. Do not substitute remembered versions, credentials, or registration flags for the generated values.
-
 For an on-prem deployment, select its custom-environment option in the generated setup flow rather than manually inventing service URLs.
 
 ## Start the runner
 
-Run the start command shown by the setup flow. Keep that terminal open for an initial verification. If the UI offers a service installation or persistence step, use it; otherwise ask before creating an operating-system service.
+The runner registers itself on first start: give it a new, unique name and the deployment URL, and authenticate with the API key. Supply the key through the environment so it stays off the command line and out of `ps`:
+
+```bash
+set -a; . ~/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY
+./artemis-runner start \
+  --runner-name <unique-name> \
+  --url https://artemis.turintech.ai \
+  --no-delete-task-output
+```
+
+The name appears in the fleet as soon as it connects. `--no-delete-task-output` keeps each task's working directory and log after completion, which `discovery-inspect` relies on for diagnosis; the default removes them within seconds.
+
+Alternatively run the start command shown by the setup flow. Keep that terminal open for an initial verification. If the UI offers a service installation or persistence step, use it; otherwise ask before creating an operating-system service.
 
 ## Verify
 
