@@ -34,14 +34,14 @@ For hosted (SaaS) Artemis:
   TMP="$(mktemp -d)"
   trap 'rm -rf "$TMP"' EXIT
   curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/artemis-cli/prod/artemis-cli-installer.sh" \
+    "https://files.artemis.turintech.ai/artemis-cli/latest/artemis-cli-installer.sh" \
     -o "$TMP/installer.sh"
   chmod +x "$TMP/installer.sh"
-  "$TMP/installer.sh" --env prod
+  "$TMP/installer.sh"
 )
 ```
 
-For on-prem Artemis, keep `--env prod` and add the deployment's base URL:
+For on-prem Artemis, add the deployment's base URL:
 
 ```bash
 (
@@ -49,15 +49,14 @@ For on-prem Artemis, keep `--env prod` and add the deployment's base URL:
   TMP="$(mktemp -d)"
   trap 'rm -rf "$TMP"' EXIT
   curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/artemis-cli/prod/artemis-cli-installer.sh" \
+    "https://files.artemis.turintech.ai/artemis-cli/latest/artemis-cli-installer.sh" \
     -o "$TMP/installer.sh"
   chmod +x "$TMP/installer.sh"
-  "$TMP/installer.sh" --env prod \
-    --base-url https://your-custom.artemis.turintech.ai
+  "$TMP/installer.sh" --base-url https://your-custom.artemis.turintech.ai
 )
 ```
 
-The two flags control different things: `--env` selects the download directory on the file server, `--base-url` sets the service endpoints written to the config. Keep `--env prod` in the on-prem form — the installer defaults `ENV` to `stg` when `--env` is absent, so dropping it silently installs a staging binary.
+The `latest/` path always serves the current installer. It selects two independent things. **Which build:** the newest stable release by default, or `--version X.Y.Z` to pin one, `--nightly` to include prereleases, `--dev` for the rolling development build. **Which deployment the CLI points at:** `--env` (`dev`, `stg`, `prod`; default `prod`) or `--base-url` with a full URL — these are the same setting, so pass one of them.
 
 The download credentials above are the published shared ones from the Web UI and the docs, not per-user secrets, so they can be used directly. Any *API key* is still a secret and must never enter the conversation.
 
@@ -81,6 +80,8 @@ Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the 
 artemis --version || artemis version
 artemis status
 ```
+
+Confirm the build carries the command groups the task needs — for example `artemis discovery --help`.
 
 Report the installed version, base URL, and authenticated user. Do not report success if `status` shows missing endpoints or an unauthenticated session.
 
