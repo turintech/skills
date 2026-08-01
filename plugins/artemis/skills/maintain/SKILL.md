@@ -30,13 +30,15 @@ it doesn't build or execute it. All it needs is an imported project.
 
 - `artemis status` OK on the target deployment.
 - An imported project with the code you want scanned (see
-  [project-import](../../../agent/skills/project-import/SKILL.md)). Capture the project **UUID** —
+  [project-import](../project-import/SKILL.md)). Capture the project **UUID** —
   names collide the moment a project is imported twice, so prefer the UUID in
   anything scripted. `-p/--project` accepts a UUID *or* a name, but a name errors
   on ambiguity.
 - For **publish / pr** only: the project's git provider must be connected with
   push access (the same GitHub connection `project-import` relied on). PRs are
   opened against GitHub.
+- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it
+  is just one option — any JSON filter works (e.g. `python3 -c`).
 
 Every rule and issue carries a human-friendly **display ID** (`RULE-7`,
 `ISS-143`) shown for readability, but **all commands take the UUID** as their

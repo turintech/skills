@@ -19,6 +19,7 @@ description: Start an Artemis discovery run — create the run with inline compi
 - Verified, self-contained root-level commands from `repo-command-setup`.
 - A benchmark that writes numeric `artemis_results.json` or `.csv` as defined in `repo-command-setup` §4, unless qualitative-only optimization is deliberate.
 - A user-confirmed runner that is online and compatible with those commands.
+- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 
 ## Model selection
 

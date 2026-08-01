@@ -19,6 +19,7 @@ The central rule is **completed does not mean passed**. Terminal status means th
 - CLI authenticated (`artemis status`) on the run's deployment.
 - The `run_id` (from `discovery create`'s output, or `artemis discovery list --project <uuid>`).
 - Ideally, access to the runner's log — it holds the real compile/test/benchmark outcomes and any tracebacks. Retain it by starting the runner with `--no-delete-task-output`; by default task dirs are wiped seconds after completion.
+- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 
 ## The inspection commands
 
@@ -62,7 +63,7 @@ artemis --output-format json chat messages <agent-run-id> \
 
 Repeated status text or repeated `propose`/`conclude` calls can be normal while the agent drafts and revises experiments. Evidence of a stall is stronger when the run record stops updating, a version remains pending, narration emits no new calls, and the runner is idle. Check `discovery versions get <version-id>`, chat events, and runner activity together before concluding that work has stopped.
 
-`discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `executionLogId`, and `observationId`. Read the actual discovery changeset in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
+`discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `executionLogId`, and `observationId`. Read the actual discovery changeset with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
 
 ## Watch the runner log live
 
@@ -118,7 +119,7 @@ Each experiment is a hypothesis with `status` = `validated` / `refuted` / `incon
 artemis discovery versions list <run-id>
 ```
 
-Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`), `execution` (`success` / `failed`), and `fitness`. A `✓` with `execution=success` means it compiled, passed the test, and benchmarked. Failure modes seen in practice: `generation_failed` (agent produced nothing runnable), `execution=failed` (compile or test failed — e.g. a `NameError` from an undefined capability probe), `scoring_failed`.
+Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`), `execution` (`success` / `failed`), and `fitness`. A `✓` with `execution=success` means it compiled, passed the test, and benchmarked. Failure modes seen in practice: `generation_failed` (agent produced nothing runnable), `execution=failed` (compile or test failed — e.g. a `NameError` from an undefined capability probe), `scoring_failed`. **`generation_failed` versions never reach the runner**, so they leave no trace in its log — this list is the only authoritative source for per-version outcome.
 
 ### 4. What are the real numbers? (metrics — the source of truth)
 
@@ -128,13 +129,22 @@ artemis discovery metrics <run-id> --all
 
 Grouped by version, metric IDs resolved to names. Compare each version's custom metric (e.g. `decode_b8_ms`) against the `baseline:` row. **This is what you trust**, not fitness (see traps).
 
-To see the winning change, read its `llmRationale` (`discovery versions get <version-id>`) and open the changeset in the **Web UI** — confirm the diff actually does what you asked (e.g. registers/calls the C++ op) rather than a shortcut that happens to score well. (`artemis target diff` won't work here — it is for `target generate` versions, not discovery versions.)
+That grouping applies to the text output. `--output-format json` returns a flat `docs[]` keyed by `observationId` with no version number — to rank by version, join it against `discovery versions list` (`observationId` → `versionNumber`), and read `baselineObservationId` off the run record for the baseline row.
+
+To see the winning change, read its `llmRationale` (`discovery versions get <version-id>`) and then read the diff itself — confirm it actually does what you asked (e.g. registers/calls the C++ op) rather than a shortcut that happens to score well. A rationale describing an optimisation is not evidence the diff implements one.
+
+```bash
+artemis changeset diff <changeset-id> --project <project-uuid>          # full diff
+artemis changeset diff <changeset-id> --project <project-uuid> --stat   # file summary
+```
+
+`changesetId` comes from `discovery versions get`; `--project` is required. The Web UI shows the same changeset. (`artemis target diff` won't work here — it is for `target generate` versions, not discovery versions.)
 
 ## Common misreads
 
 - **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and the runner log; exploration may not have started. If the run is terminal but runner work is still visible, wait for the records to converge. If the run is terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
 - **Fitness is often not meaningful.** Agent-derived metric schemas may weight every metric equally (~0.02) and bundle compile-time/memory in, so `fitness` can be near-zero or **negative** for a version that improved your target metric. Rank by the **raw metric value**, not fitness.
-- **The runner log is usually the clearest failure evidence.** Compile/test tracebacks may not appear in the run record. Filter for `command (passed|failed)`, `Traceback`, `error`, and `✗`.
+- **The runner log is usually the clearest failure evidence — for failures that reach the runner.** Compile/test tracebacks may not appear in the run record. Filter for `command (passed|failed)`, `Traceback`, `error`, and `✗`. But `generation_failed` versions never get dispatched, so counting failures from the log alone will report zero when half the budget failed; cross-check `discovery versions list`.
 - **`discovery metrics` prints logger noise to stdout.** vLLM/other imports emit WARNING/INFO to stdout, so piping the text output into a JSON parser fails. Use `--output-format json`, or read the printed table directly.
 - **Names drift.** A project's platform-side name can diverge from whatever you called it at import time; always reference the **project UUID**.
 
@@ -142,5 +152,5 @@ To see the winning change, read its `llmRationale` (`discovery versions get <ver
 
 - [ ] `discovery get`: baseline finalized (`baselineObservationId` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit.
 - [ ] `discovery metrics --all`: each version's target metric compared to `baseline:` — the numbers, not `fitness`, decide the winner.
-- [ ] `versions list`: winners are `execution=success`; failures explained via the runner log, not guessed.
-- [ ] Winner's `llmRationale` + Web-UI changeset: the change genuinely does what was asked (not a scoring shortcut).
+- [ ] `versions list`: winners are `execution=success`; every failure accounted for, including `generation_failed` ones the runner log cannot show.
+- [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).

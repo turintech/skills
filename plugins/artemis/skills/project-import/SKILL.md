@@ -18,6 +18,7 @@ description: Import an existing remote Git repository into Artemis as a fresh pr
 - The remote URL and explicit branch are known and reachable.
 - A Git credential registered in Artemis can read the repository.
 - Compile, test, and benchmark commands are either verified locally through `repo-command-setup`, or explicitly deferred until this project can be verified on the runner.
+- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 
 ## 1. Resolve and verify inputs
 
