@@ -18,6 +18,7 @@ The central rule is **completed does not mean passed**. Terminal status means th
 
 - CLI authenticated (`artemis status`) on the run's deployment.
 - The `run_id` (from `discovery create`'s output, or `artemis discovery list --project <uuid>`).
+- If the run or version ID is unknown, ask for its Web UI URL and extract the project, discovery, and optional version UUIDs using `artemis` §2.
 - Ideally, access to the runner's log — it holds the real compile/test/benchmark outcomes and any tracebacks. Retain it by starting the runner with `--no-delete-task-output`; by default task dirs are wiped seconds after completion.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 

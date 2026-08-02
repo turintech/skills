@@ -51,6 +51,8 @@ Default to importing a new project even if one already represents this repositor
 
 Reuse an existing project's UUID instead of importing again only when the user explicitly asks to continue that same prior work. Project names are labels, not stable identifiers; use UUIDs in every later command regardless.
 
+When reusing prior work, the user may provide its Web UI project URL; extract the UUID from `/projects/<project-id>/`.
+
 ## 3. Select a Git credential
 
 ```bash

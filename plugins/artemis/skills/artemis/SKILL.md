@@ -43,6 +43,17 @@ If the intent is ambiguous, explain the smallest relevant distinction and ask on
 
 Use available local and Artemis state to inspect the repository and its documentation, remote, branch, seed SHA, ownership, working tree, deployment, authentication, imported projects, runners, commands, metrics, and existing run IDs. Do not make external changes during readiness inspection.
 
+### Recover IDs from the Web UI
+
+When resuming existing work, ask the user to paste the URL of the most specific entity they are viewing. Artemis URLs expose the required UUIDs:
+
+- `/projects/<project-id>/...`
+- `/projects/<project-id>/discovery/<discovery-id>`
+- `/projects/<project-id>/discovery/<discovery-id>/versions/<version-id>`
+- `/projects/<project-id>/changesets/<changeset-id>/...`
+
+Extract all available IDs from that URL; do not ask for each separately. Use the deployment base URL shown by the user.
+
 ## 3. Resolve blocking decisions
 
 Raise only rows required by the selected workflow:
