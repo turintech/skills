@@ -58,9 +58,14 @@ artemis key list --help
 artemis --output-format json key list
 ```
 
-Reuse a credential that can read the repository. For GitHub, prefer an existing account OAuth credential, then an existing suitable PAT. Check the provider values returned by the installed CLI rather than assuming they match the values accepted by `key add`.
+Reuse a credential that can read the repository. Check the provider values returned by the installed CLI rather than assuming they match the values accepted by `key add`.
 
-If no suitable credential exists, have the user run `artemis key add` interactively in their own terminal so the secret never enters chat. Record the selected key UUID.
+If no suitable credential exists, present **both** setup routes and let the user choose. For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
+
+1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account in the Artemis Web UI at [https://artemis.turintech.ai/settings/git](https://artemis.turintech.ai/settings/git) (same path on an on-prem deployment's base URL). Then re-run `artemis key list` — a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
+2. **PAT via CLI:** have the user run `artemis key add` interactively in their own terminal (for GitHub, typically `--provider github --token <pat>`) so the secret never enters chat.
+
+Prefer an existing GitHub OAuth credential over adding a new PAT when both would work. For GitLab, Bitbucket, or Azure DevOps, use the provider-specific `artemis key add` flow unless the Web UI offers an equivalent connect path. Record the selected key UUID.
 
 ## 4. Import once
 
@@ -106,8 +111,8 @@ Project command defaults are optional for Web UI validation; discovery receives 
 - [ ] Authenticated deployment confirmed.
 - [ ] Remote URL, explicit branch, and seed SHA recorded.
 - [ ] Project name is distinct enough to avoid confusion with other projects against the same repository.
-- [ ] Existing readable Git credential reused when possible.
-- [ ] New secret, if required, entered by the user outside chat.
+- [ ] Existing readable Git credential reused when possible (GitHub OAuth preferred over a new PAT).
+- [ ] If no credential existed, both OAuth (Web UI) and `key add` (PAT) routes were offered; any new secret entered by the user outside chat.
 - [ ] Import performed once with confirmed inputs.
 - [ ] Project UUID captured and imported `gitHash` verified against the seed SHA.
 - [ ] UUID and seed handed to `repo-command-setup` §5b or `discovery-start`.
