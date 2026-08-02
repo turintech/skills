@@ -106,6 +106,7 @@ Before launching discovery, validation, or Maintain:
 - Repository commands, Discovery-ready harness authoring, and validation: `repo-command-setup`
 - Project registration: `project-import`
 - Discovery launch: `discovery-start`
+- Discovery steering or redirection: `discovery-steer`
 - Discovery interpretation: `discovery-inspect`
 - Maintain: use the `maintain` skill when present; otherwise inspect `artemis maintain --help` before any mutation
 
