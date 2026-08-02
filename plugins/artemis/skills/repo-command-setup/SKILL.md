@@ -1,6 +1,6 @@
 ---
 name: repo-command-setup
-description: Derive, verify, and configure the compile, test, and benchmark commands Artemis needs to execute a repository, including numeric artemis_results metrics. Use when preparing a repository for validation or discovery, fixing project commands, or checking that a repo can run on an Artemis runner.
+description: Derive, verify, and configure the compile, test, and benchmark commands Artemis needs to execute a repository, including numeric artemis_results metrics. Use when preparing a repository for validation or discovery, making a repo Discovery-ready, authoring a benchmark harness, fixing project commands, or checking that a repo can run on an Artemis runner.
 ---
 
 # Configure repository commands
@@ -9,7 +9,7 @@ description: Derive, verify, and configure the compile, test, and benchmark comm
 
 - **Problem:** Derives, verifies, and records the self-contained root-level `compile`, `test`, and `benchmark` commands Artemis requires.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
-- **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; write the microbenchmark first when the repository does not already have one.
+- **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
 - **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then continue to `discovery-start` or validation.
 
 ## Requirements
@@ -25,7 +25,7 @@ Plus, either way:
 
 ## Choose the workflow path
 
-If the repository lacks a suitable benchmark and correctness gate, stop and author one before continuing.
+If the repository lacks a suitable benchmark and correctness gate, follow [HARNESS.md](HARNESS.md) to author one, verify it locally, then continue here.
 
 Otherwise use the path supported by the available environment:
 
@@ -91,7 +91,7 @@ Choose tests that protect the behavior the optimization may change.
 - Include a focused correctness test for the optimized path.
 - Keep the command deterministic and reasonably fast because it runs for every version.
 - Ensure a deliberately incorrect implementation makes the command fail.
-- Write a new correctness-gated microbenchmark when the repo does not already have one.
+- Follow [HARNESS.md](HARNESS.md) when the repo does not already have a correctness-gated microbenchmark.
 
 ### Benchmark
 
@@ -103,7 +103,7 @@ Measure the requested optimization target directly.
 - Emit the metric that should rank versions, with stable units and direction.
 - Keep diagnostic output concise enough to avoid delaying task-log upload.
 
-Benchmark methodology is out of scope here; this skill is responsible for wiring and verifying the command.
+When no harness exists yet, author it with [HARNESS.md](HARNESS.md). This skill then wires and verifies the command.
 
 ## 3. Make environment requirements explicit
 

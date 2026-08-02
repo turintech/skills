@@ -103,7 +103,7 @@ Before launching discovery, validation, or Maintain:
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository ownership: `repo-prepare-fork`
-- Repository commands and validation: `repo-command-setup`
+- Repository commands, Discovery-ready harness authoring, and validation: `repo-command-setup`
 - Project registration: `project-import`
 - Discovery launch: `discovery-start`
 - Discovery interpretation: `discovery-inspect`
