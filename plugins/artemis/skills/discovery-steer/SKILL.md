@@ -1,15 +1,15 @@
 ---
 name: discovery-steer
-description: Redirect an active Artemis discovery agent, verify its child agent run was attached, and check whether subsequent experiments follow the new instruction. Use when the user wants to steer, redirect, or change the focus of an existing discovery run.
+description: Continue, expand, or redirect an Artemis discovery run, verify its child agent run was attached, and check whether later experiments follow new guidance. Use when the user wants to add budget, steer, redirect, or change the focus of an existing discovery run.
 ---
 
 # Steer a discovery run
 
 ## At a glance
 
-- **Problem:** Changes an active discovery agent's direction without starting a new discovery.
+- **Problem:** Adds budget or changes an existing discovery agent's direction without creating a new run.
 - **Must be available:** An authenticated CLI and the discovery run ID.
-- **Use / don't use:** Use for a new instruction within the existing version budget; use `discovery continue` to add versions to a finished run.
+- **Use / don't use:** Use to add budget or give new guidance to an existing run; use `discovery-start` for a new run.
 - **Next skill:** Use `discovery-inspect` to evaluate the resulting experiments, versions, metrics, and diffs.
 
 Successful delivery is not proof of compliance. Verify both the agent-run handoff and the work produced afterward.
@@ -20,13 +20,18 @@ Successful delivery is not proof of compliance. Verify both the agent-run handof
 artemis --output-format json discovery get "<run-id>"
 ```
 
-Confirm the current `status`, `taskDescription`, `targetFiles`, `versionCount`, and `agentRunId`. Surface conflicts between the requested direction and the original task or targets; target files are guidance, not a guaranteed write boundary.
+Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions`, and `agentRunId`. Surface conflicts between the requested direction and the original task or targets; target files are guidance, not a guaranteed write boundary.
 
-Do not steer merely to add budget. For a completed run that needs more versions:
+### Budget gate
+
+- Active with budget remaining: steer directly.
+- Terminal: add versions first. If an active run has exhausted its budget, wait for terminal status before continuing:
 
 ```bash
 artemis discovery continue "<run-id>" --versions <n>
 ```
+
+Refetch until the run is active with an `agentRunId`, then steer. `continue` expands and restarts the run but cannot carry new guidance; do not reverse this order when both are needed.
 
 ## 2. Send the instruction
 
@@ -64,6 +69,7 @@ Read relevant version rationales and diffs with `discovery-inspect`. In-flight w
 ## Checklist
 
 - [ ] Original task, targets, status, and current agent run inspected
+- [ ] Budget remains, or it was expanded before steering
 - [ ] Conflict with the requested direction surfaced
 - [ ] `discovery steer` returned a resulting agent ID with `verified: true`
 - [ ] Discovery `agentRunId` matches that result
