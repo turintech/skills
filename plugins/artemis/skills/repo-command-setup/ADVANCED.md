@@ -249,6 +249,7 @@ Do not overwrite a real checkout's Git metadata.
 - **Permission denied:** verify the runner user owns the dedicated workspace and outputs.
 - **Server starts but benchmark fails:** inspect readiness, port ownership, and service logs.
 - **Metrics missing:** remove stale files, verify exact filename and working directory, and ensure every value is numeric.
+- **Harness or script bug found only on the runner:** fix in Git, `project pull`, create a new empty changeset, then re-validate — see SKILL.md §5b.
 - **Numbers drift:** pin thread counts, discard warm-up iterations, control shared-machine load, and use a statistic validated against repeated runs.
 
 After fixing an advanced case, rerun compile, test, and benchmark in order and record every machine-level prerequisite that remains.

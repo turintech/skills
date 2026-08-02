@@ -214,7 +214,10 @@ artemis changeset validation get "<validation-id>" --project "<project-uuid>"
 
 Confirm every command shows `exitCode: 0`, the intended runner and toolchain were used, and the benchmark created a fresh `artemis_results.json`/`.csv`. The result reports only `exitCode`, `runtime`, `cpu`, and `memory` — never metric values, and never whether the results file was written. Read the command output with `artemis process logs "<process-id>"`, passing `status.id` from the validate response (not the per-command `logId`, which is not fetchable).
 
-If something fails, fix the command and re-run `changeset validate` again (a fresh changeset isn't needed — reuse the same one, `--version original` still resolves the same original code).
+When something fails, distinguish command-string issues from repository code or script issues:
+
+- **Command-string failure:** adjust the `--command` values and re-run `changeset validate` on the same empty changeset (`--version original` still resolves that original code).
+- **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
 
 If `changeset validate` is unavailable, inspect `artemis validation run --help` for the installed CLI's project-validation workflow and use the runner log for command details. Do not invent compatibility flags.
 
