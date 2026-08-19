@@ -27,10 +27,10 @@ A runner executes project-supplied compile, test, and benchmark commands on the 
 
 There are two routes. Scripted and agent-driven setups should use the direct download plus API-key registration below; a human at a browser can use the Web UI flow instead.
 
-Runner binaries are published at `https://files.artemis.turintech.ai/public/artemis-runner/`. The latest Linux binary is available at:
+Runner binaries are published at `https://files.artemis.turintech.ai/public/artemis-runner/`. The Linux 5.2.1 binary is available at:
 
 ```text
-https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-latest-linux
+https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-5.2.1-linux
 ```
 
 Combined with the API-key start command in the next section, this needs no Web UI at all — see *Artemis Custom Runner → Registering without a token*.
