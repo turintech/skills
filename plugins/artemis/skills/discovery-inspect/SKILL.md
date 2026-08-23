@@ -7,8 +7,8 @@ description: Inspect and interpret the results of an Artemis discovery run — i
 
 ## At a glance
 
-- **Problem:** Interprets discovery status, experiments, versions, metrics, agent narration, and runner logs without mistaking completion for success.
-- **Must be available:** An authenticated CLI for the run's Artemis deployment, the discovery run ID, and ideally access to retained runner logs.
+- **Problem:** Interprets discovery status, experiments, versions, metrics, agent narration, and runner evidence without mistaking completion for success.
+- **Must be available:** An authenticated CLI for the run's Artemis deployment and the discovery run ID.
 - **Use / don't use:** Use to monitor, understand, or diagnose an existing discovery run; use `discovery-start` and the setup skills to create a run or resolve prerequisites.
 - **Next skill:** For more versions with a new focus, use `discovery-steer`: expand the budget first, then send guidance.
 
@@ -19,7 +19,7 @@ The central rule is **completed does not mean passed**. Terminal status means th
 - CLI authenticated (`artemis status`) on the run's deployment.
 - The `run_id` (from `discovery create`'s output, or `artemis discovery list --project <uuid>`).
 - If the run or version ID is unknown, ask for its Web UI URL and extract the project, discovery, and optional version UUIDs using `artemis` §2.
-- Ideally, access to the runner's log — it holds the real compile/test/benchmark outcomes and any tracebacks. Retain it by starting the runner with `--no-delete-task-output`; by default task dirs are wiped seconds after completion.
+- For a runner-executed failure, the version's `processId` or `executionLogId`; use `execution-log-inspect`.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 
 ## The inspection commands
@@ -64,7 +64,7 @@ artemis --output-format json chat messages <agent-run-id> \
 
 Repeated status text or repeated `propose`/`conclude` calls can be normal while the agent drafts and revises experiments. Evidence of a stall is stronger when the run record stops updating, a version remains pending, narration emits no new calls, and the runner is idle. Check `discovery versions get <version-id>`, chat events, and runner activity together before concluding that work has stopped.
 
-`discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `executionLogId`, and `observationId`. Read the actual discovery changeset with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
+`discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `processId`, `executionLogId`, and `observationId`. Read the actual discovery changeset with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
 
 When reporting a run or candidate, include clickable Web UI links:
 
@@ -74,33 +74,19 @@ When reporting a run or candidate, include clickable Web UI links:
 [Open changeset](<base-url>/projects/<project-id>/changesets/<changeset-id>)
 ```
 
-## Watch the runner log live
+## Inspect runner output
 
-Between `discovery create` and terminal state, the fastest signal that a run is progressing (or wedged) is the runner's own log. Without shell access to the runner host, `artemis process logs "<process-id>"` fetches the same command output from the platform. Where the live log lives depends on how the runner was started:
+Use `execution-log-inspect` with the version's `processId` or `executionLogId` to diagnose compile, test, benchmark, and result-ingestion failures. A `generation_failed` version was never dispatched and has no runner task log; inspect its agent narration instead.
+
+Host-local runner daemon output is separate evidence for connection, polling, dispatch, and process-lifecycle problems. When shell access exists, its location depends on how the runner was started:
 
 - Wrapped in `nohup ./artemis-runner start … > runner.log 2>&1 &` (the convention for an automated runner) — the file is where you redirected it, typically `~/runner/runner.log`.
 - Under a systemd unit — `journalctl -u artemis-runner --follow`.
 - Foreground in a terminal — it's already in view.
 
-Runner output is high-volume, so filter for phase transitions, metrics, and failures:
-
-```bash
-tail -F ~/runner/runner.log 2>/dev/null | grep -E --line-buffered \
-  "Discovery evaluation|Target validation|compile\.sh|test\.sh|benchmark\.sh|command (passed|failed)|artemis_results|median_ms|\[bench\]|Traceback|error:|Error|FAILED|Killed|OOM"
-```
-
-What each event means:
-
-- `▶ Discovery evaluation started · discovery <run-id> · version vN` — runner picked up a task and knows which run/version it belongs to.
-- `$ compile command: …` / `$ unit_test command: …` / `$ benchmark command: …` — the runner is about to invoke that phase.
-- `✔ <phase> command passed (exit 0, Ns)` — the phase finished cleanly in N seconds. Compare against expected times.
-- `· benchmark metrics found (N metric(s))` — runner parsed `artemis_results.json`. If this is missing after a passed benchmark, the file wasn't emitted or the format was rejected (see `repo-command-setup` §4).
-- `■ Discovery evaluation finished — completed` — the platform has ingested this task's observation.
-- `Traceback` / `error:` / `FAILED` — real error. The subsequent lines usually name the file and reason.
-
 ### Baseline and evaluation delays
 
-After the benchmark exits, the runner uploads its task log before baseline finalization or version ingestion can complete. Large logs can make the gap between a passed benchmark and `Discovery evaluation finished` last several minutes. Compare the runner log with the run record and measure log volume before treating silence as a stall; see [advanced log control](../repo-command-setup/ADVANCED.md#control-log-volume).
+After the benchmark exits, the runner uploads its task log before baseline finalization or version ingestion can complete. Large logs can make this gap last several minutes. Compare task-log timestamps with the run record before treating silence as a stall; see [advanced log control](../repo-command-setup/ADVANCED.md#control-log-volume).
 
 The next gap — evaluation finished to the next version being dispatched — is agent-side. Use timestamps in the narration and run record to distinguish continued planning from inactivity.
 
@@ -151,9 +137,9 @@ artemis changeset diff <changeset-id> --project <project-uuid> --stat   # file s
 
 ## Common misreads
 
-- **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and the runner log; exploration may not have started. If the run is terminal but runner work is still visible, wait for the records to converge. If the run is terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
+- **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and available execution logs; exploration may not have started. If it becomes terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
 - **Fitness is often not meaningful.** Agent-derived metric schemas may weight every metric equally (~0.02) and bundle compile-time/memory in, so `fitness` can be near-zero or **negative** for a version that improved your target metric. Rank by the **raw metric value**, not fitness.
-- **The runner log is usually the clearest failure evidence — for failures that reach the runner.** Compile/test tracebacks may not appear in the run record. Filter for `command (passed|failed)`, `Traceback`, `error`, and `✗`. But `generation_failed` versions never get dispatched, so counting failures from the log alone will report zero when half the budget failed; cross-check `discovery versions list`.
+- **Task logs cover only versions that reached a runner.** Use `execution-log-inspect` for compile, test, benchmark, and ingestion evidence. Cross-check `discovery versions list` because `generation_failed` versions were never dispatched.
 - **`discovery metrics` prints logger noise to stdout.** vLLM/other imports emit WARNING/INFO to stdout, so piping the text output into a JSON parser fails. Use `--output-format json`, or read the printed table directly.
 - **Names drift.** A project's platform-side name can diverge from whatever you called it at import time; always reference the **project UUID**.
 
@@ -161,6 +147,6 @@ artemis changeset diff <changeset-id> --project <project-uuid> --stat   # file s
 
 - [ ] `discovery get`: baseline finalized (`baselineObservationId` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit.
 - [ ] `discovery metrics --all`: each version's target metric compared to `baseline:` — the numbers, not `fitness`, decide the winner.
-- [ ] `versions list`: winners are `execution=success`; every failure accounted for, including `generation_failed` ones the runner log cannot show.
+- [ ] `versions list`: winners are `execution=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
 - [ ] Clickable Discovery, winning version, and changeset links returned to the user.
