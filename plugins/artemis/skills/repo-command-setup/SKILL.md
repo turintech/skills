@@ -56,6 +56,8 @@ Each command must therefore be:
 
 The benchmark must write `artemis_results.json` or `artemis_results.csv` to the command's working directory. Stdout is useful for diagnostics but is not the custom-metric channel.
 
+At command entry, `$PWD` is that candidate checkout (`output/build`); see [Task output: where your code is downloaded and run](https://docs.artemis.turintech.ai/features/artemis-runner#task-output-where-your-code-is-downloaded-and-run).
+
 Do not configure Artemis until all three commands are verified under the execution assumptions it will use.
 
 ## 1. Inspect before asking

@@ -9,6 +9,8 @@ Every Artemis version arrives in a fresh checkout, so large projects lose increm
 
 Keep a dedicated built tree on the runner, seeded at the same commit as the project on the platform. The compile command syncs the candidate's changes into that tree and rebuilds incrementally. Test and benchmark use the same tree; the benchmark still publishes results back to the task directory.
 
+That task directory is the runner's candidate checkout (`$PWD` / `output/build`); see [Task output: where your code is downloaded and run](https://docs.artemis.turintech.ai/features/artemis-runner#task-output-where-your-code-is-downloaded-and-run).
+
 This skill explains the requirements. It does not prescribe a helper-script layout. Return to `repo-command-setup` to record and verify the command triple.
 
 See [WORKSPACE.md](WORKSPACE.md) for optional shell sketches.

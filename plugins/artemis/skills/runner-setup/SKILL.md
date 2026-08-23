@@ -33,7 +33,7 @@ Runner binaries are published at `https://files.artemis.turintech.ai/public/arte
 https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-5.2.1-linux
 ```
 
-Combined with the API-key start command in the next section, this needs no Web UI at all — see *Artemis Custom Runner → Registering without a token*.
+Combined with the API-key start command in the next section, this needs no Web UI at all — see [Registering with an API key](https://docs.artemis.turintech.ai/features/artemis-runner#registering-with-an-api-key).
 
 The Web UI remains the source of truth for the supported runner version, platform-specific download, deployment configuration, and registration mechanism. Use it when the direct artifact does not match the platform you need, when the download fails, or when a human is driving:
 
