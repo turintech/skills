@@ -13,6 +13,8 @@ These are escape hatches, not defaults. They introduce machine-specific state an
 
 ## Persistent build workspace
 
+Follow `workspace-setup` for the requirements. This section is a short pattern.
+
 ### Problem
 
 Use this when a clean build is prohibitively slow because the project needs expensive dependency installation, generated assets, compilation caches, or a large incremental build tree.
