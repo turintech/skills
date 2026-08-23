@@ -7,7 +7,7 @@ description: Prepare and verify a runner-owned persistent build workspace for Ar
 
 Every Artemis version arrives in a fresh checkout, so large projects lose incremental build state and pay a full rebuild for each candidate.
 
-Keep a dedicated built tree on the runner, seeded at the same commit as the project on the platform. The compile command syncs the candidate's changes into that tree and rebuilds incrementally. Test and benchmark use the same tree; the benchmark still publishes results back to the task directory.
+Keep a dedicated built tree on the runner, seeded at the same commit as the project on the platform. The compile command syncs the candidate's changes into that tree and rebuilds incrementally. Test and benchmark use the same tree; the benchmark still publishes results back to the working directory (`$PWD`).
 
 This skill explains the requirements. It does not prescribe a helper-script layout. Return to `repo-command-setup` to record and verify the command triple.
 
@@ -19,7 +19,7 @@ See [WORKSPACE.md](WORKSPACE.md) for optional shell sketches.
 - Seed that tree at the same commit as the project on the platform (`gitHash`, or Discovery `baselineVersionSha` when a run exists). If they differ, stop and resolve that before creating a cache.
 - In the Artemis compile command, sync candidate changes into the tree and rebuild incrementally. Sync every path the agent may change; an incomplete copy silently measures old code.
 - Run test and benchmark against that same built tree.
-- Publish `artemis_results.json` or `.csv` back to the original task directory (`$PWD`). Artemis does not read results from the cache.
+- Publish `artemis_results.json` or `.csv` back to the working directory (`$PWD`). Artemis does not read results from the cache.
 - If candidates share one tree, serialize compile through benchmark so another candidate cannot overwrite the binary mid-transaction.
 - Start a new cache when the seed commit, toolchain, or incompatible build options change.
 - A failed sync or build must not leave a previous binary or stale results file looking current.
