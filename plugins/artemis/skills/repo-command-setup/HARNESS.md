@@ -22,7 +22,10 @@ Stdout is for diagnostics. Metrics come only from the results file. See SKILL.md
 3. **Create a repository-owned script** (prefer `tools/` or `benchmarks/`) that:
    - removes any stale `artemis_results.json` / `.csv` before measuring;
    - runs or invokes the timed workload;
-   - writes a fresh numeric results file atomically when practical.
+   - writes a fresh numeric results file atomically in the directory from which
+     Artemis invoked the command. If measurement runs elsewhere, capture the
+     invocation directory before changing directories and publish the completed
+     file back there.
 4. **Prefer wrapping an existing timed binary** when one already prints timing to stdout; do not reinvent timers unless necessary. The harness's job is the Artemis results channel.
 5. **Verify locally** from a clean checkout:
 
@@ -35,6 +38,11 @@ test -f artemis_results.json || test -f artemis_results.csv
 ```
 
 Confirm the results file contains the ranking metric as a number. Then return to SKILL.md §2–§6 to record the three commands and complete runner verification when available.
+
+Run the benchmark a second time after deleting the first result. Confirm its
+mtime/content is new and the metric is comparable. Also prove one representative
+semantic fault makes the test command fail; a benchmark without a functioning
+correctness gate is not Discovery-ready.
 
 ## Minimal JSON example
 

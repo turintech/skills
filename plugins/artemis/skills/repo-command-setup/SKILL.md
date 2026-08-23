@@ -162,6 +162,20 @@ The benchmark must create the file in the working directory from which Artemis i
 
 Use the selected runner whenever the project is imported; local success cannot prove compatibility with its toolchain, OS, architecture, or dependencies. Verify locally when no runner or project exists yet, or as a faster preliminary loop. Both paths must prove that all three commands pass, the test catches a representative fault, and the benchmark writes a fresh numeric results file.
 
+Verification must also prove **candidate identity**. A passing build is not useful
+if it rebuilt a fixed baseline tree or benchmarked a stale binary:
+
+- make one harmless representative source edit in a disposable checkout and
+  prove the corresponding file is synchronized and its artifact is rebuilt;
+- restore that edit before recording the commands;
+- make one representative semantic fault and prove the test command rejects it;
+- run the benchmark twice from clean result-file state and confirm both runs
+  publish fresh, comparable numeric metrics to the invocation directory.
+
+When commands bridge into a persistent build tree, use the `workspace-setup`
+skill first. Record the candidate checkout, persistent workspace, and results
+publication directory explicitly.
+
 ### 5a. Verify locally
 
 Use a disposable clean clone or worktree so ignored files and parent-directory state cannot mask missing setup. Do not destructively clean the user's active checkout.
@@ -180,9 +194,10 @@ Confirm:
 
 - each command returns zero only on success;
 - the test fails for a representative semantic fault;
+- a representative candidate source edit reaches the rebuilt artifact;
 - the benchmark creates a fresh numeric results file;
+- a second clean benchmark run creates a new comparable result;
 - commands do not read a parent `.git`, environment, or build directory accidentally;
-- a second run produces a comparable metric;
 - output volume is proportionate to useful diagnostics.
 
 Record the literal commands and measured duration of each phase.
@@ -219,7 +234,17 @@ When something fails, distinguish command-string issues from repository code or 
 - **Command-string failure:** adjust the `--command` values and re-run `changeset validate` on the same empty changeset (`--version original` still resolves that original code).
 - **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
 
-If `changeset validate` is unavailable, inspect `artemis validation run --help` for the installed CLI's project-validation workflow. When that workflow returns a process ID, use `execution-log-inspect` for command details. Do not invent compatibility flags.
+If `changeset validate` is unavailable, inspect
+`artemis validation run --help` for the installed CLI's project-validation
+workflow. The older workflow requires storing commands with
+`artemis project commands set`, adding at least one target, and running
+`artemis validation run --target <id> --original --runner <name> --wait`.
+This mutates project settings, so use a dedicated acceptance project rather than
+an unrelated active project. When the workflow returns a process ID, use
+`execution-log-inspect` for command details. Some CLI versions omit
+original-version details from validation results, so use retained runner output
+to prove per-command exit codes and results-file ingestion. Do not invent
+compatibility flags.
 
 ## 6. Configure Artemis
 
@@ -239,9 +264,10 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Compile, test, and benchmark commands are exact and recorded.
 - [ ] Verification completed locally or on the runner, or explicitly skipped by the user and recorded as outstanding.
 - [ ] When verification was performed, all three passed in order from a disposable clean checkout or via `changeset validate --version original` on the runner.
+- [ ] A representative candidate edit was proven to reach the rebuilt artifact.
 - [ ] Commands are root-relative, headless, non-interactive, and repeatable.
 - [ ] Compile catches invalid generated code.
 - [ ] Test catches a representative semantic fault.
-- [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
+- [ ] Two clean benchmark runs each write a fresh numeric `artemis_results.json` or CSV file to the invocation directory.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
 - [ ] Validation and discovery use the same verified commands.
