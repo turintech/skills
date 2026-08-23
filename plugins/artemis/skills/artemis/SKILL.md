@@ -35,10 +35,10 @@ Give a clickable Markdown link with a short label:
 
 - Skills: [Artemis Skills](https://docs.artemis.turintech.ai/features/artemis-agent-skills)
 - CLI: [Artemis CLI](https://docs.artemis.turintech.ai/features/artemis-cli)
-- API keys: [API Keys](https://docs.artemis.turintech.ai/settings/user-settings#api-keys)
+- API keys: [Create an API key](https://artemis.turintech.ai/settings/api-keys)
 - Runner: [Artemis runner](https://docs.artemis.turintech.ai/features/artemis-runner)
 - Project import: [Import a codebase](https://docs.artemis.turintech.ai/project-setup/import-codebase)
-- Git credentials: [Git keys](https://docs.artemis.turintech.ai/project-setup/git-keys)
+- Git credentials: [Connect Git](https://artemis.turintech.ai/settings/git)
 - Commands and metrics: [Custom metrics](https://docs.artemis.turintech.ai/features/custom-metrics)
 - Discovery: [Discovery](https://docs.artemis.turintech.ai/optimization/discover)
 - Guided demo: [Particle Life tutorial](https://docs.artemis.turintech.ai/optimization/discover/tutorials/particle-life-example)
