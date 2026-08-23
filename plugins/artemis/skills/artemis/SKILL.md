@@ -23,7 +23,7 @@ When the user names a downstream task and supplies its inputs, route directly to
 
 ## Operating context
 
-Artemis evaluates repository code on a user-supplied runner with root-level `compile`, `test`, and `benchmark` commands. `repo-command-setup` owns that execution and numeric-results contract.
+Artemis evaluates repository code on a user-supplied runner with root-level `compile`, `test`, and `benchmark` commands. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
 
 A **project** imports a repository branch at a specific commit; a **version** is the baseline or an AI-generated candidate; a **discovery run** generates and evaluates versions against a metric.
 
@@ -92,7 +92,7 @@ Raise only rows required by the selected workflow:
 | Runner | Approved machine, required toolchain and resources, and availability | `runner-setup` |
 | Repository | Importable user-controlled remote, or permission to create a fork or mirror | `repo-prepare-fork` |
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
-| Commands | Exact verified commands and a suitable correctness-gated benchmark | `repo-command-setup` |
+| Commands | Exact verified commands and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
 
 Maintain needs no runner or benchmark. Inspection normally needs only the authenticated CLI and identifiers.
 
@@ -132,6 +132,7 @@ Before launching discovery, validation, or Maintain:
 - Runner: `runner-setup`
 - Repository ownership: `repo-prepare-fork`
 - Repository commands, Discovery-ready harness authoring, and validation: `repo-command-setup`
+- Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`
 - Discovery launch: `discovery-start`
 - Discovery continuation, budget expansion, steering, or redirection: `discovery-steer`
