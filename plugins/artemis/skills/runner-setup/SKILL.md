@@ -48,7 +48,13 @@ For an on-prem deployment, select its custom-environment option in the generated
 
 ## Start the runner
 
-The runner registers itself on first start: give it a new, unique name and the deployment URL, and authenticate with the API key. Supply the key through the environment so it stays off the command line and out of `ps`:
+Before starting anything:
+
+1. Check `artemis runner list` and local processes so an existing runner is not duplicated.
+2. Explain that the runner is a long-lived process that executes connected repository code.
+3. Offer to start it and obtain the user's explicit permission.
+
+After permission, the runner registers itself on first start: give it a new, unique name and the deployment URL, and authenticate with the API key. Supply the key through the environment so it stays off the command line and out of `ps`:
 
 ```bash
 set -a; . ~/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY
@@ -58,9 +64,11 @@ set -a; . ~/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY
   --no-delete-task-output
 ```
 
-The name appears in the fleet as soon as it connects. `--no-delete-task-output` keeps each task's working directory and log after completion, which `discovery-inspect` relies on for diagnosis; the default removes them within seconds.
+The name appears in the fleet as soon as it connects. `--no-delete-task-output` keeps each task's working directory and log after completion for optional host-local diagnosis; the default removes them within seconds.
 
-Alternatively run the start command shown by the setup flow. Keep that terminal open for an initial verification. If the UI offers a service installation or persistence step, use it; otherwise ask before creating an operating-system service.
+Keep the runner in a visible terminal for initial verification. If it needs to outlive that terminal, prefer a named `tmux` session when available, check that the session name is unused, and tell the user how to attach, detach, and stop it. If only a background process is possible, report its PID, output location, and exact stop command.
+
+Alternatively use the start command shown by the setup flow. Ask separately before creating an operating-system service, even if the user already approved starting a process.
 
 ## Verify
 
