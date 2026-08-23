@@ -5,163 +5,77 @@ description: Prepare and verify a runner-owned persistent build workspace for Ar
 
 # Set up a persistent Artemis workspace
 
-## At a glance
+Every Artemis version arrives in a fresh checkout, so large projects lose
+incremental build state and pay a full rebuild for each candidate.
 
-- **Problem:** Every Artemis version arrives in a fresh checkout, while large
-  projects need a stable source/build tree to reuse an incremental build.
-- **Must be available:** Exact repository URL, branch and baseline SHA; runner
-  host/toolchain; paths the agent may edit; compile, test and benchmark intent.
-- **Next skill:** Return to `repo-command-setup` to verify the exact command
-  triple on the runner.
+Keep a dedicated built tree on the runner, seeded at the same commit as the
+project on the platform. The compile command syncs the candidate's changes
+into that tree and rebuilds incrementally. Test and benchmark use the same
+tree; the benchmark still publishes results back to the task directory.
 
-This skill owns the bridge between the candidate checkout and persistent state.
-It does not choose the benchmark metric or launch Discovery.
+This skill explains the requirements. It does not prescribe a helper-script
+layout. Return to `repo-command-setup` to record and verify the command triple.
 
-## Execution model
+See [WORKSPACE.md](WORKSPACE.md) for optional shell sketches.
 
-Keep these locations distinct and record all three:
+## Requirements
 
-1. **Candidate checkout:** ephemeral Artemis task directory; command invocation
-   starts here and `$PWD` identifies the version being evaluated.
-2. **Persistent workspace:** runner-owned source, build, install and dependency
-   state, seeded from the project's exact baseline SHA.
-3. **Results publication directory:** the original command invocation directory;
-   the benchmark must publish `artemis_results.json` or `.csv` here.
+- Create a dedicated directory on the runner host and build the project there.
+  Do not use a developer's active checkout.
+- Seed that tree at the same commit as the project on the platform (`gitHash`,
+  or Discovery `baselineVersionSha` when a run exists). If they differ, stop
+  and resolve that before creating a cache.
+- In the Artemis compile command, sync candidate changes into the tree and
+  rebuild incrementally. Sync every path the agent may change; an incomplete
+  copy silently measures old code.
+- Run test and benchmark against that same built tree.
+- Publish `artemis_results.json` or `.csv` back to the original task directory
+  (`$PWD`). Artemis does not read results from the cache.
+- If candidates share one tree, serialize compile through benchmark so another
+  candidate cannot overwrite the binary mid-transaction.
+- Start a new cache when the seed commit, toolchain, or incompatible build
+  options change.
+- A failed sync or build must not leave a previous binary or stale results
+  file looking current.
 
-Never use a developer's active checkout as the persistent workspace.
+## Examples
 
-## 1. Inspect before changing anything
+These sketches show one way to meet the requirements. Adapt them to the
+repository's build system.
 
-Determine:
+Compile syncs the candidate into the built tree and rebuilds:
 
-- project repository, branch, imported `gitHash` and Discovery
-  `baselineVersionSha` when a run exists;
-- build system, submodules, generated inputs, install prefix and toolchain;
-- files the optimization agent may add, edit, rename or delete;
-- focused build targets and correctness tests;
-- immutable models, datasets and environments that may remain outside source;
-- expected cold and incremental build times;
-- runner concurrency and available locking tools.
-
-If the imported SHA and intended baseline differ, stop and resolve that before
-creating a cache.
-
-## 2. Add repository-owned helpers
-
-Prefer a small directory such as `harness/artemis/` or `<POC>/artemis/`:
-
-```text
-artemis/
-├── README.md
-├── common.sh
-├── setup-workspace.sh
-├── compile.sh
-├── test.sh
-└── benchmark.sh
+```bash
+set -euo pipefail
+ORIG="$PWD"
+WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
+# confirm the workspace is seeded at the platform commit, then:
+# sync every path the agent may change from "$ORIG" into "$WORKSPACE"
+# rebuild incrementally in "$WORKSPACE"
 ```
 
-See [WORKSPACE.md](WORKSPACE.md) for the required contracts and shell patterns.
-Use environment variables for machine-specific roots; do not commit a user's
-home directory.
+Benchmark measures that tree and copies results back to `$PWD`:
 
-### Setup helper
-
-It must:
-
-- require explicit repository URL and seed SHA, or derive them only when
-  unambiguous and print the resolved values;
-- clone a dedicated source tree, initialize required submodules and configure a
-  stable build directory;
-- perform the initial focused build;
-- record seed SHA, submodule state, build options and toolchain identity;
-- create an unmistakable managed-workspace marker only after setup succeeds.
-
-Use a new cache root when the seed, submodule state, toolchain or incompatible
-build option changes.
-
-### Compile helper
-
-It must:
-
-- capture the candidate root before changing directory;
-- refuse to operate without the managed marker and matching recorded seed;
-- acquire an exclusive lock covering source sync, build, test and benchmark;
-- synchronize every path the agent may change, including additions/deletions;
-- preserve incremental-build timestamps for unchanged content;
-- build the focused artifacts and propagate the real exit code;
-- log which candidate files changed and which artifacts rebuilt.
-
-For content overlays, prefer checksum comparison and do not infer deletions from
-a thinner extracted checkout. If deletion support is required, derive it from a
-trusted manifest/diff rather than broad `rsync --delete`.
-
-### Test and benchmark helpers
-
-Both must consume artifacts from the same synchronized workspace. The benchmark
-must remove stale result files in both workspace and invocation directory, run
-headlessly, validate numeric output, and atomically publish the final result
-back to the invocation directory.
-
-## 3. Make shared state safe
-
-- Use one workspace per concurrent worker, or serialize the full
-  compile→test→benchmark transaction with a lock.
-- A per-command lock is insufficient if another candidate can compile between
-  this candidate's compile and benchmark.
-- Scope cleanup to the managed workspace and processes started by these helpers.
-- Never use broad process killing or destructive cleanup outside a verified
-  managed root.
-
-## 4. Verify identity, not only exit codes
-
-Verify from a disposable candidate checkout or through
-`artemis changeset validate`:
-
-1. Baseline compile, focused test and benchmark pass.
-2. A harmless edit in an allowed source file is reported by synchronization and
-   rebuilds the expected object/artifact.
-3. The resulting test/benchmark uses that rebuilt artifact, not a stale install.
-4. Restoring the source rebuilds back to baseline.
-5. A representative semantic fault is rejected by the test command.
-6. Two clean benchmark runs each publish a fresh numeric result in the task
-   invocation directory.
-7. A second worker cannot mutate the workspace during the transaction.
-
-Record literal commands, phase durations, seed SHA, runner/toolchain identity,
-sync evidence and rebuilt artifact evidence.
-
-## 5. Hand off
-
-Return to `repo-command-setup` with:
-
-```text
-Candidate checkout:
-Persistent workspace:
-Results publication directory:
-Repository / branch / seed:
-Managed marker:
-Locking strategy:
-Allowed synchronized paths:
-Compile command:
-Test command:
-Benchmark command:
-Cold setup duration:
-Incremental duration:
-Identity proof:
-Fault-gate proof:
-Metric publication proof:
+```bash
+set -euo pipefail
+ORIG="$PWD"
+WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
+rm -f "$ORIG/artemis_results.json" "$ORIG/artemis_results.csv"
+# run the headless benchmark against "$WORKSPACE"
+# copy the fresh numeric results file back to "$ORIG"
+test -f "$ORIG/artemis_results.json" || test -f "$ORIG/artemis_results.csv"
 ```
 
-Do not launch Discovery until runner-side validation passes.
+## Prove the candidate rebuilt
 
-## Completion checklist
+A passing exit code is not enough if the cache rebuilt the seed tree or
+benchmarked a stale binary. After a representative source edit, the sync
+should pick it up and the rebuild should change the expected artifact. Restore
+the edit before recording commands. A representative semantic fault should
+still fail the test command.
 
-- [ ] Persistent source is dedicated and pinned to the Artemis baseline SHA.
-- [ ] Marker and metadata identify seed, submodules, toolchain and build options.
-- [ ] Repository-owned helpers contain no user-specific absolute paths.
-- [ ] Synchronization covers the full allowed edit surface without unsafe delete.
-- [ ] One candidate owns the workspace for compile, test and benchmark.
-- [ ] Representative candidate edit rebuilt the expected artifact.
-- [ ] Representative semantic fault failed the test gate.
-- [ ] Two clean benchmark runs published fresh numeric task-root results.
-- [ ] Exact commands and prerequisites were handed to `repo-command-setup`.
+## Hand off
+
+Give `repo-command-setup` the compile, test, and benchmark commands, the cache
+location, the seed commit, and the proof above. Do not launch Discovery until
+runner-side validation passes.
