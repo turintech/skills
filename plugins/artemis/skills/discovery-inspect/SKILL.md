@@ -66,6 +66,14 @@ Repeated status text or repeated `propose`/`conclude` calls can be normal while 
 
 `discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `executionLogId`, and `observationId`. Read the actual discovery changeset with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
 
+When reporting a run or candidate, include clickable Web UI links:
+
+```text
+[Open Discovery](<base-url>/projects/<project-id>/discovery/<run-id>)
+[Open version](<base-url>/projects/<project-id>/discovery/<run-id>/versions/<version-id>)
+[Open changeset](<base-url>/projects/<project-id>/changesets/<changeset-id>)
+```
+
 ## Watch the runner log live
 
 Between `discovery create` and terminal state, the fastest signal that a run is progressing (or wedged) is the runner's own log. Without shell access to the runner host, `artemis process logs "<process-id>"` fetches the same command output from the platform. Where the live log lives depends on how the runner was started:
@@ -155,3 +163,4 @@ artemis changeset diff <changeset-id> --project <project-uuid> --stat   # file s
 - [ ] `discovery metrics --all`: each version's target metric compared to `baseline:` — the numbers, not `fitness`, decide the winner.
 - [ ] `versions list`: winners are `execution=success`; every failure accounted for, including `generation_failed` ones the runner log cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
+- [ ] Clickable Discovery, winning version, and changeset links returned to the user.

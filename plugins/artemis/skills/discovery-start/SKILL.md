@@ -67,6 +67,14 @@ When the user selected a specific model, add `--model "<model-catalogue-uuid>"`.
 
 Capture `run_id` from the JSON — every later command needs it.
 
+Immediately give the user a clickable link:
+
+```text
+[Open Discovery](<base-url>/projects/<project-uuid>/discovery/<run_id>)
+```
+
+Use the authenticated deployment base URL and repeat the link in later progress or failure reports.
+
 ## 2. Baseline / metrics schema
 
 During baseline finalization, Artemis derives and stores `metricsSchema` using the explicitly selected model or the platform default. Poll:
@@ -106,5 +114,6 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Model choice recorded: platform default (`--model` omitted), or an explicit catalogue UUID requested by the user
 - [ ] Commands passed inline to `discovery create`
+- [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (observation + schema non-null) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`
