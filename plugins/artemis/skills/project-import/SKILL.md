@@ -84,6 +84,14 @@ artemis --output-format json project import \
 
 Capture the project UUID from the response immediately.
 
+Give the user a clickable link as soon as the UUID is known:
+
+```text
+[Open project](<base-url>/projects/<project-uuid>)
+```
+
+Use the authenticated deployment base URL, including for on-prem deployments. Repeat the link after import verification so the user can inspect the project in the Web UI.
+
 **Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes. `importedStatus` reports where it is — `importing`, `success`, or `failed` — on both `project import` and `project list`:
 
 ```bash
@@ -117,4 +125,5 @@ Project command defaults are optional for Web UI validation; discovery receives 
 - [ ] If no credential existed, both OAuth (Web UI) and `key add` (PAT) routes were offered; any new secret entered by the user outside chat.
 - [ ] Import performed once with confirmed inputs.
 - [ ] Project UUID captured and imported `gitHash` verified against the seed SHA.
+- [ ] Clickable project link returned to the user.
 - [ ] UUID and seed handed to `repo-command-setup` §5b or `discovery-start`.
