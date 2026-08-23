@@ -27,6 +27,23 @@ Artemis evaluates repository code on a user-supplied runner with root-level `com
 
 A **project** imports a repository branch at a specific commit; a **version** is the baseline or an AI-generated candidate; a **discovery run** generates and evaluates versions against a metric.
 
+### Official docs
+
+The public product docs live at `https://docs.artemis.turintech.ai`. Recommend the matching page when the user wants to follow along, when answering a conceptual question, or when a skill and the live product disagree. Do not treat docs as a substitute for executing the owning skill.
+
+Give a clickable Markdown link with a short label:
+
+- Skills: [Artemis Skills](https://docs.artemis.turintech.ai/features/artemis-agent-skills)
+- CLI: [Artemis CLI](https://docs.artemis.turintech.ai/features/artemis-cli)
+- API keys: [API Keys](https://docs.artemis.turintech.ai/settings/user-settings#api-keys)
+- Runner: [Artemis runner](https://docs.artemis.turintech.ai/features/artemis-runner)
+- Project import: [Import a codebase](https://docs.artemis.turintech.ai/project-setup/import-codebase)
+- Git credentials: [Git keys](https://docs.artemis.turintech.ai/project-setup/git-keys)
+- Commands and metrics: [Custom metrics](https://docs.artemis.turintech.ai/features/custom-metrics)
+- Discovery: [Discovery](https://docs.artemis.turintech.ai/optimization/discover)
+- Guided demo: [Particle Life tutorial](https://docs.artemis.turintech.ai/optimization/discover/tutorials/particle-life-example)
+- Maintain: [Scan](https://docs.artemis.turintech.ai/scan/overview)
+
 ## 1. Classify the workflow
 
 | Workflow | Intended outcome | Required infrastructure |
