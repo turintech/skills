@@ -29,7 +29,7 @@ A **project** imports a repository branch at a specific commit; a **version** is
 
 ### Official docs
 
-The public product docs live at `https://docs.artemis.turintech.ai`. Recommend the matching page when the user wants to follow along, when answering a conceptual question, or when a skill and the live product disagree. Do not treat docs as a substitute for executing the owning skill.
+The public product docs live at `https://docs.artemis.turintech.ai`. Recommend the matching page when the user wants to follow along or when answering a conceptual question. Do not treat docs as a substitute for executing the owning skill.
 
 Give a clickable Markdown link with a short label:
 
