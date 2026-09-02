@@ -1,0 +1,75 @@
+---
+name: discovery-visualize
+description: Collect a normalized Artemis discovery snapshot and render it as a host-native chart or report. Use when the user wants to graph, chart, plot, compare, visualize, or build a discovery report, canvas, or artifact from a discovery run.
+---
+
+# Visualize a discovery run
+
+## At a glance
+
+- **Problem:** Turns CLI discovery records into one normalized snapshot, then renders that snapshot on the current agent host without changing metric semantics.
+- **Must be available:** An authenticated CLI for the run's deployment and the discovery run ID.
+- **Use / don't use:** Use for graphs, charts, canvases, artifacts, or visual discovery reports. Use `discovery-inspect` to diagnose a run, read diffs, or decide what the numbers mean before drawing them.
+- **Next skill:** None required. Return to `discovery-inspect` for rationale/diff review, or `discovery-steer` for more versions.
+
+## Requirements
+
+- `artemis status` succeeds on the run's deployment.
+- A `run_id`. If unknown, ask for the Web UI URL and extract IDs using `artemis` §2.
+- Python 3, stdlib only, to run [scripts/collect_discovery.py](scripts/collect_discovery.py).
+
+## Workflow
+
+1. Confirm authentication and the run ID.
+2. Collect the snapshot (do not hand-join CLI JSON):
+
+```bash
+python3 "<skill-dir>/scripts/collect_discovery.py" \
+  --run-id "<run-id>" \
+  --output /tmp/discovery-snapshot.json
+```
+
+Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / trade-off view and named the axes, or when one target metric and one quality metric are the obvious pair and you label it as analysis.
+
+3. Read the snapshot. Trust `perMetricWinners`, `rankings`, and raw `metrics` means. Do not invent a single overall winner.
+4. Read [references/report-design.md](references/report-design.md), then the matching adapter:
+   - Cursor: [references/cursor.md](references/cursor.md)
+   - Claude Code: [references/claude-code.md](references/claude-code.md)
+   - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md)
+   - Unknown host: write the fallback HTML report from `report-design.md`.
+5. Verify labels, units, baseline deltas, gaps, and captions against the snapshot. Return the artifact link plus the Discovery Web UI link.
+
+The data contract is in [references/data-contract.md](references/data-contract.md).
+
+## Truth rules
+
+These override any host chart default:
+
+- Rank by the raw target metric, not `fitness`. Show fitness only as a separate platform score.
+- A per-metric **eligible** winner requires `lifecycle=completed`, `executionStatus=success`, and `experimentStatus != refuted`. The **raw** winner may fail that gate; show both and explain the difference.
+- Never claim one overall winner for multiple objectives unless the user supplied the aggregation rule.
+- Missing observations are gaps, not zeroes. `generation_failed` versions never reached the runner.
+- Plot and caption `mean` / `min` / `max` / `count`. Do not invent confidence intervals or UI `better` / `worse` / `noise` verdicts.
+- Keep worker measurements, agent-scored quality metrics, and experiment verdicts visually distinct.
+- A Pareto front is an analytical view over named axes, not an Artemis verdict.
+
+## Collector flags
+
+```text
+--run-id UUID          live CLI collect
+--from-dir DIR         fixture/replay collect (run.json, versions.json, metrics.json|stats.json, experiments.json)
+--output PATH          write JSON; default stdout
+--base-url URL         Web UI origin if status cannot infer it
+--pareto a,b           optional axes; repeatable
+```
+
+The collector already strips logger noise before JSON and joins `observationId` / `experimentId`.
+
+## Checklist
+
+- [ ] Snapshot written; `schemaVersion` is 1.
+- [ ] Each target metric has a baseline-relative view and a named raw vs eligible winner.
+- [ ] Failed and missing versions are accounted for.
+- [ ] Caption names the CLI source and that % is mean vs baseline.
+- [ ] Host artifact or fallback HTML opened/linked.
+- [ ] Discovery Web UI link returned.

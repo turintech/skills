@@ -1,0 +1,67 @@
+{
+  "docs": [
+    {
+      "id": "ver-1",
+      "versionNumber": 1,
+      "lifecycle": "completed",
+      "executionStatus": "success",
+      "displayStatus": "scored",
+      "fitnessScore": 0.2,
+      "changesetId": "cs-1",
+      "versionSha": "sha-1",
+      "observationId": "obs-1",
+      "experimentId": "exp-1",
+      "llmRationale": "First cut."
+    },
+    {
+      "id": "ver-2",
+      "versionNumber": 2,
+      "lifecycle": "completed",
+      "executionStatus": "success",
+      "displayStatus": "scored",
+      "fitnessScore": 0.9,
+      "changesetId": "cs-2",
+      "versionSha": "sha-2",
+      "observationId": "obs-2",
+      "experimentId": "exp-2",
+      "llmRationale": "Aggressive rewrite."
+    },
+    {
+      "id": "ver-3",
+      "versionNumber": 3,
+      "lifecycle": "generation_failed",
+      "executionStatus": "pending",
+      "displayStatus": "generation_failed",
+      "fitnessScore": null,
+      "changesetId": "cs-3",
+      "observationId": "obs-3",
+      "experimentId": "exp-3",
+      "llmRationale": "Never reached the runner."
+    },
+    {
+      "id": "ver-4",
+      "versionNumber": 4,
+      "lifecycle": "completed",
+      "executionStatus": "success",
+      "displayStatus": "scored",
+      "fitnessScore": 0.4,
+      "changesetId": "cs-4",
+      "versionSha": "sha-4",
+      "observationId": "obs-4",
+      "experimentId": "exp-4",
+      "llmRationale": "Balanced change."
+    },
+    {
+      "id": "ver-5",
+      "versionNumber": 5,
+      "lifecycle": "completed",
+      "executionStatus": "failed",
+      "displayStatus": "failed",
+      "fitnessScore": null,
+      "changesetId": "cs-5",
+      "observationId": "obs-5",
+      "experimentId": "exp-5",
+      "llmRationale": "Compile failed."
+    }
+  ]
+}

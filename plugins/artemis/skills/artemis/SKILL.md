@@ -53,6 +53,7 @@ Give a clickable Markdown link with a short label:
 | Maintain | Scan, triage, fix, or publish code-health issues | Rules, scope, and push access when publishing |
 | Setup | Install or repair a CLI, runner, repository, credential, or harness | Depends on the component |
 | Inspection | Resume, monitor, diagnose, or summarize existing work | Existing project or run identifiers |
+| Visualization | Chart or report an existing discovery run | Authenticated CLI and run ID |
 
 If the intent is ambiguous, explain the smallest relevant distinction and ask one focused question.
 
@@ -137,6 +138,7 @@ Before launching discovery, validation, or Maintain:
 - Discovery launch: `discovery-start`
 - Discovery continuation, budget expansion, steering, or redirection: `discovery-steer`
 - Discovery interpretation: `discovery-inspect`
+- Discovery charts, canvases, artifacts, or visual reports: `discovery-visualize`
 - Runner task diagnostics without host access: `execution-log-inspect`
 - Maintain: use the `maintain` skill when present; otherwise inspect `artemis maintain --help` before any mutation
 

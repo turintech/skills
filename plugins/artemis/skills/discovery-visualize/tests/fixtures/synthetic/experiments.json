@@ -1,0 +1,9 @@
+{
+  "docs": [
+    {"id": "exp-1", "title": "First cut", "status": "validated", "confidence": 0.8, "parentExperimentIds": [], "conclusion": "Holds."},
+    {"id": "exp-2", "title": "Aggressive rewrite", "status": "refuted", "confidence": 0.3, "parentExperimentIds": ["exp-1"], "conclusion": "Failed the quality bar."},
+    {"id": "exp-3", "title": "Unshipped idea", "status": "inconclusive", "confidence": 0.1, "parentExperimentIds": ["exp-1"], "conclusion": "Never generated."},
+    {"id": "exp-4", "title": "Balanced change", "status": "validated", "confidence": 0.7, "parentExperimentIds": ["exp-1"], "conclusion": "Best eligible trade-off."},
+    {"id": "exp-5", "title": "Broken compile", "status": "refuted", "confidence": 0.2, "parentExperimentIds": [], "conclusion": "Did not compile."}
+  ]
+}

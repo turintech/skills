@@ -9,8 +9,8 @@ description: Inspect and interpret the results of an Artemis discovery run — i
 
 - **Problem:** Interprets discovery status, experiments, versions, metrics, agent narration, and runner evidence without mistaking completion for success.
 - **Must be available:** An authenticated CLI for the run's Artemis deployment and the discovery run ID.
-- **Use / don't use:** Use to monitor, understand, or diagnose an existing discovery run; use `discovery-start` and the setup skills to create a run or resolve prerequisites.
-- **Next skill:** For more versions with a new focus, use `discovery-steer`: expand the budget first, then send guidance.
+- **Use / don't use:** Use to monitor, understand, or diagnose an existing discovery run; use `discovery-visualize` when the user wants charts or a visual report; use `discovery-start` and the setup skills to create a run or resolve prerequisites.
+- **Next skill:** For graphs, canvases, or a visual report, use `discovery-visualize`. For more versions with a new focus, use `discovery-steer`: expand the budget first, then send guidance.
 
 The central rule is **completed does not mean passed**. Terminal status means the work ran, not that it produced a valid version. A run can complete with zero versions, and a completed version can fail its test. Trust recorded metrics and runner evidence rather than the status alone.
 
