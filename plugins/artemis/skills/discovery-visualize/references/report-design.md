@@ -12,7 +12,7 @@ For each target metric:
 2. **Compact provenance** — project/run identity, status, baseline SHA, `collectedAt`, and a prominent Web UI link.
 3. **Version-budget progress** — `versionCount` / `numVersions` when the host has a compact progress primitive.
 4. **Baseline-to-best comparison** — baseline mean → directional arrow with `pctBetter` above it → raw per-metric winner mean and version label. Include units and observation counts.
-5. **One trajectory per target metric** — generation-order means with a baseline reference and running-best overlay. Gaps stay empty.
+5. **One trajectory per target metric** — generation-order means with a baseline reference and a mark on the raw per-metric winner (`perMetricWinners[metric].raw`). Gaps stay empty. Do not plot a running-best overlay unless the user is evaluating search speed.
 6. **Focused candidate** — the raw winner's experiment title/status, quality metrics when present, and one-line rationale.
 7. **Failure accounting** — show a concise warning only when versions failed, target metrics are missing, or the raw winner is ineligible.
 8. **Audit table** — every version: lifecycle, execution, fitness, target means, % vs baseline, experiment status. Collapse it if the host allows progressive disclosure.
@@ -52,7 +52,7 @@ Keep it small: hover tooltips, a rank-by or focus control, and collapsible table
 
 - Charts need a title, axis labels with units, and an accessible name.
 - Support light and dark if the host has a theme hook; otherwise follow `prefers-color-scheme`.
-- Separate factual summary from editorial analysis. If you write an interpretive heading (“the search converges late”), the figure body must show the running-best series that justifies it.
+- Separate factual summary from editorial analysis. If you write an interpretive heading (“the search converges late”), the figure body must show the generation-order mean series and the raw-winner mark that justify it.
 - Do not colour bars as better/worse/noise.
 
 ## Fallback HTML

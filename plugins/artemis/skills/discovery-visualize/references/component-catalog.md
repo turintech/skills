@@ -10,7 +10,7 @@ snapshot. These files are examples, not an importable runtime package.
 |---|---|---|
 | Where did the metric start, and what is the best measured result? | [Baseline comparison](../examples/components/baseline-comparison.tsx) | `baseline.metrics`, `perMetricWinners`, metric metadata |
 | Which versions improved or regressed most? | [Version ranking](../examples/components/version-ranking.tsx) | `rankings[metric]`, version URLs |
-| How did the metric evolve through the run? | [Metric trajectory](../examples/components/metric-trajectory.tsx) | `runningBest[metric]`, baseline metric |
+| How did the metric evolve through the run? | [Metric trajectory](../examples/components/metric-trajectory.tsx) | `runningBest[metric]`, baseline metric, `perMetricWinners[metric].raw` |
 | What was each version trying to do? | [Version cards](../examples/components/version-cards.tsx) | `versions`, experiment titles or rationales, version URLs |
 | Which ideas or versions build on earlier work? | [Experiment lineage](../examples/components/experiment-lineage.tsx) | `experiments`, parent IDs, linked versions |
 | Did failures or eligibility gates affect the result? | [Failure summary](../examples/components/failure-summary.tsx) | `executionSummary`, raw and eligible winners |

@@ -37,6 +37,6 @@ If Artifacts are disabled, leave the local HTML in place and give the file path.
 
 - Compact provenance and Artemis link before any chart
 - Version-budget progress, then baseline → percentage change → raw winner
-- Running-best overlay on generation-order lines
+- Generation-order means with a mark on the raw winner, not a running-best overlay
 - `<details>` tables under each figure
 - Explicit notes for `n=1`, LLM quality scores, and ineligible raw winners without making eligibility the headline

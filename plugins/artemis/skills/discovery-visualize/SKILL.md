@@ -60,6 +60,7 @@ These override any host chart default:
 - Missing observations are gaps, not zeroes. `generation_failed` versions never reached the runner.
 - Plot and caption `mean` / `min` / `max` / `count`. Do not invent confidence intervals or UI `better` / `worse` / `noise` verdicts.
 - Keep worker measurements, agent-scored quality metrics, and experiment verdicts visually distinct.
+- Default trajectory plots generation-order means and marks the raw winner only. Do not plot running-best unless the user is evaluating search dynamics.
 - A Pareto front is an analytical view over named axes, not an Artemis verdict.
 
 ## Collector flags

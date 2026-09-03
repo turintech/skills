@@ -2,14 +2,15 @@ import { H2, Stack, Text, useHostTheme } from "cursor/canvas";
 
 /**
  * Answers: "How did the metric evolve through the run?"
- * Snapshot input: runningBest[metric] plus baseline.metrics[metric].mean.
+ * Snapshot input: runningBest[metric] for generation order and null gaps,
+ * plus baseline.metrics[metric].mean and perMetricWinners[metric].raw.label.
  * Null means are rendered as gaps. Do not replace them with zero or connect
- * across them. The running-best series may carry forward through those gaps.
+ * across them. Highlight the raw winner by label; do not pick max(mean).
+ * Do not plot a running-best overlay unless the user asked for search dynamics.
  */
 export type TrajectoryPoint = {
   label: string;
   mean: number | null;
-  bestMean: number | null;
 };
 
 export type MetricTrajectoryProps = {
@@ -17,6 +18,7 @@ export type MetricTrajectoryProps = {
   unit: string;
   baselineMean: number;
   baselineSha: string;
+  winnerLabel: string;
   points: TrajectoryPoint[];
   source: string;
 };
@@ -46,20 +48,19 @@ export function MetricTrajectory({
   unit,
   baselineMean,
   baselineSha,
+  winnerLabel,
   points,
   source,
 }: MetricTrajectoryProps) {
   const theme = useHostTheme();
   const width = 760;
   const height = 260;
-  const margin = { top: 18, right: 20, bottom: 38, left: 58 };
+  const margin = { top: 28, right: 20, bottom: 38, left: 58 };
   const values = [
     baselineMean,
-    ...points.flatMap((point) =>
-      [point.mean, point.bestMean].filter(
-        (value): value is number => value != null,
-      ),
-    ),
+    ...points
+      .map((point) => point.mean)
+      .filter((value): value is number => value != null),
   ];
 
   if (!points.length || values.length === 1) return null;
@@ -80,11 +81,6 @@ export function MetricTrajectory({
     x,
     y,
   );
-  const bestPaths = pathSegments(
-    points.map((point) => point.bestMean),
-    x,
-    y,
-  );
 
   return (
     <Stack gap={8}>
@@ -94,7 +90,7 @@ export function MetricTrajectory({
         width="100%"
         height={height}
         role="img"
-        aria-label={`${metric} means and running best by generated version, with baseline ${baselineMean} ${unit}`}
+        aria-label={`${metric} means by generated version, with baseline ${baselineMean} ${unit} and best measured ${winnerLabel}`}
       >
         <line
           x1={margin.left}
@@ -122,26 +118,34 @@ export function MetricTrajectory({
             strokeWidth="2"
           />
         ))}
-        {bestPaths.map((path, index) => (
-          <path
-            key={`best-${index}`}
-            d={path}
-            fill="none"
-            stroke={theme.category.green}
-            strokeWidth="2"
-            strokeDasharray="6 3"
-          />
-        ))}
         {points.map((point, index) =>
           point.mean == null ? null : (
             <circle
               key={point.label}
               cx={x(index)}
               cy={y(point.mean)}
-              r="3"
-              fill={theme.accent.primary}
+              r={point.label === winnerLabel ? 6 : 3}
+              fill={
+                point.label === winnerLabel
+                  ? theme.category.green
+                  : theme.accent.primary
+              }
             />
           ),
+        )}
+        {points.map((point, index) =>
+          point.label === winnerLabel && point.mean != null ? (
+            <text
+              key={`best-${point.label}`}
+              x={x(index) + 10}
+              y={y(point.mean) + 4}
+              fill={theme.category.green}
+              fontSize="11"
+              fontWeight="590"
+            >
+              best
+            </text>
+          ) : null,
         )}
         <text
           x={margin.left - 10}
@@ -178,8 +182,9 @@ export function MetricTrajectory({
         )}
       </svg>
       <Text size="small" tone="tertiary">
-        Solid blue: observed mean. Dashed green: running best. Missing
-        observations remain gaps. Baseline {baselineSha}. Source: {source}.
+        Observed mean in generation order. Green mark is the raw winner (
+        {winnerLabel}), not a running-best overlay. Missing observations remain
+        gaps. Baseline {baselineSha}. Source: {source}.
       </Text>
     </Stack>
   );

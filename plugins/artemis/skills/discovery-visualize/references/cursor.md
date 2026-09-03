@@ -40,7 +40,7 @@ When there is no measured version, show only provenance, progress, and the basel
 | Snapshot | Canvas primitive |
 |---|---|
 | Provenance / raw winner | `Stat`, `Callout`, `Text`, `Link`, small theme-aware SVG arrow |
-| Target trajectory | `LineChart` with a baseline `referenceLines` entry; categories are `vN` |
+| Target trajectory | custom SVG: generation-order means, baseline reference, raw-winner point |
 | Ranked % vs baseline | `BarChart` `horizontal` |
 | Experiment mix when requested | Secondary `Stat` or `PieChart` of validated/refuted/inconclusive |
 | Audit / focused version | `Table` |
@@ -56,7 +56,7 @@ prefer the matching component or composition recipe and omit unrelated panels.
 
 ## Custom SVG
 
-Allowed for Pareto or running-best overlays the line chart cannot express. Keep it flat: host theme tokens via `useHostTheme()` if exported; no gradients, emojis, or box shadows.
+Allowed for Pareto or a raw-winner point mark the line chart cannot express. Keep it flat: host theme tokens via `useHostTheme()` if exported; no gradients, emojis, or box shadows.
 
 ## Fallback
 
