@@ -65,7 +65,7 @@ Reuse a credential that can read the repository. Check the provider values retur
 If no suitable credential exists, present **both** setup routes and let the user choose. For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
 
 1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account in the Artemis Web UI at [https://artemis.turintech.ai/settings/git](https://artemis.turintech.ai/settings/git) (same path on an on-prem deployment's base URL). Then re-run `artemis key list` — a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
-2. **PAT via CLI:** have the user run `artemis key add` interactively in their own terminal (for GitHub, typically `--provider github --token <pat>`) so the secret never enters chat.
+2. **PAT via CLI:** have the user run `artemis key add` interactively in their own terminal (for GitHub, typically `--name "<key-name>" --provider github --token <pat>`) so the secret never enters chat.
 
 Prefer an existing GitHub OAuth credential over adding a new PAT when both would work. For GitLab, Bitbucket, or Azure DevOps, use the provider-specific `artemis key add` flow unless the Web UI offers an equivalent connect path. Record the selected key UUID.
 
@@ -114,7 +114,7 @@ If the imported commit differs because the branch moved, stop and record the new
 
 Follow `repo-command-setup`'s workflow path: verify locally before import, or return to §5b after import for runner verification.
 
-Project command defaults are optional for Web UI validation; discovery receives its commands inline through `discovery-start`.
+Store the verified defaults with `artemis project commands set` for the Web UI and direct Discovery creation. Create a validation script from the same literal commands for `changeset validate` and guided Discovery setup. Continue through `discovery-start`.
 
 ## Checklist
 

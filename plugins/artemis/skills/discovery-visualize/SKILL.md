@@ -73,7 +73,7 @@ These override any host chart default:
 --pareto a,b           optional axes; repeatable
 ```
 
-The collector already strips logger noise before JSON and joins `observationId` / `experimentId`.
+The collector already strips logger noise before JSON and joins `observationGroupId` / `experimentId`.
 
 ## Checklist
 

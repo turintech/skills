@@ -8,7 +8,7 @@ description: Retrieve and interpret Artemis runner task logs through the platfor
 ## At a glance
 
 - **Problem:** Finds the task identifier, retrieves its log without runner-host access, and identifies the first concrete failure.
-- **Must be available:** An authenticated Artemis CLI and a record containing `processId` or `executionLogId`.
+- **Must be available:** An authenticated Artemis CLI and a Discovery version ID, changeset validation ID, or runner `processId`.
 - **Use / don't use:** Use only for work dispatched to a runner. A `generation_failed` Discovery version has no task log; inspect its agent narration instead.
 - **Next skill:** Return the evidence and diagnosis to `repo-command-setup`, `discovery-start`, or `discovery-inspect`.
 
@@ -22,43 +22,50 @@ For a Discovery candidate:
 artemis --output-format json discovery versions get "<version-id>"
 ```
 
-Record `processId` and `executionLogId`. If both are absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
+Record `processId`. If it is absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
 
-For changeset validation, use `status.id` from the `changeset validate` response as the process ID. Do not substitute a per-command `logId`.
+The current version record exposes `processId`. Prefer the version-native shortcut:
+
+```bash
+artemis discovery versions logs "<version-id>"
+```
+
+For changeset validation, capture the validation `id` and `processId` from the `changeset validate` response. Do not substitute a per-command `logId`.
 
 If a runner-executed failure has neither identifier, report that logs are unavailable instead of claiming they were checked.
 
 ## 2. Retrieve the log
 
-Feature-detect the CLI command before using it:
+Prefer the resource-native command when a validation ID is available:
+
+```bash
+artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
+```
+
+Otherwise retrieve by process:
 
 ```bash
 artemis process logs --help
 artemis process logs "<process-id>"
 ```
 
-If the installed CLI has no `process logs` command, use the authenticated compatibility request below. Pass `process` with a process ID, or `log` with an execution-log ID:
+If these CLI commands cannot retrieve the log, use the authenticated request below with the same config file the active CLI uses:
 
 ```bash
 (
 set -a; . ~/.config/artemis/.env; set +a
 
-python3 - process "<process-id>" <<'PY'
+python3 - "<process-id>" <<'PY'
 import json
 import os
 import sys
 import urllib.request
 
-kind, identifier = sys.argv[1:3]
-paths = {
-    "process": f"/turintech-falcon/api/utils/process/{identifier}/logs",
-    "log": f"/turintech-falcon/api/utils/logs/{identifier}",
-}
-if kind not in paths:
-    raise SystemExit("kind must be process or log")
+identifier = sys.argv[1]
+path = f"/turintech-falcon/api/utils/process/{identifier}/logs"
 
 request = urllib.request.Request(
-    os.environ["ARTEMIS_BASE_URL"].rstrip("/") + paths[kind],
+    os.environ["ARTEMIS_BASE_URL"].rstrip("/") + path,
     headers={"Authorization": f'Bearer {os.environ["ARTEMIS_API_KEY"]}'},
 )
 with urllib.request.urlopen(request) as response:

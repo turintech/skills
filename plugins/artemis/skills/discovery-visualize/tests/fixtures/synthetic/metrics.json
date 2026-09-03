@@ -1,17 +1,17 @@
 WARNING vllm.example: logger noise before JSON
 INFO: extra line
 [
-  {"metricId": "m-latency", "metricName": "latency_ms", "observationId": "obs-base", "mean": 10.0, "min": 10.0, "max": 10.0, "count": 1},
-  {"metricId": "m-quality", "metricName": "quality_score", "observationId": "obs-base", "mean": 0.5, "min": 0.5, "max": 0.5, "count": 1},
-  {"metricId": "m-compile", "metricName": "compile_runtime", "observationId": "obs-base", "mean": 2.0, "min": 2.0, "max": 2.0, "count": 1},
-  {"metricId": "m-latency", "metricName": "latency_ms", "observationId": "obs-1", "mean": 8.0, "min": 8.0, "max": 8.0, "count": 1},
-  {"metricId": "m-quality", "metricName": "quality_score", "observationId": "obs-1", "mean": 0.6, "min": 0.6, "max": 0.6, "count": 1},
-  {"metricId": "m-compile", "metricName": "compile_runtime", "observationId": "obs-1", "mean": 2.1, "min": 2.1, "max": 2.1, "count": 1},
-  {"metricId": "m-latency", "metricName": "latency_ms", "observationId": "obs-2", "mean": 6.0, "min": 6.0, "max": 6.0, "count": 1},
-  {"metricId": "m-quality", "metricName": "quality_score", "observationId": "obs-2", "mean": 0.4, "min": 0.4, "max": 0.4, "count": 1},
-  {"metricId": "m-compile", "metricName": "compile_runtime", "observationId": "obs-2", "mean": 2.2, "min": 2.2, "max": 2.2, "count": 1},
-  {"metricId": "m-latency", "metricName": "latency_ms", "observationId": "obs-4", "mean": 7.0, "min": 7.0, "max": 7.0, "count": 1},
-  {"metricId": "m-quality", "metricName": "quality_score", "observationId": "obs-4", "mean": 0.7, "min": 0.7, "max": 0.7, "count": 1},
-  {"metricId": "m-compile", "metricName": "compile_runtime", "observationId": "obs-4", "mean": 2.0, "min": 2.0, "max": 2.0, "count": 1},
-  {"metricId": "m-quality", "metricName": "quality_score", "observationId": "obs-5", "mean": 0.1, "min": 0.1, "max": 0.1, "count": 1}
+  {"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-base", "mean": 10.0, "min": 10.0, "max": 10.0, "count": 1},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-base", "mean": 0.5, "min": 0.5, "max": 0.5, "count": 1},
+  {"metricId": "m-compile", "metricName": "compile_runtime", "observationGroupId": "obs-base", "mean": 2.0, "min": 2.0, "max": 2.0, "count": 1},
+  {"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-1", "mean": 8.0, "min": 8.0, "max": 8.0, "count": 1},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-1", "mean": 0.6, "min": 0.6, "max": 0.6, "count": 1},
+  {"metricId": "m-compile", "metricName": "compile_runtime", "observationGroupId": "obs-1", "mean": 2.1, "min": 2.1, "max": 2.1, "count": 1},
+  {"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-2", "mean": 6.0, "min": 6.0, "max": 6.0, "count": 1},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-2", "mean": 0.4, "min": 0.4, "max": 0.4, "count": 1},
+  {"metricId": "m-compile", "metricName": "compile_runtime", "observationGroupId": "obs-2", "mean": 2.2, "min": 2.2, "max": 2.2, "count": 1},
+  {"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-4", "mean": 7.0, "min": 7.0, "max": 7.0, "count": 1},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-4", "mean": 0.7, "min": 0.7, "max": 0.7, "count": 1},
+  {"metricId": "m-compile", "metricName": "compile_runtime", "observationGroupId": "obs-4", "mean": 2.0, "min": 2.0, "max": 2.0, "count": 1},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-5", "mean": 0.1, "min": 0.1, "max": 0.1, "count": 1}
 ]

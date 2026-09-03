@@ -132,10 +132,10 @@ Before launching discovery, validation, or Maintain:
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository ownership: `repo-prepare-fork`
-- Repository commands, Discovery-ready harness authoring, and validation: `repo-command-setup`
+- Repository commands, validation scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
 - Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`
-- Discovery launch: `discovery-start`
+- Discovery launch, including guided `--setup` and script trial-runs: `discovery-start`
 - Discovery continuation, budget expansion, steering, or redirection: `discovery-steer`
 - Discovery interpretation: `discovery-inspect`
 - Discovery charts, canvases, artifacts, or visual reports: `discovery-visualize`

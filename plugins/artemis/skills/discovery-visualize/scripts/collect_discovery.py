@@ -264,16 +264,16 @@ def build_snapshot(
 
     experiments_by_id = {item["id"]: item for item in experiments_raw if item.get("id")}
 
-    stats_by_obs: dict[str, dict[str, dict[str, Any]]] = {}
+    stats_by_group: dict[str, dict[str, dict[str, Any]]] = {}
     names_by_id: dict[str, str] = {}
     for row in stats_raw:
-        observation_id = row.get("observationId")
+        group_id = row.get("observationGroupId")
         metric_id = row.get("metricId")
         name = row.get("metricName")
-        if not observation_id or not name:
+        if not group_id or not name:
             continue
         names_by_id[metric_id] = name
-        stats_by_obs.setdefault(observation_id, {})[name] = _stat_payload(row)
+        stats_by_group.setdefault(group_id, {})[name] = _stat_payload(row)
 
     schema_by_id = {item.get("metricId"): item for item in (run.get("metricsSchema") or []) if item.get("metricId")}
     metric_defs: dict[str, dict[str, Any]] = {}
@@ -298,16 +298,16 @@ def build_snapshot(
             "description": schema.get("description"),
         }
 
-    baseline_obs = run.get("baselineObservationId")
-    baseline_stats = stats_by_obs.get(baseline_obs or "", {})
+    baseline_group = run.get("baselineGroupId")
+    baseline_stats = stats_by_group.get(baseline_group or "", {})
     baseline_means = {key: (stat or {}).get("mean") for key, stat in baseline_stats.items()}
 
     versions: list[dict[str, Any]] = []
     for item in sorted(versions_raw, key=lambda row: (row.get("versionNumber") is None, row.get("versionNumber") or 0)):
         number = item.get("versionNumber")
-        observation_id = item.get("observationId")
+        group_id = item.get("observationGroupId")
         experiment = experiments_by_id.get(item.get("experimentId") or "") or {}
-        raw_metrics = stats_by_obs.get(observation_id or "", {})
+        raw_metrics = stats_by_group.get(group_id or "", {})
         joined: dict[str, Any] = {}
         for name, stat in raw_metrics.items():
             definition = metric_defs.get(name) or {
@@ -331,7 +331,7 @@ def build_snapshot(
             "fitness": item.get("fitnessScore"),
             "changesetId": item.get("changesetId"),
             "versionSha": item.get("versionSha"),
-            "observationId": observation_id,
+            "observationGroupId": group_id,
             "experimentId": item.get("experimentId"),
             "experimentTitle": experiment.get("title"),
             "experimentStatus": experiment.get("status"),
@@ -468,7 +468,7 @@ def build_snapshot(
             "versionCount": run.get("versionCount"),
             "numVersions": run.get("numVersions"),
             "experimentCount": run.get("experimentCount"),
-            "baselineObservationId": baseline_obs,
+            "baselineGroupId": baseline_group,
             "baselineVersionSha": run.get("baselineVersionSha"),
             "baselineChangesetId": run.get("baselineChangesetId"),
             "createdAt": run.get("createdAt"),
@@ -479,7 +479,7 @@ def build_snapshot(
         "metrics": list(metric_defs.values()),
         "baseline": {
             "sha": run.get("baselineVersionSha"),
-            "observationId": baseline_obs,
+            "observationGroupId": baseline_group,
             "metrics": baseline_stats,
         },
         "versions": versions,

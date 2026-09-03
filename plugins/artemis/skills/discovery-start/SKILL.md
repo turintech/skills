@@ -1,13 +1,13 @@
 ---
 name: discovery-start
-description: Start an Artemis discovery run — create the run with inline compile/test/benchmark commands, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
+description: Start an Artemis discovery run — create it from verified project commands or a validation script, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
 ---
 
 # Start a discovery run
 
 ## At a glance
 
-- **Problem:** Creates a discovery run with inline repository commands, waits for baseline finalization, and confirms that the run actually explored versions.
+- **Problem:** Creates a discovery run from verified project commands or a validation script, waits for baseline finalization, and confirms that the run actually explored versions.
 - **Must be available:** An authenticated CLI, a user-confirmed online runner, an imported project UUID, verified commands that run from the repository root with the runner user's privileges, and the required benchmark metrics.
 - **Use / don't use:** Use only after runner, project, command, and metric readiness are resolved; use `discovery-inspect` rather than this skill for post-launch interpretation.
 - **Next skill:** Use `discovery-inspect` after baseline finalization and the exploration sanity check, or return to `project-import` if a baseline failure leaves the project unusable.
@@ -23,14 +23,14 @@ description: Start an Artemis discovery run — create the run with inline compi
 
 ## Model selection
 
-Omit `--model` to use the platform default. Pass `--model <model-catalogue-uuid>` only when the user wants a specific model, such as when comparing discoveries or reproducing a prior run.
+Direct creation requires `--model`. It accepts either a model catalogue UUID or a model-type code. Guided `--setup` may defer the choice, but a model must be set before setup completes.
 
 ```bash
 artemis model list --help
 artemis model list
 ```
 
-Inspect the current model list before selecting an explicit catalogue UUID. Only preset models listed there can be used by agents.
+Inspect the current model list, present meaningful choices when the user has not selected one, and record the chosen UUID or model-type code. Only listed models can be used by agents.
 
 ## 1. Create the run
 
@@ -50,20 +50,22 @@ artemis --output-format json discovery list --project "<project-uuid>" \
 
 Choose whether to accept serialization, use another runner, or provision one. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
 
-Pass compile/test/benchmark **inline**. Do not rely on `project commands set` defaults for discovery.
+Read back the verified project commands before launch:
+
+```bash
+artemis --output-format json project commands get --project "<project-uuid>"
+```
+
+Direct creation copies stored project commands and the default runner into the run when the corresponding flags are omitted. Pass `--compile-cmd`, `--test-cmd`, `--benchmark-cmd`, or `--runner` only as deliberate per-run overrides.
 
 ```bash
 artemis --output-format json discovery create \
   --project "<project-uuid>" \
   --runner "<runner-name>" \
   --task "<what you want optimised, in plain language>" \
-  --compile-cmd "<compile>" \
-  --test-cmd "<test>" \
-  --benchmark-cmd "<benchmark>" \
+  --model "<catalogue-uuid-or-model-type>" \
   --versions <n>
 ```
-
-When the user selected a specific model, add `--model "<model-catalogue-uuid>"`.
 
 Capture `run_id` from the JSON — every later command needs it.
 
@@ -75,13 +77,30 @@ Immediately give the user a clickable link:
 
 Use the authenticated deployment base URL and repeat the link in later progress or failure reports.
 
+### Guided setup with a validation script
+
+Use guided setup when the user wants to trial-run a structured script or shape the metrics schema before dispatch:
+
+```bash
+artemis --output-format json discovery create \
+  --project "<project-uuid>" --setup --task "<goal>"
+artemis discovery update "<run-id>" \
+  --model "<catalogue-uuid-or-model-type>" --versions <n> \
+  --runner "<runner-name>" --script "<script-id>"
+artemis discovery setup trial-run "<run-id>" --wait
+artemis discovery metrics-schema regenerate "<run-id>"
+artemis discovery setup complete "<run-id>"
+```
+
+Create or inspect scripts with `artemis project scripts create/list/get`. A guided run is not dispatched until `setup complete`; capture and verify its trial-run validation first.
+
 ## 2. Baseline / metrics schema
 
-During baseline finalization, Artemis derives and stores `metricsSchema` using the explicitly selected model or the platform default. Poll:
+During baseline finalization, Artemis derives and stores `metricsSchema` using the selected model. Poll:
 
 ```bash
 artemis --output-format json discovery get "<run_id>"
-# Wait until baselineObservationId / baselineVersionSha / metricsSchema are
+# Wait until baselineGroupId / baselineVersionSha / metricsSchema are
 # non-null and status is running (or failed).
 ```
 
@@ -112,8 +131,8 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 
 - [ ] Project UUID confirmed; runner choice confirmed **with the user**, not just picked because it showed online/available
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
-- [ ] Model choice recorded: platform default (`--model` omitted), or an explicit catalogue UUID requested by the user
-- [ ] Commands passed inline to `discovery create`
+- [ ] Explicit model choice recorded as a catalogue UUID or model-type code
+- [ ] Stored project commands read back, or deliberate inline overrides / validation script recorded
 - [ ] Clickable Discovery link returned to the user
-- [ ] Baseline finalized (observation + schema non-null) before walking away
+- [ ] Baseline finalized (`baselineGroupId` + schema non-null) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`

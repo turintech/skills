@@ -195,38 +195,52 @@ Check the installed command surface, then use **`artemis changeset validate`** �
 
 ```bash
 artemis changeset validate --help
-artemis --output-format json changeset create --project "<project-uuid>"
+artemis project commands set --project "<project-uuid>" \
+  --compile "<compile-command>" \
+  --test "<test-command>" \
+  --benchmark "<benchmark-command>"
+artemis --output-format json project commands get --project "<project-uuid>"
+
+artemis --output-format json project scripts create \
+  --project "<project-uuid>" --name "Command verification" \
+  --setup-cmd "<compile-command>" \
+  --setup-cmd "<test-command>" \
+  --benchmark-cmd "<benchmark-command>" \
+  --measure none
+
+artemis --output-format json changeset create \
+  --project "<project-uuid>" --name "Command verification"
 # → an empty changeset; its one version is the project's current original code
 
 artemis --output-format json changeset validate "<changeset-id>" \
   --project "<project-uuid>" --version original \
-  --command "<compile-command>" \
-  --command "<test-command>" \
-  --command "<benchmark-command>" \
+  --script "<script-id>" \
   --runner "<runner-name>" --wait
 ```
 
-`--version original` resolves the changeset's original version automatically. `--wait` returns the final per-command `exitCode`, runtime, resource usage, and status. Re-check later, or from a different session, with:
+The validation script uses the same literal commands as the project defaults. Compile and test are unmeasured setup commands; the benchmark publishes the repository's custom metrics, so `--measure none` avoids adding command-runtime metrics unless they are part of the optimization target. `--version original` resolves the changeset's original version automatically. `--wait` returns the final per-command `exitCode`, runtime, resource usage, and status. Re-check later, or from a different session, with:
 
 ```bash
 artemis changeset validation get "<validation-id>" --project "<project-uuid>"
+artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
 ```
 
-Confirm every command shows `exitCode: 0`, the intended runner and toolchain were used, and the benchmark created a fresh `artemis_results.json`/`.csv`. The result reports only `exitCode`, `runtime`, `cpu`, and `memory` — never metric values, and never whether the results file was written. Use `execution-log-inspect` with `status.id` from the validate response to fetch command output through the platform (not the per-command `logId`, which is not fetchable).
+Confirm every command shows `exitCode: 0`, the intended runner and toolchain were used, and the benchmark created a fresh `artemis_results.json`/`.csv`. The result reports only `exitCode`, `runtime`, `cpu`, and `memory` — never metric values, and never whether the results file was written. Use `changeset validation logs` or `execution-log-inspect` with `processId` from the validate response to fetch command output through the platform; do not substitute a per-command `logId`.
 
 When something fails, distinguish command-string issues from repository code or script issues:
 
-- **Command-string failure:** adjust the `--command` values and re-run `changeset validate` on the same empty changeset (`--version original` still resolves that original code).
+- **Command-string failure:** update the project defaults, create a replacement validation script with the same corrected commands, and re-run `changeset validate --script` on the same empty changeset (`--version original` still resolves that original code).
 - **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
 
-If `changeset validate` is unavailable, inspect `artemis validation run --help` for the installed CLI's project-validation workflow. When that workflow returns a process ID, use `execution-log-inspect` for command details. Do not invent compatibility flags.
+Discovery's guided setup can select the verified script and check it again with `artemis discovery setup trial-run "<run-id>" --wait`. Do not invent compatibility flags.
 
 ## 6. Configure Artemis
 
 Use the verified commands unchanged:
 
-- Project settings and `artemis project commands set` provide defaults for Web UI validation flows. `changeset validate` runs commands ad hoc and does not store those defaults; run `artemis project commands set --help` when Web UI defaults are wanted.
-- Discovery does not consume those defaults; pass the same commands inline to `discovery create` through `discovery-start`.
+- `artemis project commands set` stores the default compile, test, and benchmark commands used by `changeset validate`, the Web UI, and direct Discovery creation.
+- `artemis project scripts create` stores a structured alternative for guided Discovery setup and validations that need measured repetitions or teardown.
+- Direct `discovery create` copies stored project commands into the run when corresponding inline flags are omitted. Use inline flags only as deliberate per-run overrides.
 
 Do not maintain two semantically different command sets for validation and discovery.
 
