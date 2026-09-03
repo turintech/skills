@@ -31,22 +31,31 @@ python3 "<skill-dir>/scripts/collect_discovery.py" \
 
 Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / trade-off view and named the axes, or when one target metric and one quality metric are the obvious pair and you label it as analysis.
 
-3. Read the snapshot. Trust `perMetricWinners`, `rankings`, and raw `metrics` means. Do not invent a single overall winner.
-4. Read [references/report-design.md](references/report-design.md), then the matching adapter:
+3. Read the snapshot. Trust `perMetricWinners`, `rankings`, and raw `metrics` means. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
+4. Identify the user's primary question and read the matching recipes in [references/component-catalog.md](references/component-catalog.md). Copy and adapt only the components needed to answer it; examples are recipes, not runtime imports.
+5. Read [references/report-design.md](references/report-design.md), then the matching adapter:
    - Cursor: [references/cursor.md](references/cursor.md)
    - Claude Code: [references/claude-code.md](references/claude-code.md)
    - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md)
    - Unknown host: write the fallback HTML report from `report-design.md`.
-5. Verify labels, units, baseline deltas, gaps, and captions against the snapshot. Return the artifact link plus the Discovery Web UI link.
+6. Verify labels, units, baseline deltas, gaps, and captions against the snapshot. Return the artifact link plus the Discovery Web UI link.
 
 The data contract is in [references/data-contract.md](references/data-contract.md).
+
+## Recipe rules
+
+- Select components by the question they answer, not by chart type.
+- Copy recipes into the generated artifact; do not import files from this skill.
+- Keep snapshot-derived values as props or inline data. Never fetch from a rendered artifact.
+- Prefer the smallest composition that answers the question. Do not assemble every example into a dashboard by default.
+- Preserve recipe accessibility and truth-rule annotations when adapting its visual design.
 
 ## Truth rules
 
 These override any host chart default:
 
 - Rank by the raw target metric, not `fitness`. Show fitness only as a separate platform score.
-- A per-metric **eligible** winner requires `lifecycle=completed`, `executionStatus=success`, and `experimentStatus != refuted`. The **raw** winner may fail that gate; show both and explain the difference.
+- Use the **raw** per-metric winner in the default headline comparison. A per-metric **eligible** winner requires `lifecycle=completed`, `executionStatus=success`, and `experimentStatus != refuted`; when the raw winner fails that gate, warn clearly and show the eligible alternative secondarily.
 - Never claim one overall winner for multiple objectives unless the user supplied the aggregation rule.
 - Missing observations are gaps, not zeroes. `generation_failed` versions never reached the runner.
 - Plot and caption `mean` / `min` / `max` / `count`. Do not invent confidence intervals or UI `better` / `worse` / `noise` verdicts.
@@ -68,7 +77,7 @@ The collector already strips logger noise before JSON and joins `observationId` 
 ## Checklist
 
 - [ ] Snapshot written; `schemaVersion` is 1.
-- [ ] Each target metric has a baseline-relative view and a named raw vs eligible winner.
+- [ ] Each target metric has a baseline → % change → raw winner view; any raw/eligible difference is explained without making eligibility the headline.
 - [ ] Failed and missing versions are accounted for.
 - [ ] Caption names the CLI source and that % is mean vs baseline.
 - [ ] Host artifact or fallback HTML opened/linked.

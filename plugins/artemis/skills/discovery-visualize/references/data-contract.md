@@ -27,6 +27,8 @@
 
 `eligible` is `lifecycle=completed` and `executionStatus=success` and `experimentStatus != refuted`.
 
+`eligible` is renderer safety metadata, not a measurement, validation result, or required headline. The recommended default leads with the raw per-metric winner and uses eligibility only to warn and provide a secondary alternative when the raw winner fails the gate.
+
 ## Kinds
 
 - **target** — worker metrics that are not compile/test/benchmark harness timings. These are the default plots.

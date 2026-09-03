@@ -2,21 +2,36 @@
 
 Render the snapshot. Do not re-join CLI JSON. Headings state evidence, not slogans.
 
-## Minimum report
+## Recommended default
 
-1. **Provenance** — project/run IDs, status, `versionCount` / `numVersions`, baseline SHA, `collectedAt`, Web UI link.
-2. **Execution outcomes** — completed, generation_failed, execution failed, experiment mix.
-3. **One baseline-relative view per target metric** — generation-order trajectory with a baseline reference and a running-best overlay. Gaps stay empty.
-4. **Headline tiles** — one tile per target metric: raw-best value, % vs baseline, version label, and whether that version is eligible. If raw and eligible differ, show both or footnote the ineligible raw best.
-5. **Focused candidates** — raw and eligible winners: experiment title/status, quality metrics, one-line rationale.
-6. **Missing / failure accounting** — list `generation_failed` and `missingTargetMetrics`.
-7. **Audit table** — every version: lifecycle, execution, fitness, target means, % vs baseline, experiment status. Collapse it if the host allows progressive disclosure.
+Users may request any presentation. Without further direction, optimize the opening for one left-to-right question: where did the metric start, where is the best measured version, and how large is the change?
+
+For each target metric:
+
+1. **Neutral title** — `<metric>: baseline vs best measured version`. Keep values out of the title; the comparison below owns them.
+2. **Compact provenance** — project/run identity, status, baseline SHA, `collectedAt`, and a prominent Web UI link.
+3. **Version-budget progress** — `versionCount` / `numVersions` when the host has a compact progress primitive.
+4. **Baseline-to-best comparison** — baseline mean → directional arrow with `pctBetter` above it → raw per-metric winner mean and version label. Include units and observation counts.
+5. **One trajectory per target metric** — generation-order means with a baseline reference and running-best overlay. Gaps stay empty.
+6. **Focused candidate** — the raw winner's experiment title/status, quality metrics when present, and one-line rationale.
+7. **Failure accounting** — show a concise warning only when versions failed, target metrics are missing, or the raw winner is ineligible.
+8. **Audit table** — every version: lifecycle, execution, fitness, target means, % vs baseline, experiment status. Collapse it if the host allows progressive disclosure.
+
+Use `perMetricWinners[metric].raw` for the default comparison. Do not introduce “eligible” in the title or primary comparison. If raw and eligible differ, retain the raw result as the measured headline, add a warning that names the failed gate, and show the eligible alternative as secondary context. Eligibility is a report-safety filter, not a measurement or statistical conclusion.
+
+Do not show execution-success or experiment-status counts as headline tiles by default. They add little when healthy. Keep experiment details in a secondary or collapsible section; surface counts only when the user asks or when a failure pattern is itself the finding.
+
+### Sparse and multi-metric states
+
+- With a baseline but no measured version, show provenance, progress, and the baseline only. Omit the arrow, uplift, winner, trajectory, and empty tables.
+- With measured versions but no eligible winner, still show the raw winner and explain the gate failure.
+- With multiple target metrics, render one baseline-to-best comparison and trajectory per metric. Never create an aggregate winner unless the user supplies the aggregation rule.
 
 Optional, only when the snapshot includes them or the user asked:
 
 - Pareto scatter of two named axes. Caption: analytical view, not a verdict. Label only non-dominated points.
 - Grouped bars when the same metric family has shape/batch keys (for example `m=1` / `m=8` / `m=32`).
-- Experiment counts as compact stats, not a fake donut of “success”.
+- Experiment counts as compact secondary stats, not a fake donut of “success”.
 
 ## Captions
 
