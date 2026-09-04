@@ -232,15 +232,15 @@ When something fails, distinguish command-string issues from repository code or 
 - **Command-string failure:** update the project defaults, create a replacement validation script with the same corrected commands, and re-run `changeset validate --script` on the same empty changeset (`--version original` still resolves that original code).
 - **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
 
-Discovery's guided setup can select the verified script and check it again with `artemis discovery setup trial-run "<run-id>" --wait`. Do not invent compatibility flags.
+`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis discovery setup trial-run "<run-id>" --wait`. There is no `project scripts update`; on a command-string failure, create a replacement script. Do not invent compatibility flags.
 
 ## 6. Configure Artemis
 
 Use the verified commands unchanged:
 
-- `artemis project commands set` stores the default compile, test, and benchmark commands used by `changeset validate`, the Web UI, and direct Discovery creation.
-- `artemis project scripts create` stores a structured alternative for guided Discovery setup and validations that need measured repetitions or teardown.
-- Direct `discovery create` copies stored project commands into the run when corresponding inline flags are omitted. Use inline flags only as deliberate per-run overrides.
+- `artemis project scripts create` stores the validation script that Discovery and `changeset validate --script` execute. Execution-enabled Discovery requires this script (or a project default). Pass `--default` only when this script should become the project's default.
+- `artemis project commands set` stores optional compile, test, and benchmark defaults for the Web UI. Those fields are legacy on Discovery create and do **not** replace a validation script.
+- `discovery-start` passes the same script to `discovery create --script`. Do not invent a second command set for Discovery.
 
 Do not maintain two semantically different command sets for validation and discovery.
 
@@ -258,4 +258,4 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Test catches a representative semantic fault.
 - [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
-- [ ] Validation and discovery use the same verified commands.
+- [ ] Validation and discovery use the same verified commands, stored as a validation script.

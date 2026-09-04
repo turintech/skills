@@ -81,7 +81,14 @@ artemis --version || artemis version
 artemis status
 ```
 
-Confirm the build carries the command groups the task needs — for example `artemis discovery --help`.
+Confirm the build carries the command groups the task needs. For Discovery on current deployments, the CLI must expose:
+
+```bash
+artemis project scripts --help
+artemis discovery create --help
+```
+
+`discovery create` must accept `--script` and `--llm-metrics`. Rebuild or update the CLI if either flag is missing. Use `--dev` (or a source build) when targeting the `dev` deployment.
 
 Report the installed version, base URL, and authenticated user. Do not report success if `status` shows missing endpoints or an unauthenticated session.
 

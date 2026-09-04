@@ -1,14 +1,14 @@
 ---
 name: discovery-start
-description: Start an Artemis discovery run — create it from verified project commands or a validation script, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
+description: Start an Artemis discovery run — create a validation script, pass it to discovery create, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
 ---
 
 # Start a discovery run
 
 ## At a glance
 
-- **Problem:** Creates a discovery run from verified project commands or a validation script, waits for baseline finalization, and confirms that the run actually explored versions.
-- **Must be available:** An authenticated CLI, a user-confirmed online runner, an imported project UUID, verified commands that run from the repository root with the runner user's privileges, and the required benchmark metrics.
+- **Problem:** Creates a discovery run from a project validation script, waits for baseline finalization, and confirms that the run actually explored versions.
+- **Must be available:** An authenticated CLI, a user-confirmed online runner, an imported project UUID, a validation script built from verified commands, and the required benchmark metrics.
 - **Use / don't use:** Use only after runner, project, command, and metric readiness are resolved; use `discovery-inspect` rather than this skill for post-launch interpretation.
 - **Next skill:** Use `discovery-inspect` after baseline finalization and the exploration sanity check, or return to `project-import` if a baseline failure leaves the project unusable.
 
@@ -16,7 +16,7 @@ description: Start an Artemis discovery run — create it from verified project 
 
 - `artemis status` succeeds on the target deployment.
 - An imported project UUID from `project-import`.
-- Verified, self-contained root-level commands from `repo-command-setup`.
+- Verified, self-contained root-level commands from `repo-command-setup`, stored as a project validation script.
 - A benchmark that writes numeric `artemis_results.json` or `.csv` as defined in `repo-command-setup` §4, unless qualitative-only optimization is deliberate.
 - A user-confirmed runner that is online and compatible with those commands.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
@@ -50,22 +50,38 @@ artemis --output-format json discovery list --project "<project-uuid>" \
 
 Choose whether to accept serialization, use another runner, or provision one. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
 
-Read back the verified project commands before launch:
+Execution runs require a validation script. `--compile-cmd`, `--test-cmd`, and `--benchmark-cmd` are legacy run-level fields and do **not** satisfy that requirement. Creating without `--script` or a project default fails with `NoDefaultValidationScriptError`.
+
+List existing scripts, or create one from the verified commands:
 
 ```bash
-artemis --output-format json project commands get --project "<project-uuid>"
+artemis --output-format json project scripts list --project "<project-uuid>"
+
+artemis --output-format json project scripts create \
+  --project "<project-uuid>" \
+  --name "<script-name>" \
+  --setup-cmd "<compile>" \
+  --setup-cmd "<test>" \
+  --benchmark-cmd "<benchmark>" \
+  --measure none
 ```
 
-Direct creation copies stored project commands and the default runner into the run when the corresponding flags are omitted. Pass `--compile-cmd`, `--test-cmd`, `--benchmark-cmd`, or `--runner` only as deliberate per-run overrides.
+Compile and test are unmeasured setup commands. Use `--measure none` when the benchmark publishes custom `artemis_results` metrics and command runtime must not become an extra worker metric. Use `--measure runtime` (or `cpu`/`memory`) only when those measurements are part of the optimization target. Pass `--default` only when this script should become the project default.
+
+Capture `script_id` from the create or list response. Prefer passing `--script` explicitly even when a default exists.
 
 ```bash
 artemis --output-format json discovery create \
   --project "<project-uuid>" \
   --runner "<runner-name>" \
+  --script "<script-id>" \
   --task "<what you want optimised, in plain language>" \
   --model "<catalogue-uuid-or-model-type>" \
-  --versions <n>
+  --versions <n> \
+  --llm-metrics=false
 ```
+
+`--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for LLM-judged metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
 
 Capture `run_id` from the JSON — every later command needs it.
 
@@ -77,22 +93,23 @@ Immediately give the user a clickable link:
 
 Use the authenticated deployment base URL and repeat the link in later progress or failure reports.
 
-### Guided setup with a validation script
+### Guided setup
 
-Use guided setup when the user wants to trial-run a structured script or shape the metrics schema before dispatch:
+Use `--setup` when the user wants to trial-run the script or shape the metrics schema before the agent is dispatched. Setup steps, in order, are `goal`, `preferences`, `runner`, `script`, `objective`, and `confirm`. A setup run is not dispatched until `discovery setup complete`.
 
 ```bash
 artemis --output-format json discovery create \
   --project "<project-uuid>" --setup --task "<goal>"
 artemis discovery update "<run-id>" \
   --model "<catalogue-uuid-or-model-type>" --versions <n> \
-  --runner "<runner-name>" --script "<script-id>"
+  --runner "<runner-name>" --script "<script-id>" \
+  --llm-metrics=false --setup-step script
 artemis discovery setup trial-run "<run-id>" --wait
 artemis discovery metrics-schema regenerate "<run-id>"
 artemis discovery setup complete "<run-id>"
 ```
 
-Create or inspect scripts with `artemis project scripts create/list/get`. A guided run is not dispatched until `setup complete`; capture and verify its trial-run validation first.
+`--setup` does not copy project command defaults. Script selection is `--script` plus, optionally, `setup trial-run --script`. Use `metrics-schema propose`, `regenerate`, or `set` on the objective step.
 
 ## 2. Baseline / metrics schema
 
@@ -132,7 +149,8 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Project UUID confirmed; runner choice confirmed **with the user**, not just picked because it showed online/available
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
-- [ ] Stored project commands read back, or deliberate inline overrides / validation script recorded
+- [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
+- [ ] `--llm-metrics=false` unless LLM-judged metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (`baselineGroupId` + schema non-null) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`

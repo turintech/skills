@@ -114,7 +114,7 @@ If the imported commit differs because the branch moved, stop and record the new
 
 Follow `repo-command-setup`'s workflow path: verify locally before import, or return to §5b after import for runner verification.
 
-Store the verified defaults with `artemis project commands set` for the Web UI and direct Discovery creation. Create a validation script from the same literal commands for `changeset validate` and guided Discovery setup. Continue through `discovery-start`.
+Store optional Web UI defaults with `artemis project commands set`. Create a validation script from the same literal commands — Discovery create and `changeset validate --script` both need it. Continue through `discovery-start`.
 
 ## Checklist
 

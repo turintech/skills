@@ -23,7 +23,7 @@ When the user names a downstream task and supplies its inputs, route directly to
 
 ## Operating context
 
-Artemis evaluates repository code on a user-supplied runner with root-level `compile`, `test`, and `benchmark` commands. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
+Artemis evaluates repository code on a user-supplied runner with root-level `compile`, `test`, and `benchmark` commands stored as a project validation script. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
 
 A **project** imports a repository branch at a specific commit; a **version** is the baseline or an AI-generated candidate; a **discovery run** generates and evaluates versions against a metric.
 
@@ -93,7 +93,7 @@ Raise only rows required by the selected workflow:
 | Runner | Approved machine, required toolchain and resources, and availability | `runner-setup` |
 | Repository | Importable user-controlled remote, or permission to create a fork or mirror | `repo-prepare-fork` |
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
-| Commands | Exact verified commands and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
+| Commands | Exact verified commands, stored as a validation script, and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
 
 Maintain needs no runner or benchmark. Inspection normally needs only the authenticated CLI and identifiers.
 
@@ -135,7 +135,7 @@ Before launching discovery, validation, or Maintain:
 - Repository commands, validation scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
 - Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`
-- Discovery launch, including guided `--setup` and script trial-runs: `discovery-start`
+- Discovery launch, including `discovery create --script` and guided `--setup`: `discovery-start`
 - Discovery continuation, budget expansion, steering, or redirection: `discovery-steer`
 - Discovery interpretation: `discovery-inspect`
 - Discovery charts, canvases, artifacts, or visual reports: `discovery-visualize`
