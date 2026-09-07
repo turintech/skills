@@ -80,8 +80,9 @@ Use `execution-log-inspect` with the version's `processId` or `executionLogId` t
 
 Host-local runner daemon output is separate evidence for connection, polling, dispatch, and process-lifecycle problems. When shell access exists, its location depends on how the runner was started:
 
-- Wrapped in `nohup ./artemis-runner start … > runner.log 2>&1 &` (the convention for an automated runner) — the file is where you redirected it, typically `~/runner/runner.log`.
-- Under a systemd unit — `journalctl -u artemis-runner --follow`.
+- Wrapped in `nohup artemis runner start … > runner.log 2>&1 &` (the convention for an automated runner) — the file is where you redirected it, typically `~/runner/runner.log`.
+- In a named `tmux` session (what `runner-setup` prefers) — attach to it.
+- Under a systemd unit — `journalctl -u <unit> --follow`.
 - Foreground in a terminal — it's already in view.
 
 ### Baseline and evaluation delays

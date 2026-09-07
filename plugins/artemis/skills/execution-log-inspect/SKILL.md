@@ -37,17 +37,15 @@ artemis process logs --help
 artemis process logs "<process-id>"
 ```
 
-If the installed CLI has no `process logs` command, use the authenticated compatibility request below. Pass `process` with a process ID, or `log` with an execution-log ID:
+If the installed CLI has no `process logs` command, use the authenticated compatibility request below. It takes the deployment URL and API key from `ARTEMIS_URL` and `ARTEMIS_API_KEY` when set, else from the active record in the CLI's `environments.yaml` (`~/.config/artemis` on Linux, `~/Library/Application Support/artemis` on macOS, `%AppData%\artemis` on Windows, or `ARTEMIS_CONFIG_DIR`). Pass `process` with a process ID, or `log` with an execution-log ID:
 
 ```bash
-(
-set -a; . ~/.config/artemis/.env; set +a
-
 python3 - process "<process-id>" <<'PY'
 import json
 import os
 import sys
 import urllib.request
+from pathlib import Path
 
 kind, identifier = sys.argv[1:3]
 paths = {
@@ -57,9 +55,22 @@ paths = {
 if kind not in paths:
     raise SystemExit("kind must be process or log")
 
+url, key = os.environ.get("ARTEMIS_URL"), os.environ.get("ARTEMIS_API_KEY")
+if not (url and key):
+    import yaml  # PyYAML; if missing, export ARTEMIS_URL and ARTEMIS_API_KEY instead
+    config_dir = os.environ.get("ARTEMIS_CONFIG_DIR") or {
+        "darwin": Path.home() / "Library/Application Support/artemis",
+        "win32": Path(os.environ.get("APPDATA", "")) / "artemis",
+    }.get(sys.platform, Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "artemis")
+    store = yaml.safe_load(Path(config_dir, "environments.yaml").read_text())
+    active = next(e for e in store["environments"] if e["alias"] == store["active"])
+    url, key = url or active["url"], key or active.get("api_key")
+if not key:
+    raise SystemExit("not logged in: run artemis login <url>")
+
 request = urllib.request.Request(
-    os.environ["ARTEMIS_BASE_URL"].rstrip("/") + paths[kind],
-    headers={"Authorization": f'Bearer {os.environ["ARTEMIS_API_KEY"]}'},
+    url.rstrip("/") + paths[kind],
+    headers={"Authorization": f"Bearer {key}"},
 )
 with urllib.request.urlopen(request) as response:
     entries = json.load(response).get("logs", [])
@@ -67,10 +78,9 @@ with urllib.request.urlopen(request) as response:
 for entry in sorted(entries, key=lambda item: item.get("timestamp", "")):
     print(entry.get("timestamp", ""), entry.get("level", ""), entry.get("message", ""))
 PY
-)
 ```
 
-Never print the environment file, API key, request headers, or debug output. If the deployment rejects these routes, stop and direct the user to the execution log in the Web UI; do not guess API paths.
+Never print `environments.yaml`, the API key, request headers, or debug output. If the deployment rejects these routes, stop and direct the user to the execution log in the Web UI; do not guess API paths.
 
 ## 3. Diagnose the failure
 
