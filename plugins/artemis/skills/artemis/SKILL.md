@@ -68,8 +68,8 @@ Use available local and Artemis state to inspect the repository and its document
 When resuming existing work, ask the user to paste the URL of the most specific entity they are viewing. Artemis URLs expose the required UUIDs:
 
 - `/projects/<project-id>/...`
-- `/projects/<project-id>/discovery/<discovery-id>`
-- `/projects/<project-id>/discovery/<discovery-id>/versions/<version-id>`
+- `/projects/<project-id>/discover/<discovery-id>`
+- `/projects/<project-id>/discover/<discovery-id>/versions/<version-id>`
 - `/projects/<project-id>/branches/<changeset-id>/...`
 
 Extract all available IDs from that URL; do not ask for each separately. Use the deployment base URL shown by the user.
@@ -79,8 +79,8 @@ Extract all available IDs from that URL; do not ask for each separately. Use the
 After creating, importing, or reporting a user-visible resource, give the user a clickable Web UI link immediately. Build it from the authenticated deployment base URL and the captured UUIDs:
 
 - project: `<base-url>/projects/<project-id>`
-- discovery: `<base-url>/projects/<project-id>/discovery/<discovery-id>`
-- discovery version: `<base-url>/projects/<project-id>/discovery/<discovery-id>/versions/<version-id>`
+- discovery: `<base-url>/projects/<project-id>/discover/<discovery-id>`
+- discovery version: `<base-url>/projects/<project-id>/discover/<discovery-id>/versions/<version-id>`
 - changeset: `<base-url>/projects/<project-id>/branches/<changeset-id>`
 
 Use Markdown links with a short label such as `Open project` or `Open Discovery`. Keep using UUIDs for CLI commands; a link is a user handoff, not a substitute for verified identifiers.
@@ -104,7 +104,7 @@ Raise only rows required by the selected workflow:
 | CLI | Target deployment and authenticated `artemis status` | `cli-setup` |
 | Runner | Approved machine, required toolchain and resources, and availability | `runner-setup` |
 | Repository | Importable user-controlled remote, or permission to create a fork or mirror | `repo-prepare-fork` |
-| Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
+| Project | Reuse the intended existing project; import only when the repository is not connected | `project-import` |
 | Commands | Exact verified commands and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
 
 Maintain needs no runner or benchmark. Discovery can also assess code without running it: use the supported no-execution mode when the user chooses it. A machine is required for script execution, and recorded measurements are required for numerical performance comparisons. Successful logs are execution evidence, not automatically imported metrics. Inspection normally needs only the authenticated CLI and identifiers.
