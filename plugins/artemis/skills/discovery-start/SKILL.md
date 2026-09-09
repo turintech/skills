@@ -1,119 +1,62 @@
 ---
 name: discovery-start
-description: Start an Artemis discovery run — create the run with inline compile/test/benchmark commands, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
+description: Start an Artemis discovery from the intended project or saved Branch, using the installed CLI's supported execution mode, then verify exploration. Use when the user asks to launch a discovery or optimisation experiment; use discovery-inspect for existing results.
 ---
 
-# Start a discovery run
+# Start a Discovery
 
-## At a glance
+Preserve the selected repository, source Branch and saved SHA. Starting a Discovery is separate from preparing commands or validating a benchmark; do not launch a search merely because preparation finished.
 
-- **Problem:** Creates a discovery run with inline repository commands, waits for baseline finalization, and confirms that the run actually explored versions.
-- **Must be available:** An authenticated CLI, a user-confirmed online runner, an imported project UUID, verified commands that run from the repository root with the runner user's privileges, and the required benchmark metrics.
-- **Use / don't use:** Use only after runner, project, command, and metric readiness are resolved; use `discovery-inspect` rather than this skill for post-launch interpretation.
-- **Next skill:** Use `discovery-inspect` after baseline finalization and the exploration sanity check, or return to `project-import` if a baseline failure leaves the project unusable.
+## Check the installed interface
 
-## Requirements
+Use the supplied API deployment for CLI requests and UI origin for browser links. Reuse matching authentication and task choices.
 
-- `artemis status` succeeds on the target deployment.
-- An imported project UUID from `project-import`.
-- Verified, self-contained root-level commands from `repo-command-setup`.
-- A benchmark that writes numeric `artemis_results.json` or `.csv` as defined in `repo-command-setup` §4, unless qualitative-only optimization is deliberate.
-- A user-confirmed runner that is online and compatible with those commands.
-- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
+Inspect `artemis status` and reuse matching authentication. When supported, run `artemis --output-format json capabilities` once. Check exact `command` paths and `flags` in its `commands` array for `discovery create`, `discovery get` and `model list`. If unavailable or not a valid JSON capability report, inspect those subcommands with `--help`; older CLIs can print parent help and still exit successfully. The report describes installed support, not server compatibility or authentication.
 
-## Model selection
+Do not silently change the user's source or execution mode to fit an older CLI. Explain the missing capability and offer the corresponding UI journey when needed; do not reinstall an identical release repeatedly.
 
-Omit `--model` to use the platform default. Pass `--model <model-catalogue-uuid>` only when the user wants a specific model, such as when comparing discoveries or reproducing a prior run.
+The stable CLI 1.0.11 reviewed for this flow uses inline command flags and `--skip-execution`. The newer reviewed source interface uses `--script`, `--execution-mode`, `--source-changeset`, `--source-sha` and optional parked `--setup`. These are different interfaces; use only flags exposed by the installed CLI. A source build is not proof of stable release availability.
 
-```bash
-artemis model list --help
-artemis model list
-```
+## Preserve source and choose execution
 
-Inspect the current model list before selecting an explicit catalogue UUID. Only preset models listed there can be used by agents.
+- **Saved Artemis Branch:** pass its ID and exact saved SHA through supported `--source-changeset` and `--source-sha`. Confirm both fields in the created run. If unavailable, return the user to that Branch's Metrics or Discoveries page to start from it. Do not publish to Git, switch the project branch, or substitute the project base.
+- **Project source:** confirm the intended project branch and commit before launch. Do not assume a previously selected Branch is the project base.
+- **No machine or commands:** when the user chooses code-based assessment, use `--execution-mode skip`, or `--skip-execution` on the older interface. No machine or script is needed. Explain that no tests or performance measurements will run.
+- **Existing commands or logs only:** where supported, use `--execution-mode test` and code-based scoring (`--llm-metrics` on the newer interface). Successful command exits/logs remain execution evidence. Arbitrary numbers in stdout are not imported as performance metrics. If the installed interface cannot express this mode, offer the UI flow rather than silently switching to benchmark or skipping execution.
+- **Measured performance:** use benchmark execution with the verified script and intended machine. Measurements can come from configured built-in options or structured custom results. Review correctness, units and metric directions; a valid local JSON file alone is not a recorded baseline.
 
-## 1. Create the run
+For execution, reuse the machine already selected for this task when it remains suitable. If missing, unavailable or ambiguous, ask which machine to use; never pick a teammate's machine merely because it is online. Use `runner-setup` only when connection is needed and `repo-command-setup` when commands need work. Do not require a new harness for a user who only wants to run existing commands.
 
-Confirm which runner to use before `discovery create`; do not select one merely because it is online. If the project has a default (`artemis project runner get --project "<project-uuid>"`), confirm it remains appropriate. If no runner was named and several are online, list them and ask.
+Check existing runs before creating work, preserve known run IDs when retrying, and respect the authorised version/time budget. A lost create response needs reconciliation before retry; creating another run blindly can duplicate work. Do not cancel unrelated jobs to make room.
 
-Check whether the project already has a queued or running discovery:
+## Model and launch
 
-- Queuing is **per runner**: runs on one runner serialize; runs on different runners can execute concurrently.
-- An offline runner blocks its queue indefinitely, including later work assigned to it.
+Inspect `artemis model list` and select an available model consistent with the user's preference. The reviewed CLI requires `--model` for immediate launch; do not assume a server default. The newer parked `--setup` flow makes it optional until setup is completed. Accepted UUIDs or model codes depend on installed help.
 
-```bash
-artemis --output-format json discovery list --project "<project-uuid>" \
-  | jq -r '.docs[]?
-      | select(.status=="created" or .status=="running" or .status=="awaiting_approval")
-      | "\(.id) \(.status) vc=\(.versionCount)"'
-```
-
-Choose whether to accept serialization, use another runner, or provision one. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
-
-Pass compile/test/benchmark **inline**. Do not rely on `project commands set` defaults for discovery.
+For the newer interface, an execution example is:
 
 ```bash
 artemis --output-format json discovery create \
-  --project "<project-uuid>" \
-  --runner "<runner-name>" \
-  --task "<what you want optimised, in plain language>" \
-  --compile-cmd "<compile>" \
-  --test-cmd "<test>" \
-  --benchmark-cmd "<benchmark>" \
-  --versions <n>
+  --project "<project-id>" \
+  --source-changeset "<branch-id>" --source-sha "<saved-sha>" \
+  --task "<optimisation objective>" --model "<available-model>" \
+  --script "<verified-script-id>" --runner "<selected-machine>" \
+  --execution-mode benchmark --versions <budget>
 ```
 
-When the user selected a specific model, add `--model "<model-catalogue-uuid>"`.
+Use `test` for the logs-only path. For `skip`, omit script and machine. Omit source flags only for an explicitly chosen project-base path. Replace placeholders with observed identifiers and do not use this example unless the installed CLI exposes its flags. The older execution interface takes `--compile-cmd`, `--test-cmd` and `--benchmark-cmd`; inspect the resulting run-level commands instead of assuming project defaults are current.
 
-Capture `run_id` from the JSON — every later command needs it.
+If the user wants to review setup first and `--setup` is supported, create a parked run. Inspect help for `discovery update` and `discovery setup complete`; no execution starts merely because a setup record exists. Return the setup URL and identify the remaining choices rather than claiming Discovery has started.
 
-Immediately give the user a clickable link:
+## Verify and hand back
 
-```text
-[Open Discovery](<base-url>/projects/<project-uuid>/discovery/<run_id>)
-```
+Capture the returned run ID immediately. Use the UI origin for the link:
 
-Use the authenticated deployment base URL and repeat the link in later progress or failure reports.
+- Running Discovery: `<ui-origin>/projects/<project-id>/discover/<run-id>`
+- Parked setup: `<ui-origin>/projects/<project-id>/discover/setup/<run-id>`
 
-## 2. Baseline / metrics schema
+Inspect `discovery get` for the intended source, script, machine, execution mode and model. Report any mismatch before further work. For execution, follow baseline status and actual command outcomes; a no-execution run does not need a machine observation or a custom results file. Never fabricate metric UUIDs or overwrite a metrics schema to make a failed run appear ready.
 
-During baseline finalization, Artemis derives and stores `metricsSchema` using the explicitly selected model or the platform default. Poll:
+A finalized baseline is not proof of exploration. Poll status and versions using supported commands until at least one candidate appears, a terminal outcome is observed, or the agreed monitoring boundary is reached. State which of those happened. A still-running job at the boundary is not complete.
 
-```bash
-artemis --output-format json discovery get "<run_id>"
-# Wait until baselineObservationId / baselineVersionSha / metricsSchema are
-# non-null and status is running (or failed).
-```
-
-If baseline finalization is delayed, use `discovery-inspect` to compare the run record with runner activity. Large task logs can delay ingestion; see [advanced log control](../repo-command-setup/ADVANCED.md#control-log-volume).
-
-Use **`discovery baseline set`** only with a hand-authored schema whose `metricId` values are real project metric UUIDs, never placeholders:
-
-```bash
-artemis discovery baseline set "<run_id>" --metrics-schema "<path-to-schema.json>"
-```
-
-## 3. Verify exploration started
-
-A finalized baseline does not prove that the run explored a version. Poll until at least one version appears or the run becomes terminal:
-
-```bash
-artemis --output-format json discovery get "<run_id>" \
-  | jq '{status, versionCount, experimentCount, agentRunId}'
-```
-
-A running run with zero versions may not have started exploration yet. If it becomes terminal without a version, hand off to `discovery-inspect` to confirm the runner is idle and diagnose the failure.
-
-## 4. If the project looks corrupt after a failed baseline
-
-Occasionally a failed baseline leaves the project in a bad state on the Web UI. Correcting the runner or launch inputs and re-importing (`project-import`) is usually faster than trying to recover the same project.
-
-## Checklist
-
-- [ ] Project UUID confirmed; runner choice confirmed **with the user**, not just picked because it showed online/available
-- [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
-- [ ] Model choice recorded: platform default (`--model` omitted), or an explicit catalogue UUID requested by the user
-- [ ] Commands passed inline to `discovery create`
-- [ ] Clickable Discovery link returned to the user
-- [ ] Baseline finalized (observation + schema non-null) before walking away
-- [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`
+On failure, preserve the project and run IDs and use `discovery-inspect` to inspect the source, agent state, commands and logs. Do not re-import the repository as a default recovery action; that loses context and creates duplicate projects. Return the existing run link, observed failure and next required action.

@@ -1,90 +1,57 @@
 ---
 name: cli-setup
-description: Install, update, and authenticate the supported artemis CLI through the official installer. Use when an end user needs to set up or update the artemis CLI.
+description: Install, update, and authenticate Artemis CLI on macOS, Linux, or Windows using the official distribution. Use when a task needs CLI capabilities or authentication that are not already available.
 ---
 
-# Set up the artemis CLI
+# Set up Artemis CLI
 
-## At a glance
+Reuse a working installation and login. Connecting a machine alone does not require this skill: `runner-setup` installs the separate machine software. Return to the user's original task once CLI setup is verified.
 
-- **Problem:** Installs, updates, and authenticates the Artemis CLI through the supported installer without requiring GitHub or source access.
-- **Must be available:** Network access to the file server and Artemis deployment, plus an API key created in the Web UI and entered by the user in their own terminal.
-- **Use / don't use:** Use when the CLI is missing, outdated, or unauthenticated; skip it when a working authenticated CLI is already available.
-- **Next skill:** Return to `artemis` routing, usually toward `runner-setup`, `project-import`, or `repo-command-setup`.
+## Check the environment and task
 
-Use the supported distribution. This path requires no GitHub account and does not assume access to the CLI source repository.
+Detect the operating system, architecture and shell. Check `command -v artemis` on macOS/Linux or `Get-Command artemis -ErrorAction SilentlyContinue` in PowerShell, then `artemis version`. Keep the CLI in the same environment as the coding agent; WSL and native Windows installations are separate.
 
-## Requirements
+Use the supplied API deployment for requests and the supplied UI origin for browser links. A localhost UI may use a remote API. Do not replace the user's deployment with production. The UI setup page is `{ui-origin}/settings/connect-agent`, titled **Use Artemis with your agent**.
 
-- Network access to `files.artemis.turintech.ai` and the deployment's base URL.
-- An API key for the target deployment — created by the user in the Web UI (`https://artemis.turintech.ai/settings/api-keys` for hosted, the same path on an on-prem deployment's base URL). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
+When supported, run `artemis --output-format json capabilities` once. A valid report has `version` and `commands` entries with exact `command` paths and `flags`. Check the commands and flags needed for the user's task. If the command is absent or returns help instead of that report, fall back to command-specific `--help`; a zero exit code or parent help does not prove support. The report describes the installed CLI, not server compatibility or authentication.
 
-## Install with the official installer
+If missing, ask the user to install the CLI and offer to do it. If installed, compare official release information and required capabilities before updating; do not downgrade a newer build. Ask before installation or an update unless already authorised. If the installed binary already matches stable but lacks required commands, report the release requirement and offer the matching UI journey. Reinstalling the same release will not add commands. Do not silently select nightly/dev or substitute a different code workflow.
 
-1. Open https://artemis.turintech.ai/settings/cli. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
-2. Confirm whether this is hosted Artemis or an on-prem deployment with a custom base URL — it selects which invocation below to use.
+## Install or update
 
-The installer detects the platform, installs the CLI, and configures service endpoints. The commands below are the direct supported route and avoid unnecessary navigation when they still match the published setup flow.
+No GitHub account or source checkout is required. Use the public distribution at `https://files.artemis.turintech.ai/public/artemis-cli/latest/`.
 
-For hosted (SaaS) Artemis:
+### macOS and Linux
+
+Download the installer into a temporary directory, inspect it, then run it with the requested API deployment:
 
 ```bash
-(
-  set -e
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/artemis-cli/latest/artemis-cli-installer.sh" \
-    -o "$TMP/installer.sh"
-  chmod +x "$TMP/installer.sh"
-  "$TMP/installer.sh"
-)
+curl -fL "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
+  -o installer.sh
+chmod +x installer.sh
+./installer.sh --base-url "<deployment>"
 ```
 
-For on-prem Artemis, add the deployment's base URL:
+The installer detects the platform, defaults to the latest stable release and `~/.local/bin`, and configures endpoints. Its current options include `--install-dir`, `--version`, `--nightly` and `--dev`; confirm live installer help before using options. Keep the same deployment during updates. Installation does not create an API key or authenticate the CLI. If configuration fails, inspect the installed binary and login help before reinstalling.
+
+### Native Windows PowerShell
+
+Use the Windows x64 binary `artemis-cli-windows-amd64.exe` and `checksums.txt` from the same public distribution directory. Download both into a temporary directory. Require exactly one checksum entry for that filename and compare it with `Get-FileHash -Algorithm SHA256` before installing. Stop on a missing, ambiguous or mismatched checksum.
+
+Install as `artemis.exe` in a user-owned directory such as `$env:LOCALAPPDATA\Artemis\bin`, add that directory once to the user's PATH and the current shell PATH, and verify `artemis version`. This does not require administrator access or an execution-policy change. Do not run Bash commands in PowerShell. On Windows ARM64, confirm x64 emulation before using this build; do not invent an ARM64 artifact. The UI's manual setup tab provides a copyable PowerShell script for these steps.
+
+Open a new terminal if another agent session needs the updated PATH. Recheck the installed version and task capabilities after an update.
+
+## Authenticate and verify
+
+Inspect `artemis status` without printing secrets. Reuse an authenticated login for the requested deployment. When login is needed, show the supplied `apiKeysUrl`, or `{ui-origin}/settings/api-keys`, and tell the user to generate a key there if they do not already have one. Keys belong to one deployment. Never ask for a key in chat or place it in repository files or command arguments.
+
+Have the user run the following in their own terminal so the CLI prompts privately:
 
 ```bash
-(
-  set -e
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/artemis-cli/latest/artemis-cli-installer.sh" \
-    -o "$TMP/installer.sh"
-  chmod +x "$TMP/installer.sh"
-  "$TMP/installer.sh" --base-url https://your-custom.artemis.turintech.ai
-)
+artemis login --url "<deployment>"
 ```
 
-The `latest/` path always serves the current installer. It selects two independent things. **Which build:** the newest stable release by default, or `--version X.Y.Z` to pin one, `--nightly` to include prereleases, `--dev` for the rolling development build. **Which deployment the CLI points at:** `--env` (`dev`, `stg`, `prod`; default `prod`) or `--base-url` with a full URL — these are the same setting, so pass one of them.
+Wait for login to finish, then check `artemis status` and one read-only request for the supplied project (or another resource relevant to the task). Do not claim success from local configuration or a capability report alone. A request failure does not imply the project must be imported again.
 
-The download credentials above are the published shared ones from the Web UI and the docs, not per-user secrets, so they can be used directly. Any *API key* is still a secret and must never enter the conversation.
-
-Do not guess installer flags: the live installer may have changed.
-
-## Authenticate
-
-The installer configures endpoints but the CLI still needs the API key described in Requirements. Have the user run the interactive login themselves:
-
-```bash
-artemis login --url prod
-```
-
-For on-prem, use the base URL accepted by `artemis login --help`. Do not set individual service URLs unless the current CLI explicitly requires it; the base URL normally derives them.
-
-Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the home config: a project-local `.env` is easy to leak and shadows the home config.
-
-## Verify
-
-```bash
-artemis --version || artemis version
-artemis status
-```
-
-Confirm the build carries the command groups the task needs — for example `artemis discovery --help`.
-
-Report the installed version, base URL, and authenticated user. Do not report success if `status` shows missing endpoints or an unauthenticated session.
-
-## Update
-
-Record the current version, rerun the installer for the same deployment, and repeat authentication and status verification. Report the version before and after. Do not change deployment while performing an update.
+Report the installed version, deployment, and verification outcome without credentials. Continue the original task automatically when its requirements are met; otherwise identify the specific missing capability or authentication step.

@@ -7,9 +7,9 @@ description: Derive, verify, and configure the compile, test, and benchmark comm
 
 ## At a glance
 
-- **Problem:** Derives, verifies, and records the self-contained root-level `compile`, `test`, and `benchmark` commands Artemis requires.
+- **Problem:** Derives, verifies, and records the self-contained repository commands the user wants Artemis to execute.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
-- **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
+- **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when measured performance is requested and the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
 - **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then continue to `discovery-start` or validation.
 
 ## Requirements
@@ -23,9 +23,17 @@ Plus, either way:
 
 - agreement on which performance behaviour matters, when the repository doesn't make it obvious — ask the user rather than guessing.
 
+## Choose the preparation workspace
+
+For a changeset handoff, use [benchmark-prepare-changeset](../benchmark-prepare-changeset/SKILL.md). Download its current code, save harness fixes back into that same changeset, and validate the saved SHA. Do not switch to Git publishing or create a new changeset after each fix.
+
+For an explicitly selected local Git workflow, use [benchmark-prepare-git](../benchmark-prepare-git/SKILL.md). Commit and push under the user's existing authorisation, then select and synchronise the branch in Artemis before validation. Do not confuse that branch with an older changeset's fixed original version.
+
+The sections below supply command and metrics guidance for either path. Continue an existing authorised preparation task without re-asking settled choices.
+
 ## Choose the workflow path
 
-If the repository lacks a suitable benchmark and correctness gate, follow [HARNESS.md](HARNESS.md) to author one, verify it locally, then continue here.
+If measured performance is requested and the repository lacks a suitable benchmark and correctness gate, follow [HARNESS.md](HARNESS.md) to author one, verify it locally, then continue here.
 
 Otherwise use the path supported by the available environment:
 
@@ -37,13 +45,9 @@ Verification is part of this skill. Skip it only when the user explicitly asks; 
 
 ## Execution contract
 
-Artemis runs three ordered phases from the repository root in a fresh checkout on the selected runner:
+Current Artemis scripts run ordered `setup`, `benchmark` and `teardown` phases from the repository root in a fresh checkout. Put build and correctness checks in setup so they run once; benchmark commands measure the workload and may repeat; teardown performs cleanup. Compile/test/benchmark are useful conceptual responsibilities, not the current script category names.
 
-- **compile** proves generated code is syntactically valid and buildable;
-- **test** rejects behaviorally incorrect changes;
-- **benchmark** measures the optimization target and writes numeric metrics.
-
-There is no working-directory, setup-command, or timeout field.
+Inspect installed CLI help before configuring commands: older deployments may expose the legacy command triple. Avoid inventing unsupported fields or flags.
 
 Each command must therefore be:
 
@@ -54,9 +58,11 @@ Each command must therefore be:
 - **truthful** — return non-zero when its phase fails;
 - **runner-compatible** — use tools and paths that exist on the selected runner.
 
-The benchmark must write `artemis_results.json` or `artemis_results.csv` to the working directory (`$PWD`). Stdout is useful for diagnostics but is not the custom-metric channel.
+To record custom metrics, the benchmark writes `artemis_results.json` or `artemis_results.csv` to the working directory (`$PWD`). Stdout is useful for diagnostics but is not the custom-metric channel. Built-in Runtime, CPU and Memory measurements can be configured without a custom results file.
 
-Do not configure Artemis until all three commands are verified under the execution assumptions it will use.
+For an existing-script or logs-only task, preserve the working build/test/benchmark commands without requiring a new harness or results file. Verify execution and report missing measurements separately. Discovery can assess code with Artemis Score while using these execution checks; do not claim arbitrary printed numbers affect performance scoring.
+
+Verify the selected commands under the execution assumptions Artemis will use; do not invent an unnecessary command just to fill a phase.
 
 ## 1. Inspect before asking
 
@@ -160,7 +166,7 @@ The benchmark must create the file in the working directory from which Artemis i
 
 ## 5. Where to verify
 
-Use the selected runner whenever the project is imported; local success cannot prove compatibility with its toolchain, OS, architecture, or dependencies. Verify locally when no runner or project exists yet, or as a faster preliminary loop. Both paths must prove that all three commands pass, the test catches a representative fault, and the benchmark writes a fresh numeric results file.
+Use the selected runner whenever the project is imported; local success cannot prove compatibility with its toolchain, OS, architecture, or dependencies. Verify locally when no runner or project exists yet, or as a faster preliminary loop. Both paths must prove that the selected commands pass. For measured optimisation, also verify the correctness gate and fresh requested measurements. A logs-only run can succeed without a custom results file.
 
 ### 5a. Verify locally
 
@@ -191,44 +197,25 @@ Record the literal commands and measured duration of each phase.
 
 This exercises the commands through the platform, on the real execution environment, instead of guessing that local success transfers. It needs a project already imported (`project-import`) and a runner already online.
 
-Check the installed command surface, then use **`artemis changeset validate`** — the same primitive discovery uses to evaluate generated versions and the baseline:
+Check the installed command surface and follow the selected preparation skill. For a current changeset workflow:
 
 ```bash
 artemis changeset validate --help
-artemis --output-format json changeset create --project "<project-uuid>"
-# → an empty changeset; its one version is the project's current original code
-
-artemis --output-format json changeset validate "<changeset-id>" \
-  --project "<project-uuid>" --version original \
-  --command "<compile-command>" \
-  --command "<test-command>" \
-  --command "<benchmark-command>" \
-  --runner "<runner-name>" --wait
+artemis project scripts --help
+artemis project scripts list --project "<project-uuid>"
+artemis changeset validate "<changeset-id>" --project "<project-uuid>" \
+  --version "<saved-version-sha>" --script "<script-id>" --runner "<runner-name>" --wait
 ```
 
-`--version original` resolves the changeset's original version automatically. `--wait` returns the final per-command `exitCode`, runtime, resource usage, and status. Re-check later, or from a different session, with:
+Use the changeset's saved version after repository edits. `original` refers to its fixed baseline and does not include harness fixes. Inspect validation status, command exits, logs and actual metrics with the commands supported by the installed CLI. Stop at a baseline validation unless the user requested optimisation too.
 
-```bash
-artemis changeset validation get "<validation-id>" --project "<project-uuid>"
-```
-
-Confirm every command shows `exitCode: 0`, the intended runner and toolchain were used, and the benchmark created a fresh `artemis_results.json`/`.csv`. The result reports only `exitCode`, `runtime`, `cpu`, and `memory` — never metric values, and never whether the results file was written. Use `execution-log-inspect` with `status.id` from the validate response to fetch command output through the platform (not the per-command `logId`, which is not fetchable).
-
-When something fails, distinguish command-string issues from repository code or script issues:
-
-- **Command-string failure:** adjust the `--command` values and re-run `changeset validate` on the same empty changeset (`--version original` still resolves that original code).
-- **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
-
-If `changeset validate` is unavailable, inspect `artemis validation run --help` for the installed CLI's project-validation workflow. When that workflow returns a process ID, use `execution-log-inspect` for command details. Do not invent compatibility flags.
+When a command fails, fix and retry in the same workspace. Source or harness edits in CLI mode use `changeset save` with explicit intended paths; Git mode follows the branch/push/synchronisation handoff. Preserve failures and report unverified prerequisites.
 
 ## 6. Configure Artemis
 
-Use the verified commands unchanged:
+Record the exact verified commands as a named project script. Use `artemis project scripts create --help` for `--setup-cmd`, `--benchmark-cmd`, `--teardown-cmd` and JSON `--file`. Scripts are shared templates; reuse matching commands or create a separately named script instead of changing an unrelated template or the project default without intent. Select that script explicitly for changeset validation.
 
-- Project settings and `artemis project commands set` provide defaults for Web UI validation flows. `changeset validate` runs commands ad hoc and does not store those defaults; run `artemis project commands set --help` when Web UI defaults are wanted.
-- Discovery does not consume those defaults; pass the same commands inline to `discovery create` through `discovery-start`.
-
-Do not maintain two semantically different command sets for validation and discovery.
+Maintain the same correctness gate and measured workload when proceeding to discovery. Inspect the installed discovery command's supported script options rather than assuming it consumes legacy project defaults.
 
 ## Advanced cases
 
@@ -236,12 +223,12 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 
 ## Completion checklist
 
-- [ ] Compile, test, and benchmark commands are exact and recorded.
+- [ ] Selected commands are exact and recorded.
 - [ ] Verification completed locally or on the runner, or explicitly skipped by the user and recorded as outstanding.
-- [ ] When verification was performed, all three passed in order from a disposable clean checkout or via `changeset validate --version original` on the runner.
+- [ ] When verification was performed, the selected commands passed in order from a disposable clean checkout or via changeset validation of the intended saved version on the runner.
 - [ ] Commands are root-relative, headless, non-interactive, and repeatable.
-- [ ] Compile catches invalid generated code.
-- [ ] Test catches a representative semantic fault.
-- [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
+- [ ] When a compile check is configured, it catches invalid generated code.
+- [ ] When correctness-gated optimisation is requested, tests catch a representative semantic fault.
+- [ ] Requested measurements are observed; otherwise successful execution and missing metrics are reported separately.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
 - [ ] Validation and discovery use the same verified commands.
