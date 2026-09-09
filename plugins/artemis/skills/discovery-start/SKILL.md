@@ -11,14 +11,9 @@ Preserve the selected repository, source Branch and saved SHA. Starting a Discov
 
 Use the supplied API deployment for CLI requests and UI origin for browser links. Reuse matching authentication and task choices.
 
-```bash
-artemis status
-artemis discovery create --help
-artemis discovery get --help
-artemis model list --help
-```
+Inspect `artemis status` and reuse matching authentication. When supported, run `artemis --output-format json capabilities` once. Check exact `command` paths and `flags` in its `commands` array for `discovery create`, `discovery get` and `model list`. If unavailable or not a valid JSON capability report, inspect those subcommands with `--help`; older CLIs can print parent help and still exit successfully. The report describes installed support, not server compatibility or authentication.
 
-Inspect actual subcommand usage and flags, not just the exit code. Older CLIs may print parent help for an unsupported command. Do not silently change the user's source or execution mode to fit an older CLI. Explain the missing capability and offer the corresponding UI journey when needed; do not reinstall an identical release repeatedly.
+Do not silently change the user's source or execution mode to fit an older CLI. Explain the missing capability and offer the corresponding UI journey when needed; do not reinstall an identical release repeatedly.
 
 The stable CLI 1.0.11 reviewed for this flow uses inline command flags and `--skip-execution`. The newer reviewed source interface uses `--script`, `--execution-mode`, `--source-changeset`, `--source-sha` and optional parked `--setup`. These are different interfaces; use only flags exposed by the installed CLI. A source build is not proof of stable release availability.
 
