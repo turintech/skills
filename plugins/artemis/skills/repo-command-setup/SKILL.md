@@ -209,7 +209,7 @@ artemis --output-format json changeset validate "<changeset-id>" \
   --command "<compile-command>" \
   --command "<test-command>" \
   --command "<benchmark-command>" \
-  --runner "<runner-name>" --wait
+  --runner "<runner-id>" --wait
 ```
 
 Keep stdout and stderr separate when requesting JSON. Parse stdout as a complete document; if progress output contaminates it, repeat a clean read-only fetch instead of extracting a substring with a regular expression.
