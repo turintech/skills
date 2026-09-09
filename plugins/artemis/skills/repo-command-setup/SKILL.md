@@ -203,7 +203,7 @@ artemis --output-format json changeset validate "<changeset-id>" \
   --command "<compile-command>" \
   --command "<test-command>" \
   --command "<benchmark-command>" \
-  --runner "<runner-name>" --wait
+  --runner "<runner-id>" --wait
 ```
 
 `--version original` resolves the changeset's original version automatically. `--wait` returns the final per-command `exitCode`, runtime, resource usage, and status. Re-check later, or from a different session, with:

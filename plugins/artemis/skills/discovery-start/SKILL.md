@@ -55,7 +55,7 @@ Pass compile/test/benchmark **inline**. Do not rely on `project commands set` de
 ```bash
 artemis --output-format json discovery create \
   --project "<project-uuid>" \
-  --runner "<runner-name>" \
+  --runner "<runner-id>" \
   --task "<what you want optimised, in plain language>" \
   --compile-cmd "<compile>" \
   --test-cmd "<test>" \
