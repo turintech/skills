@@ -1,6 +1,9 @@
 ---
 name: discovery-steer
 description: Continue, expand, or redirect an Artemis discovery run, verify its child agent run was attached, and check whether later experiments follow new guidance. Use when the user wants to add budget, steer, redirect, or change the focus of an existing discovery run.
+compatibility: Requires Artemis CLI 1.1.5 or newer.
+metadata:
+  artemis-cli-min: "1.1.5"
 ---
 
 # Steer a discovery run

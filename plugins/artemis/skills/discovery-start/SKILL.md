@@ -1,6 +1,9 @@
 ---
 name: discovery-start
 description: Start an Artemis discovery run — create a validation script, pass it to discovery create, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
+compatibility: Requires Artemis CLI 1.1.5 or newer.
+metadata:
+  artemis-cli-min: "1.1.5"
 ---
 
 # Start a discovery run

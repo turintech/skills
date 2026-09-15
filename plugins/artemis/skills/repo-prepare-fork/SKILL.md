@@ -1,6 +1,9 @@
 ---
 name: repo-prepare-fork
 description: Prepare an importable fork or private mirror of an upstream repository the user does not control, pinned to a known commit. Use when Artemis cannot import the upstream repository directly and the user needs a repository under their own account or organization. Always obtain explicit permission before creating or pushing any fork or mirror.
+compatibility: Requires Artemis CLI 1.1.5 or newer.
+metadata:
+  artemis-cli-min: "1.1.5"
 ---
 
 # Prepare a repository fork for Artemis

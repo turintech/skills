@@ -1,6 +1,9 @@
 ---
 name: execution-log-inspect
 description: Retrieve and interpret Artemis runner task logs through the platform when compile, test, benchmark, validation, or Discovery execution fails and the runner host is unavailable.
+compatibility: Requires Artemis CLI 1.1.5 or newer.
+metadata:
+  artemis-cli-min: "1.1.5"
 ---
 
 # Inspect Artemis execution logs

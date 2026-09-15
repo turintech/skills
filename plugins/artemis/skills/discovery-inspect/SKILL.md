@@ -1,6 +1,9 @@
 ---
 name: discovery-inspect
 description: Inspect and interpret the results of an Artemis discovery run — is it done, did versions actually pass, what are the real numbers, and what code changed. Use when the user wants to check on a discovery run, read its results, see which versions won, or understand why a run produced nothing.
+compatibility: Requires Artemis CLI 1.1.5 or newer.
+metadata:
+  artemis-cli-min: "1.1.5"
 ---
 
 # Inspect a discovery run

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SKILLS="$ROOT/plugins/artemis/skills"
 REF="${SKILLS_REF:-skills-ref}"
-REQUIRE_TAG="${REQUIRE_CLI_TAG:-0}"
+REQUIRE_TAG="${REQUIRE_CLI_TAG:-1}"
 fail=0
 
 for dir in "$SKILLS"/*/; do

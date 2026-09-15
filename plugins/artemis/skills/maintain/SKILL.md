@@ -1,6 +1,9 @@
 ---
 name: maintain
 description: Run Artemis Maintain end to end on a project — author or import rules, scan the code for issues, triage the findings, fix them with the fix agent, ship each fix as a branch or PR, and resync stale issues as the code moves on. Use when the user wants to scan a project for code-health issues, set up maintain rules, or triage/fix/ship maintain findings.
+compatibility: Requires Artemis CLI 1.1.5 or newer.
+metadata:
+  artemis-cli-min: "1.1.5"
 ---
 
 # Artemis Maintain
