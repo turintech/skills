@@ -44,7 +44,6 @@ Copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.clau
 | `artemis` | Classify a request and route to the right skill |
 | `cli-setup` | Install or authenticate the CLI |
 | `runner-setup` | Install, register, or start a runner |
-| `repo-prepare-fork` | Fork or mirror a repository you do not control |
 | `repo-command-setup` | Derive, verify, and store compile/test/benchmark commands as a validation script |
 | `workspace-setup` | Persistent incremental build cache |
 | `project-import` | Import a branch as an Artemis project |

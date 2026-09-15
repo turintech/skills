@@ -13,7 +13,7 @@ metadata:
 - **Problem:** Classifies the user's goal, identifies blocking decisions before long-running work, and routes to the appropriate task-specific skill.
 - **Must be available:** Enough context to determine the intended workflow and inspect any relevant repository, deployment, project, runner, commands, or existing run.
 - **Use / don't use:** Use for any new Artemis setup, discovery, validation, maintain, resume, or inspection request; skip it when the requested downstream step is already explicit.
-- **Next skill:** There is no fixed next skill; route to the setup, repository-preparation, import, discovery, inspection, or maintain skill selected by the workflow.
+- **Next skill:** There is no fixed next skill; route to the setup, import, discovery, inspection, or maintain skill selected by the workflow.
 
 ## Requirements
 
@@ -94,7 +94,7 @@ Raise only rows required by the selected workflow:
 |---|---|---|
 | CLI | Target deployment and authenticated `artemis status` | `cli-setup` |
 | Runner | Approved machine, required toolchain and resources, and availability | `runner-setup` |
-| Repository | Importable user-controlled remote, or permission to create a fork or mirror | `repo-prepare-fork` |
+| Repository | A remote that one of the user's Git keys can read | `project-import` |
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
 | Commands | Exact verified commands, stored as a validation script, and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
 
@@ -134,7 +134,6 @@ Before launching discovery, validation, or Maintain:
 
 - CLI: `cli-setup`
 - Runner: `runner-setup`
-- Repository ownership: `repo-prepare-fork`
 - Repository commands, validation scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
 - Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`
