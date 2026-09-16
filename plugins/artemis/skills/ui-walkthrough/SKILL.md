@@ -29,9 +29,18 @@ metadata:
    ```
 
    Only if that returns nothing is there genuinely no browser control. Then print the Web UI link and continue without the browser.
-2. If more than one browser is connected, ask the user which one to use.
-3. Use one tab for the whole session. Create it once, then navigate within it.
-4. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.
+2. **Loading the tools is not the same as having a browser.** Probe for a live one with `tabs_context_mcp` before offering the browser route. If it reports no connected browser, say so plainly and offer these fixes in order, then wait. Do not fall back to the terminal silently: the user chose the browser for a reason.
+
+   | Symptom | Fix |
+   |---|---|
+   | No browser window on screen | The browser must be open and **visible**. A process with no window cannot be paired |
+   | Window open, still not connected | The extension pairs with a **running** assistant session. Start the session first, then click the extension icon and connect it |
+   | It worked earlier in this session | A resumed session can lose the browser flag it was started with. Start a fresh session rather than resuming |
+
+   Re-probe after the user says they have acted. Only after a failed probe **and** these fixes should you continue in the terminal.
+3. If more than one browser is connected, ask the user which one to use.
+4. Use one tab for the whole session. Create it once, then navigate within it.
+5. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.
 
 ## 2. Find the page, then show it
 
@@ -87,7 +96,7 @@ Each of these is a separate tool call, so it is slower and costs more. That is t
 
 | Situation | Do |
 |---|---|
-| No browser tool, or no connected browser | Print the link and continue |
+| No browser tool after loading, or no connected browser | Offer the section 1 fixes and wait. Print the link and continue only once those have failed |
 | The page header shows a different account | Stop and ask the user |
 | A 500 error mentioning `URL.canParse` | Ask the user to update Chrome to version 120 or newer |
 | "Project Not Found" | Check the account and the deployment base URL before retrying |
@@ -95,7 +104,7 @@ Each of these is a separate tool call, so it is slower and costs more. That is t
 
 ## Checklist
 
-- [ ] Browser tool detected, or links printed instead
+- [ ] Browser tools loaded, a live browser probed, and the section 1 fixes offered before any fallback to links
 - [ ] One tab, and the header account matches the CLI
 - [ ] Each page explained in chat, with the pointer on the relevant element
 - [ ] No state-changing click without an explicit yes, and no credential handled

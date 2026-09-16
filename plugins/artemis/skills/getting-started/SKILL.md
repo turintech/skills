@@ -46,7 +46,7 @@ Say four short lines:
 Ask this **before** asking what they want to do. Seeing the platform is most of what makes the first session make sense, and a user who picks the browser route should see the setup steps too, not just the run.
 
 - If browser control is available, ask: "I can show you each step in your browser as I go (recommended), or keep everything in this terminal. Which would you like?"
-- If not, say: "Seeing the platform in your browser needs Claude Code with Claude in Chrome, so we'll use the terminal." Then continue.
+- If not, do not write the browser off yet. `ui-walkthrough` section 1 covers loading the tools, probing for a live browser, and the three things that actually stop one connecting: no visible window, an extension paired before the session existed, and a resumed session that lost its browser flag. Offer those, wait, and probe again. Say "we'll use the terminal" only once that has failed, and say which check failed so the user knows what to fix.
 
 Remember the choice for the session. In the browser route, use `ui-walkthrough` to show the page named at each step below, and tell it this is a **first-run demo** so it uses its watchable pacing. That pacing is for this first tour only; a user who comes back does not need it.
 
