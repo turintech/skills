@@ -43,6 +43,8 @@ Say four short lines:
 
 ## 2. How to follow along
 
+Ask this **before** asking what they want to do. Seeing the platform is most of what makes the first session make sense, and a user who picks the browser route should see the setup steps too, not just the run.
+
 - If browser control is available, ask: "I can show you each step in your browser as I go (recommended), or keep everything in this terminal. Which would you like?"
 - If not, say: "Seeing the platform in your browser needs Claude Code with Claude in Chrome, so we'll use the terminal." Then continue.
 
@@ -50,10 +52,14 @@ Remember the choice for the session. In the browser route, use `ui-walkthrough` 
 
 ## 3. Example or own project
 
-Ask: "Would you like to see an example first? (recommended) I'll run our demo project, Particle Life, so you can watch a real optimisation from start to finish."
+Recommend the example plainly, and say why rather than tagging it "(recommended)":
 
-- Yes: section 4, then section 5a.
-- No: ask "What would you like to optimise?", then section 4, then section 5b.
+"I'd suggest starting with our demo project, Particle Life. It is a small C++ simulation that is deliberately slow, so you can watch a real optimisation from start to finish in about 20 minutes and see what Artemis actually produces before pointing it at your own code. Would you like to do that, or go straight to your own project?"
+
+- Example: section 4, then section 5a.
+- Their own project: ask "What would you like to optimise?", then section 4, then section 5b.
+
+If they are undecided, recommend the example again once and move on. Someone who has never seen a discovery run has no way to judge the settings their own project would need.
 
 ## 4. Setup
 
@@ -74,6 +80,10 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 | Start: 10 versions, the catalogue's default preset model, three measurements per version | `discovery-start` | Discover, then the run | The original code is measured first, and each version is measured three times so the charts show a range instead of a single point |
 | Watch | `discovery-inspect` | Discovery run | Experiments are ideas; versions are attempts |
 | Result | `discovery-inspect` | Discovery version (the fastest) | Which numbers are measured and which are AI-judged; "BEST" is a blended score, not always the fastest |
+
+**Do not ask the user to choose any of this.** The demo's settings are fixed here precisely so a first-time user is never asked a question they have no basis to answer. Never ask a new user for the version budget, the model, the number of measurements, the target files, or the task wording. State what you are running and start it. Downstream skills may require these values; supply them from this section rather than passing the question on.
+
+The one thing you do ask about is permission for anything long-lived or external: starting the runner, and creating the project.
 
 Particle Life inputs:
 

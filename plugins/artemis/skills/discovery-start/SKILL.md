@@ -35,6 +35,8 @@ artemis model list
 
 Inspect the current model list, present meaningful choices when the user has not selected one, and record the chosen UUID or model-type code. Only listed models can be used by agents.
 
+**When a calling skill supplies the model, version budget or measurement count, use them and do not re-ask.** `getting-started` fixes all of these for its demo so a first-time user is never asked to choose between things they have not seen yet. Ask only when the user is driving the run themselves and has not said what they want.
+
 ## 1. Create the run
 
 Confirm which runner to use before `discovery create`; do not select one merely because it is online. If the project has a default (`artemis project runner get --project "<project-uuid>"`), confirm it remains appropriate. If no runner was named and several are online, list them and ask.
