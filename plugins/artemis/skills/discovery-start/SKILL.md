@@ -39,7 +39,9 @@ Inspect the current model list, present meaningful choices when the user has not
 
 ## 1. Create the run
 
-Confirm which runner to use before `discovery create`; do not select one merely because it is online. If the project has a default (`artemis project runner get --project "<project-uuid>"`), confirm it remains appropriate. If no runner was named and several are online, list them and ask.
+**When a calling skill has already chosen the runner, use it and do not re-ask**, the same as the model and budget above. `getting-started` picks one for its demo so a first-time user is never asked to choose between machines they have not heard of.
+
+Otherwise confirm which runner to use before `discovery create`; do not select one merely because it is online. If the project has a default (`artemis project runner get --project "<project-uuid>"`), confirm it remains appropriate. If no runner was named and several are online, list them and ask.
 
 Check whether the project already has a queued or running discovery:
 
@@ -166,7 +168,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 
 ## Checklist
 
-- [ ] Project UUID confirmed; runner choice confirmed **with the user**, not just picked because it showed online/available
+- [ ] Project UUID confirmed; runner either supplied by the calling skill, or confirmed **with the user** rather than picked because it showed online
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
 - [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
