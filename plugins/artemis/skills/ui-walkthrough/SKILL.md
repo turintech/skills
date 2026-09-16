@@ -57,6 +57,18 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 
 Never open `/settings` or `/projects` on their own: on admin accounts `/settings` lists every user's name and email.
 
+### Make it watchable, first-run demo only
+
+The first time someone sees Artemis, the pointer is the explanation: they follow it around the page. Use this pacing only for that first tour, when the calling skill says this is a first-run demo. Once the user has seen it, or asks for speed, navigate plainly.
+
+1. Move the pointer to its target in two or three steps rather than one jump, then pause on it before clicking.
+2. Scroll the target into view rather than jumping straight to it, and let the page settle.
+3. Keep the pointer on the element while you explain it, so the words and the pointer agree.
+4. One idea per step. Do not queue several actions between explanations.
+5. Read the page again before each click. References go stale as the page updates, and this pacing gives the page more chances to change under you.
+
+Each of these is a separate tool call, so it is slower and costs more. That is the point during a demo and waste afterwards.
+
 ## 3. Clicking
 
 - Navigation needs no approval: tabs, sidebar links, and version names.

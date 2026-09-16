@@ -46,7 +46,7 @@ Say four short lines:
 - If browser control is available, ask: "I can show you each step in your browser as I go (recommended), or keep everything in this terminal. Which would you like?"
 - If not, say: "Seeing the platform in your browser needs Claude Code with Claude in Chrome, so we'll use the terminal." Then continue.
 
-Remember the choice for the session. In the browser route, use `ui-walkthrough` to show the page named at each step below.
+Remember the choice for the session. In the browser route, use `ui-walkthrough` to show the page named at each step below, and tell it this is a **first-run demo** so it uses its watchable pacing. That pacing is for this first tour only; a user who comes back does not need it.
 
 ## 3. Example or own project
 
@@ -71,7 +71,7 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 |---|---|---|---|
 | Import `https://github.com/turintech/particle-life`, branch `main` | `project-import` | Project | A project is a repository pinned at a commit |
 | Validation script from the commands below | `repo-command-setup` | Project | Build, test and benchmark are stored once and reused |
-| Start: 10 versions, the catalogue's default preset model | `discovery-start` | Discover, then the run | The original code is measured first |
+| Start: 10 versions, the catalogue's default preset model, three measurements per version | `discovery-start` | Discover, then the run | The original code is measured first, and each version is measured three times so the charts show a range instead of a single point |
 | Watch | `discovery-inspect` | Discovery run | Experiments are ideas; versions are attempts |
 | Result | `discovery-inspect` | Discovery version (the fastest) | Which numbers are measured and which are AI-judged; "BEST" is a blended score, not always the fastest |
 
@@ -82,6 +82,9 @@ Particle Life inputs:
 - benchmark: `python3 tools/benchmark.py --no-visualize`
 - target files: `src/simulation.cpp` and `src/simulation.hpp`
 - task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.`
+- measurement: `--eval-mode fixed --eval-runs 3`
+
+Three measurements per version is deliberate here. One measurement gives a single number with no sense of how much it wobbles, so the run can only report a point estimate; three give the range the charts are built on. Particle Life measures in about three seconds, so this adds roughly two minutes to the demo. It is not a default to copy onto a slow benchmark without doing that arithmetic first.
 
 ## 5b. Their own project
 

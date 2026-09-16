@@ -86,6 +86,19 @@ artemis --output-format json discovery create \
 
 `--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for LLM-judged metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
 
+### How many times each version is measured
+
+The server default is one measurement per version, recorded on the run as `evaluationMode` and `evaluationRepetitions`. One measurement yields a point estimate and no interval, so a difference between two versions cannot be separated from ordinary noise.
+
+```bash
+--eval-mode fixed --eval-runs 3        # measure every version three times
+--eval-mode until_stable --max-runs 20 # repeat until results settle, capped
+```
+
+Repetitions multiply **runner** time, not agent time: a 10-version run at three repeats performs 33 measurements instead of 11. On a benchmark measured in seconds that is a couple of extra minutes and well worth it. On one measured in tens of minutes it dominates the run.
+
+Decide with the user against their benchmark's duration rather than copying a number. Ask how long one benchmark takes, multiply by versions plus one for the baseline, and say the result out loud before creating the run.
+
 Capture `run_id` from the JSON — every later command needs it.
 
 Immediately give the user a clickable link:
@@ -156,6 +169,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
 - [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
 - [ ] `--llm-metrics=false` unless LLM-judged metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
+- [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
 - [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (`baselineGroupId` + schema non-null) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`
