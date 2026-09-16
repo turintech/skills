@@ -73,10 +73,10 @@ Repeated status text or repeated `propose`/`conclude` calls can be normal while 
 When reporting a run or candidate, include clickable Web UI links:
 
 ```text
-[Open Discovery](<base-url>/projects/<project-id>/discovery/<run-id>)
-[Open version](<base-url>/projects/<project-id>/discovery/<run-id>/versions/<version-id>)
-[Open changeset](<base-url>/projects/<project-id>/changesets/<changeset-id>)
+[Open project](<base-url>/projects/<project-id>)
 ```
+
+Link the project, then name the page to open, such as Discover, the run, or its Versions tab. Run and version paths differ between deployments, so do not build them from memory.
 
 ## Inspect runner output
 

@@ -91,8 +91,10 @@ Capture `run_id` from the JSON — every later command needs it.
 Immediately give the user a clickable link:
 
 ```text
-[Open Discovery](<base-url>/projects/<project-uuid>/discovery/<run_id>)
+[Open project](<base-url>/projects/<project-uuid>)
 ```
+
+From there, Discover lists the run. Run paths differ between deployments, so follow the app's navigation rather than building the URL.
 
 Use the authenticated deployment base URL and repeat the link in later progress or failure reports.
 

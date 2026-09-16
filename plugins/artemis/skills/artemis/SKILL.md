@@ -72,9 +72,8 @@ Use available local and Artemis state to inspect the repository and its document
 When resuming existing work, ask the user to paste the URL of the most specific entity they are viewing. Artemis URLs expose the required UUIDs:
 
 - `/projects/<project-id>/...`
-- `/projects/<project-id>/discovery/<discovery-id>`
-- `/projects/<project-id>/discovery/<discovery-id>/versions/<version-id>`
-- `/projects/<project-id>/changesets/<changeset-id>/...`
+- the run: `/projects/<project-id>/discover/<run-id>` on newer deployments, `/projects/<project-id>/discovery/<run-id>` on older ones
+- anything deeper, such as versions, experiments, metrics, branches or changesets, follows those segments
 
 Extract all available IDs from that URL; do not ask for each separately. Use the deployment base URL shown by the user.
 
@@ -83,9 +82,7 @@ Extract all available IDs from that URL; do not ask for each separately. Use the
 After creating, importing, or reporting a user-visible resource, give the user a clickable Web UI link immediately. Build it from the authenticated deployment base URL and the captured UUIDs:
 
 - project: `<base-url>/projects/<project-id>`
-- discovery: `<base-url>/projects/<project-id>/discovery/<discovery-id>`
-- discovery version: `<base-url>/projects/<project-id>/discovery/<discovery-id>/versions/<version-id>`
-- changeset: `<base-url>/projects/<project-id>/changesets/<changeset-id>`
+- anything inside a project: give the project link and name the page to open, because deployments differ. A run is `/discover/<run-id>` on newer deployments and `/discovery/<run-id>` on older ones, and newer ones have no separate page per version.
 
 Use Markdown links with a short label such as `Open project` or `Open Discovery`. Keep using UUIDs for CLI commands; a link is a user handoff, not a substitute for verified identifiers.
 

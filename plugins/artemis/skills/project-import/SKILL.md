@@ -67,7 +67,7 @@ Reuse a credential that can read the repository. Check the provider values retur
 
 If no suitable credential exists, present **both** setup routes and let the user choose. For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
 
-1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account in the Artemis Web UI at [https://artemis.turintech.ai/settings/git](https://artemis.turintech.ai/settings/git) (same path on an on-prem deployment's base URL). Then re-run `artemis key list` — a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
+1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account on the Git page of their deployment (`<deployment-base-url>/settings/git`) (same path on an on-prem deployment's base URL). Then re-run `artemis key list` — a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
 2. **PAT via CLI:** have the user run `artemis key add` interactively in their own terminal (for GitHub, typically `--name "<key-name>" --provider github --token <pat>`) so the secret never enters chat.
 
 Prefer an existing GitHub OAuth credential over adding a new PAT when both would work. For GitLab, Bitbucket, or Azure DevOps, use the provider-specific `artemis key add` flow unless the Web UI offers an equivalent connect path. Record the selected key UUID.

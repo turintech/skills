@@ -20,11 +20,11 @@ Use the supported distribution. This path requires no GitHub account and does no
 ## Requirements
 
 - Network access to `files.artemis.turintech.ai` and the deployment's base URL.
-- An API key for the target deployment — created by the user in the Web UI (`https://artemis.turintech.ai/settings/api-keys` for hosted, the same path on an on-prem deployment's base URL). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
+- An API key for the target deployment — created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`, for example `https://dev.artemis.turintech.ai/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
 
 ## Install with the official installer
 
-1. Open https://artemis.turintech.ai/settings/cli. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
+1. Open `<deployment-base-url>/settings/cli` for the deployment you are setting up. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
 2. Confirm whether this is hosted Artemis or an on-prem deployment with a custom base URL — it selects which invocation below to use.
 
 The installer detects the platform, installs the CLI, and configures service endpoints. The commands below are the direct supported route and avoid unnecessary navigation when they still match the published setup flow.

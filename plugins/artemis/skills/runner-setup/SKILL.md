@@ -23,7 +23,7 @@ A runner executes project-supplied compile, test, and benchmark commands on the 
 - The toolchains required by the projects assigned to this runner installed on that machine — Artemis runs their commands as-is from the repository root.
 - Enough disk, memory, and network access for builds.
 - A meaningful, unique runner name that identifies its owner or host.
-- An API key for the deployment, created by the user at `https://artemis.turintech.ai/settings/api-keys`. One key can serve both the CLI and the runner.
+- An API key for the deployment, created by the user at `<deployment-base-url>/settings/api-keys` for the deployment this runner will serve. One key can serve both the CLI and the runner.
 - An authenticated `artemis` CLI on the target deployment for verification.
 
 ## Get the runner
@@ -63,7 +63,7 @@ After permission, the runner registers itself on first start: give it a new, uni
 set -a; . ~/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY
 ./artemis-runner start \
   --runner-name <unique-name> \
-  --url https://artemis.turintech.ai \
+  --url <deployment-base-url> \
   --no-delete-task-output
 ```
 
