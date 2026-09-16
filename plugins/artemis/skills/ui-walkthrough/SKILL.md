@@ -65,10 +65,11 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 ### Show it
 
 1. Navigate the tab to the link you found, or move there with the page's own tabs and sidebar when already inside the project.
-2. Wait for the page to load, then take a screenshot to confirm it shows what you expect.
-3. Hover over the element you are describing so the user can see where to look.
-4. Say in the chat, in one or two sentences, what is on screen and why it matters.
-5. Stay on the page until the next step is ready. Do not close the tab.
+2. **Bring the tab to the front, every time.** Creating a tab in the background leaves the user looking at whatever they had open, so the walkthrough happens where nobody is watching. Activate the tab when you create it, and make sure it is the frontmost tab before each navigation. If the user says they cannot see what you are describing, this is the first thing to check.
+3. Wait for the page to load, then take a screenshot to confirm it shows what you expect.
+4. Hover over the element you are describing so the user can see where to look.
+5. Say in the chat, in one or two sentences, what is on screen and why it matters.
+6. Stay on the page until the next step is ready. Do not close the tab.
 
 Never open `/settings` or `/projects` on their own: on admin accounts `/settings` lists every user's name and email.
 
@@ -76,11 +77,13 @@ Never open `/settings` or `/projects` on their own: on admin accounts `/settings
 
 The first time someone sees Artemis, the pointer is the explanation: they follow it around the page. Use this pacing only for that first tour, when the calling skill says this is a first-run demo. Once the user has seen it, or asks for speed, navigate plainly.
 
-1. Move the pointer to its target in two or three steps rather than one jump, then pause on it before clicking.
-2. Scroll the target into view rather than jumping straight to it, and let the page settle.
-3. Keep the pointer on the element while you explain it, so the words and the pointer agree.
-4. One idea per step. Do not queue several actions between explanations.
-5. Read the page again before each click. References go stale as the page updates, and this pacing gives the page more chances to change under you.
+1. **Make the pointer's journey visible.** Move it across the page in four or five small steps along a straight line toward the target, not one teleport. The user should be able to see where it is heading before it arrives, so the click is the end of a movement rather than a surprise.
+2. **Land, pause, then click.** Rest on the target for a beat once you arrive, so the eye catches up with the pointer before the page changes.
+3. Scroll the target into view rather than jumping straight to it, and let the page settle.
+4. Keep the pointer on the element while you explain it, so the words and the pointer agree.
+5. One idea per step. Do not queue several actions between explanations.
+6. **Hold still while work is being generated.** When a page is filling by itself, such as experiments appearing in a run, stay on it and say what is arriving. Do not wander to other tabs for status: read that from the CLI and leave the screen where the user is looking.
+7. Read the page again before each click. References go stale as the page updates, and this pacing gives the page more chances to change under you.
 
 Each of these is a separate tool call, so it is slower and costs more. That is the point during a demo and waste afterwards.
 

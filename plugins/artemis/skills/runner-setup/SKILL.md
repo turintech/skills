@@ -55,13 +55,13 @@ For an on-prem deployment, select its custom-environment option in the generated
 
 ## Start the runner
 
-Before starting anything:
+Before starting anything, check `artemis runner list` and local processes so an existing runner is not duplicated.
 
-1. Check `artemis runner list` and local processes so an existing runner is not duplicated.
-2. Explain that the runner is a long-lived process that executes connected repository code.
-3. Offer to start it and obtain the user's explicit permission.
+**Do not offer a menu of ways to start it.** Say in one line what you are about to do, start it as a background process, and report the result. A first-time user has no basis to choose between a background process, a visible terminal and a tmux session, and asking turns setup into an interview. Use `tmux` only when the user has already asked for it.
 
-After permission, the runner registers itself on first start: give it a new, unique name and the deployment URL, and authenticate with the API key. Supply the key through the environment so it stays off the command line and out of `ps`:
+State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Then start it and report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
+
+The runner registers itself on first start: give it a new, unique name and the deployment URL, and authenticate with the API key. Supply the key through the environment so it stays off the command line and out of `ps`:
 
 ```bash
 set -a; . ~/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY

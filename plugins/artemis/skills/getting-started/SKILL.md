@@ -78,12 +78,22 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 | Import `https://github.com/turintech/particle-life`, branch `main` | `project-import` | Project | A project is a repository pinned at a commit |
 | Validation script from the commands below | `repo-command-setup` | Project | Build, test and benchmark are stored once and reused |
 | Start: 10 versions, the catalogue's default preset model, three measurements per version | `discovery-start` | Discover, then the run | The original code is measured first, and each version is measured three times so the charts show a range instead of a single point |
-| Watch | `discovery-inspect` | Discovery run | Experiments are ideas; versions are attempts |
+| Watch | `discovery-inspect` | Project overview, then the run, then its Experiments tab | Experiments are ideas; versions are attempts |
 | Result | `discovery-inspect` | Discovery version (the fastest) | Which numbers are measured and which are AI-judged; "BEST" is a blended score, not always the fastest |
 
 **Do not ask the user to choose any of this.** The demo's settings are fixed here precisely so a first-time user is never asked a question they have no basis to answer. Never ask a new user for the version budget, the model, the number of measurements, the target files, or the task wording. State what you are running and start it. Downstream skills may require these values; supply them from this section rather than passing the question on.
 
-The one thing you do ask about is permission for anything long-lived or external: starting the runner, and creating the project.
+**Do not stop for approval between the steps either.** The user already chose the demo, and that was the decision. Say what you are about to do, do it, and keep going: import, script, run, watch, result, in one continuous pass. A readiness report is something you say on the way past, not a gate you wait behind. Starting the runner and creating the project are announced, not asked.
+
+### Watching the run in the browser
+
+The run is the part worth seeing, so follow it on screen rather than reporting it from the terminal:
+
+1. Open the project. The overview lists the run that was just started.
+2. Move the pointer to that run and click it, so the user sees where it came from rather than arriving on a page by magic.
+3. Open the **Experiments** tab and **stay there**. Experiments appear as the agent thinks of them, so the page fills while the user watches. That is the moment the platform explains itself.
+4. Leave the tab up while work continues. Do not flick between tabs to gather status; read what you need from the CLI instead, and keep the screen still.
+5. Move to the versions and the result only once there is something measured to show.
 
 Particle Life inputs:
 
@@ -93,6 +103,9 @@ Particle Life inputs:
 - target files: `src/simulation.cpp` and `src/simulation.hpp`
 - task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.`
 - measurement: `--eval-mode fixed --eval-runs 3`
+- scoring: `--llm-metrics=false`
+
+LLM-judged metrics are off for the demo on purpose. The point of a first run is the measured number, `simulation_fps`, and a judged score sitting beside it invites the reader to treat an opinion as a measurement.
 
 Three measurements per version is deliberate here. One measurement gives a single number with no sense of how much it wobbles, so the run can only report a point estimate; three give the range the charts are built on. Particle Life measures in about three seconds, so this adds roughly two minutes to the demo. It is not a default to copy onto a slow benchmark without doing that arithmetic first.
 
