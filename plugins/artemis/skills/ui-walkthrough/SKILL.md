@@ -1,7 +1,7 @@
 ---
 name: ui-walkthrough
 description: Show the user the Artemis Web UI page that matches each step while you work, in one browser tab, navigating only. Use when the user has chosen to follow along in their browser and a browser-control tool such as Claude in Chrome is connected. Do not use it to change settings or start work without the user's explicit approval.
-compatibility: Requires Artemis CLI 1.1.5 or newer and a browser-control tool such as Claude in Chrome. Without one, print links instead.
+compatibility: Requires Artemis CLI 1.1.5 or newer and a browser-control tool such as Claude in Chrome. Without one, print links instead. Page paths differ between deployments, so the skill follows the app's own navigation.
 metadata:
   artemis-cli-min: "1.1.5"
 ---
@@ -27,20 +27,29 @@ metadata:
 3. Use one tab for the whole session. Create it once, then navigate within it.
 4. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.
 
-## 2. Show a page
+## 2. Find the page, then show it
 
-| Resource | Path |
-|---|---|
-| Project | `/projects/<project-id>/overview` |
-| Discover | `/projects/<project-id>/discovery` |
-| Discovery run | `/projects/<project-id>/discovery/<discovery-id>` |
-| Discovery version | `/projects/<project-id>/discovery/<discovery-id>/versions/<version-id>` |
-| Changesets | `/projects/<project-id>/changesets` |
-| API keys | `/settings/api-keys` |
-| Git | `/settings/git` |
-| Runners | `/settings/runners` |
+Deployments differ. On newer ones a Discovery run sits under `/discover` and has no separate page per version; on older ones it sits under `/discovery` and each version has its own page. **Do not build URLs from memory.**
 
-1. Navigate the tab to `<base-url><path>`, or move there with the page's own tabs and sidebar when already inside the project.
+1. Open `<base-url>/projects/<project-id>` and let it settle.
+2. Read the page's own navigation and use those links: the project sections (Discover, Branches, Changesets, Files, Settings) and, inside a run, its tabs (Experiments, Versions, Metrics).
+3. Follow the link for what you want to show instead of typing a path.
+4. Reuse the paths you resolved for the rest of the session; they do not change while you work.
+
+Only when the user gave you bare IDs and no page to start from, try the newer shape first and fall back to the older one:
+
+| Resource | Newer deployments (dev, testing) | Older deployments (prod today) |
+|---|---|---|
+| Project | `/projects/<project-id>/overview` | `/projects/<project-id>/overview` |
+| Discovery list | `/projects/<project-id>/discover` | `/projects/<project-id>/discovery` |
+| Discovery run | `/projects/<project-id>/discover/<run-id>/overview` | `/projects/<project-id>/discovery/<run-id>` |
+| Versions of a run | `/projects/<project-id>/discover/<run-id>/versions` | `/projects/<project-id>/discovery/<run-id>/versions/<version-id>` |
+| The code of a version | `/projects/<project-id>/branches/<branch-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
+| API keys, Git, Runners | `/settings/api-keys`, `/settings/git`, `/settings/runners` | same |
+
+### Show it
+
+1. Navigate the tab to the link you found, or move there with the page's own tabs and sidebar when already inside the project.
 2. Wait for the page to load, then take a screenshot to confirm it shows what you expect.
 3. Hover over the element you are describing so the user can see where to look.
 4. Say in the chat, in one or two sentences, what is on screen and why it matters.
@@ -64,6 +73,7 @@ Never open `/settings` or `/projects` on their own: on admin accounts `/settings
 | The page header shows a different account | Stop and ask the user |
 | A 500 error mentioning `URL.canParse` | Ask the user to update Chrome to version 120 or newer |
 | "Project Not Found" | Check the account and the deployment base URL before retrying |
+| A path gives 404 or "This page doesn't exist" | The deployment uses a different shape. Go back to the project page and follow its navigation |
 
 ## Checklist
 
