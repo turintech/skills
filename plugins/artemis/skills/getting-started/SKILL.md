@@ -83,7 +83,7 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 | Validation script from the commands below | `repo-command-setup` | Project | Build, test and benchmark are stored once and reused |
 | Start: 10 versions, the catalogue's default preset model, three measurements per version | `discovery-start` | Discover, then the run | The original code is measured first, and each version is measured three times so the charts show a range instead of a single point |
 | Watch | `discovery-inspect` | Project overview, then the run, then its Experiments tab | Experiments are ideas; versions are attempts |
-| Result | `discovery-inspect` | Discovery version (the fastest) | Which numbers are measured and which are AI-judged; "BEST" is a blended score, not always the fastest |
+| Result | `discovery-inspect` | Metrics, then the winning version, then its code change | Read the chart to find the winner, then look at the code that produced it |
 
 **Do not ask the user to choose any of this.** The demo's settings are fixed here precisely so a first-time user is never asked a question they have no basis to answer. Never ask a new user for the version budget, the model, the number of measurements, the target files, or the task wording. State what you are running and start it. Downstream skills may require these values; supply them from this section rather than passing the question on.
 
@@ -100,6 +100,17 @@ Stand on the page **before** the thing happens, so the user sees the platform ch
 3. Open the **Experiments** tab and **stay there**. Experiments appear as the agent thinks of them, so the page fills while the user watches. That is the moment the platform explains itself.
 4. Leave the tab up while work continues. Do not flick between tabs to gather status; read what you need from the CLI instead, and keep the screen still.
 5. Move to the versions and the result only once there is something measured to show.
+
+### Showing the result
+
+End on the code, not on a number. Keep it brief:
+
+1. Open the run's **Metrics** tab and read the chart. The winner is visible there, so the user sees which version won and by how much rather than being told.
+2. Click into that version.
+3. Show its **code change**. This is the payoff: the actual diff Artemis wrote to make the code faster, and the thing worth retelling afterwards.
+4. Then its details, if there is anything worth pointing out.
+
+Say which numbers are measured and which are AI-judged, and that "BEST" is a blended score rather than always the fastest.
 
 Particle Life inputs:
 
@@ -130,10 +141,10 @@ Then hand over to the `artemis` router's readiness brief. `repo-command-setup` p
 
 | Step | Agent's job |
 |---|---|
-| Create an API key | Take them to the page, say it is their step, wait |
-| Enter the key | Give the exact terminal command; never ask for the key in chat |
+| Give the login command | **First**, before the key exists. The user pastes it into their own terminal and leaves it waiting at the prompt |
+| Create an API key | Then take them to the page, say it is their step, and wait. The key is the last thing they copy, so nothing overwrites it on their clipboard |
 | Connect a Git provider | Take them to the page |
-| Start the runner | Ask permission, prefer a named tmux session, and explain how to stop it |
+| Start the runner | Say what you are starting, start it in the background, and give the stop command |
 
 ## 7. When things go wrong
 
@@ -148,6 +159,13 @@ Then hand over to the `artemis` router's readiness brief. `repo-command-setup` p
 ## 8. Close
 
 Report what is set up, what ran, and the result: the original and best measured values, with links. Then suggest three next steps: steer a run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project.
+
+Two things a first-time user does not know, and should hear once:
+
+- **The run does not depend on this session.** It continues on the platform if the terminal is closed, and the Web UI shows it either way. Say this while the run is going, not at the end, so nobody sits guarding a terminal they are afraid to close.
+- **The runner is still running.** Give the stop command again at the end, and say it can stay up for the next run.
+
+Before starting the example, check the account has credits. There is no CLI command for the balance, so read it from the Web UI header while the browser is already open. An account with no credits fails the run in a way that looks like a platform fault, which is a poor first impression and easy to prevent.
 
 ## Checklist
 
