@@ -139,6 +139,25 @@ artemis changeset diff <changeset-id> --project <project-uuid> --stat   # file s
 
 `changesetId` comes from `discovery versions get`; `--project` is required. The Web UI shows the same changeset.
 
+## When the agent stops, not the runner
+
+A run can fail while the machine, the runner, and the project are all healthy. The agent driving the run talks to a model provider through the platform, and that conversation can end on its own.
+
+Symptoms, together: the run goes terminal with far fewer versions than its budget, the last version completed normally seconds earlier, the runner is still online with a live process, and the platform may return intermittent `502`s while you read the run.
+
+```bash
+run=$(artemis --output-format json discovery get <run-id>)
+echo "$run" | jq '{status, versionCount, numVersions, experimentCount, agentRunId}'
+artemis chat messages "$(echo "$run" | jq -r .agentRunId)" | tail -20
+```
+
+The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`. Read it before blaming the project:
+
+- Versions already recorded are real. Their measurements happened on the runner and stand on their own.
+- Do not re-run setup, reinstall the runner, or re-import the project. None of them caused it.
+- `experimentCount` above `versionCount` means planned experiments never became versions, which is the expected shape here rather than a second fault.
+- Report it as a platform-side failure, name the remaining budget, and let the user choose between `discovery-steer`'s `continue` and a fresh run. A fresh run is usually better, because continuing depends on the same agent session that just ended.
+
 ## Common misreads
 
 - **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and available execution logs; exploration may not have started. If it becomes terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
@@ -154,3 +173,4 @@ artemis changeset diff <changeset-id> --project <project-uuid> --stat   # file s
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
 - [ ] Clickable Discovery, winning version, and changeset links returned to the user.
+- [ ] A run that ended short of its budget checked against the agent narration first, so a platform-side stop is reported as such and not as a project, runner, or setup fault.

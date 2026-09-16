@@ -30,11 +30,15 @@ A runner executes project-supplied compile, test, and benchmark commands on the 
 
 There are two routes. Scripted and agent-driven setups should use the direct download plus API-key registration below; a human at a browser can use the Web UI flow instead.
 
-Runner binaries are published at `https://files.artemis.turintech.ai/public/artemis-runner/`. The Linux 5.2.1 binary is available at:
+Runner binaries are published at `https://files.artemis.turintech.ai/public/artemis-runner/`, named `artemis-runner-<version>-<platform>`:
 
 ```text
-https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-5.2.1-linux
+https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-<version>-linux
 ```
+
+Read that directory and pick the newest build for the platform rather than reusing a version from memory: the published set moves, and a version named in a document goes stale. Only `linux` and `windows` binaries are published, plus `wheels` archives. **There is no macOS build**, so a Mac cannot host a runner and must use one on another machine.
+
+Match the runner to the deployment. A build that is too old for a deployment fails its registration or task calls with `404`s, which looks like a network or credential fault and is not one.
 
 Combined with the API-key start command in the next section, this needs no Web UI at all — see *Artemis Custom Runner → Registering without a token*.
 
@@ -66,6 +70,20 @@ set -a; . ~/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY
   --url <deployment-base-url> \
   --no-delete-task-output
 ```
+
+On a deployment with a self-signed certificate, such as `dev`, the runner needs the CA bundle too, and it must be in the start command rather than inherited from the shell that happened to launch it. A runner started from an interactive shell keeps that environment for its whole life and comes up without it next time:
+
+```bash
+set -a; . ~/.config/artemis/.env; set +a
+SSL_CERT_FILE="$HOME/.config/artemis/ca-bundle.pem" \
+REQUESTS_CA_BUNDLE="$HOME/.config/artemis/ca-bundle.pem" \
+./artemis-runner start \
+  --runner-name <unique-name> \
+  --url <deployment-base-url> \
+  --no-delete-task-output
+```
+
+Set both names: the CLI reads `SSL_CERT_FILE`, and the runner's Python HTTP layer reads `REQUESTS_CA_BUNDLE`. See `cli-setup` for the CLI side and where to put the export so login shells see it.
 
 The name appears in the fleet as soon as it connects. `--no-delete-task-output` keeps each task's working directory and log after completion for optional host-local diagnosis; the default removes them within seconds.
 

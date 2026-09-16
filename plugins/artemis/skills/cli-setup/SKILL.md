@@ -77,6 +77,27 @@ For on-prem, use the base URL accepted by `artemis login --help`. Do not set ind
 
 Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the home config: a project-local `.env` is easy to leak and shadows the home config.
 
+### Deployments with a self-signed certificate
+
+Some deployments, including `dev`, present a certificate the system trust store does not know. `artemis login` and `artemis status` then fail with an `x509` or "unknown authority" error. Point the CLI at the deployment's CA bundle:
+
+```bash
+export SSL_CERT_FILE="$HOME/.config/artemis/ca-bundle.pem"
+```
+
+Two things make this fail quietly, so handle both:
+
+- **Put it where every shell reads it, not only `~/.bashrc`.** A login shell reads `~/.bash_profile` or `~/.profile` and ignores `~/.bashrc` unless one of those sources it. If neither file exists, create `~/.profile` with the export as well, or the variable is missing from exactly the sessions the user opens next.
+- **Long-lived processes do not inherit it later.** The runner keeps whatever environment it was started with, so the variable belongs in its start command too. See `runner-setup`.
+
+Verify in a shell that did not set it interactively, rather than in the one where you just exported it:
+
+```bash
+bash -lc 'artemis status'
+```
+
+Ask the user where the bundle came from before trusting it. Never fetch a CA bundle from a source the user did not name, and never disable certificate verification to work around this.
+
 ## Verify
 
 Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.5`; a development build reports `dev-<timestamp>-<sha>` and counts as newer than every release. If the installed release is lower than the highest minimum required, update the CLI before continuing.
