@@ -49,8 +49,11 @@ Give a clickable Markdown link with a short label:
 
 ## 1. Classify the workflow
 
+If the user is new to Artemis (they pasted the Quickstart prompt, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), route to `getting-started` instead of classifying further.
+
 | Workflow | Intended outcome | Required infrastructure |
 |---|---|---|
+| Getting started | A new user wants to try or set up Artemis | None yet |
 | Discovery | Generate and benchmark alternatives to improve a metric | Runner, repository commands, model, version budget |
 | Validation | Build, test, and benchmark known code without searching | Runner and repository commands |
 | Maintain | Scan, triage, fix, or publish code-health issues | Rules, scope, and push access when publishing |
@@ -132,6 +135,8 @@ Before launching discovery, validation, or Maintain:
 
 ## 6. Route to the owning skill
 
+- New users and open-ended "get started" requests: `getting-started`
+- Showing the matching Web UI page when the user follows along in their browser: `ui-walkthrough`
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository commands, validation scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
