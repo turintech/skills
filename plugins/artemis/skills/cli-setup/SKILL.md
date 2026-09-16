@@ -20,7 +20,7 @@ Use the supported distribution. This path requires no GitHub account and does no
 ## Requirements
 
 - Network access to `files.artemis.turintech.ai` and the deployment's base URL.
-- An API key for the target deployment — created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`, for example `https://dev.artemis.turintech.ai/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
+- An API key for the target deployment, created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`, for example `https://dev.artemis.turintech.ai/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
 
 ## Install with the official installer
 
