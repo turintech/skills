@@ -135,6 +135,7 @@ Rules for that message:
 
 - **Nothing else in it.** No status lines, no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
 - **One command, one line.** If an environment variable is genuinely needed for an already-open terminal, put it on the same line so it is a single copy.
+- **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
 - **Say what "done" looks like**, in one sentence: the prompt is waiting, the key goes there, not in the chat.
 - Ask the follow-up question (demo or own project) in a **separate** message afterwards, never stacked under the command.
 
