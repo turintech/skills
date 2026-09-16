@@ -139,5 +139,6 @@ Before launching discovery, validation, or Maintain:
 - Discovery interpretation: `discovery-inspect`
 - Runner task diagnostics without host access: `execution-log-inspect`
 - Maintain: use the `maintain` skill when present; otherwise inspect `artemis maintain --help` before any mutation
+- Fixing a maintain issue with discovery: `maintain` (`issues fix --discovery`), not `discovery-start`
 
 Proceed when every required fact is verified or explicitly chosen. Ask for unresolved choices together and do not re-ask facts the user supplied.
