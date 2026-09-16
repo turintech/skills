@@ -144,7 +144,7 @@ Then hand over to the `artemis` router's readiness brief. `repo-command-setup` p
 
 | Step | Agent's job |
 |---|---|
-| Give the login command | **First**, before the key exists. The user pastes it into their own terminal and leaves it waiting at the prompt |
+| Give the login command | **First**, before the key exists. The user pastes it into their own terminal and leaves it waiting at the prompt. Present it boxed and alone, as `cli-setup` shows: a step the user must act on gets its own message, with nothing else competing for attention |
 | Create an API key | Then take them to the page, say it is their step, and wait. The key is the last thing they copy, so nothing overwrites it on their clipboard |
 | Connect a Git provider | Take them to the page |
 | Start the runner | Say what you are starting, start it in the background, and give the stop command |

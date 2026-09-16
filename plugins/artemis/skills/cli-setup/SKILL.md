@@ -108,13 +108,35 @@ The installer configures endpoints but the CLI still needs the API key described
 
 **Give the command before sending them for the key.** The user will copy the key to their clipboard, so anything they have to copy *after* that destroys it. Put the command on screen first, let them paste it into their own terminal, and only then take them to the key page. The prompt sits waiting while they fetch the key, and the key is the last thing they copy.
 
-Say it as one clear block, and make the command the most prominent thing in the message:
+**Order of the three things at this step:**
+
+1. **Browser first, before you say anything.** Take them to the API keys page with `ui-walkthrough` so it is already open, with the pointer on the control that creates a key. Navigating costs the user nothing and touches no clipboard.
+2. **Then the command, boxed and alone.**
+3. **Then they create the key** on the page already in front of them, copy it last, and paste it at the waiting prompt.
+
+Present the command as its own message, framed so it cannot be mistaken for commentary:
+
+````text
+```
+┌──────────────────────────────────────────────────────────┐
+│  PASTE THIS INTO YOUR OWN TERMINAL                       │
+└──────────────────────────────────────────────────────────┘
+```
 
 ```bash
 artemis login --url <deployment-base-url>
 ```
 
-Tell them plainly: paste that into your own terminal now, leave it waiting at the prompt, then go and create the key.
+Leave it waiting at the `API key:` prompt. The page is already open in your
+browser: create a key there, copy it, and paste it at that prompt.
+````
+
+Rules for that message:
+
+- **Nothing else in it.** No status lines, no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
+- **One command, one line.** If an environment variable is genuinely needed for an already-open terminal, put it on the same line so it is a single copy.
+- **Say what "done" looks like**, in one sentence: the prompt is waiting, the key goes there, not in the chat.
+- Ask the follow-up question (demo or own project) in a **separate** message afterwards, never stacked under the command.
 
 **Then, in the browser route, take them to the page rather than printing a link.** Being shown where to go is most of the value of the browser walkthrough, so hand off to `ui-walkthrough`: open the API keys page on their deployment, put the pointer on the control that creates a key, say plainly that this step is theirs, and wait there. Never read, type, or copy the key, and never ask for it in chat. Print the link only when there is no browser control, and check that properly first: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser. See `ui-walkthrough` section 1.
 
