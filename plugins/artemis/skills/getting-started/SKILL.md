@@ -41,6 +41,8 @@ Say four short lines:
 3. Next comes a quick setup, then either a demo or their own project.
 4. Setup takes a few minutes. The Particle Life example then runs 10 versions, roughly 15 to 20 minutes, most of it watching results arrive.
 
+Say the cost once, before starting the example, in the same breath as the time: the run uses the account's credits, roughly the price of a modest lunch at current rates, and the balance is in the Web UI header. The CLI has no balance or usage command, so the header is the only place to see it. Say it plainly and move on. Do not turn it into a question, and do not repeat it later.
+
 ## 2. How to follow along
 
 Ask this **before** asking what they want to do. Seeing the platform is most of what makes the first session make sense, and a user who picks the browser route should see the setup steps too, not just the run.
@@ -52,9 +54,11 @@ Remember the choice for the session. In the browser route, use `ui-walkthrough` 
 
 ## 3. Example or own project
 
-Recommend the example plainly, and say why rather than tagging it "(recommended)":
+Mark the recommended choice as **recommended** on the option itself, not only in the surrounding prose. A first-time user scanning two options should be able to see which one we advise without reading a paragraph. The same applies to the browser choice in section 2.
 
-"I'd suggest starting with our demo project, Particle Life. It is a small C++ simulation that is deliberately slow, so you can watch a real optimisation from start to finish in about 20 minutes and see what Artemis actually produces before pointing it at your own code. Would you like to do that, or go straight to your own project?"
+Recommend the example plainly, and say why:
+
+"I'd suggest starting with our demo project, Particle Life (recommended). It is a small C++ simulation that is deliberately slow, so you can watch a real optimisation from start to finish in about 20 minutes and see what Artemis actually produces before pointing it at your own code. Would you like to do that, or go straight to your own project?"
 
 - Example: section 4, then section 5a.
 - Their own project: ask "What would you like to optimise?", then section 4, then section 5b.
@@ -88,6 +92,8 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 ### Watching the run in the browser
 
 The run is the part worth seeing, so follow it on screen rather than reporting it from the terminal:
+
+Stand on the page **before** the thing happens, so the user sees the platform change rather than being shown the result afterwards. Move to Projects before starting the import, and let the new project appear in front of them: that is what makes it obvious the command in the terminal caused the thing on screen.
 
 1. Open the project. The overview lists the run that was just started.
 2. Move the pointer to that run and click it, so the user sees where it came from rather than arriving on a page by magic.
