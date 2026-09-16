@@ -27,7 +27,7 @@ Check silently, and skip later steps that are already done.
 | Check | How |
 |---|---|
 | Assistant host | Claude Code, Cursor, Codex, or GitHub Copilot |
-| Browser control | A browser-control tool is available and a browser is connected |
+| Browser control | Load the browser tools first, then check. On hosts where they are deferred they exist only as names until loaded, so a plain look reports none even when a browser is connected. In Claude Code, one `ToolSearch` for `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp`. Only an empty result means no browser. See `ui-walkthrough` section 1 |
 | Operating system | `uname -s` |
 | CLI | `artemis --version` is 1.1.5 or newer, and `artemis status` is authenticated |
 | Runner | `artemis runner list` shows one online |

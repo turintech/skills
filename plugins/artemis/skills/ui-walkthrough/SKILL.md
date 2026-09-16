@@ -22,7 +22,13 @@ metadata:
 
 ## 1. Check the browser is usable
 
-1. Confirm a browser-control tool is available and a browser is connected. If not, print the Web UI link and continue without the browser.
+1. **Load the browser tools before deciding they are missing.** On hosts where they are deferred, browser tools exist only as names until their schemas are loaded, so a plain look finds nothing even when a browser is connected and the session was started for it. In Claude Code, load them in one call:
+
+   ```text
+   ToolSearch: select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp
+   ```
+
+   Only if that returns nothing is there genuinely no browser control. Then print the Web UI link and continue without the browser.
 2. If more than one browser is connected, ask the user which one to use.
 3. Use one tab for the whole session. Create it once, then navigate within it.
 4. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.

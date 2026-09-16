@@ -104,7 +104,11 @@ Do not guess installer flags: the live installer may have changed.
 
 ## Authenticate
 
-The installer configures endpoints but the CLI still needs the API key described in Requirements. Have the user run the interactive login themselves:
+The installer configures endpoints but the CLI still needs the API key described in Requirements.
+
+**In the browser route, take the user to the page rather than printing a link.** Being shown where to go is most of the value of the browser walkthrough, so hand off to `ui-walkthrough`: open the API keys page on their deployment, put the pointer on the control that creates a key, say plainly that this step is theirs, and wait there. Never read, type, or copy the key, and never ask for it in chat. Print the link only when there is no browser control, and check that properly first: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser. See `ui-walkthrough` section 1.
+
+Then have the user run the interactive login themselves:
 
 ```bash
 artemis login --url <deployment-base-url>
