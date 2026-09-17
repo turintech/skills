@@ -39,7 +39,7 @@ Say four short lines:
 1. Artemis uses AI to try improvements to real code and measures every attempt.
 2. The measuring happens on the user's own machine, through a small program called a runner.
 3. Next comes a quick setup, then either a demo or their own project.
-4. Setup takes a few minutes. The Particle Life example then runs 10 versions, roughly 15 to 20 minutes, most of it watching results arrive.
+4. Setup takes a few minutes. The Particle Life example then runs 5 versions, roughly 10 to 15 minutes, most of it watching results arrive.
 
 Say once, before starting the example, that the run uses account credits and the balance is in the Web UI header. Nothing more: no estimate framed as a comparison, no analogy, no joke about the price. Do not turn it into a question, and do not repeat it later.
 
@@ -58,7 +58,7 @@ Mark the recommended choice as **recommended** on the option itself, not only in
 
 Recommend the example plainly, and say why:
 
-"I'd suggest starting with our demo project, Particle Life (recommended). It is a small C++ simulation that is deliberately slow, so you can watch a real optimisation from start to finish in about 20 minutes and see what Artemis actually produces before pointing it at your own code. Would you like to do that, or go straight to your own project?"
+"I'd suggest starting with our demo project, Particle Life (recommended). It is a small C++ simulation that is deliberately slow, so you can watch a real optimisation from start to finish in about 15 minutes and see what Artemis actually produces before pointing it at your own code. Would you like to do that, or go straight to your own project?"
 
 - Example: section 4, then section 5a.
 - Their own project: ask "What would you like to optimise?", then section 4, then section 5b.
@@ -81,7 +81,7 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 |---|---|---|---|
 | Import `https://github.com/turintech/particle-life`, branch `main` | `project-import` | Project | A project is a repository pinned at a commit |
 | Validation script from the commands below | `repo-command-setup` | Project | Build, test and benchmark are stored once and reused |
-| Start: 10 versions, model `gpt-5.6-terra`, three measurements per version | `discovery-start` | Discover, then the run | The original code is measured first, and each version is measured three times so the charts show a range instead of a single point |
+| Start: 5 versions, model `gpt-5.6-sol`, three measurements per version | `discovery-start` | Discover, then the run | The original code is measured first, and each version is measured three times so the charts show a range instead of a single point |
 | Watch | `discovery-inspect` | Project overview, then the run, then its Experiments tab | Experiments are ideas; versions are attempts |
 | Result | `discovery-inspect` | Metrics, then the winning version, then its code change | Read the chart to find the winner, then look at the code that produced it |
 
@@ -121,11 +121,11 @@ Particle Life inputs:
 - task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.`
 - measurement: `--eval-mode fixed --eval-runs 3`
 - scoring: `--llm-metrics=false`
-- model: `gpt-5.6-terra`
+- model: `gpt-5.6-sol`
 
 The model is pinned on purpose. The win this demo exists to show is a spatial grid replacing the all-pairs loop, and finding it is model-dependent. Do not substitute the catalogue default by choice: that turns the demo into a coin flip and leaves a first-time user looking at a "Best" badge on a fraction of a percent.
 
-**Catalogues differ between deployments, so check before using it.** If `artemis model list` does not offer `gpt-5.6-terra` on this deployment, fall back to the catalogue default, say in one line that you have done so, and continue. Never fail the demo over a missing model.
+**Catalogues differ between deployments, so check before using it.** If `artemis model list` does not offer `gpt-5.6-sol` on this deployment, fall back to the catalogue default, say in one line that you have done so, and continue. Never fail the demo over a missing model.
 
 LLM-judged metrics are off for the demo on purpose. The point of a first run is the measured number, `simulation_fps`, and a judged score sitting beside it invites the reader to treat an opinion as a measurement.
 
