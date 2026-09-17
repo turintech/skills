@@ -62,6 +62,22 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 | The code of a version | `/projects/<project-id>/branches/<branch-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
 | API keys, Git, Runners | `/settings/api-keys`, `/settings/git`, `/settings/runners` | same |
 
+### Arrive before the change, never after
+
+**Be on the page that is about to change, then run the command.** This is the difference between showing someone the platform and reporting to them about it. If the CLI creates a project while the user is looking at a terminal, they see a line of output. If they are already on Projects when it runs, they watch the project appear, and the link between the command and the platform becomes obvious without being explained.
+
+Apply it to every step that creates or changes something:
+
+| About to run | Be here first | What the user sees |
+|---|---|---|
+| `project import` | Projects | The new project appears in the list |
+| `discovery create` | The project overview | The run appears on the overview |
+| Anything that adds a version, branch or changeset | The tab that lists them | The row arrives while they watch |
+
+Then move the pointer to the thing that just appeared and click into it, so the next page is somewhere they saw you go rather than somewhere you jumped to.
+
+Do not narrate the change before it is visible, and do not take a screenshot of the result and describe it afterwards. Stand still on the right page and let the platform do the talking.
+
 ### Show it
 
 1. Navigate the tab to the link you found, or move there with the page's own tabs and sidebar when already inside the project.
