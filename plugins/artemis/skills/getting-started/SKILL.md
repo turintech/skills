@@ -41,7 +41,7 @@ Say four short lines:
 3. Next comes a quick setup, then either a demo or their own project.
 4. Setup takes a few minutes. The Particle Life example then runs 10 versions, roughly 15 to 20 minutes, most of it watching results arrive.
 
-Say the cost once, before starting the example, in the same breath as the time: the run uses the account's credits, roughly the price of a modest lunch at current rates, and the balance is in the Web UI header. The CLI has no balance or usage command, so the header is the only place to see it. Say it plainly and move on. Do not turn it into a question, and do not repeat it later.
+Say once, before starting the example, that the run uses account credits and the balance is in the Web UI header. Nothing more: no estimate framed as a comparison, no analogy, no joke about the price. Do not turn it into a question, and do not repeat it later.
 
 ## 2. How to follow along
 

@@ -114,12 +114,12 @@ The installer configures endpoints but the CLI still needs the API key described
 2. **Then the command, boxed and alone.**
 3. **Then they create the key** on the page already in front of them, copy it last, and paste it at the waiting prompt.
 
-Present the command as its own message, framed so it cannot be mistaken for commentary:
+Present the step as its own message: two numbered boxes and nothing else.
 
 ````text
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  PASTE THIS INTO YOUR OWN TERMINAL                       │
+│  1  PASTE THIS INTO YOUR OWN TERMINAL                    │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -127,13 +127,20 @@ Present the command as its own message, framed so it cannot be mistaken for comm
 artemis login --url <deployment-base-url>
 ```
 
-Leave it waiting at the `API key:` prompt. The page is already open in your
-browser: create a key there, copy it, and paste it at that prompt.
+```
+┌──────────────────────────────────────────────────────────┐
+│  2  OPEN THIS PAGE TO CREATE AN API KEY                  │
+└──────────────────────────────────────────────────────────┘
+```
+
+<deployment-base-url>/settings/api-keys
+
+Paste the key at the waiting `API key:` prompt, not here.
 ````
 
 Rules for that message:
 
-- **Nothing else in it.** No status lines, no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
+- **Nothing else in it.** No docs links, no status lines, no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
 - **One command, one line.** If an environment variable is genuinely needed for an already-open terminal, put it on the same line so it is a single copy.
 - **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
 - **Say what "done" looks like**, in one sentence: the prompt is waiting, the key goes there, not in the chat.
