@@ -17,7 +17,7 @@ metadata:
 
 ## Requirements
 
-- The deployment base URL reported by `artemis status`, for example `https://dev.artemis.turintech.ai`.
+- The deployment base URL reported by `artemis status`, for example `https://artemis.turintech.ai`. Use whatever that command reports rather than any URL written here.
 - The project, discovery, and version IDs captured by the owning skill.
 
 ## 1. Check the browser is usable

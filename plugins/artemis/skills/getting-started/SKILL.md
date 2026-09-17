@@ -123,7 +123,9 @@ Particle Life inputs:
 - scoring: `--llm-metrics=false`
 - model: `gpt-5.6-terra`
 
-The model is pinned on purpose. The win this demo exists to show is a spatial grid replacing the all-pairs loop, and finding it is model-dependent. Do not substitute the catalogue default: that turns the demo into a coin flip and leaves a first-time user looking at a "Best" badge on a fraction of a percent.
+The model is pinned on purpose. The win this demo exists to show is a spatial grid replacing the all-pairs loop, and finding it is model-dependent. Do not substitute the catalogue default by choice: that turns the demo into a coin flip and leaves a first-time user looking at a "Best" badge on a fraction of a percent.
+
+**Catalogues differ between deployments, so check before using it.** If `artemis model list` does not offer `gpt-5.6-terra` on this deployment, fall back to the catalogue default, say in one line that you have done so, and continue. Never fail the demo over a missing model.
 
 LLM-judged metrics are off for the demo on purpose. The point of a first run is the measured number, `simulation_fps`, and a judged score sitting beside it invites the reader to treat an opinion as a measurement.
 
