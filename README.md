@@ -65,9 +65,9 @@ Skills are versioned independently of the Artemis CLI and platform. Commits use 
 
 Each skill declares the oldest Artemis CLI it works with, using the Agent Skills spec's fields:
 
-    compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+.
+    compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
     metadata:
-      artemis-cli-min: "1.1.5"
-      artemis-platform-min: "3.0.3"
+      artemis-cli-min: "1.1.8"
+      artemis-platform-min: "3.1.0"
 
-Raise `artemis-cli-min` in the same commit that makes a skill depend on a newer CLI feature. Run `scripts/check-skills.sh` before pushing; it validates every skill with `skills-ref` (set `SKILLS_REF` to its path) and requires the tag.
+Raise `artemis-cli-min` or `artemis-platform-min` in the same commit that makes a skill depend on a newer CLI or platform feature. Run `scripts/check-skills.sh` before pushing; it validates every skill with `skills-ref` (set `SKILLS_REF` to its path) and requires both tags.

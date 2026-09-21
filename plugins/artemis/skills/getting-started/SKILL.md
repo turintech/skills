@@ -1,10 +1,10 @@
 ---
 name: getting-started
 description: Welcome a new Artemis user and take them to a first measured result, offering to show each step in their browser or work in the terminal, and to run the Particle Life example or their own project. Use when the user pasted the Artemis Quickstart prompt, asks to get started with or try Artemis, or has no authenticated CLI and no concrete task yet.
-compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+. The browser route needs a browser-control tool such as Claude in Chrome.
+compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
-  artemis-cli-min: "1.1.5"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.8"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Get started with Artemis
@@ -30,7 +30,7 @@ Check silently, and skip later steps that are already done.
 | Assistant host | Claude Code, Cursor, Codex, or GitHub Copilot |
 | Browser control | Load the browser tools first, then check. On hosts where they are deferred they exist only as names until loaded, so a plain look reports none even when a browser is connected. In Claude Code, one `ToolSearch` for `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp`. Only an empty result means no browser. See `ui-walkthrough` section 1 |
 | Operating system | `uname -s` |
-| CLI | `artemis --version` is 1.1.5 or newer, and `artemis status` is authenticated |
+| CLI | `artemis --version` is 1.1.8 or newer, and `artemis status` is authenticated |
 | Runner | `artemis runner list` shows one online |
 
 ## 1. Welcome
@@ -157,7 +157,7 @@ Then hand over to the `artemis` router's readiness brief. `repo-command-setup` p
 | Situation | Do |
 |---|---|
 | The browser route fails | Continue in the terminal with links |
-| The CLI is older than 1.1.5 | `cli-setup` updates it |
+| The CLI is older than 1.1.8 | `cli-setup` updates it |
 | The runner is offline before starting | `runner-setup`, then retry |
 | A run fails within seconds with no baseline | `discovery-inspect`, checking the project's Git access first |
 | The user wants to stop | Summarise what exists and how to resume |

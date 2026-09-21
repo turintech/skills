@@ -1,10 +1,10 @@
 ---
 name: discovery-visualize
 description: Collect a normalized Artemis discovery snapshot and render it as a host-native chart or report. Use when the user wants to graph, chart, plot, compare, visualize, or build a discovery report, canvas, or artifact from a discovery run.
-compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+.
+compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.5"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.8"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Visualize a discovery run

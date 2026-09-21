@@ -1,10 +1,10 @@
 ---
 name: cli-setup
 description: Install, update, and authenticate the supported artemis CLI through the official installer. Use when an end user needs to set up or update the artemis CLI.
-compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+.
+compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.5"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.8"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Set up the artemis CLI
@@ -30,7 +30,7 @@ Use the supported distribution. This path requires no GitHub account and does no
 
 The installer detects the platform, installs the CLI, and configures service endpoints.
 
-**Check which version it produces before relying on it.** Its built-in download source currently carries nothing above 1.0.11, which cannot run a discovery run on a current deployment. On dev, testing, or any deployment needing 1.1.5 or newer, use the direct download in *The installer's own download source is stale* below, then `artemis login`. Use the installer when 1.0.11 is genuinely enough, or once the file server is fixed.
+**Check which version it produces before relying on it.** Its built-in download source currently carries nothing above 1.0.11, which cannot run a discovery run on a current deployment. On dev, testing, or any deployment needing 1.1.8 or newer, use the direct download in *The installer's own download source is stale* below, then `artemis login`. Use the installer when 1.0.11 is genuinely enough, or once the file server is fixed.
 
 For hosted (SaaS) Artemis:
 
@@ -72,7 +72,7 @@ The installer has `https://files.artemis.turintech.ai/artemis-cli` built in, and
 |---|---|
 | default, or `--nightly` | 1.0.11 |
 | `--dev` | a rolling build from 30 July |
-| `--version 1.1.5` or `1.1.7` | fails, no such directory on that path |
+| `--version 1.1.8` | fails, no such directory on that path |
 
 None of those have `--script`, `--eval-runs`, `--source-changeset` or `project scripts`, so a CLI installed that way cannot start a discovery run on a current deployment.
 
@@ -180,7 +180,7 @@ Ask the user where the bundle came from before trusting it. Never fetch a CA bun
 
 ## Verify
 
-Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.5`; a development build reports `dev-<timestamp>-<sha>` and counts as newer than every release. If the installed release is lower than the highest minimum required, update the CLI before continuing.
+Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.8`; a development build reports `dev-<timestamp>-<sha>` and counts as newer than every release. If the installed release is lower than the highest minimum required, update the CLI before continuing.
 
 ```bash
 artemis --version || artemis version

@@ -1,10 +1,10 @@
 ---
 name: quickstart
 description: Take an existing Artemis project to a first measured result, covering the Artemis branch, commands that produce a number, a runner, a measured run, and a Discovery run started from that branch. Use when the user gives a project URL or id, or asks to set up or measure a project that is already imported, including from the Set up with local agent button on a project's overview page.
-compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+. The browser walkthrough needs a browser-control tool such as Claude in Chrome.
+compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+. The browser walkthrough needs a browser-control tool such as Claude in Chrome.
 metadata:
-  artemis-cli-min: "1.1.5"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.8"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Quickstart an existing project
