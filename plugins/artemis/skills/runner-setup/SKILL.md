@@ -1,6 +1,10 @@
 ---
 name: runner-setup
 description: Install, register, start, update, and verify a supported Artemis custom runner. Use when an end user needs to set up or manage a runner.
+compatibility: Requires Artemis CLI 1.1.7+ and Artemis Platform 3.0.3+.
+metadata:
+  artemis-cli-min: "1.1.7"
+  artemis-platform-min: "3.0.3"
 ---
 
 # Set up an Artemis runner
