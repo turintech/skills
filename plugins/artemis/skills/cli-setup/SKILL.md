@@ -159,7 +159,9 @@ Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the 
 
 ### Deployments with a self-signed certificate
 
-Some deployments, including `dev`, present a certificate the system trust store does not know. `artemis login` and `artemis status` then fail with an `x509` or "unknown authority" error. Point the CLI at the deployment's CA bundle:
+**Only do this when TLS has actually failed.** `SSL_CERT_FILE` replaces the system trust store rather than adding to it, so pointing it at one deployment's bundle breaks every deployment whose certificate is in the store already. Setting it "to be safe", or carrying it over from another deployment, is how a working CLI stops working.
+
+Some deployments present a certificate the system trust store does not know, `dev` among them today. `artemis login` and `artemis status` then fail with an `x509` or "unknown authority" error. Only then, point the CLI at that deployment's CA bundle:
 
 ```bash
 export SSL_CERT_FILE="$HOME/.config/artemis/ca-bundle.pem"
@@ -177,6 +179,8 @@ bash -lc 'artemis status'
 ```
 
 Ask the user where the bundle came from before trusting it. Never fetch a CA bundle from a source the user did not name, and never disable certificate verification to work around this.
+
+When the user later moves to a deployment with an ordinary certificate, the variable has to come back out of their shell files and out of any runner start command, or it follows them and breaks the new one.
 
 ## Verify
 

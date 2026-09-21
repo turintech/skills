@@ -72,7 +72,7 @@ set -a; . ~/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY
   --no-delete-task-output
 ```
 
-On a deployment with a self-signed certificate, such as `dev`, the runner needs the CA bundle too, and it must be in the start command rather than inherited from the shell that happened to launch it. A runner started from an interactive shell keeps that environment for its whole life and comes up without it next time:
+On a deployment whose certificate the system trust store does not know, `dev` among them today, the runner needs the CA bundle too, and it must be in the start command rather than inherited from the shell that happened to launch it. Add it only where TLS actually fails: these variables replace the trust store, so on a deployment with an ordinary certificate they stop the runner connecting at all. A runner started from an interactive shell keeps that environment for its whole life and comes up without it next time:
 
 ```bash
 set -a; . ~/.config/artemis/.env; set +a
