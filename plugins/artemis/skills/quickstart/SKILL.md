@@ -43,7 +43,7 @@ Check silently, and skip what is already done. A project that has been set up be
 
 The prompt arrives in whatever directory the user's agent happens to be running in, which is not always the project's repository. Settle that before reading any code: if the origin remote does not match the project's `gitUrl`, say so and ask which checkout to work in rather than quietly describing an unrelated repo. If there is no checkout at all, the flow still works, because every command runs on the runner, but say that writing a benchmark without the code in front of you is slower and offer to clone it first.
 
-The project is pinned at `gitHash`. If the user's checkout has moved on, the run measures the pinned commit, not what they are looking at; say which commit is being measured.
+The project record carries a `gitHash`, but a new changeset is created from the **current head of the tracked branch**, which is often newer. Read the commit that actually went in with `artemis changeset versions <changeset-id> --project <id>` and tell the user that one, rather than repeating the project's `gitHash` or assuming their local checkout matches.
 
 ## 2. The rules for this flow
 
@@ -84,6 +84,20 @@ artemis --output-format json changeset create --project "<project-id>" --name "a
 A new changeset holds exactly one version: the project's code as it is now. Capture its id; steps 5 and 7 both need it. The Web UI calls this a branch and names it `artemis/measure` by default; keep that name unless the user asks otherwise.
 
 Two things about the script are easy to get wrong. There is no `--compile-cmd` or `--test-cmd`: building and testing are `--setup-cmd`, which runs once and is not measured, and only `--benchmark-cmd` is repeated and measured. And `--measure` defaults to `runtime`, which adds a command-runtime metric beside the repository's own, so the user sees two numbers and has to work out which one the run is chasing. Pass `--measure none` unless command runtime is genuinely the target.
+
+### Before step 4, ask the runner what it has
+
+An online runner is not the same as a runner that can build this project. Its environment is whatever shell started it, which is rarely the user's. Find out before writing commands that assume a toolchain:
+
+```bash
+artemis project scripts create --project "<project-id>" --name "toolchain-probe" \
+  --setup-cmd "python3 --version; node --version; cargo --version; which uv poetry cmake" --measure none
+artemis changeset validate "<changeset-id>" --project "<project-id>" --version original \
+  --script "<probe-script-id>" --runner "<runner-name>" --wait
+artemis changeset validation logs "<validation-id>" --project "<project-id>"
+```
+
+Name the tools this repository actually needs. A probe costs seconds and saves authoring a benchmark that cannot run. If the runner is missing what the project needs, say exactly which tool is missing on which machine, and let the user choose between installing it there and using a different machine. Do not quietly rewrite the project's commands to avoid the missing tool.
 
 ### Step 5, the measured run
 
@@ -147,6 +161,7 @@ In the terminal route, give a link to the project and name the page to open.
 |---|---|
 | CLI missing or unauthenticated | `cli-setup`, then return to step 2 |
 | No runner, and the user does not want one | Say plainly that nothing can be measured without a machine, and stop. Do not start a run |
+| The runner is online but lacks the toolchain | Name the missing tool and the machine. Installing it is the user's call, not a reason to change what the project measures |
 | The benchmark produces no numbers | Fix the script and re-run. Never start Discovery on an unmeasured branch |
 | Nothing worth measuring in this project | Say so and stop |
 | The run fails in seconds with no baseline | `discovery-inspect`, checking the project's Git access first |

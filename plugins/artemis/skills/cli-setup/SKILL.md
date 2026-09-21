@@ -153,6 +153,8 @@ For on-prem, use the base URL accepted by `artemis login --help`. Do not set ind
 
 Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the home config: a project-local `.env` is easy to leak and shadows the home config.
 
+**This is the usual cause of a CLI that was working a minute ago.** When `artemis status` reports `USER_MGMT_URL: required but not set` and friends, look for a `.env` in the current directory before concluding the user is logged out: many repositories ship one for their own app, and working inside such a repository silently replaces the CLI's config. The fix is to run from elsewhere or pass `--config`, not to log in again.
+
 ### Deployments with a self-signed certificate
 
 **Only do this when TLS has actually failed.** `SSL_CERT_FILE` replaces the system trust store rather than adding to it, so pointing it at one deployment's bundle breaks every deployment whose certificate is in the store already. Setting it "to be safe", or carrying it over from another deployment, is how a working CLI stops working.
