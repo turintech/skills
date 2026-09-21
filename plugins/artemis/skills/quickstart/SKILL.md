@@ -35,7 +35,7 @@ Check silently, and skip what is already done. A project that has been set up be
 | Check | How |
 |---|---|
 | CLI and authentication | `artemis --version`, `artemis status` |
-| The project is real and reachable | `artemis --output-format json project list`, matching the id. Keep its `gitUrl`, `gitBranch` and `gitHash` |
+| The project is real and reachable | `artemis --output-format json project list --all`, matching the id. Keep its `gitUrl`, `gitBranch` and `gitHash`. **`--all` matters**: the default is one page of 20, and a busy deployment has hundreds, so without it a real project reads as missing |
 | Commands already stored | `artemis project scripts list --project <id>` |
 | A runner online | `artemis runner list` |
 | The code, locally | `git -C . remote get-url origin` against the project's `gitUrl` |
