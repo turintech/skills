@@ -48,7 +48,7 @@ Always pass `--branch`. Import may accept a typo and fail only when Artemis late
 
 ```bash
 artemis project list --help
-artemis --output-format json project list
+artemis --output-format json project list --all
 ```
 
 Default to importing a new project even if one already represents this repository and branch — separate projects are how work stays decoupled. Skim the existing list only to pick a project `--name` that won't be confused with another project against the same repository (e.g. suffix it with the task, target, or feature being optimised).
@@ -99,7 +99,7 @@ Use the authenticated deployment base URL, including for on-prem deployments. Re
 **Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes. `importedStatus` reports where it is — `importing`, `success`, or `failed` — on both `project import` and `project list`:
 
 ```bash
-artemis --output-format json project list | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus'
+artemis --output-format json project list --all | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus'
 ```
 
 Wait for `success` before running anything against the project.

@@ -131,6 +131,8 @@ artemis discovery create --project "<project-id>" --source-changeset "<changeset
   --versions 5 --eval-mode fixed --eval-runs 3 --llm-metrics=false
 ```
 
+Add `--target-files <path>` (repeatable) when the repository made it obvious which files carry the work. Leave it off rather than guessing: a wrong guess hides the code that matters.
+
 `--source-changeset` copies the branch you just measured into the run's baseline, so Discovery starts from the same code and the same numbers the user just watched.
 
 ## 5. Showing it
