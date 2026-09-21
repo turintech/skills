@@ -1,6 +1,6 @@
 ---
 name: quickstart
-description: Take an existing Artemis project to a first measured result, covering the Artemis branch, commands that produce a number, a runner, a measured run, and a Discovery run started from that branch. Use when the user gives a project id or asks to get started on a project that is already imported, including from the Quickstart button on a project's overview page.
+description: Take an existing Artemis project to a first measured result, covering the Artemis branch, commands that produce a number, a runner, a measured run, and a Discovery run started from that branch. Use when the user gives a project URL or id, or asks to set up or measure a project that is already imported, including from the Set up with local agent button on a project's overview page.
 compatibility: Requires Artemis CLI 1.1.5 or newer. The browser walkthrough needs a browser-control tool such as Claude in Chrome.
 metadata:
   artemis-cli-min: "1.1.5"
@@ -11,16 +11,23 @@ metadata:
 ## At a glance
 
 - **Problem:** Turns an imported project into a measured baseline and a running Discovery, doing in the terminal what the Web UI's setup flow does by hand.
-- **Must be available:** A project that already exists in Artemis, its id, and a user who can create an API key if the CLI is not yet authenticated.
-- **Use / don't use:** Use when the project exists. Use `getting-started` instead when the user has no project, no CLI, or wants the Particle Life demo.
+- **Must be available:** A project that already exists in Artemis, its URL or id, and a user who can create an API key if the CLI is not yet authenticated.
+- **Use / don't use:** Use when the project exists, whether or not the user has done this before. Use `getting-started` instead when the user has no project or wants the Particle Life demo.
 - **Next skill:** Hands each step to `cli-setup`, `repo-command-setup`, `runner-setup`, `discovery-start`, and `discovery-inspect`; `ui-walkthrough` shows the pages in the browser route.
 
 ## Requirements
 
-- The project id, from the user or the prompt that launched this skill.
-- The deployment base URL the project lives on.
+- The project, as a Web UI URL or a bare UUID. A URL is the usual case: the prompt behind a project's **Set up with local agent** button carries one.
 
-## 0. Look before asking
+Nothing else is required from the user. Everything below is checked rather than asked for.
+
+## 0. Read the project URL
+
+`https://<deployment>/projects/<project-id>/overview` carries both facts this skill needs: the project id from the path, the deployment from the origin. Take them from there rather than asking.
+
+Then confirm the CLI is authenticated to that same deployment. A CLI logged in elsewhere reports the project as missing, which reads like a broken link rather than the wrong login, and any branch you create lands on the wrong deployment. Name the deployment the CLI is on, and fix that before creating anything.
+
+## 1. Look before asking
 
 Check silently, and skip what is already done. A project that has been set up before may need only the last step.
 
@@ -32,14 +39,15 @@ Check silently, and skip what is already done. A project that has been set up be
 | A runner online | `artemis runner list` |
 | Browser control | Load the tools first, then check. See `ui-walkthrough` section 1 |
 
-## 1. The rules for this flow
+## 2. The rules for this flow
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, or the number of measurements. Fix them here and state what you are using.
 - **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a branch, starting a run. Say what you are about to do, then do it.
-- **The user's credentials are theirs.** Give the login command first, take them to the key page second, and never read, type, or handle a key.
+- **The user's credentials are theirs.** Give the login command first, take them to the key page second, and never read, type, or handle a key. Never ask them to paste a key, token or password into the chat, and never put one on a command line.
+- **Assume nothing about what they know.** Having a project does not mean they have run anything. The first time you use a word the platform owns, say what it means in one short clause: a branch is Artemis's own copy of the code, a Discovery run is the agent trying versions and measuring each one.
 - **Stop cleanly rather than inventing.** If there is nothing measurable, say so; do not fabricate a metric to satisfy the last step.
 
-## 2. What "better" means here
+## 3. What "better" means here
 
 Particle Life ships a benchmark. A real repository usually does not, and Discovery cannot optimise what nobody measures.
 
@@ -47,7 +55,7 @@ Particle Life ships a benchmark. A real repository usually does not, and Discove
 2. **Then ask, once,** only what the code cannot tell you: what "better" means for them, which command represents it, and roughly how long it takes. One round, not an interview.
 3. If the honest answer is that nothing worth measuring exists yet, say so and stop. That is a useful result.
 
-## 3. The seven steps
+## 4. The seven steps
 
 Mirror the manual flow. Each step has an owning skill; use it rather than improvising.
 
@@ -110,13 +118,13 @@ artemis discovery create --project "<project-id>" --source-changeset "<changeset
 
 `--source-changeset` copies the branch you just measured into the run's baseline, so Discovery starts from the same code and the same numbers the user just watched.
 
-## 4. Showing it
+## 5. Showing it
 
 In the browser route, hand each step to `ui-walkthrough` and be on the page **before** the command runs, so the user watches the platform change rather than being shown the result: the project page before the branch appears, the branch before the run, the run's Experiments tab while versions are generated.
 
 In the terminal route, give a link to the project and name the page to open.
 
-## 5. When it cannot continue
+## 6. When it cannot continue
 
 | Situation | Do |
 |---|---|
@@ -125,8 +133,10 @@ In the terminal route, give a link to the project and name the page to open.
 | The benchmark produces no numbers | Fix the script and re-run. Never start Discovery on an unmeasured branch |
 | Nothing worth measuring in this project | Say so and stop |
 | The run fails in seconds with no baseline | `discovery-inspect`, checking the project's Git access first |
+| A skill named here is not installed | Say which one is missing, then do that step with the commands in this file. Do not invent a different route |
+| The project URL's deployment is not the one the CLI is logged into | Say both, and settle it before creating anything. Work created on the wrong deployment is invisible to the user |
 
-## 6. Close
+## 7. Close
 
 Report what now exists: the branch, the commands, the runner, the measured baseline with its numbers, and the Discovery run with a link. Say what it is optimising and roughly how long it will take. Then hand over to `discovery-inspect` for reading the result.
 
