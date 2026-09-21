@@ -92,7 +92,9 @@ artemis changeset validate "<changeset-id>" --project "<project-id>" --version o
   --script "<script-id>" --runner "<runner-name>" --wait
 ```
 
-`--project` and `--runner` are required. Drop `--script` to use the project's configured commands. `--wait` gives up after 20 minutes and exits 6, so pass `--timeout` when the benchmark is slower than that, and say how long you expect it to take before starting. `--version original` is the code as it stands, which is the baseline Discovery will measure against; this is the same primitive Discovery uses for every version, so a pass here means Discovery can run.
+`--project` and `--runner` are required. Drop `--script` to use the project's configured commands. `--wait` gives up after 20 minutes and exits 6, so pass `--timeout` when the benchmark is slower than that, and say how long you expect it to take before starting. `--version original` is the code as it stands.
+
+This is the same primitive Discovery uses to evaluate every version, so a pass here means Discovery can run, and the user has a real number before anything is spent on a run. It is not literally the run's baseline: `discovery create --source-changeset` copies the branch into a baseline changeset of its own and measures that, so the same code is measured again inside the run. Expect the two numbers to agree. If they do not, say so, because that is evidence the benchmark is noisy rather than evidence of an improvement.
 
 Run it through the platform, on the runner, not locally. A local run proves nothing about the machine Discovery will use, and `--wait` is what turns it into evidence.
 
