@@ -70,7 +70,7 @@ Mirror the manual flow. Each step has an owning skill; use it rather than improv
 | 1. CLI installed and authenticated | `cli-setup` | `artemis status`, then return here |
 | 2. An Artemis branch over the current code | this skill | `artemis changeset create --project <id> --name <name>` |
 | 3. A runner that can build this project | `runner-setup` | Reuse one that is online; install one only if there is none |
-| 4. Commands that produce a number | `repo-command-setup` | `artemis project scripts create ...` |
+| 4. Commands that produce a number | `repo-command-setup` | `artemis project scripts create ...`, build and test as `--setup-cmd`, the measured one as `--benchmark-cmd` |
 | 5. Run them on the branch | this skill | `artemis changeset validate <changeset-id> --project <id> --version original --runner <name> --wait` |
 | 6. Confirm metrics exist | this skill | `artemis changeset validation get`, then `changeset validation logs` for the values |
 | 7. Discovery from that branch | `discovery-start` | `artemis discovery create --source-changeset <changeset-id> ...` |
@@ -82,6 +82,8 @@ artemis --output-format json changeset create --project "<project-id>" --name "a
 ```
 
 A new changeset holds exactly one version: the project's code as it is now. Capture its id; steps 5 and 7 both need it. The Web UI calls this a branch and names it `artemis/measure` by default; keep that name unless the user asks otherwise.
+
+Two things about the script are easy to get wrong. There is no `--compile-cmd` or `--test-cmd`: building and testing are `--setup-cmd`, which runs once and is not measured, and only `--benchmark-cmd` is repeated and measured. And `--measure` defaults to `runtime`, which adds a command-runtime metric beside the repository's own, so the user sees two numbers and has to work out which one the run is chasing. Pass `--measure none` unless command runtime is genuinely the target.
 
 ### Step 5, the measured run
 

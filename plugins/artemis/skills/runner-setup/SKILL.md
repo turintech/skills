@@ -105,6 +105,10 @@ Confirm the intended runner appears online. If the command fails or omits the ru
 
 For end-to-end verification, use `repo-command-setup` §5b to validate the project's original code and confirm its commands execute on the intended runner.
 
+### The runner's environment is not the user's shell
+
+A runner inherits the environment of whatever shell started it, and keeps it for its whole life. Tools installed under a home directory, a version manager, or a virtual environment are routinely on the user's `PATH` and absent from the runner's, so "I can run this command" is not evidence the runner can. Check the toolchain as the runner sees it, and when a tool is only reachable by an absolute path, either start the runner from an environment that has it or make the project's commands name it explicitly.
+
 Report the runner name, host, and verification result. Do not claim success from a quiet process or log alone.
 
 ## Update or restart

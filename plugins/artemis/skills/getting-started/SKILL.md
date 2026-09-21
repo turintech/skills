@@ -134,14 +134,11 @@ Three measurements per version is deliberate here. One measurement gives a singl
 
 ## 5b. Their own project
 
-Assume nothing is known. Ask one question at a time:
+Ask one question first, because it decides everything after it: where does the code live, repository URL and branch, and can Artemis reach it?
 
-1. Where does the code live (repository URL and branch), and can Artemis reach it?
-2. What does "better" mean: which metric, and is higher or lower better?
-3. How is it built and tested today?
-4. Which machine should run it? The default is this one.
+Then import it with `project-import`, and hand the project to `quickstart`, which owns this path from here: reading the repository to work out what "better" means, storing commands that produce a number, reusing or installing a runner, measuring the original code, and starting Discovery from that branch. Do not ask the questions it is about to ask.
 
-Then hand over to the `artemis` router's readiness brief. `repo-command-setup` prepares the benchmark and validation script on an Artemis changeset, and `discovery-start` starts from that changeset with `--source-changeset`.
+Come back here only to close the session (section 8).
 
 ## 6. Human-only steps
 
