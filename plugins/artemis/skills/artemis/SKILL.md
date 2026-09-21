@@ -51,7 +51,7 @@ Give a clickable Markdown link with a short label:
 
 If the user is new to Artemis (they pasted the Quickstart prompt, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), route to `getting-started` instead of classifying further.
 
-If instead the project already exists and the user gave its id — the prompt copied from a project's Quickstart button carries one — route to `quickstart`. The two are one decision: no project yet is `getting-started`, a project id in hand is `quickstart`. Neither skill handles the other's case, so do not substitute one for the other.
+If instead the project already exists and the user gave its id, route to `quickstart`. The prompt copied from a project's Quickstart button carries one. The two are one decision: no project yet is `getting-started`, a project id in hand is `quickstart`. Neither skill handles the other's case, so do not substitute one for the other.
 
 **This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding: it was written before `getting-started` existed. Load `getting-started` first and let it call those skills in order. Skipping it drops the browser offer, the demo recommendation, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
 
