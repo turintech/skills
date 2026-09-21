@@ -30,15 +30,15 @@ metadata:
    ```
 
    Only if that returns nothing is there genuinely no browser control. Then print the Web UI link and continue without the browser.
-2. **Loading the tools is not the same as having a browser.** Probe for a live one with `tabs_context_mcp` before offering the browser route. If it reports no connected browser, say so plainly and offer these fixes in order, then wait. Do not fall back to the terminal silently: the user chose the browser for a reason.
+2. **Loading the tools is not the same as having a browser.** Probe for a live one with `tabs_context_mcp` before offering the browser route. If it reports no connected browser, work down this ladder, cheapest first, and re-probe after each step. Give the user **one** action at a time, not the whole list.
 
-   | Symptom | Fix |
-   |---|---|
-   | No browser window on screen | The browser must be open and **visible**. A process with no window cannot be paired |
-   | Window open, still not connected | The extension pairs with a **running** assistant session. Start the session first, then click the extension icon and connect it |
-   | It worked earlier in this session | A resumed session can lose the browser flag it was started with. Start a fresh session rather than resuming |
+   1. **Run `/chrome` in Claude Code.** One command, no restart, and it is what usually fixes it. Try this before saying anything about restarting.
+   2. **Check Chrome itself:** a window open and **visible**, not minimised, with the extension installed and signed in to the same account. Then `/chrome` again.
+   3. **Restart Chrome**, then `/chrome` again.
+   4. **Last resort: restart the session with `claude --chrome`.** It costs the user their conversation, so never offer it until the three above have failed.
 
-   Re-probe after the user says they have acted. Only after a failed probe **and** these fixes should you continue in the terminal.
+   Do not announce the restart option up front as the price of the browser route. A session that cannot see a browser usually only needs `/chrome`, and telling someone they must relaunch is how a working route gets abandoned.
+
 3. If more than one browser is connected, ask the user which one to use.
 4. Use one tab for the whole session. Create it once, then navigate within it.
 5. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.

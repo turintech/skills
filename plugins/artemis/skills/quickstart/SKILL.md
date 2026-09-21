@@ -69,7 +69,7 @@ Mirror the manual flow. Each step has an owning skill; use it rather than improv
 |---|---|---|
 | 1. CLI installed and authenticated | `cli-setup` | `artemis status`, then return here |
 | 2. An Artemis branch over the current code | this skill | `artemis changeset create --project <id> --name <name>` |
-| 3. A runner that can build this project | `runner-setup` | Reuse one that is online; install one only if there is none |
+| 3. A runner that can build this project | `runner-setup` | Reuse one that is online **and on this machine**; install one only if there is none |
 | 4. Commands that produce a number | `repo-command-setup` | `artemis project scripts create ...`, build and test as `--setup-cmd`, the measured one as `--benchmark-cmd` |
 | 5. Run them on the branch | this skill | `artemis changeset validate <changeset-id> --project <id> --version original --runner <name> --wait` |
 | 6. Confirm metrics exist | this skill | `artemis changeset validation get`, then `changeset validation logs` for the values |

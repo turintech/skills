@@ -91,6 +91,12 @@ Start it in the background as above and report the PID, the log path and the exa
 
 Alternatively use the start command shown by the setup flow. Ask separately before creating an operating-system service, even if the user already approved starting a process.
 
+## Whose runner is that?
+
+`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so only reuse a runner you can show belongs to **this** machine: read the running process (`--runner-name` on the local `artemis-runner start` command) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online.
+
+`runner list --output-format json` carries a `userId` per runner, but `artemis status` does not report who you are and there is no identity command, so that field cannot be compared against the current user today. The local-process check is what works.
+
 ## Verify
 
 The platform is authoritative; a running local process alone is not proof.
