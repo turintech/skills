@@ -9,7 +9,7 @@ description: Start an Artemis discovery run — create the run with inline compi
 
 - **Problem:** Creates a discovery run with inline repository commands, waits for baseline finalization, and confirms that the run actually explored versions.
 - **Must be available:** An authenticated CLI, a user-confirmed online runner, an imported project UUID, verified commands that run from the repository root with the runner user's privileges, and the required benchmark metrics.
-- **Use / don't use:** Use only after runner, project, command, and metric readiness are resolved; use `discovery-inspect` rather than this skill for post-launch interpretation.
+- **Use / don't use:** Use only after runner, project, command, and metric readiness are resolved; use `discovery-inspect` rather than this skill for post-launch interpretation. To fix a maintain issue with discovery, use `maintain` (`artemis maintain issues fix --discovery`) instead. A run created here isn't linked to the issue.
 - **Next skill:** Use `discovery-inspect` after baseline finalization and the exploration sanity check, or return to `project-import` if a baseline failure leaves the project unusable.
 
 ## Requirements
