@@ -86,8 +86,11 @@ artemis --output-format json discovery create \
   --task "<what you want optimised, in plain language>" \
   --model "<catalogue-uuid-or-model-type>" \
   --versions <n> \
-  --llm-metrics=false
+  --llm-metrics=false \
+  [--target-files <path> --target-files <path>]
 ```
+
+`--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `getting-started`, passes them here.
 
 `--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for LLM-judged metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
 

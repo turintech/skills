@@ -76,6 +76,8 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 | Git access | `project-import` | Connects a Git provider if the account has none | Git |
 | Runner on this machine | `runner-setup` | Agrees to start a long-lived process | Runners, once online |
 
+Whichever runner this step starts or finds online is the one the demo uses. Pass it to `discovery-start` rather than asking the user to choose.
+
 ## 5a. The Particle Life example
 
 | Stage | Skill | Page | Explain |
@@ -118,7 +120,7 @@ Particle Life inputs:
 - compile: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel`
 - test: `ctest --test-dir build --output-on-failure`
 - benchmark: `python3 tools/benchmark.py --no-visualize`
-- target files: `src/simulation.cpp` and `src/simulation.hpp`
+- target files: `--target-files src/simulation.cpp --target-files src/simulation.hpp`
 - task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.`
 - measurement: `--eval-mode fixed --eval-runs 3`
 - scoring: `--llm-metrics=false`
