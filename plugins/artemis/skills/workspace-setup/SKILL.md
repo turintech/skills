@@ -1,9 +1,10 @@
 ---
 name: workspace-setup
 description: Prepare and verify a runner-owned persistent build workspace for Artemis. Use when clean candidate builds are prohibitively expensive, a repository needs incremental builds, or compile/test/benchmark commands must bridge Artemis task checkouts into a stable cache.
-compatibility: Requires Artemis CLI 1.1.5 or newer.
+compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+.
 metadata:
   artemis-cli-min: "1.1.5"
+  artemis-platform-min: "3.0.3"
 ---
 
 # Set up a persistent Artemis workspace

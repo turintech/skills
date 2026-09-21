@@ -1,9 +1,10 @@
 ---
 name: cli-setup
 description: Install, update, and authenticate the supported artemis CLI through the official installer. Use when an end user needs to set up or update the artemis CLI.
-compatibility: Requires Artemis CLI 1.1.5 or newer.
+compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+.
 metadata:
   artemis-cli-min: "1.1.5"
+  artemis-platform-min: "3.0.3"
 ---
 
 # Set up the artemis CLI

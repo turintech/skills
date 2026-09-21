@@ -1,9 +1,10 @@
 ---
 name: ui-walkthrough
 description: Show the user the Artemis Web UI page that matches each step while you work, in one browser tab, navigating only. Use when the user has chosen to follow along in their browser and a browser-control tool such as Claude in Chrome is connected. Do not use it to change settings or start work without the user's explicit approval.
-compatibility: Requires Artemis CLI 1.1.5 or newer and a browser-control tool such as Claude in Chrome. Without one, print links instead. Page paths differ between deployments, so the skill follows the app's own navigation.
+compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+, plus a browser-control tool such as Claude in Chrome. Without one, print links instead. Page paths differ between deployments, so the skill follows the app's own navigation.
 metadata:
   artemis-cli-min: "1.1.5"
+  artemis-platform-min: "3.0.3"
 ---
 
 # Show the Artemis Web UI while working

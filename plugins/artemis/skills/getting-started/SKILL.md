@@ -1,9 +1,10 @@
 ---
 name: getting-started
 description: Welcome a new Artemis user and take them to a first measured result, offering to show each step in their browser or work in the terminal, and to run the Particle Life example or their own project. Use when the user pasted the Artemis Quickstart prompt, asks to get started with or try Artemis, or has no authenticated CLI and no concrete task yet.
-compatibility: Requires Artemis CLI 1.1.5 or newer. The browser route needs a browser-control tool such as Claude in Chrome.
+compatibility: Requires Artemis CLI 1.1.5+ and Artemis Platform 3.0.3+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
   artemis-cli-min: "1.1.5"
+  artemis-platform-min: "3.0.3"
 ---
 
 # Get started with Artemis
