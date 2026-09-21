@@ -186,19 +186,6 @@ Confirm:
 - the test fails for a representative semantic fault;
 - the benchmark creates a fresh numeric results file;
 - commands do not read a parent `.git`, environment, or build directory accidentally;
-### Reading measured values back
-
-Both commands come through the platform, so neither needs access to the runner's host:
-
-```bash
-artemis --output-format json changeset validation get "<validation-id>" --project "<project-uuid>"
-artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
-```
-
-`validation get` reports `exitCode`, `runtime`, `cpu` and `memory` per command. It does **not** report metric values, so a passing benchmark there is not evidence that anything was measured. The values appear in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Verified on a real validation, 21 September.
-
-For a discovery run, the equivalent is `artemis discovery metrics "<run-id>" --all`, or `--stats` for mean, standard deviation and sample count across repeated measurements.
-
 - a second run produces a comparable metric;
 - output volume is proportionate to useful diagnostics.
 
@@ -242,7 +229,11 @@ artemis changeset validation get "<validation-id>" --project "<project-uuid>"
 artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
 ```
 
-Confirm every command shows `exitCode: 0`, the intended runner and toolchain were used, and the benchmark created a fresh `artemis_results.json`/`.csv`. The result reports only `exitCode`, `runtime`, `cpu`, and `memory` — never metric values, and never whether the results file was written. Use `changeset validation logs` or `execution-log-inspect` with `processId` from the validate response to fetch command output through the platform; do not substitute a per-command `logId`.
+Confirm every command shows `exitCode: 0` and that the intended runner and toolchain were used. Both commands come through the platform, so neither needs access to the runner's host.
+
+`validation get` reports only `exitCode`, `runtime`, `cpu` and `memory`. It never reports metric values and never says whether the results file was written, so a passing benchmark there is not evidence that anything was measured. The values are in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Use those logs, or `execution-log-inspect` with `processId` from the validate response, to read command output; do not substitute a per-command `logId`.
+
+For a discovery run the equivalent is `artemis discovery metrics "<run-id>" --all`, or `--stats` for mean, standard deviation and sample count across repeated measurements.
 
 When something fails, distinguish command-string issues from repository code or script issues:
 

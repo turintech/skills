@@ -64,7 +64,7 @@ For on-prem Artemis, add the deployment's base URL:
 
 The installer selects two independent things. **Which build:** the newest stable release by default, or `--version X.Y.Z` to pin one, `--nightly` to include prereleases, `--dev` for the rolling development build. **Which deployment the CLI points at:** `--base-url` with a full URL, which writes the endpoint config and does not change where the binary is downloaded from.
 
-### The installer's own download source is stale (verified 16 September 2026)
+### The installer's own download source is stale
 
 The installer has `https://files.artemis.turintech.ai/artemis-cli` built in, and that path carries no release above **1.0.11**. Everything it can reach from there is too old for current deployments:
 
