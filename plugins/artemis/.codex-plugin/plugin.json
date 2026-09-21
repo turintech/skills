@@ -1,0 +1,6 @@
+{
+  "name": "artemis",
+  "version": "1.0.1",
+  "description": "TurinTech AI Artemis - code optimization, analysis, and validation at scale",
+  "skills": "./skills/"
+}

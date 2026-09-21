@@ -1,0 +1,19 @@
+{
+  "name": "skills",
+  "owner": {
+    "name": "TurinTech AI"
+  },
+  "metadata": {
+    "description": "A collection of Artemis agent skills and plugins",
+    "version": "1.0.1",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "artemis",
+      "source": "./artemis",
+      "description": "TurinTech AI Artemis - code optimization, analysis, and validation at scale",
+      "version": "1.0.1"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "artemis",
+  "description": "TurinTech AI Artemis - code optimization, analysis, and validation at scale",
+  "version": "1.0.1",
+  "author": {
+    "name": "TurinTech AI"
+  },
+  "homepage": "https://www.turintech.ai",
+  "repository": "https://github.com/turintech/skills",
+  "keywords": ["artemis", "discovery", "optimization"],
+  "skills": "./skills"
+}
