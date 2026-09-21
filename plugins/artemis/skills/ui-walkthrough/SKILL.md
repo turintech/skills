@@ -43,9 +43,10 @@ metadata:
 
    Never open with the restart option. Relaunching the session as `claude --chrome` costs the user their conversation, so it comes last, after everything above, and only if they still want the browser.
 
-3. If more than one browser is connected, ask the user which one to use.
-4. Use one tab for the whole session. Create it once, then navigate within it.
-5. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.
+3. **Check it is still there before the moments that matter.** A connection made at the start does not survive a long run: the extension can drop while nobody is clicking, and the first sign is a tool call failing much later. Re-probe with `tabs_context_mcp` before each showpiece, above all before the result sequence, and if it has gone say so **then**, offer `/chrome`, and wait. Discovering it at the end, after the run everyone waited for, is the one place a dropped browser costs the user something they cannot get back by scrolling.
+4. If more than one browser is connected, ask the user which one to use.
+5. Use one tab for the whole session. Create it once, then navigate within it.
+6. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.
 
 ## 2. Find the page, then show it
 
