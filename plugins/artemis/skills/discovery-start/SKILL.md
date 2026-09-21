@@ -1,6 +1,10 @@
 ---
 name: discovery-start
 description: Start an Artemis discovery run — create the run with inline compile/test/benchmark commands, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
+compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+metadata:
+  artemis-cli-min: "1.0.7"
+  artemis-platform-min: "3.0.3"
 ---
 
 # Start a discovery run

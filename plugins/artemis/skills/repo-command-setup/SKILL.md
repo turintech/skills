@@ -1,6 +1,10 @@
 ---
 name: repo-command-setup
 description: Derive, verify, and configure the compile, test, and benchmark commands Artemis needs to execute a repository, including numeric artemis_results metrics. Use when preparing a repository for validation or discovery, making a repo Discovery-ready, authoring a benchmark harness, fixing project commands, or checking that a repo can run on an Artemis runner.
+compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+metadata:
+  artemis-cli-min: "1.0.7"
+  artemis-platform-min: "3.0.3"
 ---
 
 # Configure repository commands
