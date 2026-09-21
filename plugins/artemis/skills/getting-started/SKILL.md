@@ -40,7 +40,7 @@ Say four short lines:
 1. Artemis uses AI to try improvements to real code and measures every attempt.
 2. The measuring happens on the user's own machine, through a small program called a runner.
 3. Next comes a quick setup, then either a demo or their own project.
-4. Setup takes a few minutes. The Particle Life example then runs 5 versions, roughly 10 to 15 minutes, most of it watching results arrive.
+4. Setup takes a few minutes. The Particle Life example then runs 5 versions, about 15 minutes, most of it watching results arrive.
 
 Say once, before starting the example, that the run uses account credits and the balance is in the Web UI header. Nothing more: no estimate framed as a comparison, no analogy, no joke about the price. Do not turn it into a question, and do not repeat it later.
 

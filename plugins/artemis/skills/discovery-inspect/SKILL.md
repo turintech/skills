@@ -85,7 +85,7 @@ Use `artemis discovery versions logs <version-id>` or `execution-log-inspect` wi
 
 Host-local runner daemon output is separate evidence for connection, polling, dispatch, and process-lifecycle problems. When shell access exists, its location depends on how the runner was started:
 
-- Wrapped in `nohup ./artemis-runner start … > runner.log 2>&1 &` (the convention for an automated runner) — the file is where you redirected it, typically `~/runner/runner.log`.
+- Started in the background with its output redirected: the file is wherever that redirect pointed, which `runner-setup` reports as the log path when it starts one.
 - Under a systemd unit — `journalctl -u artemis-runner --follow`.
 - Foreground in a terminal — it's already in view.
 

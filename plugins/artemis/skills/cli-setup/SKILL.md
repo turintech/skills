@@ -30,7 +30,7 @@ Use the supported distribution. This path requires no GitHub account and does no
 
 The installer detects the platform, installs the CLI, and configures service endpoints.
 
-**Check which version it produces before relying on it.** Its built-in download source currently carries nothing above 1.0.11, which cannot run a discovery run on a current deployment. On dev, testing, or any deployment needing 1.1.8 or newer, use the direct download in *The installer's own download source is stale* below, then `artemis login`. Use the installer when 1.0.11 is genuinely enough, or once the file server is fixed.
+**Check which version it produces before relying on it.** Its built-in download source currently carries nothing above 1.0.11, which cannot run a discovery run on a current deployment. On any deployment needing 1.1.8 or newer, use the direct download in *The installer's own download source is stale* below, then `artemis login`. Use the installer when 1.0.11 is genuinely enough, or once the file server is fixed.
 
 For hosted (SaaS) Artemis:
 

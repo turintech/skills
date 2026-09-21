@@ -52,7 +52,7 @@ Give a clickable Markdown link with a short label:
 
 If the user is new to Artemis (they pasted the Quickstart prompt, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), route to `getting-started` instead of classifying further.
 
-If instead the project already exists and the user gave its id, route to `quickstart`. The prompt copied from a project's Quickstart button carries one. The two are one decision: no project yet is `getting-started`, a project id in hand is `quickstart`. Neither skill handles the other's case, so do not substitute one for the other.
+If instead the project already exists and the user gave its URL or id, route to `quickstart`. There are two copyable prompts, and they are not interchangeable: the one on the connect-agent page sets up a machine and names `getting-started`, and the one behind **Set up with local agent** on a project's overview carries that project and names `quickstart`. The two are one decision: no project yet is `getting-started`, a project id in hand is `quickstart`. Neither skill handles the other's case, so do not substitute one for the other.
 
 **This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding: it was written before `getting-started` existed. Load `getting-started` first and let it call those skills in order. Skipping it drops the browser offer, the demo recommendation, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
 
@@ -139,7 +139,7 @@ Before launching discovery, validation, or Maintain:
 ## 6. Route to the owning skill
 
 - New users and open-ended "get started" requests: `getting-started`
-- Setting up a project that already exists in Artemis, and any request carrying a project id from the Quickstart button on a project's overview page: `quickstart`
+- Setting up a project that already exists in Artemis, and any request carrying a project URL or id from **Set up with local agent** on a project's overview page: `quickstart`
 - Showing the matching Web UI page when the user follows along in their browser: `ui-walkthrough`
 - CLI: `cli-setup`
 - Runner: `runner-setup`
@@ -151,6 +151,6 @@ Before launching discovery, validation, or Maintain:
 - Discovery interpretation: `discovery-inspect`
 - Discovery charts, canvases, artifacts, or visual reports: `discovery-visualize`
 - Runner task diagnostics without host access: `execution-log-inspect`
-- Maintain: use the `maintain` skill when present; otherwise inspect `artemis maintain --help` before any mutation
+- Maintain: `maintain`, which ships alongside this skill
 
 Proceed when every required fact is verified or explicitly chosen. Ask for unresolved choices together and do not re-ask facts the user supplied.

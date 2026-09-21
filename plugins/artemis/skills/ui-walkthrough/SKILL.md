@@ -54,7 +54,7 @@ Deployments differ. On newer ones a Discovery run sits under `/discover` and has
 
 Only when the user gave you bare IDs and no page to start from, try the newer shape first and fall back to the older one:
 
-| Resource | Newer deployments (dev, testing) | Older deployments (prod today) |
+| Resource | Newer deployments | Older deployments |
 |---|---|---|
 | Project | `/projects/<project-id>/overview` | `/projects/<project-id>/overview` |
 | Discovery list | `/projects/<project-id>/discover` | `/projects/<project-id>/discovery` |
