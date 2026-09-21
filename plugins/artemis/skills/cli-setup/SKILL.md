@@ -23,50 +23,11 @@ Use the supported distribution. This path requires no GitHub account and does no
 - Network access to `files.artemis.turintech.ai` and the deployment's base URL.
 - An API key for the target deployment, created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`, for example `https://artemis.turintech.ai/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
 
-## Install with the official installer
+## Install the CLI
 
-1. Open `<deployment-base-url>/settings/cli` for the deployment you are setting up. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
-2. Confirm whether this is hosted Artemis or an on-prem deployment with a custom base URL — it selects which invocation below to use.
+Start here. The deployment's own page at `<deployment-base-url>/settings/cli` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
 
-The installer detects the platform, installs the CLI, and configures service endpoints.
-
-**Check which version it produces before relying on it.** Its built-in download source currently carries nothing above 1.0.11, which cannot run a discovery run on a current deployment. On any deployment needing 1.1.8 or newer, use the direct download in *The installer's own download source is stale* below, then `artemis login`. Use the installer when 1.0.11 is genuinely enough, or once the file server is fixed.
-
-For hosted (SaaS) Artemis:
-
-```bash
-(
-  set -e
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
-    -o "$TMP/installer.sh"
-  chmod +x "$TMP/installer.sh"
-  "$TMP/installer.sh"
-)
-```
-
-For on-prem Artemis, add the deployment's base URL:
-
-```bash
-(
-  set -e
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
-    -o "$TMP/installer.sh"
-  chmod +x "$TMP/installer.sh"
-  "$TMP/installer.sh" --base-url https://your-custom.artemis.turintech.ai
-)
-```
-
-The installer selects two independent things. **Which build:** the newest stable release by default, or `--version X.Y.Z` to pin one, `--nightly` to include prereleases, `--dev` for the rolling development build. **Which deployment the CLI points at:** `--base-url` with a full URL, which writes the endpoint config and does not change where the binary is downloaded from.
-
-### The installer's own download source is stale
-
-The installer has `https://files.artemis.turintech.ai/artemis-cli` built in, and that path carries no release above **1.0.11**. Everything it can reach from there is too old for current deployments:
+**Do not reach for the official installer script first.** It has `https://files.artemis.turintech.ai/artemis-cli` built in, and that path carries no release above **1.0.11**:
 
 | What you ask for | What you get |
 |---|---|
@@ -74,9 +35,9 @@ The installer has `https://files.artemis.turintech.ai/artemis-cli` built in, and
 | `--dev` | a rolling build from 30 July |
 | `--version 1.1.8` | fails, no such directory on that path |
 
-None of those have `--script`, `--eval-runs`, `--source-changeset` or `project scripts`, so a CLI installed that way cannot start a discovery run on a current deployment.
+None of those have `--script`, `--eval-runs`, `--source-changeset` or `project scripts`, so a CLI installed that way cannot start a discovery run at all. The installer is still the documented route and will be right again once its source is fixed, so it is kept at the end of this skill; until then it is a footnote, not the path.
 
-**Install the binary directly from the public path instead**, which does carry current releases. Check the directory first and take the newest, rather than trusting a version named here:
+Install the binary directly from the public path, which carries current releases. Check the directory first and take the newest, rather than trusting a version named here:
 
 ```bash
 curl -s --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
@@ -205,3 +166,44 @@ Report the installed version, base URL, and authenticated user. Do not report su
 ## Update
 
 Record the current version, rerun the installer for the same deployment, and repeat authentication and status verification. Report the version before and after. Do not change deployment while performing an update.
+
+## The official installer, once its source is fixed
+
+1. Open `<deployment-base-url>/settings/cli` for the deployment you are setting up. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
+2. Confirm whether this is hosted Artemis or an on-prem deployment with a custom base URL — it selects which invocation below to use.
+
+The installer detects the platform, installs the CLI, and configures service endpoints.
+
+**Check which version it produces before relying on it.** Its built-in download source currently carries nothing above 1.0.11, which cannot run a discovery run on a current deployment. On any deployment needing 1.1.8 or newer, use the direct download in *The installer's own download source is stale* below, then `artemis login`. Use the installer when 1.0.11 is genuinely enough, or once the file server is fixed.
+
+For hosted (SaaS) Artemis:
+
+```bash
+(
+  set -e
+  TMP="$(mktemp -d)"
+  trap 'rm -rf "$TMP"' EXIT
+  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
+    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
+    -o "$TMP/installer.sh"
+  chmod +x "$TMP/installer.sh"
+  "$TMP/installer.sh"
+)
+```
+
+For on-prem Artemis, add the deployment's base URL:
+
+```bash
+(
+  set -e
+  TMP="$(mktemp -d)"
+  trap 'rm -rf "$TMP"' EXIT
+  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
+    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
+    -o "$TMP/installer.sh"
+  chmod +x "$TMP/installer.sh"
+  "$TMP/installer.sh" --base-url https://your-custom.artemis.turintech.ai
+)
+```
+
+The installer selects two independent things. **Which build:** the newest stable release by default, or `--version X.Y.Z` to pin one, `--nightly` to include prereleases, `--dev` for the rolling development build. **Which deployment the CLI points at:** `--base-url` with a full URL, which writes the endpoint config and does not change where the binary is downloaded from.

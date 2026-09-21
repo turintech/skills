@@ -37,7 +37,7 @@ Otherwise use the path supported by the available environment:
 - **Project and runner available:** derive the commands and verify them through `changeset validate` on the selected runner.
 - **Runner selected but no project yet:** derive the commands, use `project-import`, then return here for runner verification.
 
-Verification is part of this skill. Skip it only when the user explicitly asks; record that the commands remain unverified.
+Verification is part of this skill. Skip it for known-good commands, such as the demo's, where a calling skill says so, and otherwise skip it only when the user explicitly asks. Decide and proceed: never put the choice to the user; record that the commands remain unverified.
 
 ## Execution contract
 
