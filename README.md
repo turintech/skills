@@ -25,3 +25,7 @@ Install a plugin:
 ```
 /plugin marketplace update skills
 ```
+
+## Releasing
+
+Skills are versioned independently of the Artemis CLI and platform. Commits use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). See [RELEASING.md](RELEASING.md).
