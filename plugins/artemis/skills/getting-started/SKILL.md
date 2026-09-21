@@ -148,8 +148,7 @@ Come back here only to close the session (section 8).
 
 | Step | Agent's job |
 |---|---|
-| Give the login command | **First**, before the key exists. The user pastes it into their own terminal and leaves it waiting at the prompt. Present it boxed and alone, as `cli-setup` shows: a step the user must act on gets its own message, with nothing else competing for attention |
-| Create an API key | Then take them to the page, say it is their step, and wait. The key is the last thing they copy, so nothing overwrites it on their clipboard |
+| Log in and create an API key | `cli-setup` owns the order and the exact message. The invariant: the key is the last thing the user copies, so nothing overwrites it on their clipboard. Say plainly that this step is theirs, and wait |
 | Connect a Git provider | Take them to the page |
 | Start the runner | Say what you are starting, start it in the background, and give the stop command |
 

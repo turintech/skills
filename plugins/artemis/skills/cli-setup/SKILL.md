@@ -107,15 +107,13 @@ Do not guess installer flags: the live installer may have changed.
 
 The installer configures endpoints but the CLI still needs the API key described in Requirements.
 
-**Give the command before sending them for the key.** The user will copy the key to their clipboard, so anything they have to copy *after* that destroys it. Put the command on screen first, let them paste it into their own terminal, and only then take them to the key page. The prompt sits waiting while they fetch the key, and the key is the last thing they copy.
+One invariant decides the order here: **the key is the last thing the user copies.** Anything they have to copy after it overwrites it on the clipboard.
 
-**Order of the three things at this step:**
+1. **In the browser route, open the API keys page first**, with `ui-walkthrough`, pointer on the control that creates a key. Navigating costs the user nothing and touches no clipboard. Being shown where to go is most of the value of that route, so do not settle for printing a link until you have checked properly: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser (`ui-walkthrough` section 1).
+2. **Then send the step as its own message**, two numbered boxes and nothing else.
+3. **The user acts:** they paste the command, create the key on the page already in front of them, and paste it at the waiting `API key:` prompt.
 
-1. **Browser first, before you say anything.** Take them to the API keys page with `ui-walkthrough` so it is already open, with the pointer on the control that creates a key. Navigating costs the user nothing and touches no clipboard.
-2. **Then the command, boxed and alone.**
-3. **Then they create the key** on the page already in front of them, copy it last, and paste it at the waiting prompt.
-
-Present the step as its own message: two numbered boxes and nothing else.
+Never read, type or copy a key, and never ask for one in the chat.
 
 ````text
 ```
@@ -146,8 +144,6 @@ Rules for that message:
 - **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
 - **Say what "done" looks like**, in one sentence: the prompt is waiting, the key goes there, not in the chat.
 - Ask the follow-up question (demo or own project) in a **separate** message afterwards, never stacked under the command.
-
-**Then, in the browser route, take them to the page rather than printing a link.** Being shown where to go is most of the value of the browser walkthrough, so hand off to `ui-walkthrough`: open the API keys page on their deployment, put the pointer on the control that creates a key, say plainly that this step is theirs, and wait there. Never read, type, or copy the key, and never ask for it in chat. Print the link only when there is no browser control, and check that properly first: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser. See `ui-walkthrough` section 1.
 
 Keep the surrounding chatter short. At this step the user needs the command, where to click, and nothing else: status reports, version notes and next-step previews all belong before or after, never wrapped around the one thing they must act on.
 
