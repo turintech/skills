@@ -34,10 +34,15 @@ Check silently, and skip what is already done. A project that has been set up be
 | Check | How |
 |---|---|
 | CLI and authentication | `artemis --version`, `artemis status` |
-| The project is real and reachable | `artemis --output-format json project list`, matching the id |
+| The project is real and reachable | `artemis --output-format json project list`, matching the id. Keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
 | A runner online | `artemis runner list` |
+| The code, locally | `git -C . remote get-url origin` against the project's `gitUrl` |
 | Browser control | Load the tools first, then check. See `ui-walkthrough` section 1 |
+
+The prompt arrives in whatever directory the user's agent happens to be running in, which is not always the project's repository. Settle that before reading any code: if the origin remote does not match the project's `gitUrl`, say so and ask which checkout to work in rather than quietly describing an unrelated repo. If there is no checkout at all, the flow still works, because every command runs on the runner, but say that writing a benchmark without the code in front of you is slower and offer to clone it first.
+
+The project is pinned at `gitHash`. If the user's checkout has moved on, the run measures the pinned commit, not what they are looking at; say which commit is being measured.
 
 ## 2. The rules for this flow
 
@@ -84,7 +89,7 @@ artemis changeset validate "<changeset-id>" --project "<project-id>" --version o
   --script "<script-id>" --runner "<runner-name>" --wait
 ```
 
-`--project` and `--runner` are required. Drop `--script` to use the project's configured commands. `--version original` is the code as it stands, which is the baseline Discovery will measure against; this is the same primitive Discovery uses for every version, so a pass here means Discovery can run.
+`--project` and `--runner` are required. Drop `--script` to use the project's configured commands. `--wait` gives up after 20 minutes and exits 6, so pass `--timeout` when the benchmark is slower than that, and say how long you expect it to take before starting. `--version original` is the code as it stands, which is the baseline Discovery will measure against; this is the same primitive Discovery uses for every version, so a pass here means Discovery can run.
 
 Run it through the platform, on the runner, not locally. A local run proves nothing about the machine Discovery will use, and `--wait` is what turns it into evidence.
 
