@@ -49,7 +49,7 @@ Say once, before starting the example, that the run uses account credits and the
 Ask this **before** asking what they want to do. Seeing the platform is most of what makes the first session make sense, and a user who picks the browser route should see the setup steps too, not just the run.
 
 - If browser control is available, ask: "I can show you each step in your browser as I go (recommended), or keep everything in this terminal. Which would you like?"
-- If not, do not write the browser off yet. `ui-walkthrough` section 1 covers loading the tools, probing for a live browser, and the three things that actually stop one connecting: no visible window, an extension paired before the session existed, and a resumed session that lost its browser flag. Offer those, wait, and probe again. Say "we'll use the terminal" only once that has failed, and say which check failed so the user knows what to fix.
+- If nothing is connected, that is the normal state, not a dead end: assume the extension simply has not been attached to this session. Offer the browser anyway and ask them to run `/chrome`, which is the whole fix in most cases. `ui-walkthrough` section 1 has the rest, and it is the one place that decides when to give up. Say "we'll use the terminal" only after that, and say what failed.
 
 Remember the choice for the session. In the browser route, use `ui-walkthrough` to show the page named at each step below, and tell it this is a **first-run demo** so it uses its watchable pacing. That pacing is for this first tour only; a user who comes back does not need it.
 

@@ -30,14 +30,18 @@ metadata:
    ```
 
    Only if that returns nothing is there genuinely no browser control. Then print the Web UI link and continue without the browser.
-2. **Loading the tools is not the same as having a browser.** Probe for a live one with `tabs_context_mcp` before offering the browser route. If it reports no connected browser, work down this ladder, cheapest first, and re-probe after each step. Give the user **one** action at a time, not the whole list.
+2. **Expect it to be disconnected, and lead with the fix.** Most people have never connected the extension to a session, so a failed probe is the ordinary case rather than a fault to investigate. Probe with `tabs_context_mcp`, and if nothing is connected do not narrate a diagnosis or list three possibilities. Give one instruction:
 
-   1. **Run `/chrome` in Claude Code.** One command, no restart, and it is what usually fixes it. Try this before saying anything about restarting.
-   2. **Check Chrome itself:** a window open and **visible**, not minimised, with the extension installed and signed in to the same account. Then `/chrome` again.
-   3. **Restart Chrome**, then `/chrome` again.
-   4. **Last resort: restart the session with `claude --chrome`.** It costs the user their conversation, so never offer it until the three above have failed.
+   > Run `/chrome`, then tell me when it's done.
 
-   Do not announce the restart option up front as the price of the browser route. A session that cannot see a browser usually only needs `/chrome`, and telling someone they must relaunch is how a working route gets abandoned.
+   Re-probe after they do. That single command connects an already-installed extension to this session, and it is the whole fix almost every time.
+
+   Only if `/chrome` does not connect it, ask one question: **is the Claude extension installed in Chrome at all?**
+
+   - **No.** It is a one-off install from `https://claude.ai/chrome`, signed in to the same account as this session. Then `/chrome` again.
+   - **Yes.** Make sure a Chrome window is open and **visible**, not minimised, then `/chrome` again. If it still fails, restart Chrome and try once more.
+
+   Never open with the restart option. Relaunching the session as `claude --chrome` costs the user their conversation, so it comes last, after everything above, and only if they still want the browser.
 
 3. If more than one browser is connected, ask the user which one to use.
 4. Use one tab for the whole session. Create it once, then navigate within it.
