@@ -137,7 +137,7 @@ Add `--target-files <path>` (repeatable) when the repository made it obvious whi
 
 ## 5. Showing it
 
-In the browser route, hand each step to `ui-walkthrough` and be on the page **before** the command runs, so the user watches the platform change rather than being shown the result: the project page before the branch appears, the branch before the run, the run's Experiments tab while versions are generated.
+In the browser route, hand each step to `ui-walkthrough` and follow its *Arrive before the change, never after*: the project page before the branch appears, the branch before the run, the run's Experiments tab while versions are generated.
 
 In the terminal route, give a link to the project and name the page to open.
 

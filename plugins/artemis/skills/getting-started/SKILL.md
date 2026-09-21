@@ -96,7 +96,7 @@ Whichever runner this step starts or finds online is the one the demo uses. Pass
 
 The run is the part worth seeing, so follow it on screen rather than reporting it from the terminal:
 
-Stand on the page **before** the thing happens, so the user sees the platform change rather than being shown the result afterwards. This applies to every creating step, not just the import: Projects before `project import`, the project overview before `discovery create`, the listing tab before anything that adds a version or branch. See `ui-walkthrough`, *Arrive before the change, never after*, which also says to click into the thing that just appeared rather than jumping to it.
+Stand on the page before each command runs, so the platform changes in front of the user: Projects before `project import`, the project overview before `discovery create`. `ui-walkthrough`'s *Arrive before the change, never after* owns the rule.
 
 1. Open the project. The overview lists the run that was just started.
 2. Move the pointer to that run and click it, so the user sees where it came from rather than arriving on a page by magic.
