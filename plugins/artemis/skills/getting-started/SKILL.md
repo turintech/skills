@@ -12,7 +12,7 @@ metadata:
 
 - **Problem:** Takes a brand-new user from a pasted prompt to a working setup and a first optimisation they have watched and understood.
 - **Must be available:** A coding assistant with the Artemis skills installed, network access, and a user who can create an API key in the Artemis Web UI.
-- **Use / don't use:** Use for new users and open-ended "get started" requests. Don't use it when the user already names a task and its inputs; the `artemis` router handles those.
+- **Use / don't use:** Use for new users and open-ended "get started" requests. Don't use it when the user already names a task and its inputs; the `artemis` router handles those. When the project already exists in Artemis and the user has its id, use `quickstart` instead.
 - **Next skill:** This skill runs no commands itself. It hands each step to `cli-setup`, `runner-setup`, `project-import`, `repo-command-setup`, `discovery-start`, and `discovery-inspect`, and in the browser route to `ui-walkthrough`.
 
 ## Requirements

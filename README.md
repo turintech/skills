@@ -42,6 +42,7 @@ Copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.clau
 | Skill | Use when |
 |---|---|
 | `getting-started` | Onboard a new user to a first measured result, in the browser or the terminal |
+| `quickstart` | Take a project that already exists in Artemis to its first measured result |
 | `ui-walkthrough` | Show the matching Artemis Web UI page while work happens |
 | `artemis` | Classify a request and route to the right skill |
 | `cli-setup` | Install or authenticate the CLI |

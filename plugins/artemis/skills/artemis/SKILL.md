@@ -51,11 +51,14 @@ Give a clickable Markdown link with a short label:
 
 If the user is new to Artemis (they pasted the Quickstart prompt, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), route to `getting-started` instead of classifying further.
 
+If instead the project already exists and the user gave its id — the prompt copied from a project's Quickstart button carries one — route to `quickstart`. The two are one decision: no project yet is `getting-started`, a project id in hand is `quickstart`. Neither skill handles the other's case, so do not substitute one for the other.
+
 **This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding: it was written before `getting-started` existed. Load `getting-started` first and let it call those skills in order. Skipping it drops the browser offer, the demo recommendation, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
 
 | Workflow | Intended outcome | Required infrastructure |
 |---|---|---|
 | Getting started | A new user wants to try or set up Artemis | None yet |
+| Quickstart | Take a project that is already imported to its first measured result | The project id |
 | Discovery | Generate and benchmark alternatives to improve a metric | Runner, repository commands, model, version budget |
 | Validation | Build, test, and benchmark known code without searching | Runner and repository commands |
 | Maintain | Scan, triage, fix, or publish code-health issues | Rules, scope, and push access when publishing |
@@ -135,6 +138,7 @@ Before launching discovery, validation, or Maintain:
 ## 6. Route to the owning skill
 
 - New users and open-ended "get started" requests: `getting-started`
+- Setting up a project that already exists in Artemis, and any request carrying a project id from the Quickstart button on a project's overview page: `quickstart`
 - Showing the matching Web UI page when the user follows along in their browser: `ui-walkthrough`
 - CLI: `cli-setup`
 - Runner: `runner-setup`
