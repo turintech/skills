@@ -88,7 +88,7 @@ Set both names: the CLI reads `SSL_CERT_FILE`, and the runner's Python HTTP laye
 
 The name appears in the fleet as soon as it connects. `--no-delete-task-output` keeps each task's working directory and log after completion for optional host-local diagnosis; the default removes them within seconds.
 
-Keep the runner in a visible terminal for initial verification. If it needs to outlive that terminal, prefer a named `tmux` session when available, check that the session name is unused, and tell the user how to attach, detach, and stop it. If only a background process is possible, report its PID, output location, and exact stop command.
+Start it in the background as above and report the PID, the log path and the exact stop command. Use a visible terminal or a named `tmux` session only when the user asks for one; then check the session name is unused and say how to attach, detach and stop it.
 
 Alternatively use the start command shown by the setup flow. Ask separately before creating an operating-system service, even if the user already approved starting a process.
 

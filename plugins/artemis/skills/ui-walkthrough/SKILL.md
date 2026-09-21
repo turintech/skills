@@ -88,7 +88,7 @@ Do not narrate the change before it is visible, and do not take a screenshot of 
 5. Say in the chat, in one or two sentences, what is on screen and why it matters.
 6. Stay on the page until the next step is ready. Do not close the tab.
 
-Never open `/settings` or `/projects` on their own: on admin accounts `/settings` lists every user's name and email.
+Never open `/settings` on its own: on admin accounts it lists every user's name and email. The Projects list is fine, and is where you stand before an import so the user watches the project appear.
 
 ### Make it watchable, first-run demo only
 

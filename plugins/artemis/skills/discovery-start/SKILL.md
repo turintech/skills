@@ -58,7 +58,7 @@ artemis --output-format json discovery list --project "<project-uuid>" \
 
 Choose whether to accept serialization, use another runner, or provision one. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
 
-Execution runs require a validation script. `--compile-cmd`, `--test-cmd`, and `--benchmark-cmd` are legacy run-level fields and do **not** satisfy that requirement. Creating without `--script` or a project default fails with `NoDefaultValidationScriptError`.
+Execution runs require a validation script. Creating without `--script` or a project default fails with `NoDefaultValidationScriptError`.
 
 List existing scripts, or create one from the verified commands:
 

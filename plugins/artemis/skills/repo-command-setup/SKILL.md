@@ -47,7 +47,7 @@ Artemis runs three ordered phases from the repository root in a fresh checkout o
 - **test** rejects behaviorally incorrect changes;
 - **benchmark** measures the optimization target and writes numeric metrics.
 
-There is no working-directory, setup-command, or timeout field.
+Every command runs from the repository root; there is no working-directory field. Build and test belong in `--setup-cmd`, which runs once and is not measured, and only `--benchmark-cmd` is repeated and measured.
 
 Each command must therefore be:
 

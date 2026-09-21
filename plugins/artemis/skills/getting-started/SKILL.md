@@ -115,6 +115,8 @@ End on the code, not on a number. Keep it brief:
 
 Say which numbers are measured and which are AI-judged, and that "BEST" is a blended score rather than always the fastest.
 
+Check the account has credits before starting it. There is no CLI command for the balance: in the browser route read the Web UI header, which is already open, and in the terminal route ask the user to glance at it once. An account with no credits fails the run in a way that looks like a platform fault, which is a poor first impression and easy to prevent.
+
 Particle Life inputs:
 
 - compile: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel`
@@ -160,6 +162,7 @@ Come back here only to close the session (section 8).
 | The runner is offline before starting | `runner-setup`, then retry |
 | A run fails within seconds with no baseline | `discovery-inspect`, checking the project's Git access first |
 | The user wants to stop | Summarise what exists and how to resume |
+| `uname -s` reports `Darwin` | There is no macOS runner build, so this Mac cannot host one. Say so in section 3, before recommending anything, and use a runner on another machine |
 
 ## 8. Close
 
@@ -169,8 +172,6 @@ Two things a first-time user does not know, and should hear once:
 
 - **The run does not depend on this session.** It continues on the platform if the terminal is closed, and the Web UI shows it either way. Say this while the run is going, not at the end, so nobody sits guarding a terminal they are afraid to close.
 - **The runner is still running.** Give the stop command again at the end, and say it can stay up for the next run.
-
-Before starting the example, check the account has credits. There is no CLI command for the balance, so read it from the Web UI header while the browser is already open. An account with no credits fails the run in a way that looks like a platform fault, which is a poor first impression and easy to prevent.
 
 ## Checklist
 
