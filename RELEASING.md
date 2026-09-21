@@ -10,6 +10,27 @@ Release from `main` with annotated semver tags such as `v1.2.0`.
 - **Minor** — new skills or features, including raised minimum requirements.
 - **Major** — breaking changes to skill names, routing, structure, or installation.
 
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```
+<type>[optional scope]: <description>
+```
+
+Common types:
+
+- `feat` — a new skill or feature. Minor when released.
+- `fix` — a correction that does not raise CLI or platform requirements. Patch when released.
+- `docs` — documentation only.
+- `chore` — tooling, manifests, or process with no skill behaviour change.
+
+Raise a minimum CLI or platform requirement with `feat` (minor). Mark breaking changes to skill names, routing, structure, or installation with `!` or a `BREAKING CHANGE:` footer (major):
+
+```
+feat(discovery-start)!: require a validation script
+```
+
 ## Branches
 
 - `main` — skills compatible with the version deployed at [artemis.turintech.ai](https://artemis.turintech.ai).

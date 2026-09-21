@@ -28,4 +28,4 @@ Install a plugin:
 
 ## Releasing
 
-Skills are versioned independently of the Artemis CLI and platform. See [RELEASING.md](RELEASING.md).
+Skills are versioned independently of the Artemis CLI and platform. Commits use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). See [RELEASING.md](RELEASING.md).
