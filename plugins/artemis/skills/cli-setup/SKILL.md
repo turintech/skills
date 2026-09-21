@@ -160,13 +160,15 @@ Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the 
 Some deployments present a certificate the system trust store does not know, `dev` among them today. `artemis login` and `artemis status` then fail with an `x509` or "unknown authority" error. Only then, point the CLI at that deployment's CA bundle:
 
 ```bash
-export SSL_CERT_FILE="$HOME/.config/artemis/ca-bundle.pem"
+export SSL_CERT_FILE=/absolute/path/to/ca-bundle.pem
 ```
 
-Two things make this fail quietly, so handle both:
+Four things to get right:
 
-- **Put it where every shell reads it, not only `~/.bashrc`.** A login shell reads `~/.bash_profile` or `~/.profile` and ignores `~/.bashrc` unless one of those sources it. If neither file exists, create `~/.profile` with the export as well, or the variable is missing from exactly the sessions the user opens next.
-- **Long-lived processes do not inherit it later.** The runner keeps whatever environment it was started with, so the variable belongs in its start command too. See `runner-setup`.
+- **The path is the user's, and absolute.** Ask where the bundle came from; never `~` or `$HOME` in a command they paste, because your `HOME` and their shell's need not match.
+- **This is the Go CLI's Linux behaviour.** On macOS and Windows the CLI uses the system trust store, so the variable does nothing there and the certificate has to be trusted by the operating system instead.
+- **It only lasts for that shell.** Making it permanent means editing their shell startup file, so say which file and why, and ask before writing to it. A login shell reads `~/.bash_profile` or `~/.profile` and ignores `~/.bashrc` unless one sources the other, so the wrong file looks like the fix silently failing.
+- **The runner does not need this variable.** It has `--ssl-verify <path>`, which scopes the bundle to its own connection. See `runner-setup`.
 
 Verify in a shell that did not set it interactively, rather than in the one where you just exported it:
 
@@ -176,7 +178,7 @@ bash -lc 'artemis status'
 
 Ask the user where the bundle came from before trusting it. Never fetch a CA bundle from a source the user did not name, and never disable certificate verification to work around this.
 
-When the user later moves to a deployment with an ordinary certificate, the variable has to come back out of their shell files and out of any runner start command, or it follows them and breaks the new one.
+When the user later moves to a deployment with an ordinary certificate, the variable has to come back out of their shell files, or it follows them and breaks the new one.
 
 ## Verify
 

@@ -76,15 +76,14 @@ On a deployment whose certificate the system trust store does not know, `dev` am
 
 ```bash
 set -a; . ~/.config/artemis/.env; set +a
-SSL_CERT_FILE="$HOME/.config/artemis/ca-bundle.pem" \
-REQUESTS_CA_BUNDLE="$HOME/.config/artemis/ca-bundle.pem" \
 ./artemis-runner start \
   --runner-name <unique-name> \
   --url <deployment-base-url> \
+  --ssl-verify /absolute/path/to/ca-bundle.pem \
   --no-delete-task-output
 ```
 
-Set both names: the CLI reads `SSL_CERT_FILE`, and the runner's Python HTTP layer reads `REQUESTS_CA_BUNDLE`. See `cli-setup` for the CLI side and where to put the export so login shells see it.
+`--ssl-verify` takes the bundle path and applies it to the runner's own connection only, which is what you want: environment variables such as `SSL_CERT_FILE` replace the whole trust store for that process and everything it starts. Use the absolute path the user gave you, never `~` or `$HOME`, because the runner's `HOME` need not be the one you are reading. Leave the flag off entirely on a deployment with an ordinary certificate. See `cli-setup` for the CLI side.
 
 The name appears in the fleet as soon as it connects. `--no-delete-task-output` keeps each task's working directory and log after completion for optional host-local diagnosis; the default removes them within seconds.
 
