@@ -30,21 +30,35 @@ metadata:
    ```
 
    Only if that returns nothing is there genuinely no browser control. Then print the Web UI link and continue without the browser.
-2. **Expect it to be disconnected, and lead with the fix.** Most people have never connected the extension to a session, so a failed probe is the ordinary case rather than a fault to investigate. Probe with `tabs_context_mcp`, and if nothing is connected do not narrate a diagnosis or list three possibilities. Give one instruction:
+2. **You cannot connect it yourself, so ask once, plainly.** `/chrome` is typed by the user in their client; no tool here can run it. Probe with `tabs_context_mcp`, and if nothing is connected, send the request as its own message, boxed and alone, the way `cli-setup` sends the login step:
 
-   > Run `/chrome`, then tell me when it's done.
+   ````text
+   ```
+   ┌──────────────────────────────────────────────────────────┐
+   │  RUN THIS IN CLAUDE CODE                                 │
+   └──────────────────────────────────────────────────────────┘
+   ```
 
-   Re-probe after they do. That single command connects an already-installed extension to this session, and it is the whole fix almost every time.
+   ```text
+   /chrome
+   ```
 
-   Only if `/chrome` does not connect it, ask one question: **is the Claude extension installed in Chrome at all?**
+   Then tell me when it's done and I'll check again.
+   ````
+
+   Nothing else in that message: no ladder, no alternatives, no mention of restarting. Re-probe when they answer.
+
+   Only if that fails, ask one question: **is the Claude extension installed in Chrome at all?**
 
    - **No.** It is a one-off install from `https://claude.ai/chrome`, signed in to the same account as this session. Then `/chrome` again.
    - **Yes.** Make sure a Chrome window is open and **visible**, not minimised, then `/chrome` again. If it still fails, restart Chrome and try once more.
 
-   Never open with the restart option. Relaunching the session as `claude --chrome` costs the user their conversation, so it comes last, after everything above, and only if they still want the browser.
+   Relaunching the session as `claude --chrome` comes last and only if they still want it: it costs them the conversation.
 
 3. **Check it is still there before the moments that matter.** A connection made at the start does not survive a long run: the extension can drop while nobody is clicking, and the first sign is a tool call failing much later. Re-probe with `tabs_context_mcp` before each showpiece, above all before the result sequence, and if it has gone say so **then**, offer `/chrome`, and wait. Discovering it at the end, after the run everyone waited for, is the one place a dropped browser costs the user something they cannot get back by scrolling.
-4. If more than one browser is connected, ask the user which one to use.
+4. **If it lands in the wrong Chrome, that is a choice, not a fault.** Browsers pair with the user's Claude account, not with a window, so a machine can have several connected: an everyday profile, a separate demo profile, another computer. `list_connected_browsers` names each one, says which appear to be on this computer, and `select_browser` switches to the one the user picks; `switch_browser` puts a Connect prompt in every connected extension so they can click the right window. Ask which one before driving anything, and never choose for them.
+
+   A new, signed-out window usually means their everyday Chrome's extension is not connected to this account, so the only thing listening was another profile.
 5. Use one tab for the whole session. Create it once, then navigate within it.
 6. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.
 

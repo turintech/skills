@@ -48,8 +48,8 @@ Say once, before starting the example, that the run uses account credits and the
 
 Ask this **before** asking what they want to do. Seeing the platform is most of what makes the first session make sense, and a user who picks the browser route should see the setup steps too, not just the run.
 
-- If browser control is available, ask: "I can show you each step in your browser as I go (recommended), or keep everything in this terminal. Which would you like?"
-- If nothing is connected, that is the normal state, not a dead end: assume the extension simply has not been attached to this session. Offer the browser anyway and ask them to run `/chrome`, which is the whole fix in most cases. `ui-walkthrough` section 1 has the rest, and it is the one place that decides when to give up. Say "we'll use the terminal" only after that, and say what failed.
+- Name the two routes for what they are: **computer use in the browser**, where the agent drives Chrome and the user watches each Artemis page, or **terminal only**, with links. Recommend the first.
+- If nothing is connected, that is the normal state, not a dead end. Offer computer use anyway, and once they choose it, hand the connection step to `ui-walkthrough` section 1, which owns the wording and decides when to give up. Say "we'll use the terminal" only after that, and say what failed.
 
 Remember the choice for the session. In the browser route, use `ui-walkthrough` to show the page named at each step below, and tell it this is a **first-run demo** so it uses its watchable pacing. That pacing is for this first tour only; a user who comes back does not need it.
 
@@ -82,7 +82,7 @@ Whichever runner this step starts or finds online is the one the demo uses. Pass
 
 | Stage | Skill | Page | Explain |
 |---|---|---|---|
-| Import `https://github.com/turintech/particle-life`, branch `main` | `project-import` | Project | A project is a repository pinned at a commit |
+| Import `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life` | `project-import` | Project | A project is a repository pinned at a commit |
 | Validation script from the commands below | `repo-command-setup` | Project | Build, test and benchmark are stored once and reused. **Skip its verification pass for the demo**: these commands are known good, and the run measures them anyway. Do not ask the user whether to verify, either way |
 | Start: 5 versions, model `gpt-5.6-sol`, three measurements per version | `discovery-start` | Discover, then the run | The original code is measured first, and each version is measured three times so the charts show a range instead of a single point |
 | Watch | `discovery-inspect` | Project overview, then the run, then its Experiments tab | Experiments are ideas; versions are attempts |
