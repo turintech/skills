@@ -19,9 +19,15 @@ for dir in "$SKILLS"/*/; do
     echo "FAIL $name: SKILL.md has $lines lines (limit 500)"
     fail=1
   fi
-  if [ "$REQUIRE_TAG" = "1" ] && ! awk '/^---$/{n++; next} n==1' "$dir/SKILL.md" \
+  frontmatter="$(awk '/^---$/{n++; next} n==1' "$dir/SKILL.md")"
+  if [ "$REQUIRE_TAG" = "1" ] && ! echo "$frontmatter" \
       | grep -qE '^  artemis-cli-min: "[0-9]+\.[0-9]+\.[0-9]+"$'; then
     echo "FAIL $name: missing metadata.artemis-cli-min"
+    fail=1
+  fi
+  if [ "$REQUIRE_TAG" = "1" ] && ! echo "$frontmatter" \
+      | grep -qE '^  artemis-platform-min: "[0-9]+\.[0-9]+\.[0-9]+"$'; then
+    echo "FAIL $name: missing metadata.artemis-platform-min"
     fail=1
   fi
 done
