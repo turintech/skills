@@ -30,7 +30,9 @@ metadata:
    ```
 
    Only if that returns nothing is there genuinely no browser control. Then print the Web UI link and continue without the browser.
-2. **You cannot connect it yourself, so ask once, plainly.** `/chrome` is typed by the user in their client; no tool here can run it. Probe with `tabs_context_mcp`, and if nothing is connected, send the request as its own message, boxed and alone, the way `cli-setup` sends the login step:
+2. **You cannot connect it yourself, so ask once, plainly.** `/chrome` is typed by the user in their client; no tool here can run it.
+
+   **The connection is per session, not per browser.** A user whose Chrome extension is installed, signed in and working in other sessions still starts this one unattached, unless they launched it with `--chrome`. So a probe finding nothing says nothing about their setup, and "I already have it connected" is usually true and beside the point. Do not treat it as a fault or ask them to check anything: every new session costs this one command. Probe with `tabs_context_mcp`, and if nothing is connected, send the request as its own message, boxed and alone, the way `cli-setup` sends the login step:
 
    ````text
    ```
