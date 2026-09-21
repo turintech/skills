@@ -37,6 +37,10 @@ into one of those directories (the folder name must match the skill `name`). Per
 
 Copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.claude/skills/` in the workspace, or into `~/.copilot/skills/` / `~/.agents/skills/` for a personal install. Skills appear as slash commands and can also load from description.
 
+## Releasing
+
+Skills are versioned independently of the Artemis CLI and platform. Commits use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). See [RELEASING.md](RELEASING.md).
+
 ## Artemis skills
 
 | Skill | Use when |
