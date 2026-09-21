@@ -186,15 +186,16 @@ Confirm:
 - the test fails for a representative semantic fault;
 - the benchmark creates a fresh numeric results file;
 - commands do not read a parent `.git`, environment, or build directory accidentally;
-### Reading measured values back without the logs
+### Reading measured values back
 
-After a validation runs on the platform, do not grep the runner log to find out whether metrics were written. Ask for the results directly:
+Both commands come through the platform, so neither needs access to the runner's host:
 
 ```bash
 artemis --output-format json changeset validation get "<validation-id>" --project "<project-uuid>"
+artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
 ```
 
-That returns the per-command results for the validation, including what the benchmark recorded. `artemis changeset validation logs "<validation-id>"` is the fallback when a command failed and you need the output to see why, not the first place to look.
+`validation get` reports `exitCode`, `runtime`, `cpu` and `memory` per command. It does **not** report metric values, so a passing benchmark there is not evidence that anything was measured. The values appear in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Verified on a real validation, 21 September.
 
 For a discovery run, the equivalent is `artemis discovery metrics "<run-id>" --all`, or `--stats` for mean, standard deviation and sample count across repeated measurements.
 

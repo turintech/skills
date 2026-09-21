@@ -72,7 +72,7 @@ Mirror the manual flow. Each step has an owning skill; use it rather than improv
 | 3. A runner that can build this project | `runner-setup` | Reuse one that is online; install one only if there is none |
 | 4. Commands that produce a number | `repo-command-setup` | `artemis project scripts create ...` |
 | 5. Run them on the branch | this skill | `artemis changeset validate <changeset-id> --project <id> --version original --runner <name> --wait` |
-| 6. Confirm metrics exist | this skill | `artemis changeset validation get <validation-id> --project <id>` |
+| 6. Confirm metrics exist | this skill | `artemis changeset validation get`, then `changeset validation logs` for the values |
 | 7. Discovery from that branch | `discovery-start` | `artemis discovery create --source-changeset <changeset-id> ...` |
 
 ### Step 2, the branch
@@ -98,9 +98,14 @@ Run it through the platform, on the runner, not locally. A local run proves noth
 
 ```bash
 artemis --output-format json changeset validation get "<validation-id>" --project "<project-id>"
+artemis changeset validation logs "<validation-id>" --project "<project-id>"
 ```
 
-Read the values back from the validation. Do not grep the runner log. If the benchmark produced no metrics, fix the script with `repo-command-setup` and run it again before going near Discovery: a run with no measurement wastes the user's credits and teaches them nothing.
+`validation get` answers one question: did every command pass. It reports `exitCode`, `runtime`, `cpu` and `memory` per command and **nothing about the benchmark's own metrics**, so on its own it cannot tell you anything was measured.
+
+The logs command is where the proof is, and it comes through the platform rather than off the runner's disk, so it needs no access to that machine. Look for `artemis_results.json content:` and `Wrote N metric values to observation`. If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run it again before going near Discovery: a run with no measurement wastes the user's credits and teaches them nothing.
+
+Report the measured value in the repository's own units, never the runtime of the benchmark command, which is a different number that happens to sit nearby.
 
 ### Step 7, the run
 
@@ -152,6 +157,6 @@ Report what now exists: the branch, the commands, the runner, the measured basel
 - [ ] The user was asked about their goal only where the repository could not answer
 - [ ] Branch created, and its changeset id captured for the run
 - [ ] Commands verified by running them, not assumed
-- [ ] Metrics read back from the validation, not from a log
+- [ ] Metric values seen in the validation logs, not assumed from a passing benchmark
 - [ ] Discovery started from the branch, with settings fixed rather than asked
 - [ ] User told what was measured, what is running, and where to watch it
