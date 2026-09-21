@@ -55,6 +55,14 @@ gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."
 Pin a release when installing:
 
 ```bash
+# Cursor
+agent plugin marketplace add https://github.com/turintech/skills.git \
+  --git-ref vX.Y.Z
+
+# Codex
+codex plugin marketplace add turintech/skills --ref vX.Y.Z
+
+# GitHub Copilot
 gh skill install turintech/skills --all --pin vX.Y.Z
 ```
 

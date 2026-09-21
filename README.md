@@ -10,13 +10,11 @@ The canonical source is this repository. One skill directory is the source of tr
 
 ## Installation
 
-The skill format is shared. How you install it depends on the agent.
+The skill format is shared. How you install it depends on the agent. Pin a released tag such as [v1.0.1](https://github.com/turintech/skills/releases/tag/v1.0.1) when you need production-compatible skills. `develop` is the next CLI and platform release and is not a pin.
 
 ### Claude Code
 
-Add the marketplace, then install the plugin:
-
-```
+```bash
 /plugin marketplace add turintech/skills
 /plugin install artemis@skills
 ```
@@ -25,17 +23,26 @@ Update with `/plugin marketplace update skills`.
 
 ### Cursor
 
-Cursor loads project skills from `.agents/skills/` or `.cursor/skills/`, and also discovers `.claude/skills/`. Copy or submodule the skill folders you need:
-
-```text
-plugins/artemis/skills/<skill-name>/
+```bash
+agent plugin marketplace add https://github.com/turintech/skills.git \
+  --git-ref v1.0.1
 ```
 
-into one of those directories (the folder name must match the skill `name`). Personal installs can go in `~/.cursor/skills/` or `~/.agents/skills/` on the machine where the agent runs. Cloud Agents only see project skills in the repo.
+Then install `artemis` from the marketplace. Copying `plugins/artemis/skills/<skill-name>/` into `.agents/skills/`, `.cursor/skills/`, or `.claude/skills/` still works when you need a project-local checkout.
+
+### Codex
+
+```bash
+codex plugin marketplace add turintech/skills --ref v1.0.1
+```
 
 ### GitHub Copilot / VS Code
 
-Copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.claude/skills/` in the workspace, or into `~/.copilot/skills/` / `~/.agents/skills/` for a personal install. Skills appear as slash commands and can also load from description.
+```bash
+gh skill install turintech/skills --all --pin v1.0.1
+```
+
+Or copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.claude/skills/` in the workspace.
 
 ## Releasing
 
