@@ -87,7 +87,7 @@ curl -s --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
 Then fetch that version for the platform, verify it, and put it on `PATH`:
 
 ```bash
-VER=1.1.7   # replace with the newest from the listing above
+VER=1.1.8   # or the newest in the listing above, never older than the skills require
 PLATFORM="linux-amd64"   # or darwin-arm64, darwin-amd64, linux-arm64, windows-amd64.exe
 curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
   "https://files.artemis.turintech.ai/public/artemis-cli/$VER/artemis-cli-$PLATFORM" \
