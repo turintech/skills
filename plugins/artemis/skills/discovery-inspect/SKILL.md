@@ -146,13 +146,15 @@ A run can fail while the machine, the runner, and the project are all healthy. T
 
 Symptoms, together: the run goes terminal with far fewer versions than its budget, the last version completed normally seconds earlier, the runner is still online with a live process, and the platform may return intermittent `502`s while you read the run.
 
+It can also happen **before the baseline exists**, a minute into a new run: `versionCount` and `experimentCount` both zero, `baselineObservationId` null, and the narration ending mid-analysis. That looks like a broken setup and is not one. The giveaway is that the narration shows the agent reading the repository successfully and reasoning about it right up to the last message, and that the Web UI may still show the run spinning after the record says `failed`.
+
 ```bash
 run=$(artemis --output-format json discovery get <run-id>)
 echo "$run" | jq '{status, versionCount, numVersions, experimentCount, agentRunId}'
 artemis chat messages "$(echo "$run" | jq -r .agentRunId)" | tail -20
 ```
 
-The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`. Read it before blaming the project:
+The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`, or a bare `session.end  Internal error` immediately after a normal assistant turn. The run record itself carries no error field, so the chat is the only place the reason exists. Read it before blaming the project:
 
 - Versions already recorded are real. Their measurements happened on the runner and stand on their own.
 - Do not re-run setup, reinstall the runner, or re-import the project. None of them caused it.
