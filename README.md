@@ -77,4 +77,4 @@ Each skill declares the oldest Artemis CLI it works with, using the Agent Skills
       artemis-cli-min: "1.1.8"
       artemis-platform-min: "3.1.0"
 
-Raise `artemis-cli-min` or `artemis-platform-min` in the same commit that makes a skill depend on a newer CLI or platform feature. Run `scripts/check-skills.sh` before pushing; it validates every skill with `skills-ref` (set `SKILLS_REF` to its path) and requires both tags.
+Raise `artemis-cli-min` or `artemis-platform-min` in the same commit that makes a skill depend on a newer CLI or platform feature. Run `scripts/check-skills.sh` before pushing; it requires both metadata fields and checks that the router only names skills that exist.
