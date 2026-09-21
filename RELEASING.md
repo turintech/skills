@@ -42,14 +42,13 @@ feat(discovery-start)!: require a validation script
 1. Develop upcoming changes on `develop`.
 2. Test against the corresponding CLI and platform candidate.
 3. Merge compatible skills into `main`.
-4. Publish the stable `vX.Y.Z` tag and a GitHub Release.
+4. Publish the stable `vX.Y.Z` tag. Pushing the tag publishes the GitHub Release from the annotated tag message.
 
 ```bash
 git checkout main
 git pull
 git tag -a vX.Y.Z -m "Release vX.Y.Z"
 git push origin vX.Y.Z
-gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."
 ```
 
 Pin a release when installing:

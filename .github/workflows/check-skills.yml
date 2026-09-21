@@ -1,0 +1,16 @@
+name: Check skills
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check skill metadata and router
+        run: scripts/check-skills.sh
