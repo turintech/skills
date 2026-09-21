@@ -25,3 +25,7 @@ Install a plugin:
 ```
 /plugin marketplace update skills
 ```
+
+## Releasing
+
+Skills are versioned independently of the Artemis CLI and platform. See [RELEASING.md](RELEASING.md).
