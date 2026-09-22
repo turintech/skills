@@ -1,9 +1,11 @@
 ---
 name: runner-setup
 description: Install, register, start, update, and verify a supported Artemis custom runner. Use when an end user needs to set up or manage a runner.
-compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+compatibility: Production Platform 3.0.3 onboarding is tested with Artemis CLI 1.0.8 and runner 5.2.1; runner 5.3.0 is incompatible with ad-hoc changeset validation.
 metadata:
-  artemis-cli-min: "1.0.7"
+  artemis-cli-min: "1.0.8"
+  artemis-cli-tested: "1.0.8"
+  artemis-runner-tested: "5.2.1"
   artemis-platform-min: "3.0.3"
 ---
 
@@ -31,13 +33,25 @@ A runner executes project-supplied compile, test, and benchmark commands on the 
 
 There are two routes. Scripted and agent-driven setups should use the direct download plus API-key registration below; a human at a browser can use the Web UI flow instead.
 
-Runner binaries are published at `https://files.artemis.turintech.ai/public/artemis-runner/`. The Linux 5.2.1 binary is available at:
+Runner binaries are published at `https://files.artemis.turintech.ai/public/artemis-runner/`. Production Platform 3.0.3 onboarding requires runner **5.2.1 exactly**. Runner 5.3.0 rejects the CLI 1.0.8 ad-hoc validation payload when `scriptCommandId` is null, before repository commands execute.
+
+The Linux 5.2.1 binary is available at:
 
 ```text
 https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-5.2.1-linux
 ```
 
 Combined with the API-key start command in the next section, this needs no Web UI at all — see *Artemis Custom Runner → Registering without a token*.
+
+After download, make the file executable and verify the payload before starting it:
+
+```bash
+chmod +x ./artemis-runner
+./artemis-runner --version
+# Must report 5.2.1
+```
+
+Do not run `artemis-runner upgrade` and do not follow the 5.3.0 upgrade prompt during this production flow. If the downloaded binary does not report 5.2.1, stop instead of registering it.
 
 The Web UI remains the source of truth for the supported runner version, platform-specific download, deployment configuration, and registration mechanism. Use it when the direct artifact does not match the platform you need, when the download fails, or when a human is driving:
 
@@ -85,10 +99,12 @@ artemis --output-format json runner list
 
 Confirm the intended runner appears online. If the command fails or omits the runner, check its log and **Settings → Runners & Tools** in the Web UI.
 
+Match the intended runner by name and confirm that row is online. Fleet summaries such as `1/2` or `1/3` include stale registrations and do not prove that this process is connected. Also verify the local process still reports 5.2.1; an online row alone does not expose a compatible payload.
+
 For end-to-end verification, use `repo-command-setup` §5b to validate the project's original code and confirm its commands execute on the intended runner.
 
 Report the runner name, host, and verification result. Do not claim success from a quiet process or log alone.
 
 ## Update or restart
 
-Return to the Web UI setup flow and use its current updater or reinstall command. Stop the existing process cleanly before starting another copy with the same runner identity, compare the version before and after, then repeat verification.
+For Platform 3.0.3, reinstall the pinned 5.2.1 binary rather than using the self-updater. Stop the existing process cleanly before starting another copy with the same runner identity, verify 5.2.1 before and after restart, then repeat the named-row verification. Do not create additional registrations merely to clear stale fleet totals.

@@ -1,9 +1,11 @@
 ---
 name: discovery-start
 description: Start an Artemis discovery run — create the run with inline compile/test/benchmark commands, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
-compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+compatibility: Production Platform 3.0.3 Discovery launch is tested with Artemis CLI 1.0.8 and runner 5.2.1.
 metadata:
-  artemis-cli-min: "1.0.7"
+  artemis-cli-min: "1.0.8"
+  artemis-cli-tested: "1.0.8"
+  artemis-runner-tested: "5.2.1"
   artemis-platform-min: "3.0.3"
 ---
 
@@ -24,6 +26,10 @@ metadata:
 - A benchmark that writes numeric `artemis_results.json` or `.csv` as defined in `repo-command-setup` §4, unless qualitative-only optimization is deliberate.
 - A user-confirmed runner that is online and compatible with those commands.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
+
+Before launch, confirm `artemis --version` reports 1.0.8 and `artemis discovery create --help` exposes `--compile-cmd`, `--test-cmd`, and `--benchmark-cmd`. Missing flags are a CLI compatibility failure; return to `cli-setup` instead of translating the run to a different command surface.
+
+For JSON commands, keep stderr/progress separate and parse stdout as one complete document. On contamination, perform a clean read-only refetch rather than regex-extracting JSON from mixed output.
 
 ## Model selection
 
@@ -67,7 +73,9 @@ artemis --output-format json discovery create \
   --versions <n>
 ```
 
-When the user selected a specific model, add `--model "<model-catalogue-uuid>"`.
+When repository readiness identified target files, inspect `discovery create --help`. If it exposes repeatable `--target-files`, pass those paths inline to `discovery create`. Otherwise omit them and tell the user. Do not call `artemis target add`; that is an agent-backed operation on this production surface and is not a prerequisite for Discovery.
+
+When the user selected a specific model, add `--model "<model-catalogue-uuid>"`. Otherwise omit `--model` and use the platform default unless the detected command explicitly requires it.
 
 Capture `run_id` from the JSON — every later command needs it.
 

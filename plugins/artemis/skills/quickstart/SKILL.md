@@ -1,9 +1,11 @@
 ---
 name: quickstart
 description: Take a user from any onboarding point to a first measured Artemis result, whether they have no setup, a repository that needs a benchmark, or an existing Artemis project URL or id. Use when the user asks to get started with Artemis, wants to prepare and optimize a repository, pastes a project link, or wants to resume an incomplete first run.
-compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+compatibility: Production Platform 3.0.3 quickstart requires Artemis CLI 1.0.8 and runner 5.2.1; stable CLI 1.0.9 through 1.0.11 and runner 5.3.0 are not compatible with this flow.
 metadata:
-  artemis-cli-min: "1.0.7"
+  artemis-cli-min: "1.0.8"
+  artemis-cli-tested: "1.0.8"
+  artemis-runner-tested: "5.2.1"
   artemis-platform-min: "3.0.3"
 ---
 
@@ -40,6 +42,8 @@ Carry this state between skills:
 - Discovery ID and links.
 
 Ask only about facts that repository and platform inspection cannot answer. Announce what will happen before external writes. Obtain explicit permission before starting a long-lived runner. Never handle a user's API key, token, or password in chat.
+
+For machine-readable CLI output, keep stdout and stderr separate and parse stdout as one complete JSON document. Progress messages are not JSON. If output is contaminated or parsing fails, run a clean read-only fetch and parse that response; do not regex-extract a JSON-looking substring from mixed output.
 
 ## 1. Classify the starting point
 
@@ -79,18 +83,21 @@ Recommend Particle Life because it is small, observable, and deliberately optimi
 
 Honor another explicit branch, including `artemis/not-ready`; readiness must be detected, not inferred from the repository name.
 
-Say once before launch that Discovery uses account credits and the balance is in the Web UI header. Do not repeat it.
+After the repository path is chosen, say once that agent-backed operations such as Discovery use account credits and that the balance is in the Web UI header. Say this before the first potentially billed operation, not after one fails. Project import and empty-changeset validation are deterministic setup operations; do not introduce `target add` or another agent-backed detour into them. Do not repeat the notice.
 
 ## 2. Establish deployment and CLI state
 
 Check silently:
 
-- `artemis --version` is 1.0.7 or newer;
+- `artemis --version` reports 1.0.8 exactly;
 - `artemis status` is authenticated to the intended deployment;
+- `artemis changeset create --help` succeeds;
 - `artemis discovery create --help` offers `--compile-cmd`, `--test-cmd`, and `--benchmark-cmd`;
-- `artemis changeset validate --help` offers repeatable `--command`.
+- `artemis changeset validate --help` offers repeatable `--command`, plus `--version`, `--runner`, and `--wait`.
 
 Use `cli-setup` for missing installation or authentication. Login and API-key entry are the user's steps; give instructions and wait without asking for the secret.
+
+Version ordering is not a compatibility test: stable 1.0.9 through 1.0.11 lack the required changeset commands. If the version is not 1.0.8 or any required command or flag is missing, stop and use `cli-setup`. Do not fall back to `validation run`, install a dev build, or continue because some newer commands happen to exist.
 
 If `discovery create --help` offers `--script` and not `--compile-cmd`, stop. That CLI targets a newer platform than this production flow. Do not pass `--script`, `--source-changeset`, `--eval-mode`, `--eval-runs`, `--llm-metrics`, or `--setup-cmd`.
 
@@ -131,7 +138,7 @@ Do not copy Particle Life's language, toolchain, metric, task, or target files i
 
 ## 4. Import or verify the project
 
-If no project exists, use `project-import` with the exact remote, explicit branch, verified seed SHA, and suitable Git credential. Wait for `importedStatus: success`, record the UUID, and verify the imported `gitHash` matches the seed.
+If no project exists, use `project-import` with the exact remote, explicit branch, verified seed SHA, and suitable Git credential. When `importedStatus` is present, wait for `success` and stop on `failed`; when production omits it, use that skill's Git URL, branch, seed `gitHash`, and project inspection checks. Record the UUID and verify the imported `gitHash` matches the seed.
 
 If a project already exists, do not re-import it. If repository code was changed to add or repair the harness, push the change, run `artemis project compare`, then `artemis project pull`. Wait until the project's `gitHash` matches the verified commit. A pre-pull changeset remains pinned to the old code; create a new one for validation.
 
@@ -141,13 +148,15 @@ Give `[Open project](<base-url>/projects/<project-id>)` as soon as the UUID is k
 
 Read repository requirements before judging runner suitability. `artemis runner list` showing “online” proves connectivity, not that the machine can build this project.
 
-Reuse an already confirmed compatible runner. If several are plausible, ask which to use. If none exists, use `runner-setup`; explain that it is a long-lived process executing repository code on the user's machine and obtain permission before starting it.
+Production Platform 3.0.3 quickstart uses runner 5.2.1 exactly. Verify the local binary or the runner's reported version before starting or reusing it. Do not run its self-updater or accept the 5.3.0 upgrade prompt; 5.3.0 rejects this flow's ad-hoc validation payload before commands run. Match the intended runner by name and online state rather than relying on fleet totals that may include stale registrations.
+
+Reuse an already confirmed 5.2.1-compatible runner. If several are plausible, ask which to use. If none exists, use `runner-setup`; explain that it is a long-lived process executing repository code on the user's machine and obtain permission before starting it.
 
 Probe the selected runner for the repository's actual toolchain through a short validation. Name missing tools and the machine; do not rewrite correct repository commands to avoid a missing dependency.
 
 ## 6. Prove the measurement on the platform
 
-Use `repo-command-setup` to create a fresh empty changeset over the project's current imported commit and run the exact compile, test, and benchmark commands through `changeset validate --version original` on the selected runner.
+Use `repo-command-setup` to create a fresh empty changeset over the project's current imported commit and run the exact compile, test, and benchmark commands through `changeset validate --version original` on the selected runner. If that command surface is unavailable, return to `cli-setup`; `validation run` is not an equivalent fallback.
 
 Every command must exit zero. Then use `execution-log-inspect` with the validation process `status.id` to confirm a fresh `artemis_results.json` or `.csv` and report the numeric metric in its own units. `changeset validation get` reports process resources and exit codes, not benchmark metrics.
 
@@ -162,9 +171,11 @@ First inspect existing project runs. If a matching Discovery is queued, running,
 For a new onboarding run, supply these decisions rather than asking a new user:
 
 - versions: `5`;
-- task, metric, direction, and optional target files from repository readiness;
+- task, metric, direction, and optional target files from repository readiness, passed inline to `discovery create` when its detected help supports them;
 - the same compile, test, and benchmark strings verified above;
 - model: inspect `artemis discovery create --help` and `artemis model list`. If this production command requires `--model`, prefer `gpt-5.6-sol`, otherwise another available preset named to the user. If the command supports a platform default, follow `discovery-start` unless the user requested a model.
+
+Do not call `artemis target add` during quickstart. It is agent-backed on this production surface, is not needed for original-code validation, and may consume credits before Discovery.
 
 Use `discovery-start`, pass the selected runner, and give `[Open Discovery](<base-url>/projects/<project-id>/discovery/<run-id>)` immediately. Wait for the baseline and at least one explored version as that skill requires, then hand off interpretation to `discovery-inspect`.
 
