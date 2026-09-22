@@ -1,9 +1,10 @@
 ---
 name: artemis
 description: Classify an Artemis request, check workflow readiness, surface consequential choices before long-running work begins, and route to the appropriate task-specific skills. Use whenever a user wants to set up, run, resume, inspect, validate, optimize, or maintain code with Artemis.
-compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+compatibility: Production Platform 3.0.3 workflows are tested with Artemis CLI 1.0.8; do not infer compatibility from newer stable version numbers.
 metadata:
-  artemis-cli-min: "1.0.7"
+  artemis-cli-min: "1.0.8"
+  artemis-cli-tested: "1.0.8"
   artemis-platform-min: "3.0.3"
 ---
 
@@ -14,7 +15,7 @@ metadata:
 - **Problem:** Classifies the user's goal, identifies blocking decisions before long-running work, and routes to the appropriate task-specific skill.
 - **Must be available:** Enough context to determine the intended workflow and inspect any relevant repository, deployment, project, runner, commands, or existing run.
 - **Use / don't use:** Use for any new Artemis setup, discovery, validation, maintain, resume, or inspection request; skip it when the requested downstream step is already explicit.
-- **Next skill:** There is no fixed next skill; route to the setup, repository-preparation, import, discovery, inspection, or maintain skill selected by the workflow.
+- **Next skill:** There is no fixed next skill. Route onboarding at any stage to `quickstart`, and every explicit lower-level request to the setup, repository-preparation, import, discovery, inspection, or maintain skill selected by the workflow.
 
 ## Requirements
 
@@ -50,8 +51,13 @@ Give a clickable Markdown link with a short label:
 
 ## 1. Classify the workflow
 
+If the user is onboarding to a first measured result, route to `quickstart` regardless of whether they have no setup, a repository that needs preparing or importing, or an existing project URL or id. That skill inspects the current state and resumes from the first incomplete checkpoint.
+
+A starter prompt that names `cli-setup` or `artemis` is still a quickstart request. Load `quickstart` first and let it call those skills in order.
+
 | Workflow | Intended outcome | Required infrastructure |
 |---|---|---|
+| Quickstart | Take a user from any onboarding state to a first measured result | None yet; may begin with a repository or project id |
 | Discovery | Generate and benchmark alternatives to improve a metric | Runner, repository commands, model, version budget |
 | Validation | Build, test, and benchmark known code without searching | Runner and repository commands |
 | Maintain | Scan, triage, fix, or publish code-health issues | Rules, scope, and push access when publishing |
@@ -132,6 +138,7 @@ Before launching discovery, validation, or Maintain:
 
 ## 6. Route to the owning skill
 
+- New users, repository onboarding, and existing projects that have not reached a first measured result: `quickstart`
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository ownership: `repo-prepare-fork`

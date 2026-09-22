@@ -1,9 +1,10 @@
 ---
 name: project-import
 description: Import an existing remote Git repository into Artemis as a fresh project, using an explicit branch and reusable Git credential, then capture and verify the project UUID. Use when a repository is ready for a new unit of Artemis work, even if other projects already exist for the same repository.
-compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+compatibility: Production Platform 3.0.3 project import is tested with Artemis CLI 1.0.8.
 metadata:
-  artemis-cli-min: "1.0.7"
+  artemis-cli-min: "1.0.8"
+  artemis-cli-tested: "1.0.8"
   artemis-platform-min: "3.0.3"
 ---
 
@@ -23,6 +24,8 @@ metadata:
 - A Git credential registered in Artemis can read the repository.
 - Compile, test, and benchmark commands are either verified locally through `repo-command-setup`, or explicitly deferred until this project can be verified on the runner.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
+
+When consuming `--output-format json`, keep stderr separate and parse stdout as one complete JSON document. If progress text contaminates stdout or parsing fails, repeat a clean read-only list call; do not regex-extract a JSON-looking substring from mixed output.
 
 ## 1. Resolve and verify inputs
 
@@ -96,13 +99,24 @@ Give the user a clickable link as soon as the UUID is known:
 
 Use the authenticated deployment base URL, including for on-prem deployments. Repeat the link after import verification so the user can inspect the project in the Web UI.
 
-**Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes. `importedStatus` reports where it is — `importing`, `success`, or `failed` — on both `project import` and `project list`:
+**Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes.
+
+Some production responses include `importedStatus` (`importing`, `success`, or `failed`), while others omit it. Poll the project record by UUID. When the field is present, stop on `failed` and wait for `success`:
 
 ```bash
 artemis --output-format json project list | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus'
 ```
 
-Wait for `success` before running anything against the project.
+When the field exists, wait for `success` before running anything against the project.
+
+When `importedStatus` is absent, do not poll a missing field forever and do not assume that omission means failure. Treat the import as ready only after all of these hold:
+
+- the captured project UUID appears in a fresh project list;
+- Git URL and explicit branch match the requested import;
+- `gitHash` is non-empty and exactly matches `SEED_SHA`;
+- `artemis project compare "<project-uuid>"` succeeds against that imported project.
+
+If the record has no `gitHash` yet, continue bounded polling. If its hash differs from the seed, stop and report that the branch moved or the wrong revision was imported.
 
 ## 5. Verify and hand off
 
@@ -113,6 +127,8 @@ List or inspect the project using the installed CLI and confirm:
 - imported `gitHash` matches `SEED_SHA`;
 - selected Git credential is correct;
 - project is on the intended Artemis deployment.
+
+An explicit `importedStatus: failed` always wins over matching metadata. Surface the failure rather than accepting the hash checks.
 
 If the imported commit differs because the branch moved, stop and record the new state rather than treating the original seed as valid. Use the UUID rather than the project name for validation, command configuration, and discovery.
 

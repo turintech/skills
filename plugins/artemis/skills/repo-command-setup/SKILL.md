@@ -1,9 +1,11 @@
 ---
 name: repo-command-setup
 description: Derive, verify, and configure the compile, test, and benchmark commands Artemis needs to execute a repository, including numeric artemis_results metrics. Use when preparing a repository for validation or discovery, making a repo Discovery-ready, authoring a benchmark harness, fixing project commands, or checking that a repo can run on an Artemis runner.
-compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+compatibility: Production Platform 3.0.3 runner validation requires the Artemis CLI 1.0.8 command surface and runner 5.2.1.
 metadata:
-  artemis-cli-min: "1.0.7"
+  artemis-cli-min: "1.0.8"
+  artemis-cli-tested: "1.0.8"
+  artemis-runner-tested: "5.2.1"
   artemis-platform-min: "3.0.3"
 ---
 
@@ -210,6 +212,8 @@ artemis --output-format json changeset validate "<changeset-id>" \
   --runner "<runner-name>" --wait
 ```
 
+Keep stdout and stderr separate when requesting JSON. Parse stdout as a complete document; if progress output contaminates it, repeat a clean read-only fetch instead of extracting a substring with a regular expression.
+
 `--version original` resolves the changeset's original version automatically. `--wait` returns the final per-command `exitCode`, runtime, resource usage, and status. Re-check later, or from a different session, with:
 
 ```bash
@@ -223,7 +227,7 @@ When something fails, distinguish command-string issues from repository code or 
 - **Command-string failure:** adjust the `--command` values and re-run `changeset validate` on the same empty changeset (`--version original` still resolves that original code).
 - **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
 
-If `changeset validate` is unavailable, inspect `artemis validation run --help` for the installed CLI's project-validation workflow. When that workflow returns a process ID, use `execution-log-inspect` for command details. Do not invent compatibility flags.
+If `changeset create` or `changeset validate` is unavailable, stop and return to `cli-setup`. `artemis validation run` is target/version based on this production surface and is not equivalent to empty-changeset original-code validation. Do not create targets, spend credits, install a dev CLI, or invent compatibility flags to work around a missing command.
 
 ## 6. Configure Artemis
 
