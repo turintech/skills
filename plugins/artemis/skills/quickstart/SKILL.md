@@ -1,209 +1,213 @@
 ---
 name: quickstart
-description: Take an existing Artemis project to a first measured result, covering a changeset of the current code, compile/test/benchmark commands that produce a number, a runner, a measured validation, and a Discovery run. Use when the user gives a project URL or id, or asks to set up or measure a project that is already imported.
+description: Take a user from any onboarding point to a first measured Artemis result, whether they have no setup, a repository that needs a benchmark, or an existing Artemis project URL or id. Use when the user asks to get started with Artemis, wants to prepare and optimize a repository, pastes a project link, or wants to resume an incomplete first run.
 compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
 metadata:
   artemis-cli-min: "1.0.7"
   artemis-platform-min: "3.0.3"
 ---
 
-# Quickstart an existing project
+# Quickstart or resume onboarding
 
 ## At a glance
 
-- **Problem:** Turns an imported project into a measured baseline and a running Discovery, using the production compile, test, and benchmark commands.
-- **Must be available:** A project that already exists in Artemis, its URL or id, and a user who can create an API key if the CLI is not yet authenticated.
-- **Use / don't use:** Use when the project exists. Use `getting-started` when the user has no project or wants the Particle Life demo.
-- **Next skill:** Hands each step to `cli-setup`, `repo-command-setup`, `runner-setup`, `discovery-start`, and `discovery-inspect`.
+- **Problem:** Finds the user's current onboarding state and completes only the missing work needed for a measured validation and first Discovery.
+- **Must be available:** A repository or existing Artemis project by the time repository setup begins, network access, and the user for credentials, machine approval, or an ambiguous optimisation goal.
+- **Use / don't use:** Use for first-time setup, an import-ready repository, a repository that still needs a harness, or an existing project that has not reached a first measured run. Route an explicit lower-level operation directly to its owning skill.
+- **Next skill:** Delegate each missing stage to `cli-setup`, `repo-prepare-fork`, `repo-command-setup`, `project-import`, `runner-setup`, `execution-log-inspect`, `discovery-start`, or `discovery-inspect`.
 
 ## Requirements
 
-- The project, as a Web UI URL or a bare UUID.
+- The deployment base URL, preferably from a project URL or starter prompt.
+- One of: a local repository, a repository URL and branch, an Artemis project URL, or a bare project UUID.
+- The user present for human-only credential and runner decisions.
 
-Nothing else is required from the user. Everything below is checked rather than asked for.
+Follow along in the terminal and with links. Give a clickable project or Discovery link as soon as its UUID is known. Do not look for a browser-control skill.
 
-If `artemis discovery create --help` offers `--script` and not `--compile-cmd`, stop. That CLI targets a newer platform than this skill. Do not pass `--script`, `--source-changeset`, `--eval-mode`, `--eval-runs`, `--llm-metrics`, or `--setup-cmd`.
+## Operating rule: inspect, resume, delegate
 
-## 0. Read the project URL
+This is an orchestrator, not a second implementation of the downstream skills. Inspect the checkpoints below in order, preserve every verified value, and resume at the first incomplete checkpoint. Never redo a completed import, create a duplicate runner, replace working commands, or launch a second Discovery merely to follow the sequence.
 
-`https://<deployment>/projects/<project-id>` carries both facts this skill needs: the project id from the path, the deployment from the origin. Take them from there rather than asking.
+Carry this state between skills:
 
-Then confirm the CLI is authenticated to that same deployment. A CLI logged in elsewhere reports the project as missing. Name the deployment `artemis status` is on, and fix that before creating anything.
+- deployment base URL and authenticated CLI;
+- repository URL, explicit branch, and branch-tip seed SHA;
+- project UUID and imported `gitHash`, when present;
+- literal compile, test, and benchmark commands;
+- metric name, direction, and measured baseline value;
+- selected runner and its verified toolchain;
+- validation/changeset/process IDs;
+- Discovery ID and links.
 
-## 1. Look before asking
+Ask only about facts that repository and platform inspection cannot answer. Announce what will happen before external writes. Obtain explicit permission before starting a long-lived runner. Never handle a user's API key, token, or password in chat.
 
-Check silently, and skip what is already done.
+## 1. Classify the starting point
 
-| Check | How |
+### Existing project
+
+When the request contains `https://<deployment>/projects/<project-id>`:
+
+1. Extract the deployment and project UUID from the URL.
+2. Confirm `artemis status` is authenticated to that deployment.
+3. Find the UUID in `artemis --output-format json project list`.
+4. Record its Git URL, branch, `gitHash`, import status, stored commands, and any queued or running Discovery.
+5. Use `artemis project compare <project-id>` to identify the current imported commit.
+
+A bare UUID needs a deployment. Infer it from the authenticated CLI when unambiguous; otherwise ask for the project URL. Do not import another project. Continue at repository readiness, runner verification, validation, or Discovery—whichever is first incomplete.
+
+Locate a local checkout whose origin matches the project's Git URL. If none is available, offer to clone the imported branch before assessing its benchmark; runner execution can validate commands, but it is not a substitute for inspecting code when commands or readiness are unknown.
+
+### Repository but no project
+
+Inspect the local checkout before asking questions. Record its origin, branch, clean/dirty state, branch-tip SHA, build files, CI, tests, benchmark code, results-file behavior, and README commands. If only a remote URL was supplied, offer to clone it so benchmark readiness can be assessed from code rather than guessed.
+
+Do not assume the current directory is the repository. Compare its origin with the project or requested Git URL. If they differ, say so and ask which checkout to use.
+
+### No repository or project
+
+Welcome the user in four short lines:
+
+1. Artemis uses AI to try improvements to real code and measures every attempt.
+2. Measurement runs on the user's own machine through a runner.
+3. Setup leads to either a guided example or their own repository.
+4. The first run uses five versions; most elapsed time is waiting for measured results.
+
+Recommend Particle Life because it is small, observable, and deliberately optimizable. Ask once whether to use it or the user's repository. Default the guided example to:
+
+- repository: `https://github.com/turintech/particle-life`
+- branch: `artemis/ready`
+
+Honor another explicit branch, including `artemis/not-ready`; readiness must be detected, not inferred from the repository name.
+
+Say once before launch that Discovery uses account credits and the balance is in the Web UI header. Do not repeat it.
+
+## 2. Establish deployment and CLI state
+
+Check silently:
+
+- `artemis --version` is 1.0.7 or newer;
+- `artemis status` is authenticated to the intended deployment;
+- `artemis discovery create --help` offers `--compile-cmd`, `--test-cmd`, and `--benchmark-cmd`;
+- `artemis changeset validate --help` offers repeatable `--command`.
+
+Use `cli-setup` for missing installation or authentication. Login and API-key entry are the user's steps; give instructions and wait without asking for the secret.
+
+If `discovery create --help` offers `--script` and not `--compile-cmd`, stop. That CLI targets a newer platform than this production flow. Do not pass `--script`, `--source-changeset`, `--eval-mode`, `--eval-runs`, `--llm-metrics`, or `--setup-cmd`.
+
+## 3. Make the repository Discovery-ready
+
+Use `repo-command-setup` to inspect, derive, author when needed, and verify the repository-owned compile, test, and benchmark contract. The repository is ready only when:
+
+- compile catches invalid generated code;
+- tests protect the behavior being optimized;
+- the benchmark is headless and repeatable;
+- it removes stale results and writes fresh numeric `artemis_results.json` or `.csv` at the repository root;
+- the metric and direction match the optimization goal.
+
+Read the repository first. Ask once what “better” means only when the code and documentation do not answer it. If there is no meaningful, correctness-gated measurement, say so and stop rather than inventing one.
+
+When a harness or correctness test must be added, `repo-command-setup` owns the edit and clean-checkout verification. The committed code must be on a remote Artemis can read. If the user cannot push to that remote, use `repo-prepare-fork` after obtaining explicit permission. Import or pull the verified commit before runner validation.
+
+### Particle Life preset
+
+Recognize Particle Life from its Git URL or repository content, but inspect the selected commit before applying the preset.
+
+| Item | Preset |
 |---|---|
-| CLI and authentication | `artemis --version`, `artemis status` |
-| The project is real and reachable | `artemis --output-format json project list`, matching the id. Keep its `gitUrl`, `gitBranch`, and `gitHash` |
-| Commands already stored | `artemis project commands get --project <id>` when that command exists; otherwise `artemis project get` |
-| A runner online | `artemis runner list` |
-| The code, locally | `git -C . remote get-url origin` against the project's `gitUrl` |
+| Compile | `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel` |
+| Test | `ctest --test-dir build --output-on-failure` |
+| Benchmark | `python3 tools/benchmark.py --no-visualize` |
+| Metric | `simulation_fps`, higher is better |
+| Target files | `src/simulation.cpp`, `src/simulation.hpp` |
+| Task | `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.` |
 
-The prompt arrives in whatever directory the user's agent happens to be running in, which is not always the project's repository. If the origin remote does not match the project's `gitUrl`, say so and ask which checkout to work in. If there is no checkout, the flow still works, because every command runs on the runner, but say that writing a benchmark without the code in front of you is slower and offer to clone it first.
+If `tools/benchmark.py` exists, inspect it and verify that the benchmark creates a fresh numeric `simulation_fps`; its path alone is not proof.
 
-A new changeset is created from the project's current imported commit. Read that commit with `artemis project compare <project-id>` and tell the user that one, rather than assuming their local checkout matches.
+If it is absent—as on `artemis/not-ready`—do not run Discovery and do not pretend the preset command works. Use `repo-command-setup`'s harness workflow to wrap the existing headless timed binary, add `tools/benchmark.py`, verify it, push it, then import or pull that commit. Resume here afterward.
 
-## 2. The rules for this flow
+### Other repositories
 
-- **Never ask the user to choose run settings.** Not the model or the version budget. Fix them here and state what you are using.
-- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a changeset, starting a run. Say what you are about to do, then do it.
-- **The user's credentials are theirs.** Give the login command first, take them to the key page second, and never read, type, or handle a key. Never ask them to paste a key, token, or password into the chat.
-- **Assume nothing about what they know.** The first time you use a word the platform owns, say what it means in one short clause: a changeset is Artemis's copy of the code at the imported commit, a Discovery run is the agent trying versions and measuring each one.
-- **Stop cleanly rather than inventing.** If there is nothing measurable, say so. Do not fabricate a metric to satisfy the last step.
+Do not copy Particle Life's language, toolchain, metric, task, or target files into another repository. Derive them from that repository through `repo-command-setup`. For example, a Gradle project may need JDK 17 while an interpreted Python project may use syntax compilation without a C++ compiler.
 
-## 3. What "better" means here
+## 4. Import or verify the project
 
-Particle Life ships a benchmark. A real repository usually does not, and Discovery cannot optimise what nobody measures.
+If no project exists, use `project-import` with the exact remote, explicit branch, verified seed SHA, and suitable Git credential. Wait for `importedStatus: success`, record the UUID, and verify the imported `gitHash` matches the seed.
 
-1. **Read the repository first:** build files, CI config, test layout, existing scripts, README. Most projects answer this themselves.
-2. **Then ask, once,** only what the code cannot tell you: what "better" means for them, which command represents it, and roughly how long it takes.
-3. If the honest answer is that nothing worth measuring exists yet, say so and stop.
+If a project already exists, do not re-import it. If repository code was changed to add or repair the harness, push the change, run `artemis project compare`, then `artemis project pull`. Wait until the project's `gitHash` matches the verified commit. A pre-pull changeset remains pinned to the old code; create a new one for validation.
 
-Hand the three commands to `repo-command-setup`. That skill owns the compile, test, and benchmark contract, including a numeric `artemis_results.json` or `artemis_results.csv`.
+Give `[Open project](<base-url>/projects/<project-id>)` as soon as the UUID is known.
 
-## 4. The seven steps
+## 5. Select and verify the runner
 
-Each step has an owning skill. Use it rather than improvising.
+Read repository requirements before judging runner suitability. `artemis runner list` showing “online” proves connectivity, not that the machine can build this project.
 
-| Step | Skill | Command |
-|---|---|---|
-| 1. CLI installed and authenticated | `cli-setup` | `artemis status`, then return here |
-| 2. A changeset over the current code | this skill | `artemis changeset create --project <id> --name baseline` |
-| 3. A runner that can build this project | `runner-setup` | Reuse one that is online and on this machine. Install one only if there is none |
-| 4. Commands that produce a number | `repo-command-setup` | compile, test, and benchmark |
-| 5. Run them on the changeset | this skill | `artemis changeset validate` with three `--command` flags |
-| 6. Confirm metrics exist | `execution-log-inspect` | The validate process id, then the results file in the log |
-| 7. Discovery from those commands | `discovery-start` | `artemis discovery create` with the same commands inline |
+Reuse an already confirmed compatible runner. If several are plausible, ask which to use. If none exists, use `runner-setup`; explain that it is a long-lived process executing repository code on the user's machine and obtain permission before starting it.
 
-### Step 2, the changeset
+Probe the selected runner for the repository's actual toolchain through a short validation. Name missing tools and the machine; do not rewrite correct repository commands to avoid a missing dependency.
 
-```bash
-artemis --output-format json changeset create --project "<project-id>" --name "baseline"
-```
+## 6. Prove the measurement on the platform
 
-A new changeset holds exactly one version: the project's code as imported. Capture its id. Steps 5 and the explanation of "code out" both need it.
+Use `repo-command-setup` to create a fresh empty changeset over the project's current imported commit and run the exact compile, test, and benchmark commands through `changeset validate --version original` on the selected runner.
 
-### Before step 4, ask the runner what it has
+Every command must exit zero. Then use `execution-log-inspect` with the validation process `status.id` to confirm a fresh `artemis_results.json` or `.csv` and report the numeric metric in its own units. `changeset validation get` reports process resources and exit codes, not benchmark metrics.
 
-An online runner is not the same as a runner that can build this project. Its environment is whatever shell started it. Find out before writing commands that assume a toolchain:
+If the metric is missing or stale, return to `repo-command-setup` and validate again. Never start Discovery merely because the benchmark command exited zero.
 
-```bash
-artemis --output-format json changeset validate "<changeset-id>" --project "<project-id>" \
-  --version original \
-  --command "python3 --version; cmake --version; c++ --version" \
-  --runner "<runner-name>" --wait
-```
+Store the verified commands with `artemis project commands set` when available so Web UI settings agree. Discovery does not consume those defaults; pass the same literal commands inline.
 
-Name the tools this repository actually needs. A probe costs seconds and saves authoring a benchmark that cannot run. If the runner is missing what the project needs, say exactly which tool is missing on which machine, and let the user choose between installing it there and using a different machine. Do not quietly rewrite the project's commands to avoid the missing tool.
+## 7. Start or resume the first Discovery
 
-### Step 5, the measured run
+First inspect existing project runs. If a matching Discovery is queued, running, awaiting approval, or already completed, give its link and use `discovery-inspect`; do not create another.
 
-After `repo-command-setup` has the three commands:
+For a new onboarding run, supply these decisions rather than asking a new user:
 
-```bash
-artemis --output-format json changeset validate "<changeset-id>" --project "<project-id>" \
-  --version original \
-  --command "<compile>" \
-  --command "<test>" \
-  --command "<benchmark>" \
-  --runner "<runner-name>" --wait
-```
+- versions: `5`;
+- task, metric, direction, and optional target files from repository readiness;
+- the same compile, test, and benchmark strings verified above;
+- model: inspect `artemis discovery create --help` and `artemis model list`. If this production command requires `--model`, prefer `gpt-5.6-sol`, otherwise another available preset named to the user. If the command supports a platform default, follow `discovery-start` unless the user requested a model.
 
-`--project` and `--runner` are required. `--version original` is the code as it stands. `--wait` gives up after 20 minutes and exits 6, so pass `--timeout` when the benchmark is slower than that, and say how long you expect it to take before starting.
+Use `discovery-start`, pass the selected runner, and give `[Open Discovery](<base-url>/projects/<project-id>/discovery/<run-id>)` immediately. Wait for the baseline and at least one explored version as that skill requires, then hand off interpretation to `discovery-inspect`.
 
-This is the same primitive Discovery uses to evaluate every version, so a pass here means Discovery can run, and the user has a real number before anything is spent on a run. The Discovery baseline measures the same code again inside the run. Expect the two numbers to agree. If they do not, say so: that is evidence the benchmark is noisy.
+Say once while the run is active:
 
-Run it through the platform, on the runner, not locally. A local run proves nothing about the machine Discovery will use.
+1. **Code in.** The project is pinned at the verified imported commit; the runner checks out that commit, not the user's working tree.
+2. **Run.** Compile, test, and benchmark execute on the runner in that order; the benchmark writes the metric file.
+3. **Code out.** Candidates are changesets. `discovery-inspect` reads their diffs, while remote repository updates enter through `project compare` and `project pull`.
 
-Store the same commands on the project so the Web UI settings match:
+## 8. Close or pause cleanly
 
-```bash
-artemis project commands set --project "<project-id>" \
-  --compile "<compile>" \
-  --test "<test>" \
-  --benchmark "<benchmark>"
-```
+Report:
 
-Discovery does not consume those stored defaults. Pass the same strings inline in step 7.
+- authenticated deployment;
+- repository, branch, and imported commit;
+- project and Discovery links;
+- runner and verified toolchain;
+- exact commands;
+- validation metric and Discovery baseline/best metric when available;
+- winning diff or current run status.
 
-### Step 6, the numbers
+The run continues on the platform if the terminal closes. The runner is still running; give its stop command and say it may stay online for later work. If the user pauses earlier, report completed checkpoints and identifiers so this skill can resume from the first missing one.
 
-`changeset validation get` answers one question: did every command pass. It reports `exitCode`, `runtime`, `cpu`, and `memory` per command and nothing about the benchmark's own metrics.
+## Failure routing
 
-The task log is where the proof is. `execution-log-inspect` fetches it from `status.id` on the validate response. Do not use a per-command `logId`. Look for `artemis_results.json` or `artemis_results.csv` and the metric values. If the benchmark passed but wrote no metrics, fix the commands with `repo-command-setup` and run step 5 again. A run with no measurement wastes the user's credits.
-
-Report the measured value in the repository's own units, never the runtime of the benchmark command.
-
-### Step 7, the run
-
-Settings for this flow, so the user is never asked:
-
-- `--versions 5`
-- `--model` set to `gpt-5.6-sol` when `artemis model list` offers it, otherwise another preset from that list, named in one line
-
-`--model` is required. The API has no default, so a run without it is refused. Pass the catalogue UUID or the model-type code from `artemis model list`.
-
-```bash
-artemis --output-format json discovery create --project "<project-id>" \
-  --runner "<runner-name>" \
-  --model "<model>" \
-  --task "<the user's goal, in their words>" \
-  --compile-cmd "<compile>" \
-  --test-cmd "<test>" \
-  --benchmark-cmd "<benchmark>" \
-  --versions 5
-```
-
-Add `--target-files <path>` (repeatable) when the repository made it obvious which files carry the work. Leave it off rather than guessing.
-
-There is no `--source-changeset` on this platform. The run measures the project's imported code. The changeset from step 2 is how you proved those commands, and how you show the diff of later candidates. It is not a source argument to `discovery create`.
-
-Give the link immediately:
-
-```text
-[Open Discovery](<base-url>/projects/<project-id>/discovery/<run-id>)
-```
-
-### Code in, run, code out
-
-Say this once, in three lines:
-
-1. **Code in.** The project is pinned at the commit `project compare` reported. The runner checks out that commit.
-2. **Run.** Compile, test, and benchmark run on the runner, in that order. The benchmark writes the metric file.
-3. **Code out.** `discovery-inspect` reads a candidate with `artemis changeset diff <changeset-id> --project <project-id>`. Edits pushed to the Git remote come back with `artemis project compare` and `artemis project pull`.
-
-## 5. Showing it
-
-Give a link to the project, then to the Discovery run. Name the page to open. Do not depend on a browser-control skill.
-
-## 6. When it cannot continue
-
-| Situation | Do |
+| Situation | Action |
 |---|---|
-| CLI missing, unauthenticated, or without `--compile-cmd` | `cli-setup`, then return to step 2. Stay on the compile/test/benchmark command surface |
-| No runner, and the user does not want one | Say plainly that nothing can be measured without a machine, and stop |
-| The runner is online but lacks the toolchain | Name the missing tool and the machine |
-| The benchmark produces no numbers | Fix the commands and re-run step 5. Never start Discovery on an unmeasured project |
-| Nothing worth measuring in this project | Say so and stop |
-| The run fails in seconds with no baseline | `discovery-inspect`, checking the project's Git access first |
-| The project URL's deployment is not the one the CLI is logged into | Say both, and settle it before creating anything |
+| CLI missing, unauthenticated, or incompatible | `cli-setup`, then return to deployment state |
+| No meaningful benchmark or correctness gate | `repo-command-setup`; stop until the repository is ready |
+| Repository edits cannot be pushed | `repo-prepare-fork`, after explicit permission |
+| Import pending or failed | `project-import`; do not create validation yet |
+| Runner offline or missing | `runner-setup`, then re-check platform status |
+| Runner lacks the required toolchain | Name the missing dependency and machine; let the user install it or choose another runner |
+| Validation fails or emits no metrics | `execution-log-inspect`, then `repo-command-setup`; do not launch Discovery |
+| Discovery fails before baseline | `discovery-inspect`, checking Git access and runner status first |
 
-## 7. Close
+## Completion checklist
 
-Report what now exists: the changeset, the commands, the runner, the measured value, and the Discovery run with a link. Say what it is optimising and roughly how long it will take. Then hand over to `discovery-inspect` for reading the result.
-
-Say that the run continues on the platform if the terminal is closed, and give the runner stop command.
-
-## Checklist
-
-- [ ] Project id confirmed against a real project on the authenticated deployment
-- [ ] The user was asked about their goal only where the repository could not answer
-- [ ] Changeset created and its id captured
-- [ ] Commands verified on the runner with `changeset validate --command`, not assumed
-- [ ] Metric values seen in the task log, not assumed from a passing benchmark
-- [ ] The same commands stored with `project commands set` and passed inline to `discovery create`
-- [ ] Discovery started with `--versions 5` and a `--model` from `artemis model list`
-- [ ] User told what was measured, what is running, and where to watch it
+- [ ] Starting state classified from inspected facts
+- [ ] CLI authenticated to the project or requested deployment
+- [ ] Repository goal, correctness gate, commands, metric, and direction verified
+- [ ] Project UUID and imported seed commit verified
+- [ ] Selected runner confirmed online and compatible
+- [ ] Exact commands passed on the runner and fresh numeric metrics found in the task log
+- [ ] Existing Discovery reused or a five-version run started with the verified commands
+- [ ] User received measured values, links, persistence explanation, and runner stop command

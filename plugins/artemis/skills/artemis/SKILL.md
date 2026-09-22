@@ -14,7 +14,7 @@ metadata:
 - **Problem:** Classifies the user's goal, identifies blocking decisions before long-running work, and routes to the appropriate task-specific skill.
 - **Must be available:** Enough context to determine the intended workflow and inspect any relevant repository, deployment, project, runner, commands, or existing run.
 - **Use / don't use:** Use for any new Artemis setup, discovery, validation, maintain, resume, or inspection request; skip it when the requested downstream step is already explicit.
-- **Next skill:** There is no fixed next skill. Route a new user to `getting-started`, an existing project to `quickstart`, and every other request to the setup, repository-preparation, import, discovery, inspection, or maintain skill selected by the workflow.
+- **Next skill:** There is no fixed next skill. Route onboarding at any stage to `quickstart`, and every explicit lower-level request to the setup, repository-preparation, import, discovery, inspection, or maintain skill selected by the workflow.
 
 ## Requirements
 
@@ -50,16 +50,13 @@ Give a clickable Markdown link with a short label:
 
 ## 1. Classify the workflow
 
-If the user is new to Artemis (they pasted a get-started prompt, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), route to `getting-started` instead of classifying further.
+If the user is onboarding to a first measured result, route to `quickstart` regardless of whether they have no setup, a repository that needs preparing or importing, or an existing project URL or id. That skill inspects the current state and resumes from the first incomplete checkpoint.
 
-If the project already exists and the user gave its URL or id, route to `quickstart`. No project yet is `getting-started`. A project id in hand is `quickstart`. Do not substitute one for the other.
-
-A starter prompt that names `cli-setup` or `artemis` is still a get-started request. Load `getting-started` first and let it call those skills in order.
+A starter prompt that names `cli-setup` or `artemis` is still a quickstart request. Load `quickstart` first and let it call those skills in order.
 
 | Workflow | Intended outcome | Required infrastructure |
 |---|---|---|
-| Getting started | A new user wants to try or set up Artemis | None yet |
-| Quickstart | Take a project that is already imported to its first measured result | The project id |
+| Quickstart | Take a user from any onboarding state to a first measured result | None yet; may begin with a repository or project id |
 | Discovery | Generate and benchmark alternatives to improve a metric | Runner, repository commands, model, version budget |
 | Validation | Build, test, and benchmark known code without searching | Runner and repository commands |
 | Maintain | Scan, triage, fix, or publish code-health issues | Rules, scope, and push access when publishing |
@@ -140,8 +137,7 @@ Before launching discovery, validation, or Maintain:
 
 ## 6. Route to the owning skill
 
-- New users and open-ended "get started" requests: `getting-started`
-- Setting up a project that already exists in Artemis, including a request that carries a project URL or id: `quickstart`
+- New users, repository onboarding, and existing projects that have not reached a first measured result: `quickstart`
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository ownership: `repo-prepare-fork`
