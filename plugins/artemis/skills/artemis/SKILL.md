@@ -50,16 +50,13 @@ Give a clickable Markdown link with a short label:
 
 ## 1. Classify the workflow
 
-If the user is new to Artemis (they pasted the Quickstart prompt, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), route to `getting-started` instead of classifying further.
+If the user is onboarding, route to `quickstart` instead of classifying further. That covers a brand-new user (they pasted the Quickstart prompt from the Connect your agent page, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), a repository that is not yet a project, and a request carrying a project URL or id (the prompt behind **Set up with local agent** on a project's overview page). `quickstart` works out which of those it is from what arrived and resumes at the first missing step.
 
-If instead the project already exists and the user gave its URL or id, route to `quickstart`. There are two copyable prompts, and they are not interchangeable: the one on the connect-agent page sets up a machine and names `getting-started`, and the one behind **Set up with local agent** on a project's overview carries that project and names `quickstart`. The two are one decision: no project yet is `getting-started`, a project id in hand is `quickstart`. Neither skill handles the other's case, so do not substitute one for the other.
-
-**This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding: it was written before `getting-started` existed. Load `getting-started` first and let it call those skills in order. Skipping it drops the browser offer, the demo recommendation, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
+**This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding. Load `quickstart` first and let it call those skills in order. Skipping it drops the browser offer, the demo recommendation, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
 
 | Workflow | Intended outcome | Required infrastructure |
 |---|---|---|
-| Getting started | A new user wants to try or set up Artemis | None yet |
-| Quickstart | Take a project that is already imported to its first measured result | The project id |
+| Quickstart | Take a user from any starting point to a first measured result | None yet; may begin with a repository or a project id |
 | Discovery | Generate and benchmark alternatives to improve a metric | Runner, repository commands, model, version budget |
 | Validation | Build, test, and benchmark known code without searching | Runner and repository commands |
 | Maintain | Scan, triage, fix, or publish code-health issues | Rules, scope, and push access when publishing |
@@ -138,8 +135,7 @@ Before launching discovery, validation, or Maintain:
 
 ## 6. Route to the owning skill
 
-- New users and open-ended "get started" requests: `getting-started`
-- Setting up a project that already exists in Artemis, and any request carrying a project URL or id from **Set up with local agent** on a project's overview page: `quickstart`
+- Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and any request carrying a project URL or id from **Set up with local agent** on a project's overview page: `quickstart`
 - Showing the matching Web UI page when the user follows along in their browser: `ui-walkthrough`
 - CLI: `cli-setup`
 - Runner: `runner-setup`

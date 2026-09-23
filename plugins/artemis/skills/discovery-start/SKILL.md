@@ -36,11 +36,11 @@ artemis model list
 
 Inspect the current model list, present meaningful choices when the user has not selected one, and record the chosen UUID or model-type code. Only listed models can be used by agents.
 
-**When a calling skill supplies the model, version budget or measurement count, use them and do not re-ask.** `getting-started` fixes all of these for its demo so a first-time user is never asked to choose between things they have not seen yet. Ask only when the user is driving the run themselves and has not said what they want.
+**When a calling skill supplies the model, version budget or measurement count, use them and do not re-ask.** `quickstart` fixes all of these for its demo so a first-time user is never asked to choose between things they have not seen yet. Ask only when the user is driving the run themselves and has not said what they want.
 
 ## 1. Create the run
 
-**When a calling skill has already chosen the runner, use it and do not re-ask**, the same as the model and budget above. `getting-started` picks one for its demo so a first-time user is never asked to choose between machines they have not heard of.
+**When a calling skill has already chosen the runner, use it and do not re-ask**, the same as the model and budget above. `quickstart` picks one for its demo so a first-time user is never asked to choose between machines they have not heard of.
 
 Otherwise confirm which runner to use before `discovery create`; do not select one merely because it is online. If the project has a default (`artemis project runner get --project "<project-uuid>"`), confirm it remains appropriate. If no runner was named and several are online, list them and ask.
 
@@ -90,7 +90,7 @@ artemis --output-format json discovery create \
   [--target-files <path> --target-files <path>]
 ```
 
-`--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `getting-started`, passes them here.
+`--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `quickstart`, passes them here.
 
 `--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for LLM-judged metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
 
