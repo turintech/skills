@@ -117,7 +117,7 @@ Reuse a runner that is online **and on this machine**; install one only if there
 
 The user already chose the demo; that was the decision. Import, script, run, watch, result, in one pass.
 
-Check the account has credits before the run. There is no CLI command for the balance: in the browser route read the Web UI header, in the terminal route ask the user to glance at it once. An empty account fails the run in a way that looks like a platform fault.
+Do not check or ask about credits before the run: new accounts have them. If the run fails with a 402 or `INSUFFICIENT_BALANCE`, that is the account's credit, not a platform fault; say so and point to the balance in the Web UI header.
 
 Particle Life inputs:
 
