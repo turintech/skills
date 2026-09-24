@@ -1,6 +1,6 @@
 ---
 name: quickstart
-description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a repository that is not yet a project, or an existing project URL or id. Offers to show each step in their browser or work in the terminal, and recommends the Particle Life example to anyone who has not run Artemis before. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id, or asks for a project to be set up and measured.
+description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and recommends the Particle Life example to anyone who has not run Artemis before. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id, or asks for a project to be set up and measured.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -68,10 +68,14 @@ Say once, before the first run, that runs use account credits and the balance is
 
 ## 3. How to follow along
 
-Ask this **before** asking what they want to do. Seeing the platform is most of what makes a first session make sense.
+Ask this once, at the start, before setup begins. One short question with two options:
 
-- Name the two routes: **computer use in the browser**, where the agent drives Chrome and the user watches each Artemis page, or **terminal only**, with links. Recommend the first, and mark it **recommended** on the option itself.
-- If nothing is connected, that is the normal state. Offer computer use anyway; once they choose it, `ui-walkthrough` section 1 owns the connection step and decides when to give up. Say "we'll use the terminal" only after that, and say what failed.
+- **Terminal, with links (recommended).** The agent does the setup from the command line and gives a link to each Artemis page as it goes. Nothing else to install. Mark it **recommended** on the option itself.
+- **Computer use in the browser.** The agent also drives Chrome so the user watches each page change. It needs the Claude browser extension connected to this session, which is extra setup.
+
+Recommend the terminal even when a browser is already connected: it is the quicker start, and the links show the same pages.
+
+If they choose the browser, hand the connection step to `ui-walkthrough` section 1 and tell it the browser is **optional**, so it makes one request and no more. If that does not connect, say so in one line and carry on in the terminal. Do not spend the session on browser setup; they can switch later.
 
 Remember the choice. In the browser route, `ui-walkthrough` shows the page named at each step below; tell it this is a **first-run demo** so it uses its watchable pacing.
 
@@ -249,7 +253,7 @@ Add `--target-files <path>` (repeatable) only when the repository made it obviou
 
 In the browser route, hand each step to `ui-walkthrough` and follow its *Arrive before the change, never after*: the Projects list before an import, the project page before the branch appears, the branch before the run, the run's Experiments tab while versions are generated. The demo's own choreography is in 7a.
 
-In the terminal route, give a link to the project and name the page to open.
+In the terminal route, which is the recommended one, give a link each time something appears in Artemis: the project after import, then the project again with the page to open (its branches, the run, the run's Experiments or Metrics tab). Name the page, because run paths differ between deployments.
 
 ## 9. Human-only steps
 
@@ -292,7 +296,7 @@ Say two things once: the run does not depend on this session and continues on th
 ## Checklist
 
 - [ ] State checked before asking anything, and the starting point taken from what arrived
-- [ ] Browser route offered first, and only when possible
+- [ ] Terminal recommended and the browser offered as the alternative, once, at the start
 - [ ] Example recommended to anyone with nothing yet
 - [ ] Every human-only step named as the user's
 - [ ] Each step handed to its owning skill

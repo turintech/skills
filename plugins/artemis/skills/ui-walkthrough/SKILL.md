@@ -50,6 +50,8 @@ metadata:
 
    Nothing else in that message: no ladder, no alternatives, no mention of restarting. Re-probe when they answer.
 
+   **When the calling skill says the browser is optional, stop here.** If that one request does not connect it, hand back so the caller continues in the terminal. The steps below are for a user who has asked to keep trying.
+
    Only if that fails, ask one question: **is the Claude extension installed in Chrome at all?**
 
    - **No.** It is a one-off install from `https://claude.ai/chrome`, signed in to the same account as this session. Then `/chrome` again.
@@ -57,7 +59,7 @@ metadata:
 
    Relaunching the session as `claude --chrome` comes last and only if they still want it: it costs them the conversation.
 
-3. **Check it is still there before the moments that matter.** A connection made at the start does not survive a long run: the extension can drop while nobody is clicking, and the first sign is a tool call failing much later. Re-probe with `tabs_context_mcp` before each showpiece, above all before the result sequence, and if it has gone say so **then**, offer `/chrome`, and wait. Discovering it at the end, after the run everyone waited for, is the one place a dropped browser costs the user something they cannot get back by scrolling.
+3. **Check it is still there before the moments that matter.** A connection made at the start does not survive a long run: the extension can drop while nobody is clicking, and the first sign is a tool call failing much later. Re-probe with `tabs_context_mcp` before each showpiece, above all before the result sequence, and if it has gone say so **then**, offer `/chrome`, and wait. When the browser is optional, offer it once, and if the user would rather not, carry on with links. Discovering it at the end, after the run everyone waited for, is the one place a dropped browser costs the user something they cannot get back by scrolling.
 4. **If it lands in the wrong Chrome, that is a choice, not a fault.** Browsers pair with the user's Claude account, not with a window, so a machine can have several connected: an everyday profile, a separate demo profile, another computer. `list_connected_browsers` names each one, says which appear to be on this computer, and `select_browser` switches to the one the user picks; `switch_browser` puts a Connect prompt in every connected extension so they can click the right window. Ask which one before driving anything, and never choose for them.
 
    A new, signed-out window usually means their everyday Chrome's extension is not connected to this account, so the only thing listening was another profile.
