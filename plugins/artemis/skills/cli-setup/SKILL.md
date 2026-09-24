@@ -23,9 +23,20 @@ Use the supported distribution. This path requires no GitHub account and does no
 - Network access to `files.artemis.turintech.ai` and the deployment's base URL.
 - An API key for the target deployment, created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`, for example `https://artemis.turintech.ai/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
 
+## Check what is already there
+
+Before installing anything, look at the CLI that is already on this machine:
+
+```bash
+artemis --version
+artemis status
+```
+
+If the version meets the skills' minimum (see *Verify*) and `status` is authenticated to the target deployment, there is nothing to do here. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
+
 ## Install the CLI
 
-Start here. The deployment's own page at `<deployment-base-url>/settings/cli` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
+Start here when there is no CLI, or it needs replacing. The deployment's own page at `<deployment-base-url>/settings/cli` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
 
 **Do not reach for the official installer script first.** It has `https://files.artemis.turintech.ai/artemis-cli` built in, and that path carries no release above **1.0.11**:
 
@@ -37,7 +48,33 @@ Start here. The deployment's own page at `<deployment-base-url>/settings/cli` is
 
 None of those have `--script`, `--eval-runs`, `--source-changeset` or `project scripts`, so a CLI installed that way cannot start a discovery run at all. The installer is still the documented route and will be right again once its source is fixed, so it is kept at the end of this skill; until then it is a footnote, not the path.
 
-Install the binary directly from the public path, which carries current releases. Check the directory first and take the newest, rather than trusting a version named here:
+### Where to download from
+
+**If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below. Check what it serves before keeping it: download, run `--version`, and compare with the minimum. The default directory, `https://files.artemis.turintech.ai/public/artemis-cli/latest/`, still serves **1.0.11**, which cannot start a discovery run. When the directory's build is older than the minimum, use the newest release from the public listing instead, and say in one line which directory was out of date.
+
+```bash
+DIR="<the CLI download directory from the prompt>"
+PLATFORM="linux-amd64"   # see the table below
+curl -fL "$DIR/artemis-cli-$PLATFORM" -o ~/.local/bin/artemis && chmod +x ~/.local/bin/artemis
+artemis --version
+```
+
+Only send the shared download credentials to `files.artemis.turintech.ai`. A directory on any other host gets a plain request.
+
+**Match the build to this machine.** Read `uname -s` and `uname -m` (on Windows, the processor architecture), and pick the file:
+
+| Machine | File |
+|---|---|
+| Linux, `x86_64` | `artemis-cli-linux-amd64` |
+| Linux, `aarch64` or `arm64` | `artemis-cli-linux-arm64` |
+| macOS, Apple silicon (`arm64`) | `artemis-cli-darwin-arm64` |
+| macOS, Intel (`x86_64`) | `artemis-cli-darwin-amd64` |
+| Windows, x64 | `artemis-cli-windows-amd64.exe` |
+| Windows, ARM64 | `artemis-cli-windows-arm64.exe` |
+
+If the directory has no file for this machine, never install a different architecture's build in its place: it either fails to start or runs under emulation and misbehaves later. Try the newest versioned release, which carries all six, and if that has none either, tell the user no build exists for this machine and stop. Channels differ: `latest/` has no Windows ARM64 build today, while the versioned releases do.
+
+Without a directory from the prompt, install from the public path, which carries current releases. Check the listing first and take the newest, rather than trusting a version named here:
 
 ```bash
 curl -s --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
@@ -49,7 +86,7 @@ Then fetch that version for the platform, verify it, and put it on `PATH`:
 
 ```bash
 VER=1.1.8   # or the newest in the listing above, never older than the skills require
-PLATFORM="linux-amd64"   # or darwin-arm64, darwin-amd64, linux-arm64, windows-amd64.exe
+PLATFORM="linux-amd64"   # from the table above
 curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
   "https://files.artemis.turintech.ai/public/artemis-cli/$VER/artemis-cli-$PLATFORM" \
   -o ~/.local/bin/artemis && chmod +x ~/.local/bin/artemis
@@ -165,7 +202,7 @@ Report the installed version, base URL, and authenticated user. Do not report su
 
 ## Update
 
-Record the current version, rerun the installer for the same deployment, and repeat authentication and status verification. Report the version before and after. Do not change deployment while performing an update.
+Record the current version, download the newer build the same way as a fresh install (*Where to download from*), and repeat status verification. An update replaces the binary only, so the existing login normally survives; log in again only if `status` says so. Report the version before and after. Do not change deployment while performing an update.
 
 ## The official installer, once its source is fixed
 

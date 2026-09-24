@@ -26,7 +26,7 @@ metadata:
 
 Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not re-import a project that exists, start a second runner on a machine that has one, replace commands that already produce a number, or start another Discovery when one is queued or running.
 
-Carry these between skills so nothing is asked twice: deployment and whether the CLI is authenticated to it; repository URL and branch; project id; changeset id and the commit it holds; script id; runner name and what its machine has installed; validation id; run id.
+Carry these between skills so nothing is asked twice: deployment and whether the CLI is authenticated to it; the CLI download directory, when the prompt gave one, for `cli-setup`; repository URL and branch; project id; changeset id and the commit it holds; script id; runner name and what its machine has installed; validation id; run id.
 
 ## 0. Look before asking
 
@@ -273,11 +273,19 @@ In the terminal route, give a link to the project and name the page to open.
 | Nothing worth measuring in this project | Say so and stop |
 | A run fails within seconds with no baseline | `discovery-inspect`, checking the project's Git access first |
 | A skill named here is not installed | Say which, then do that step with the commands in this file |
-| The user wants to stop | Summarise what exists, with ids, so this skill can resume from the first missing step |
+| The user wants to stop | Give the section 11 report, with ids, so this skill can resume from the first missing step |
 
 ## 11. Close
 
-Report what now exists: the project, the branch, the commands, the runner, the measured baseline with its numbers, and the Discovery run with a link. For the demo, the original and best measured values. Then suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project.
+End with a short readiness report, whether the session finished or stopped early. Every line comes from a check you ran, not from memory:
+
+- **Agent and skills:** the host, and that the Artemis skills are installed.
+- **CLI:** version, deployment, the account `artemis status` reports, and whether it was already there, updated or newly installed.
+- **Runner:** its name and machine, and whether it was reused, newly started, or skipped and why.
+- **Work:** the project, the branch, the commands, the measured baseline with its numbers, and the Discovery run with a link. For the demo, the original and best measured values.
+- **Still yours to do:** anything left for the user, such as creating a key or connecting Git, or "nothing".
+
+Then suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project.
 
 Say two things once: the run does not depend on this session and continues on the platform if the terminal is closed (say this while the run is going, so nobody guards a terminal they are afraid to close); and the runner is still running, with its stop command, and can stay up for the next run.
 
@@ -290,4 +298,5 @@ Say two things once: the run does not depend on this session and continues on th
 - [ ] Each step handed to its owning skill
 - [ ] For a project: changeset id captured, commands verified by running them, metric values seen in the validation logs
 - [ ] Discovery started from the branch, with settings fixed rather than asked
+- [ ] Readiness report given (section 11): CLI, runner, work, and what is still the user's, each from a check that ran
 - [ ] Result reported with measured numbers and links, and the runner's stop command given
