@@ -47,7 +47,7 @@ When there is no measured version, show only provenance, progress, and the basel
 | Rank-by / focus | `Select` + `useCanvasState` |
 | Version budget | `UsageBar` (`versionCount` / `numVersions`) |
 | Winner diff (only if you also fetched it) | `DiffView` / `DiffStats` |
-| Pareto or CI whiskers | custom SVG: canvas has no forest/error-bar primitive |
+| Pareto or CI whiskers | custom SVG — canvas has no forest/error-bar primitive |
 
 Do not colour bars by statistical verdict. Use fitness only when the user asked to rank by AI score.
 

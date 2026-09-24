@@ -22,7 +22,7 @@ metadata:
 - The remote URL and explicit branch are known and reachable.
 - A Git credential registered in Artemis can read the repository.
 - Compile, test, and benchmark commands are either verified locally through `repo-command-setup`, or explicitly deferred until this project can be verified on the runner.
-- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option: any JSON filter works (e.g. `python3 -c`).
+- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 
 ## 1. Resolve and verify inputs
 
@@ -96,7 +96,7 @@ Give the user a clickable link as soon as the UUID is known:
 
 Use the authenticated deployment base URL, including for on-prem deployments. Repeat the link after import verification so the user can inspect the project in the Web UI.
 
-**Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes. `importedStatus` reports where it is, `importing`, `success`, or `failed`, on both `project import` and `project list`:
+**Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes. `importedStatus` reports where it is — `importing`, `success`, or `failed` — on both `project import` and `project list`:
 
 ```bash
 artemis --output-format json project list --all | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus'

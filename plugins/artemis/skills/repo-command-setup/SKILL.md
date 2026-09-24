@@ -21,11 +21,11 @@ metadata:
 Either of:
 
 - a local checkout with a toolchain matching what the selected runner actually has, **or**
-- an already selected/online Artemis runner, plus a project imported (or ready to import) against this repository: runner-based verification happens after import, since it validates through the platform.
+- an already selected/online Artemis runner, plus a project imported (or ready to import) against this repository — runner-based verification happens after import, since it validates through the platform.
 
 Plus, either way:
 
-- agreement on which performance behaviour matters, when the repository doesn't make it obvious: ask the user rather than guessing.
+- agreement on which performance behaviour matters, when the repository doesn't make it obvious — ask the user rather than guessing.
 
 ## Choose the workflow path
 
@@ -51,12 +51,12 @@ Every command runs from the repository root; there is no working-directory field
 
 Each command must therefore be:
 
-- **root-relative**: change directory within the command only when necessary;
-- **self-contained**: perform its own required activation or setup;
-- **headless and non-interactive**: no GUI, prompts, or terminal input;
-- **repeatable**: do not depend on an IDE, shell alias, uncommitted file, or previous task;
-- **truthful**: return non-zero when its phase fails;
-- **runner-compatible**: use tools and paths that exist on the selected runner.
+- **root-relative** — change directory within the command only when necessary;
+- **self-contained** — perform its own required activation or setup;
+- **headless and non-interactive** — no GUI, prompts, or terminal input;
+- **repeatable** — do not depend on an IDE, shell alias, uncommitted file, or previous task;
+- **truthful** — return non-zero when its phase fails;
+- **runner-compatible** — use tools and paths that exist on the selected runner.
 
 The benchmark must write `artemis_results.json` or `artemis_results.csv` to the working directory (`$PWD`). Stdout is useful for diagnostics but is not the custom-metric channel.
 
@@ -195,7 +195,7 @@ Record the literal commands and measured duration of each phase.
 
 This exercises the commands through the platform, on the real execution environment, instead of guessing that local success transfers. It needs a project already imported (`project-import`) and a runner already online.
 
-Check the installed command surface, then use **`artemis changeset validate`**: the same primitive discovery uses to evaluate generated versions and the baseline:
+Check the installed command surface, then use **`artemis changeset validate`** — the same primitive discovery uses to evaluate generated versions and the baseline:
 
 ```bash
 artemis changeset validate --help
@@ -239,7 +239,7 @@ For a discovery run the equivalent is `artemis discovery metrics "<run-id>" --al
 When something fails, distinguish command-string issues from repository code or script issues:
 
 - **Command-string failure:** update the project defaults, create a replacement validation script with the same corrected commands, and re-run `changeset validate --script` on the same empty changeset (`--version original` still resolves that original code).
-- **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original`: it stays on the old SHA.
+- **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
 
 `discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis discovery setup trial-run "<run-id>" --wait`. There is no `project scripts update`; on a command-string failure, create a replacement script. Do not invent compatibility flags.
 

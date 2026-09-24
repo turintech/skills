@@ -34,7 +34,7 @@ rm -f artemis_results.json artemis_results.csv
 test -f artemis_results.json || test -f artemis_results.csv
 ```
 
-Confirm the results file contains the ranking metric as a number. Then return to SKILL.md §2 to §6 to record the three commands and complete runner verification when available.
+Confirm the results file contains the ranking metric as a number. Then return to SKILL.md §2–§6 to record the three commands and complete runner verification when available.
 
 ## Minimal JSON example
 
@@ -46,4 +46,4 @@ Do not put strings, booleans, nested objects, or identifiers in the results file
 
 ## Out of scope here
 
-Language-specific framework tutorials, statistical methodology beyond a stable ranking metric, and Discovery task/budget design belong in product docs or a worked example: not in the wiring skill.
+Language-specific framework tutorials, statistical methodology beyond a stable ranking metric, and Discovery task/budget design belong in product docs or a worked example—not in the wiring skill.

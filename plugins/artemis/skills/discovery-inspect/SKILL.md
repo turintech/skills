@@ -1,6 +1,6 @@
 ---
 name: discovery-inspect
-description: Inspect and interpret the results of an Artemis discovery run: is it done, did versions actually pass, what are the real numbers, and what code changed. Use when the user wants to check on a discovery run, read its results, see which versions won, or understand why a run produced nothing.
+description: Inspect and interpret the results of an Artemis discovery run — is it done, did versions actually pass, what are the real numbers, and what code changed. Use when the user wants to check on a discovery run, read its results, see which versions won, or understand why a run produced nothing.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -24,7 +24,7 @@ The central rule is **completed does not mean passed**. Terminal status means th
 - The `run_id` (from `discovery create`'s output, or `artemis discovery list --project <uuid>`).
 - If the run or version ID is unknown, ask for its Web UI URL and extract the project, discovery, and optional version UUIDs using `artemis` §2.
 - For a runner-executed failure, use the version's `processId` with `execution-log-inspect`, or use `artemis discovery versions logs <version-id>`.
-- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option: any JSON filter works (e.g. `python3 -c`).
+- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 
 ## The inspection commands
 
@@ -43,7 +43,7 @@ artemis discovery metrics <run-id> [--all]     # measured numbers per version
 
 ### The agent's own narration
 
-The reasoning the Web UI shows as a chat is reachable from the CLI, but not under `discovery`: it lives under `artemis chat`, and the chat's ID is the **`agentRunId` on the run record**:
+The reasoning the Web UI shows as a chat is reachable from the CLI, but not under `discovery` — it lives under `artemis chat`, and the chat's ID is the **`agentRunId` on the run record**:
 
 ```bash
 run=$(artemis --output-format json discovery get <run-id>)
@@ -86,14 +86,14 @@ Use `artemis discovery versions logs <version-id>` or `execution-log-inspect` wi
 Host-local runner daemon output is separate evidence for connection, polling, dispatch, and process-lifecycle problems. When shell access exists, its location depends on how the runner was started:
 
 - Started in the background with its output redirected: the file is wherever that redirect pointed, which `runner-setup` reports as the log path when it starts one.
-- Under a systemd unit: `journalctl -u artemis-runner --follow`.
-- Foreground in a terminal: it's already in view.
+- Under a systemd unit — `journalctl -u artemis-runner --follow`.
+- Foreground in a terminal — it's already in view.
 
 ### Baseline and evaluation delays
 
 After the benchmark exits, the runner uploads its task log before baseline finalization or version ingestion can complete. Large logs can make this gap last several minutes. Compare task-log timestamps with the run record before treating silence as a stall; see [advanced log control](../repo-command-setup/ADVANCED.md#control-log-volume).
 
-The next gap, evaluation finished to the next version being dispatched, is agent-side. Use timestamps in the narration and run record to distinguish continued planning from inactivity.
+The next gap — evaluation finished to the next version being dispatched — is agent-side. Use timestamps in the narration and run record to distinguish continued planning from inactivity.
 
 ## Reading a run, in order
 
@@ -103,7 +103,7 @@ The next gap, evaluation finished to the next version being dispatched, is agent
 artemis --output-format json discovery get <run-id>
 ```
 
-Look at `status`, `versionCount`, `experimentCount`, `baselineGroupId`, `baselineVersionSha`, `metricsSchema`. A healthy run has a non-null `baselineGroupId` + `metricsSchema`. **`baselineVersionSha` must match the commit you intended to run**: this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code).
+Look at `status`, `versionCount`, `experimentCount`, `baselineGroupId`, `baselineVersionSha`, `metricsSchema`. A healthy run has a non-null `baselineGroupId` + `metricsSchema`. **`baselineVersionSha` must match the commit you intended to run** — this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code).
 
 ### 2. What did the agent try? (experiments)
 
@@ -111,7 +111,7 @@ Look at `status`, `versionCount`, `experimentCount`, `baselineGroupId`, `baselin
 artemis discovery experiments list <run-id> --all
 ```
 
-Each experiment is a hypothesis with `status` = `validated` / `refuted` / `inconclusive` and a `confidence`. This is the agent's *reasoning*: a validated experiment does not guarantee a fast version; cross-check the numbers.
+Each experiment is a hypothesis with `status` = `validated` / `refuted` / `inconclusive` and a `confidence`. This is the agent's *reasoning* — a validated experiment does not guarantee a fast version; cross-check the numbers.
 
 ### 3. Which candidates ran, and did they pass? (versions)
 
@@ -119,19 +119,19 @@ Each experiment is a hypothesis with `status` = `validated` / `refuted` / `incon
 artemis discovery versions list <run-id> --all
 ```
 
-Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`), `executionStatus` (`success` / `failed`), and `fitnessScore`. A `✓` with `executionStatus=success` means it compiled, passed the test, and benchmarked. Failure modes: `generation_failed` (the agent produced nothing runnable), `executionStatus=failed` (compile or test failed), `scoring_failed`. **`generation_failed` versions never reach the runner**, so they leave no trace in its log; this list is the only authoritative source for per-version outcome.
+Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`), `executionStatus` (`success` / `failed`), and `fitnessScore`. A `✓` with `executionStatus=success` means it compiled, passed the test, and benchmarked. Failure modes seen in practice: `generation_failed` (agent produced nothing runnable), `executionStatus=failed` (compile or test failed — e.g. a `NameError` from an undefined capability probe), `scoring_failed`. **`generation_failed` versions never reach the runner**, so they leave no trace in its log — this list is the only authoritative source for per-version outcome.
 
-### 4. What are the real numbers? (metrics: the source of truth)
+### 4. What are the real numbers? (metrics — the source of truth)
 
 ```bash
 artemis discovery metrics <run-id> --all
 ```
 
-Grouped by version, metric IDs resolved to names. Compare each version's custom metric against the `baseline:` row. **This is what you trust**, not fitness (see traps).
+Grouped by version, metric IDs resolved to names. Compare each version's custom metric (e.g. `decode_b8_ms`) against the `baseline:` row. **This is what you trust**, not fitness (see traps).
 
-That grouping applies to the text output. `--output-format json` returns a flat `docs[]` keyed by `observationGroupId` with no version number: to rank by version, join it against `discovery versions list` (`observationGroupId` → `versionNumber`), and read `baselineGroupId` off the run record for the baseline row.
+That grouping applies to the text output. `--output-format json` returns a flat `docs[]` keyed by `observationGroupId` with no version number — to rank by version, join it against `discovery versions list` (`observationGroupId` → `versionNumber`), and read `baselineGroupId` off the run record for the baseline row.
 
-To see the winning change, read its `llmRationale` (`discovery versions get <version-id>`) and then read the diff itself: confirm it actually does what you asked rather than a shortcut that happens to score well. A rationale describing an optimisation is not evidence the diff implements one.
+To see the winning change, read its `llmRationale` (`discovery versions get <version-id>`) and then read the diff itself — confirm it actually does what you asked (e.g. registers/calls the C++ op) rather than a shortcut that happens to score well. A rationale describing an optimisation is not evidence the diff implements one.
 
 ```bash
 artemis changeset diff <changeset-id> --project <project-uuid>          # full diff
@@ -166,13 +166,13 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 - **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and available execution logs; exploration may not have started. If it becomes terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
 - **Fitness is often not meaningful.** Agent-derived metric schemas may weight every metric equally (~0.02) and bundle compile-time/memory in, so `fitness` can be near-zero or **negative** for a version that improved your target metric. Rank by the **raw metric value**, not fitness.
 - **Task logs cover only versions that reached a runner.** Use `execution-log-inspect` for compile, test, benchmark, and ingestion evidence. Cross-check `discovery versions list` because `generation_failed` versions were never dispatched.
-- **`discovery metrics` prints logger noise to stdout.** A project's imports can emit WARNING or INFO lines to stdout, so piping the text output into a JSON parser fails. Use `--output-format json`, or read the printed table directly.
+- **`discovery metrics` prints logger noise to stdout.** vLLM/other imports emit WARNING/INFO to stdout, so piping the text output into a JSON parser fails. Use `--output-format json`, or read the printed table directly.
 - **Names drift.** A project's platform-side name can diverge from whatever you called it at import time; always reference the **project UUID**.
 
 ## Checklist
 
 - [ ] `discovery get`: baseline finalized (`baselineGroupId` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit.
-- [ ] `discovery metrics --all`: each version's target metric compared to `baseline:`: the numbers, not `fitness`, decide the winner.
+- [ ] `discovery metrics --all`: each version's target metric compared to `baseline:` — the numbers, not `fitness`, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
 - [ ] Clickable Discovery, winning version, and changeset links returned to the user.
