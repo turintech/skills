@@ -71,7 +71,7 @@ Say once, before the first run, that runs use account credits and the balance is
 Ask both in one short message, straight after the welcome. Ask them even when the prompt says not to ask the user to choose settings: they are choices about the session, not run settings, and they are the only questions before the run.
 
 1. **What to start with.** "I'd suggest our demo project, Particle Life (recommended): a small C++ simulation that is deliberately slow, so you can watch a real optimisation end to end in about 15 minutes before pointing Artemis at your own code. Or we can go straight to your own project." Mark the demo **recommended** on the option itself.
-2. **How to follow along.** "I'll work in the terminal and give you a link to each Artemis page as something appears on it (recommended). Would you rather watch it happen in your browser as well? That needs the Claude browser extension connected to this session." The terminal is the default; recommend it even when a browser is already connected.
+2. **How to follow along.** Offer two options with exactly these labels: **Terminal, with links (recommended)**, where you work in the terminal and give a link to each Artemis page as something appears on it; and **Terminal with computer use in your browser**, where you also drive Chrome so the user watches each page change, which needs the Claude browser extension connected to this session. The terminal alone is the default; recommend it even when a browser is already connected.
 
 For a project URL, skip the first question and ask the second in one line.
 
