@@ -9,6 +9,13 @@ metadata:
 
 # Artemis Maintain
 
+## At a glance
+
+- **Problem:** Finds code-health issues against a project's rules, then triages them, fixes them and ships each fix as a branch or pull request.
+- **Must be available:** An authenticated CLI and an imported project. No runner or benchmark is needed.
+- **Use / don't use:** Use to scan for issues, manage rules, or triage, fix and ship findings. Don't use it to measure or optimise performance; that is Discovery.
+- **Next skill:** None required. Return to `artemis` routing for other work.
+
 Maintain (backed by the **code-warden** service) audits a project against a set
 of **rules**, records each finding as an **issue** on a board, and helps you
 triage and fix them. The whole flow:

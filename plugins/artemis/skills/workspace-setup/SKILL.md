@@ -9,6 +9,13 @@ metadata:
 
 # Set up a persistent Artemis workspace
 
+## At a glance
+
+- **Problem:** Keeps one prebuilt tree on the runner so each version rebuilds only what changed, for projects whose clean build is too slow to repeat for every version.
+- **Must be available:** A runner you can reach, disk for the cached tree, and the project's verified build commands.
+- **Use / don't use:** Use when clean builds dominate a run's time. Skip it for projects that build in a minute or two.
+- **Next skill:** Return to `repo-command-setup` to store the commands that use the workspace.
+
 Every Artemis version arrives in a fresh checkout, so large projects lose incremental build state and pay a full rebuild for each candidate.
 
 Keep a dedicated built tree on the runner, seeded at the same commit as the project on the platform. The compile command syncs the candidate's changes into that tree and rebuilds incrementally. Test and benchmark use the same tree; the benchmark still publishes results back to the working directory (`$PWD`).
