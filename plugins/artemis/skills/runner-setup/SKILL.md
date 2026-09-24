@@ -110,7 +110,7 @@ For end-to-end verification, use `repo-command-setup` §5b to validate the proje
 
 ### The runner's environment is not the user's shell
 
-A runner inherits the environment of whatever shell started it, and keeps it for its whole life. Tools installed under a home directory, a version manager, or a virtual environment are routinely on the user's `PATH` and absent from the runner's, so "I can run this command" is not evidence the runner can. Check the toolchain as the runner sees it, and when a tool is only reachable by an absolute path, either start the runner from an environment that has it or make the project's commands name it explicitly.
+A runner inherits the environment of whatever shell started it, and keeps it for its whole life. A runner inside a container sees only what is installed or mounted in that container, whatever the host has. Tools installed under a home directory, a version manager, or a virtual environment are routinely on the user's `PATH` and absent from the runner's, so "I can run this command" is not evidence the runner can. Check the toolchain as the runner sees it, and when a tool is only reachable by an absolute path, either start the runner from an environment that has it or make the project's commands name it explicitly.
 
 Report the runner name, host, and verification result. Do not claim success from a quiet process or log alone.
 

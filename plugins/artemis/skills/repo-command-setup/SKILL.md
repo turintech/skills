@@ -41,24 +41,34 @@ Verification is part of this skill. Skip it for known-good commands, such as the
 
 ## Execution contract
 
-Artemis runs three ordered phases from the repository root in a fresh checkout on the selected runner:
+A validation runs a script's commands on the selected runner, in a fresh checkout of the version under test, from the repository root. The commands fall into three phases:
 
-- **compile** proves generated code is syntactically valid and buildable;
-- **test** rejects behaviorally incorrect changes;
-- **benchmark** measures the optimization target and writes numeric metrics.
+- **setup** (`--setup-cmd`): runs once, in order. Build and test go here. Every setup command runs even when an earlier one failed, so chain dependent steps with `&&` inside one command. Any failed setup command fails the validation and skips the benchmark.
+- **benchmark** (`--benchmark-cmd`): runs only when every setup command passed. It is the only phase that repeats and the only one measured.
+- **teardown** (`--teardown-cmd`, optional): runs once and always, even after a failure. Use it for cleanup; a failing teardown fails the validation.
 
-Every command runs from the repository root; there is no working-directory field. Build and test belong in `--setup-cmd`, which runs once and is not measured, and only `--benchmark-cmd` is repeated and measured.
+For Discovery, setup needs both a build and a test: the build rejects a candidate that does not compile and the test rejects one that is wrong. A validation outside Discovery runs whatever the user asked for.
 
-Each command must therefore be:
+Each command runs in its own shell, so nothing carries over between commands except files in the checkout. Each command must therefore be:
 
 - **root-relative** — change directory within the command only when necessary;
 - **self-contained** — perform its own required activation or setup;
 - **headless and non-interactive** — no GUI, prompts, or terminal input;
 - **repeatable** — do not depend on an IDE, shell alias, uncommitted file, or previous task;
 - **truthful** — return non-zero when its phase fails;
-- **runner-compatible** — use tools and paths that exist on the selected runner.
+- **runner-compatible** — use tools and paths that exist on the selected runner, in POSIX shell.
 
-The benchmark must write `artemis_results.json` or `artemis_results.csv` to the working directory (`$PWD`). Stdout is useful for diagnostics but is not the custom-metric channel.
+### The results file
+
+The benchmark reports its metrics by writing `artemis_results.json` or `artemis_results.csv`:
+
+- **JSON:** one object, or a list of objects, mapping metric names to numbers, for example `{"simulation_fps": 32.2}`.
+- **CSV:** metric names as column headers and one row per measurement, not `name,value` pairs.
+- **One file.** The runner searches the whole checkout, subfolders included. JSON wins over CSV, and among several files of one type the first one found is used, in no fixed order. Write exactly one, and delete any stale copy before writing it.
+- **Parseable, plain numbers.** A file that cannot be read gives no metrics for that run; an unreadable JSON file does not fall back to a CSV beside it.
+- **Fresh every run.** Repetitions read the file again, so write it anew each time rather than appending.
+
+Stdout is for diagnostics, not metrics, and a passing benchmark does not mean anything was measured: confirm the values in `changeset validation logs` (§5b).
 
 Do not configure Artemis with unverified commands unless verification was skipped under the rule above; then record them as unverified.
 
@@ -222,6 +232,8 @@ artemis --output-format json changeset validate "<changeset-id>" \
   --script "<script-id>" \
   --runner "<runner-name>" --wait
 ```
+
+`--wait` exits with code 6 when its `--timeout` (20 minutes by default) runs out. That means the CLI stopped waiting, not that the validation stopped. Check the branch's Script runs, or the runner, before running it again, or the same work runs twice.
 
 The validation script uses the same literal commands as the project defaults. Compile and test are unmeasured setup commands; the benchmark publishes the repository's custom metrics, so `--measure none` avoids adding command-runtime metrics unless they are part of the optimization target. `--version original` resolves the changeset's original version automatically. `--wait` returns the final per-command `exitCode`, runtime, resource usage, and status. Re-check later, or from a different session, with:
 

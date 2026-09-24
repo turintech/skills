@@ -95,6 +95,8 @@ Pass `--source-changeset` when a calling skill measured a branch: the run's base
 
 `--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `quickstart`, passes them here.
 
+`--execution-mode` defaults to `benchmark`, which runs and measures every version. `test` runs the commands only as a pass or fail gate, so measurements do not count, and `skip` runs nothing and grades by review. Keep the default for a measured run.
+
 `--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for LLM-judged metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
 
 ### How many times each version is measured
