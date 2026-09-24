@@ -47,11 +47,11 @@ Check silently, and skip later steps that are already done.
 
 Three starting points, one flow. Work out which from what arrived, not by asking.
 
-**A project URL or id.** This is the prompt behind **Set up with local agent** on a project's overview page. `https://<deployment>/projects/<project-id>/overview` carries the id in the path and the deployment in the origin. Confirm the CLI is authenticated to that deployment: a CLI logged in elsewhere reports the project as missing, which reads like a broken link, and any branch you create lands on the wrong deployment. Skip the welcome, ask how they want to follow along (section 3) in one line, do whatever section 5 finds missing, then section 7b.
+**A project URL or id.** This is the prompt behind **Set up with local agent** on a project's overview page. `https://<deployment>/projects/<project-id>/overview` carries the id in the path and the deployment in the origin. Confirm the CLI is authenticated to that deployment: a CLI logged in elsewhere reports the project as missing, which reads like a broken link, and any branch you create lands on the wrong deployment. Skip the welcome, ask how they want to follow along (section 3) in one line, do whatever section 5 finds missing, then 7b and section 7.
 
 **A repository but no project.** Inspect the checkout or offer to clone it, import it with `project-import`, then continue as above.
 
-**Nothing yet.** This is the prompt on the Connect your agent page, or "get started". Sections 2, 3 and 4 in order, then 5, then 7a or 7b.
+**Nothing yet.** This is the prompt on the Connect your agent page, or "get started". Sections 2, 3 and 4 in order, then 5, then section 7.
 
 Having a project does not mean the user has run anything. The first time you use a word the platform owns, say what it means in one short clause: a branch is Artemis's own copy of the code; a Discovery run is the agent trying versions and measuring each one.
 
@@ -66,29 +66,25 @@ For a user with nothing yet. Say four short lines:
 
 Say once, before the first run, that runs use account credits and the balance is in the Web UI header. Nothing more: no comparison, no analogy, no question, and do not repeat it.
 
-## 3. How to follow along
+## 3. Two questions, asked together
 
-Ask this once, at the start, before setup begins. One short question with two options:
+Ask both in one short message, straight after the welcome. Ask them even when the prompt says not to ask the user to choose settings: they are choices about the session, not run settings, and they are the only questions before the run.
 
-- **Terminal, with links (recommended).** The agent does the setup from the command line and gives a link to each Artemis page as it goes. Nothing else to install. Mark it **recommended** on the option itself.
-- **Computer use in the browser.** The agent also drives Chrome so the user watches each page change. It needs the Claude browser extension connected to this session, which is extra setup.
+1. **What to start with.** "I'd suggest our demo project, Particle Life (recommended): a small C++ simulation that is deliberately slow, so you can watch a real optimisation end to end in about 15 minutes before pointing Artemis at your own code. Or we can go straight to your own project." Mark the demo **recommended** on the option itself.
+2. **How to follow along.** "I'll work in the terminal and give you a link to each Artemis page as something appears on it (recommended). Would you rather watch it happen in your browser as well? That needs the Claude browser extension connected to this session." The terminal is the default; recommend it even when a browser is already connected.
 
-Recommend the terminal even when a browser is already connected: it is the quicker start, and the links show the same pages.
+For a project URL, skip the first question and ask the second in one line.
 
-If they choose the browser, hand the connection step to `ui-walkthrough` section 1 and tell it the browser is **optional**, so it makes one request and no more. If that does not connect, say so in one line and carry on in the terminal. Do not spend the session on browser setup; they can switch later.
+If they choose the browser, hand the connection step to `ui-walkthrough` section 1 and tell it the browser is **optional**, so it makes one request and no more. If that does not connect, say so in one line and carry on in the terminal; they can switch later. In the browser route, `ui-walkthrough` shows the page named at each step; tell it this is a **first-run demo** so it uses its watchable pacing.
 
-Remember the choice. In the browser route, `ui-walkthrough` shows the page named at each step below; tell it this is a **first-run demo** so it uses its watchable pacing.
+If they are undecided about the demo, recommend it again once and move on.
 
-## 4. Example or own project
+## 4. Demo or own project
 
-For a user with nothing yet. Recommend the example plainly, marked **recommended** on the option itself, and say why:
+Both go through the same seven steps (section 7). Only the starting point differs:
 
-"I'd suggest starting with our demo project, Particle Life (recommended). It is a small C++ simulation that is deliberately slow, so you can watch a real optimisation from start to finish in about 15 minutes and see what Artemis actually produces before pointing it at your own code. Would you like to do that, or go straight to your own project?"
-
-- Example: section 5, then 7a.
-- Their own project: ask one question, because it decides everything after it: where does the code live, repository URL and branch, and can Artemis reach it? Then section 5, `project-import`, and 7b.
-
-If they are undecided, recommend the example again once and move on.
+- **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with the inputs fixed in 7a.
+- **Their own project:** ask one question, because it decides everything after it: where does the code live, repository URL and branch, and can Artemis reach it? Then `project-import`, then 7b, then section 7.
 
 ## 5. Setup
 
@@ -109,84 +105,19 @@ Reuse a runner that is online **and on this machine**; install one only if there
 - **The user's credentials are theirs.** `cli-setup` owns the login order and the exact message. Never read, type, or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If there is nothing measurable, say so; do not fabricate a metric to satisfy the last step.
 
-## 7a. The Particle Life example
+## 7. The seven steps
 
-| Stage | Skill | Page | Explain |
+This mirrors what the Web UI's setup flow does by hand: an Artemis branch, commands that produce a number, a machine, a measured run, and a Discovery started from that branch. The demo and a user's own project both follow it.
+
+| Step | Skill | Command | For the demo |
 |---|---|---|---|
-| Import `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life` | `project-import` | Project | A project is a repository pinned at a commit |
-| Validation script from the inputs below | `repo-command-setup` | Project | Build, test and benchmark are stored once and reused. **Skip its verification pass for the demo**: these commands are known good, and the run measures them anyway. Do not ask, either way |
-| Start: 5 versions, model `gpt-5.6-sol`, three measurements per version | `discovery-start` | Discover, then the run | The original code is measured first, and each version three times, so the charts show a range |
-| Watch | `discovery-inspect` | Project overview, then the run, then its Experiments tab | Experiments are ideas; versions are attempts |
-| Result | `discovery-inspect` | Metrics, then the winning version, then its code change | Read the chart to find the winner, then look at the code that produced it |
-
-The user already chose the demo; that was the decision. Import, script, run, watch, result, in one pass.
-
-Do not check or ask about credits before the run: new accounts have them. If the run fails with a 402 or `INSUFFICIENT_BALANCE`, that is the account's credit, not a platform fault; say so and point to the balance in the Web UI header.
-
-Particle Life inputs:
-
-- compile: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel`
-- test: `ctest --test-dir build --output-on-failure`
-- benchmark: `python3 tools/benchmark.py --no-visualize`
-- target files: `--target-files src/simulation.cpp --target-files src/simulation.hpp`
-- task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.`
-- measurement: `--eval-mode fixed --eval-runs 3`
-- scoring: `--llm-metrics=false`
-- model: `gpt-5.6-sol`
-- runner: the one section 5 started or found
-
-Why these are fixed. The model is pinned because the win this demo exists to show, a spatial grid replacing the all-pairs loop, is model-dependent; the catalogue default turns it into a coin flip. If `artemis model list` does not offer `gpt-5.6-sol` on this deployment, fall back to the default, say so in one line, and continue. LLM-judged metrics are off because a judged score beside the measured `simulation_fps` invites the reader to treat an opinion as a measurement. Three measurements give the range the charts are built on; Particle Life measures in about three seconds, so this costs two minutes here and is not a default to copy onto a slow benchmark.
-
-### Watching the run in the browser
-
-The run is the part worth seeing. Stand on the page before each command runs, so the platform changes in front of the user: Projects before `project import`, the project overview before `discovery create`. `ui-walkthrough`'s *Arrive before the change, never after* owns the rule.
-
-1. Open the project. The overview lists the run that was just started.
-2. Move the pointer to that run and click it, so the user sees where it came from.
-3. Open the **Experiments** tab and **stay there**. Experiments appear as the agent thinks of them, so the page fills while the user watches.
-4. Leave the tab up while work continues. Read status from the CLI, not by flicking between tabs.
-5. Move to the versions and the result only once there is something measured to show.
-
-### Showing the result
-
-End on the code, not on a number:
-
-1. Open the run's **Metrics** tab and read the chart, so the user sees which version won and by how much.
-2. Click into that version.
-3. Show its **code change**: the actual diff Artemis wrote, and the thing worth retelling afterwards.
-4. Then its details, if there is anything worth pointing out.
-
-Say which numbers are measured and which are AI-judged, and that "BEST" is a blended score rather than always the fastest.
-
-## 7b. A project of their own
-
-This mirrors what the Web UI's setup flow does by hand: an Artemis branch, commands that produce a number, a machine, a measured run, and a Discovery started from that branch.
-
-### Settle which code you are looking at
-
-The prompt arrives in whatever directory the agent happens to be running in. If the origin remote does not match the project's `gitUrl`, say so and ask which checkout to work in rather than describing an unrelated repo. With no checkout at all the flow still works, because every command runs on the runner, but say that writing a benchmark without the code in front of you is slower and offer to clone it first.
-
-The project record carries a `gitHash`, but a new changeset is created from the **current head of the tracked branch**, which is often newer. Read the commit that went in with `artemis changeset versions <changeset-id> --project <id>` and report that one.
-
-### What "better" means here
-
-Particle Life ships a benchmark. A real repository usually does not, and Discovery cannot optimise what nobody measures.
-
-1. **Read the repository first:** build files, CI config, test layout, existing scripts, README. Most projects answer this themselves.
-2. **Then ask, once,** only what the code cannot tell you: what "better" means, which command represents it, and roughly how long it takes.
-3. If nothing worth measuring exists yet, say so and stop. That is a useful result.
-
-### The seven steps
-
-| Step | Skill | Command |
-|---|---|---|
-| 1. CLI installed and authenticated | `cli-setup` | `artemis status`, then return here |
-| 2. An Artemis branch over the current code | this skill | `artemis changeset create --project <id> --name <name>` |
-| 3. A runner that can build this project | `runner-setup` | Reuse one online **and on this machine**; install one only if there is none |
-| 4. Commands that produce a number | `repo-command-setup` | `artemis project scripts create ...`, build and test as `--setup-cmd`, the measured one as `--benchmark-cmd` |
-| 5. Run them on the branch | this skill | `artemis changeset validate <changeset-id> --project <id> --version original --runner <name> --wait` |
-| 6. Confirm metrics exist | this skill | `artemis changeset validation get`, then `changeset validation logs` for the values |
-| 7. Discovery from that branch | `discovery-start` | `artemis discovery create --source-changeset <changeset-id> ...` |
+| 1. CLI installed and authenticated | `cli-setup` | `artemis status`, then return here | Same |
+| 2. An Artemis branch over the current code | this skill | `artemis changeset create --project <id> --name <name>` | Same |
+| 3. A runner that can build this project | `runner-setup` | Reuse one online **and on this machine**; install one only if there is none | Same |
+| 4. Commands that produce a number | `repo-command-setup` | `artemis project scripts create ...`, build and test as `--setup-cmd`, the measured one as `--benchmark-cmd` | Commands fixed in 7a. No toolchain probe or authoring, and tell `repo-command-setup` to skip its own verification: step 5 is the verification |
+| 5. Run them on the branch | this skill | `artemis changeset validate <changeset-id> --project <id> --version original --runner <name> --wait` | Same, about a minute |
+| 6. Confirm metrics exist | this skill | `artemis changeset validation get`, then `changeset validation logs` for the values | Same: `simulation_fps` near 32 |
+| 7. Discovery from that branch | `discovery-start` | `artemis discovery create --source-changeset <changeset-id> ...` | Settings and target files from 7a |
 
 ### Step 2, the branch
 
@@ -196,11 +127,13 @@ artemis --output-format json changeset create --project "<project-id>" --name "a
 
 A new changeset holds one version: the project's code as it is now. Capture its id; steps 5 and 7 need it. The Web UI calls this a branch and names it `artemis/measure`; keep that name unless asked otherwise.
 
+The project record carries a `gitHash`, but a new changeset is created from the **current head of the tracked branch**, which is often newer. Read the commit that went in with `artemis changeset versions <changeset-id> --project <id>` and report that one.
+
 For the script: there is no `--compile-cmd` or `--test-cmd`. Building and testing are `--setup-cmd`, run once and not measured; only `--benchmark-cmd` is repeated and measured. Pass `--measure none` unless command runtime is genuinely the target, because the default adds a runtime metric beside the repository's own and the user then has two numbers to choose between.
 
 ### Before step 4, ask the runner what it has
 
-An online runner is not a runner that can build this project. Its environment is whatever shell started it. Probe before writing commands that assume a toolchain:
+Own projects only. An online runner is not a runner that can build this project. Its environment is whatever shell started it. Probe before writing commands that assume a toolchain:
 
 ```bash
 artemis project scripts create --project "<project-id>" --name "toolchain-probe" \
@@ -238,22 +171,76 @@ Report the measured value in the repository's own units, never the runtime of th
 
 First check `artemis discovery list --project <id> --all`. If a run is queued, running, or awaiting approval, give its link and hand over to `discovery-inspect`; do not create another.
 
-Settings for this flow, so the user is never asked: 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`, model `gpt-5.6-sol`. **`--model` is required**; the API has no default. If the catalogue lacks `gpt-5.6-sol`, pick another from `artemis model list`, say which in one line, and continue.
+Settings, so the user is never asked: 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`, model `gpt-5.6-terra`. **`--model` is required**; the API has no default. If the catalogue lacks `gpt-5.6-terra`, use the catalogue default, say which in one line, and continue.
 
 ```bash
 artemis discovery create --project "<project-id>" --source-changeset "<changeset-id>" \
-  --runner "<runner-name>" --script "<script-id>" --model gpt-5.6-sol \
+  --runner "<runner-name>" --script "<script-id>" --model gpt-5.6-terra \
   --task "<the user's goal, in their words>" \
   --versions 5 --eval-mode fixed --eval-runs 3 --llm-metrics=false
 ```
 
 Add `--target-files <path>` (repeatable) only when the repository made it obvious which files carry the work; a wrong guess hides the code that matters. `--source-changeset` copies the measured branch into the run's baseline, so Discovery starts from the code and numbers the user just watched.
 
-## 8. Showing it
+Then follow the run with `discovery-inspect`: experiments as they arrive, then the result.
 
-In the browser route, hand each step to `ui-walkthrough` and follow its *Arrive before the change, never after*: the Projects list before an import, the project page before the branch appears, the branch before the run, the run's Experiments tab while versions are generated. The demo's own choreography is in 7a.
+## 7a. The demo's fixed inputs
 
-In the terminal route, which is the recommended one, give a link each time something appears in Artemis: the project after import, then the project again with the page to open (its branches, the run, the run's Experiments or Metrics tab). Name the page, because run paths differ between deployments.
+The user already chose the demo; that was the decision. Go through section 7 in one pass with these inputs:
+
+- compile: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel`
+- test: `ctest --test-dir build --output-on-failure`
+- benchmark: `python3 tools/benchmark.py --no-visualize`
+- target files: `--target-files src/simulation.cpp --target-files src/simulation.hpp`
+- task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.`
+- measurement: `--eval-mode fixed --eval-runs 3`
+- scoring: `--llm-metrics=false`
+- model: `gpt-5.6-terra`
+- runner: the one section 5 started or found
+
+Why these are fixed. The model is pinned because the win this demo exists to show, a spatial grid replacing the all-pairs loop, is model-dependent; the catalogue default turns it into a coin flip. `gpt-5.6-terra` found it on dev on 24 Sept (11.8x). LLM-judged metrics are off because a judged score beside the measured `simulation_fps` invites the reader to treat an opinion as a measurement. Three measurements give the range the charts are built on; Particle Life measures in about three seconds, so this costs two minutes here and is not a default to copy onto a slow benchmark.
+
+Do not check or ask about credits before the run: new accounts have them. If the run fails with a 402 or `INSUFFICIENT_BALANCE`, that is the account's credit, not a platform fault; say so and point to the balance in the Web UI header.
+
+### Showing the result
+
+End on the code, not on a number:
+
+1. The run's **Metrics** tab: which version won and by how much.
+2. That version's **code change**: the actual diff Artemis wrote, and the thing worth retelling afterwards.
+
+Say which numbers are measured and which are AI-judged, and that "BEST" is a blended score rather than always the fastest.
+
+## 7b. Before section 7 on their own code
+
+### Settle which code you are looking at
+
+The prompt arrives in whatever directory the agent happens to be running in. If the origin remote does not match the project's `gitUrl`, say so and ask which checkout to work in rather than describing an unrelated repo. With no checkout at all the flow still works, because every command runs on the runner, but say that writing a benchmark without the code in front of you is slower and offer to clone it first.
+
+### What "better" means here
+
+Particle Life ships a benchmark. A real repository usually does not, and Discovery cannot optimise what nobody measures.
+
+1. **Read the repository first:** build files, CI config, test layout, existing scripts, README. Most projects answer this themselves.
+2. **Then ask, once,** only what the code cannot tell you: what "better" means, which command represents it, and roughly how long it takes.
+3. If nothing worth measuring exists yet, say so and stop. That is a useful result.
+
+## 8. Where to look
+
+The user should always know where the thing that just happened is. Each time something appears in Artemis, say it in one or two plain sentences: what happened, the link, and what they will see there. Do this in both routes; in the browser route the page is already open, so say what to look at on it.
+
+| Moment | Link | What they will see |
+|---|---|---|
+| Runner online | `<base-url>/settings/runners` | Their machine listed as online |
+| Project imported | `<base-url>/projects/<project-id>` | The project's overview page, under the name you gave it |
+| Branch created | The project, then **Branches** | A branch named `artemis/measure` |
+| Measured run finished | The branch's **Script runs** | One run, passed, with the measured number (for the demo, `simulation_fps` near 32) |
+| Discovery started | The project, then **Discover**, then the run | The run, with experiments filling in as the agent plans them |
+| Result | The run's **Metrics** tab, then the winning version | Which version won, and its code change |
+
+For example: "Your project is in Artemis: [Open project](<link>). You'll see the Particle Life overview; nothing has run yet." Link the project and name the page for anything deeper, because run and branch paths differ between deployments. Keep it to what is on screen; the user does not need the command behind it.
+
+In the browser route, hand each step to `ui-walkthrough` and follow its *Arrive before the change, never after*: the Projects list before an import, the project page before the branch appears, the branch before the measured run, the run's Experiments tab while versions are generated, then Metrics and the winning version's code change.
 
 ## 9. Human-only steps
 
@@ -268,6 +255,7 @@ In the terminal route, which is the recommended one, give a link each time somet
 | Situation | Do |
 |---|---|
 | The browser route fails | Continue in the terminal with links |
+| The run fails before any version exists, and its narration shows a model error (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Start one fresh run from the same branch with `gpt-5.6-terra`, or the catalogue default if Terra was the model that failed. Say in one line which model failed and which you are using. Once only, and never for a build, test or benchmark failure: those are the code's, and a new model will not fix them |
 | The CLI is missing, unauthenticated, or older than 1.1.8 | `cli-setup`, then return to where you were |
 | The project URL's deployment is not the one the CLI is logged into | Say both, and settle it before creating anything |
 | `uname -s` reports `Darwin` | There is no macOS runner build. Say so before recommending anything, and use a runner on another machine |
@@ -296,11 +284,12 @@ Say two things once: the run does not depend on this session and continues on th
 ## Checklist
 
 - [ ] State checked before asking anything, and the starting point taken from what arrived
-- [ ] Terminal recommended and the browser offered as the alternative, once, at the start
+- [ ] Both opening questions asked together: demo (recommended) or own project, and terminal (recommended) or browser
 - [ ] Example recommended to anyone with nothing yet
 - [ ] Every human-only step named as the user's
 - [ ] Each step handed to its owning skill
-- [ ] For a project: changeset id captured, commands verified by running them, metric values seen in the validation logs
+- [ ] Changeset id captured, commands run on the branch, metric values seen in the validation logs, for the demo as well as a project
+- [ ] A link and what they will see given each time something appeared in Artemis (section 8)
 - [ ] Discovery started from the branch, with settings fixed rather than asked
 - [ ] Readiness report given (section 11): CLI, runner, work, and what is still the user's, each from a check that ran
 - [ ] Result reported with measured numbers and links, and the runner's stop command given
