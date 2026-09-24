@@ -24,7 +24,7 @@ metadata:
 
 ## Operating rule: inspect, resume, delegate
 
-Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not re-import a project that exists, start a second runner on a machine that has one, replace commands that already produce a number, or start another Discovery when one is queued or running.
+Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not re-import a project that exists, start a second runner on a machine that has one, replace commands that already produce a number, create a second `artemis/measure` branch, or start another Discovery when one is queued, running, or has already completed for the same request.
 
 Carry these between skills so nothing is asked twice: deployment and whether the CLI is authenticated to it; the CLI download directory, when the prompt gave one, for `cli-setup`; repository URL and branch; project id; changeset id and the commit it holds; script id; runner name and what its machine has installed; validation id; run id.
 
@@ -125,6 +125,8 @@ This mirrors what the Web UI's setup flow does by hand: an Artemis branch, comma
 artemis --output-format json changeset create --project "<project-id>" --name "artemis/measure"
 ```
 
+If the project already has a changeset named `artemis/measure` (`artemis --output-format json changeset list --project <id>`), reuse the newest one instead of creating another, unless the project's code has moved on since: its `baseVersionSha` (`changeset get`) differs from the project's `gitHash`.
+
 A new changeset holds one version: the project's code as it is now. Capture its id; steps 5 and 7 need it. The Web UI calls this a branch and names it `artemis/measure`; keep that name unless asked otherwise.
 
 The project record carries a `gitHash`, but a new changeset is created from the **current head of the tracked branch**, which is often newer. Read the commit that went in with `artemis changeset versions <changeset-id> --project <id>` and report that one.
@@ -151,6 +153,8 @@ artemis changeset validate "<changeset-id>" --project "<project-id>" --version o
   --script "<script-id>" --runner "<runner-name>" --wait
 ```
 
+When resuming, run this step again even if the branch was measured before: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found. It costs runner time, not credits.
+
 `--project` and `--runner` are required. `--wait` gives up after 20 minutes and exits 6, so pass `--timeout` for a slower benchmark, and say how long you expect it to take. Run it on the runner, through the platform, never locally: a local run proves nothing about the machine Discovery will use.
 
 This is the same primitive Discovery uses for every version, so a pass here means Discovery can run, and the user has a real number before credits are spent. The run measures the same code again as its own baseline; expect the two numbers to agree, and say so if they do not, because that is evidence of a noisy benchmark.
@@ -168,7 +172,7 @@ Report the measured value in the repository's own units, never the runtime of th
 
 ### Step 7, the run
 
-First check `artemis discovery list --project <id> --all`. If a run is queued, running, or awaiting approval, give its link and hand over to `discovery-inspect`; do not create another.
+First check `artemis discovery list --project <id> --all`. If a run is queued, running, or awaiting approval, give its link and hand over to `discovery-inspect`; do not create another. If one has already completed and the user asked for a first run, that request is met: give its result (the best measured value against the baseline) with the link, and offer to steer it (`discovery-steer`), start a fresh run, or set up their own project.
 
 Settings, so the user is never asked: 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`, and the model `gpt-5.6-terra`. This is the one place the model is named; change it here. **`--model` is required**; the API has no default. If the catalogue lacks this model, use the catalogue default, say which in one line, and continue.
 
@@ -213,6 +217,8 @@ Say which numbers are measured and which are AI-judged, and that "BEST" is a ble
 ## 7b. Before section 7 on their own code
 
 ### Settle which code you are looking at
+
+Skip this when the project already has a script whose measured run produces metrics: the code is only needed to write or fix commands.
 
 The prompt arrives in whatever directory the agent happens to be running in. If the origin remote does not match the project's `gitUrl`, say so and ask which checkout to work in rather than describing an unrelated repo. With no checkout at all the flow still works, because every command runs on the runner, but say that writing a benchmark without the code in front of you is slower and offer to clone it first.
 
