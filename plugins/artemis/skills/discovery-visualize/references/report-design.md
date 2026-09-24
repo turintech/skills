@@ -8,14 +8,14 @@ Users may request any presentation. Without further direction, optimize the open
 
 For each target metric:
 
-1. **Neutral title** — `<metric>: baseline vs best measured version`. Keep values out of the title; the comparison below owns them.
-2. **Compact provenance** — project/run identity, status, baseline SHA, `collectedAt`, and a prominent Web UI link.
-3. **Version-budget progress** — `versionCount` / `numVersions` when the host has a compact progress primitive.
-4. **Baseline-to-best comparison** — baseline mean → directional arrow with `pctBetter` above it → raw per-metric winner mean and version label. Include units and observation counts.
-5. **One trajectory per target metric** — generation-order means with a baseline reference and a mark on the raw per-metric winner (`perMetricWinners[metric].raw`). Gaps stay empty. Do not plot a running-best overlay unless the user is evaluating search speed.
-6. **Focused candidate** — the raw winner's experiment title/status, quality metrics when present, and one-line rationale.
-7. **Failure accounting** — show a concise warning only when versions failed, target metrics are missing, or the raw winner is ineligible.
-8. **Audit table** — every version: lifecycle, execution, fitness, target means, % vs baseline, experiment status. Collapse it if the host allows progressive disclosure.
+1. **Neutral title**: `<metric>: baseline vs best measured version`. Keep values out of the title; the comparison below owns them.
+2. **Compact provenance**: project/run identity, status, baseline SHA, `collectedAt`, and a prominent Web UI link.
+3. **Version-budget progress**: `versionCount` / `numVersions` when the host has a compact progress primitive.
+4. **Baseline-to-best comparison**: baseline mean → directional arrow with `pctBetter` above it → raw per-metric winner mean and version label. Include units and observation counts.
+5. **One trajectory per target metric**: generation-order means with a baseline reference and a mark on the raw per-metric winner (`perMetricWinners[metric].raw`). Gaps stay empty. Do not plot a running-best overlay unless the user is evaluating search speed.
+6. **Focused candidate**: the raw winner's experiment title/status, quality metrics when present, and one-line rationale.
+7. **Failure accounting**: show a concise warning only when versions failed, target metrics are missing, or the raw winner is ineligible.
+8. **Audit table**: every version: lifecycle, execution, fitness, target means, % vs baseline, experiment status. Collapse it if the host allows progressive disclosure.
 
 Use `perMetricWinners[metric].raw` for the default comparison. Do not introduce “eligible” in the title or primary comparison. If raw and eligible differ, retain the raw result as the measured headline, add a warning that names the failed gate, and show the eligible alternative as secondary context. Eligibility is a report-safety filter, not a measurement or statistical conclusion.
 

@@ -45,7 +45,10 @@ def extract_json(text: str) -> Any:
         raise ValueError("CLI produced no stdout")
     for index, char in enumerate(text):
         if char in "{[":
-            obj, _end = json.JSONDecoder().raw_decode(text[index:])
+            try:
+                obj, _end = json.JSONDecoder().raw_decode(text[index:])
+            except json.JSONDecodeError:
+                continue  # a bracket inside logger text, not the payload
             return obj
     raise ValueError("no JSON object or array in CLI output")
 
@@ -82,7 +85,7 @@ def pct_better(baseline: float | None, value: float | None, higher_is_better: bo
     if baseline is None or value is None:
         return None
     if baseline == 0:
-        return 0.0
+        return None
     if higher_is_better:
         return ((value - baseline) / abs(baseline)) * 100.0
     return ((baseline - value) / abs(baseline)) * 100.0
@@ -260,7 +263,9 @@ def build_snapshot(
     base_url = infer_base_url(payloads.get("status"), base_url)
     project_id = run.get("projectId")
     run_id = run["id"]
-    web_url = f"{base_url}/projects/{project_id}/discovery/{run_id}" if base_url and project_id else None
+    # Run paths differ between deployments; the project page is the stable link.
+    project_url = f"{base_url}/projects/{project_id}" if base_url and project_id else None
+    web_url = f"{project_url}/discover/{run_id}" if project_url else None
 
     experiments_by_id = {item["id"]: item for item in experiments_raw if item.get("id")}
 
@@ -474,6 +479,7 @@ def build_snapshot(
             "createdAt": run.get("createdAt"),
             "updatedAt": run.get("updatedAt"),
             "runnerName": run.get("runnerName"),
+            "projectUrl": project_url,
             "webUrl": web_url,
         },
         "metrics": list(metric_defs.values()),

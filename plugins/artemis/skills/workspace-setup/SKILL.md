@@ -35,7 +35,7 @@ These sketches show one way to meet the requirements. Adapt them to the reposito
 Compile syncs the candidate into the built tree and rebuilds:
 
 ```bash
-set -euo pipefail
+set -eu
 ORIG="$PWD"
 WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
 # confirm the workspace is seeded at the platform commit, then:
@@ -46,7 +46,7 @@ WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
 Benchmark measures that tree and copies results back to `$PWD`:
 
 ```bash
-set -euo pipefail
+set -eu
 ORIG="$PWD"
 WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
 rm -f "$ORIG/artemis_results.json" "$ORIG/artemis_results.csv"

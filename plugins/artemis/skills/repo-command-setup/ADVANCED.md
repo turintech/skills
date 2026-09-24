@@ -1,6 +1,6 @@
 # Advanced repository command patterns
 
-Use these patterns only when the clean-checkout contract in `SKILL.md` is insufficient. Start by identifying the specific problem being solved:
+Use these patterns only when the clean-checkout contract in `SKILL.md` is insufficient. Runner commands run under `/bin/sh`, so write POSIX shell: no `pipefail`, `[[ ]]`, arrays or `PIPESTATUS`. Start by identifying the specific problem being solved:
 
 - **Persistent build workspace solves expensive clean rebuilds.** Reinstalling dependencies, regenerating assets, or recompiling a large project for every version can dominate the optimization budget. A dedicated workspace preserves costly machine-local state while refreshing the source under test.
 - **Managed service lifecycle solves benchmarks that require a long-running process.** The command sequence must stop the old service, install the candidate version, start that exact version, wait for readiness, and prevent stale processes from serving the benchmark.
@@ -24,7 +24,7 @@ Create a dedicated runner-owned clone or workspace. Never point this pattern at 
 Example compile command:
 
 ```bash
-set -euo pipefail
+set -eu
 ORIG="$PWD"
 WORKSPACE="/srv/artemis/workspaces/my-project"
 test -f "$WORKSPACE/.artemis-managed-workspace"
@@ -44,7 +44,7 @@ cd /srv/artemis/workspaces/my-project && <test-command>
 The benchmark must copy its result back to the directory Artemis is observing:
 
 ```bash
-set -euo pipefail
+set -eu
 ORIG="$PWD"
 cd /srv/artemis/workspaces/my-project
 rm -f artemis_results.json artemis_results.csv
@@ -79,7 +79,7 @@ Use this when tests or benchmarks require a server, model endpoint, database, or
 Extend the persistent workspace with explicit ownership, startup, and readiness checks. Prefer a PID file or service manager over broad `pkill -f` matching.
 
 ```bash
-set -euo pipefail
+set -eu
 WORKSPACE="/srv/artemis/workspaces/my-service"
 PIDFILE="$WORKSPACE/.artemis-service.pid"
 
@@ -206,7 +206,7 @@ Reduce only understood noise:
 - Verbose build steps: capture output and print it only on failure.
 
 ```bash
-set -euo pipefail
+set -eu
 BUILD_LOG=".artemis_run/build.log"
 mkdir -p "$(dirname "$BUILD_LOG")"
 <build-command> >"$BUILD_LOG" 2>&1 || {
@@ -249,7 +249,7 @@ Do not overwrite a real checkout's Git metadata.
 - **Permission denied:** verify the runner user owns the dedicated workspace and outputs.
 - **Server starts but benchmark fails:** inspect readiness, port ownership, and service logs.
 - **Metrics missing:** remove stale files, verify exact filename and working directory, and ensure every value is numeric.
-- **Harness or script bug found only on the runner:** fix in Git, `project pull`, create a new empty changeset, then re-validate — see SKILL.md §5b.
+- **Harness or script bug found only on the runner:** fix in Git, `project pull`, create a new empty changeset, then re-validate: see SKILL.md §5b.
 - **Numbers drift:** pin thread counts, discard warm-up iterations, control shared-machine load, and use a statistic validated against repeated runs.
 
 After fixing an advanced case, rerun compile, test, and benchmark in order and record every machine-level prerequisite that remains.

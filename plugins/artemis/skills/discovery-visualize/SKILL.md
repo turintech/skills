@@ -61,6 +61,7 @@ These override any host chart default:
 - Rank by the raw target metric, not `fitness`. Show fitness only as a separate platform score.
 - Use the **raw** per-metric winner in the default headline comparison. A per-metric **eligible** winner requires `lifecycle=completed`, `executionStatus=success`, and `experimentStatus != refuted`; when the raw winner fails that gate, warn clearly and show the eligible alternative secondarily.
 - Never claim one overall winner for multiple objectives unless the user supplied the aggregation rule.
+- If `higherIsBetterInferred` is true for a headline metric, the direction was guessed from its name. Confirm it with the user or the run's metrics schema before naming a winner.
 - Missing observations are gaps, not zeroes. `generation_failed` versions never reached the runner.
 - Plot and caption `mean` / `min` / `max` / `count`. Do not invent confidence intervals or UI `better` / `worse` / `noise` verdicts.
 - Keep worker measurements, agent-scored quality metrics, and experiment verdicts visually distinct.

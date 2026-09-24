@@ -1,6 +1,6 @@
 ---
 name: discovery-start
-description: Start an Artemis discovery run — create a validation script, pass it to discovery create, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
+description: Start an Artemis discovery run: create a validation script, pass it to discovery create, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -12,7 +12,7 @@ metadata:
 ## At a glance
 
 - **Problem:** Creates a discovery run from a project validation script, waits for baseline finalization, and confirms that the run actually explored versions.
-- **Must be available:** An authenticated CLI, a user-confirmed online runner, an imported project UUID, a validation script built from verified commands, and the required benchmark metrics.
+- **Must be available:** An authenticated CLI, an online runner (confirmed by the user or supplied by the calling skill), an imported project UUID, a validation script built from verified commands, and the required benchmark metrics.
 - **Use / don't use:** Use only after runner, project, command, and metric readiness are resolved; use `discovery-inspect` rather than this skill for post-launch interpretation.
 - **Next skill:** Use `discovery-inspect` after baseline finalization and the exploration sanity check, or return to `project-import` if a baseline failure leaves the project unusable.
 
@@ -22,8 +22,8 @@ metadata:
 - An imported project UUID from `project-import`.
 - Verified, self-contained root-level commands from `repo-command-setup`, stored as a project validation script.
 - A benchmark that writes numeric `artemis_results.json` or `.csv` as defined in `repo-command-setup` §4, unless qualitative-only optimization is deliberate.
-- A user-confirmed runner that is online and compatible with those commands.
-- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
+- An online runner compatible with those commands, confirmed by the user or supplied by the calling skill.
+- Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option: any JSON filter works (e.g. `python3 -c`).
 
 ## Model selection
 
@@ -50,7 +50,7 @@ Check whether the project already has a queued or running discovery:
 - An offline runner blocks its queue indefinitely, including later work assigned to it.
 
 ```bash
-artemis --output-format json discovery list --project "<project-uuid>" \
+artemis --output-format json discovery list --project "<project-uuid>" --all \
   | jq -r '.docs[]?
       | select(.status=="created" or .status=="running" or .status=="awaiting_approval")
       | "\(.id) \(.status) vc=\(.versionCount)"'
@@ -87,8 +87,11 @@ artemis --output-format json discovery create \
   --model "<catalogue-uuid-or-model-type>" \
   --versions <n> \
   --llm-metrics=false \
+  [--source-changeset "<changeset-id>"] \
   [--target-files <path> --target-files <path>]
 ```
+
+Pass `--source-changeset` when a calling skill measured a branch: the run's baseline then starts from that branch's code and the numbers the user already saw. Without it the run starts from the project's imported code.
 
 `--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `quickstart`, passes them here.
 
@@ -105,14 +108,14 @@ The server default is one measurement per version, recorded on the run as `evalu
 
 Repetitions multiply **runner** time, not agent time: a 10-version run at three repeats performs 33 measurements instead of 11. On a benchmark measured in seconds that is a couple of extra minutes and well worth it. On one measured in tens of minutes it dominates the run.
 
-Decide with the user against their benchmark's duration rather than copying a number. Ask how long one benchmark takes, multiply by versions plus one for the baseline, and say the result out loud before creating the run.
+Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Ask how long one benchmark takes, multiply by versions plus one for the baseline, and say the result out loud before creating the run.
 
-Capture `run_id` from the JSON — every later command needs it.
+Capture `run_id` from the JSON: every later command needs it.
 
 Immediately give the user a clickable link:
 
 ```text
-[Open project](<base-url>/projects/<project-uuid>)
+[Open project](<deployment-base-url>/projects/<project-uuid>)
 ```
 
 From there, Discover lists the run. Run paths differ between deployments, so follow the app's navigation rather than building the URL.
@@ -168,7 +171,7 @@ A running run with zero versions may not have started exploration yet. If it bec
 
 ## 4. If the project looks corrupt after a failed baseline
 
-Occasionally a failed baseline leaves the project in a bad state on the Web UI. Correcting the runner or launch inputs and re-importing (`project-import`) is usually faster than trying to recover the same project.
+Occasionally a failed baseline leaves the project in a bad state on the Web UI. Only after `discovery-inspect` has ruled out an agent-side stop: correcting the runner or launch inputs and re-importing (`project-import`) is usually faster than trying to recover the same project.
 
 ## Checklist
 

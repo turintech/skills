@@ -8,14 +8,14 @@
 |---|---|
 | `collectedAt` | UTC timestamp of the collect |
 | `provenance.commands` | CLI commands used |
-| `run` | Status, task, counts, baseline SHA/observation, `webUrl` |
-| `metrics[]` | `key`, `source`, `higherIsBetter`, `kind` (`target` / `quality` / `harness`) |
+| `run` | Status, task, counts, baseline SHA/observation, `projectUrl` (stable), `webUrl` (the run on newer deployments; if it 404s, link the project and name the Discover page) |
+| `metrics[]` | `key`, `source`, `higherIsBetter`, `higherIsBetterInferred` (`true` when the direction was guessed from the name, not the run's schema), `kind` (`target` / `quality` / `harness`) |
 | `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them) |
 | `versions[]` | Lifecycle, execution, fitness, experiment fields, per-metric stats + `pctBetter`, `eligible` |
 | `experiments[]` | Title, status, confidence, parents, linked version |
 | `rankings[metric]` | Best-first rows with `eligible` and experiment status |
 | `runningBest[metric]` | Generation order; `mean` is `null` on gaps; `bestVersion`/`bestMean` carry forward |
-| `perMetricWinners[metric]` | `{raw, eligible}` — each may be `null` |
+| `perMetricWinners[metric]` | `{raw, eligible}`: each may be `null` |
 | `executionSummary` | Completed / generation_failed / scoring_failed / execution_* / `missingTargetMetrics` |
 | `experimentSummary` | validated / refuted / inconclusive counts |
 | `pareto` | `null` unless `--pareto` was passed |
@@ -31,9 +31,9 @@
 
 ## Kinds
 
-- **target** — worker metrics that are not compile/test/benchmark harness timings. These are the default plots.
-- **quality** — `source=agent`. Triage signal, not a measured error bound unless the description says otherwise.
-- **harness** — `compile_*`, `unit_test_*`, `benchmark_*`. Show on request or in the audit table, not as headline KPIs.
+- **target**: worker metrics that are not compile/test/benchmark harness timings. These are the default plots.
+- **quality**: `source=agent`. Triage signal, not a measured error bound unless the description says otherwise.
+- **harness**: `compile_*`, `unit_test_*`, `benchmark_*`. Show on request or in the audit table, not as headline KPIs.
 
 ## Do not add
 

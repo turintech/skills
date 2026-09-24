@@ -1,6 +1,6 @@
 ---
 name: cli-setup
-description: Install, update, and authenticate the supported artemis CLI through the official installer. Use when an end user needs to set up or update the artemis CLI.
+description: Install, update, and authenticate the Artemis CLI by direct download from the Artemis file server, then log in with an API key the user creates. Use when the CLI is missing, older than the skills' minimum, or not signed in to the target deployment.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -11,17 +11,17 @@ metadata:
 
 ## At a glance
 
-- **Problem:** Installs, updates, and authenticates the Artemis CLI through the supported installer without requiring GitHub or source access.
+- **Problem:** Installs, updates, and authenticates the Artemis CLI from the public file server, with no GitHub or source access needed.
 - **Must be available:** Network access to the file server and Artemis deployment, plus an API key created in the Web UI and entered by the user in their own terminal.
 - **Use / don't use:** Use when the CLI is missing, outdated, or unauthenticated; skip it when a working authenticated CLI is already available.
-- **Next skill:** Return to `artemis` routing, usually toward `runner-setup`, `project-import`, or `repo-command-setup`.
+- **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
 Use the supported distribution. This path requires no GitHub account and does not assume access to the CLI source repository.
 
 ## Requirements
 
 - Network access to `files.artemis.turintech.ai` and the deployment's base URL.
-- An API key for the target deployment, created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`, for example `https://artemis.turintech.ai/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
+- An API key for the target deployment, created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
 
 ## Check what is already there
 
@@ -38,19 +38,11 @@ If the version meets the skills' minimum (see *Verify*) and `status` is authenti
 
 Start here when there is no CLI, or it needs replacing. The deployment's own page at `<deployment-base-url>/settings/cli` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
 
-**Do not reach for the official installer script first.** It has `https://files.artemis.turintech.ai/artemis-cli` built in, and that path carries no release above **1.0.11**:
-
-| What you ask for | What you get |
-|---|---|
-| default, or `--nightly` | 1.0.11 |
-| `--dev` | a rolling build from 30 July |
-| `--version 1.1.8` | fails, no such directory on that path |
-
-None of those have `--script`, `--eval-runs`, `--source-changeset` or `project scripts`, so a CLI installed that way cannot start a discovery run at all. The installer is still the documented route and will be right again once its source is fixed, so it is kept at the end of this skill; until then it is a footnote, not the path.
+Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always read `artemis --version` after downloading, and fall back to the newest versioned release when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
 
 ### Where to download from
 
-**If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below. Check what it serves before keeping it: download, run `--version`, and compare with the minimum. The default directory, `https://files.artemis.turintech.ai/public/artemis-cli/latest/`, still serves **1.0.11**, which cannot start a discovery run. When the directory's build is older than the minimum, use the newest release from the public listing instead, and say in one line which directory was out of date.
+**If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below. Check what it serves before keeping it: download, run `--version`, and compare with the minimum. When the directory's build is older than the minimum, use the newest release from the public listing instead, and say in one line which directory was out of date.
 
 ```bash
 DIR="<the CLI download directory from the prompt>"
@@ -72,7 +64,7 @@ Only send the shared download credentials to `files.artemis.turintech.ai`. A dir
 | Windows, x64 | `artemis-cli-windows-amd64.exe` |
 | Windows, ARM64 | `artemis-cli-windows-arm64.exe` |
 
-If the directory has no file for this machine, never install a different architecture's build in its place: it either fails to start or runs under emulation and misbehaves later. Try the newest versioned release, which carries all six, and if that has none either, tell the user no build exists for this machine and stop. Channels differ: `latest/` has no Windows ARM64 build today, while the versioned releases do.
+If the directory has no file for this machine, never install a different architecture's build in its place: it either fails to start or runs under emulation and misbehaves later. Try the newest versioned release, which carries all six, and if that has none either, tell the user no build exists for this machine and stop. Channels can differ in which builds they carry, so read the listing rather than assuming.
 
 Without a directory from the prompt, install from the public path, which carries current releases. Check the listing first and take the newest, rather than trusting a version named here:
 
@@ -85,7 +77,7 @@ curl -s --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
 Then fetch that version for the platform, verify it, and put it on `PATH`:
 
 ```bash
-VER=1.1.8   # or the newest in the listing above, never older than the skills require
+VER=<the newest version in the listing above>
 PLATFORM="linux-amd64"   # from the table above
 curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
   "https://files.artemis.turintech.ai/public/artemis-cli/$VER/artemis-cli-$PLATFORM" \
@@ -95,15 +87,11 @@ artemis --version
 
 A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`.
 
-Report the stale installer source rather than working around it silently: it affects every new user who follows the published instructions.
-
 The download credentials above are the published shared ones from the Web UI and the docs, not per-user secrets, so they can be used directly. Any *API key* is still a secret and must never enter the conversation.
-
-Do not guess installer flags: the live installer may have changed.
 
 ## Authenticate
 
-The installer configures endpoints but the CLI still needs the API key described in Requirements.
+A direct download configures nothing, so the CLI needs a login with the API key described in Requirements.
 
 One invariant decides the order here: **the key is the last thing the user copies.** Anything they have to copy after it overwrites it on the clipboard.
 
@@ -141,7 +129,7 @@ Rules for that message:
 - **One command, one line.** If an environment variable is genuinely needed for an already-open terminal, put it on the same line so it is a single copy.
 - **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
 - **Say what "done" looks like**, in one sentence: the prompt is waiting, the key goes there, not in the chat.
-- Ask the follow-up question (demo or own project) in a **separate** message afterwards, never stacked under the command.
+- Ask any follow-up question in a separate message afterwards, never stacked under the command.
 
 Keep the surrounding chatter short. At this step the user needs the command, where to click, and nothing else: status reports, version notes and next-step previews all belong before or after, never wrapped around the one thing they must act on.
 
@@ -155,30 +143,25 @@ Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the 
 
 ### Deployments with a self-signed certificate
 
-**Only do this when TLS has actually failed.** `SSL_CERT_FILE` replaces the system trust store rather than adding to it, so pointing it at one deployment's bundle breaks every deployment whose certificate is in the store already. Setting it "to be safe", or carrying it over from another deployment, is how a working CLI stops working.
+Only when TLS has actually failed: `artemis login` or `artemis status` reports `x509` or "unknown authority". Ask the user where the deployment's CA bundle is. Never fetch a bundle they did not name, and never turn certificate verification off.
 
-Some deployments present a certificate the system trust store does not know, `dev` among them today. `artemis login` and `artemis status` then fail with an `x509` or "unknown authority" error. Only then, point the CLI at that deployment's CA bundle:
+On CLI 1.1.9 and newer, add the bundle for the CLI only:
 
 ```bash
-export SSL_CERT_FILE=/absolute/path/to/ca-bundle.pem
+export ARTEMIS_SSL_CERT_FILE=/absolute/path/to/ca-bundle.pem
 ```
 
-Four things to get right:
+It is trusted in addition to the system roots, so other deployments keep working, and it affects nothing but the CLI. `--ssl-cert-file <path>` does the same for a single command. CLI 1.1.8 has neither; update it rather than set `SSL_CERT_FILE`, which changes certificate trust for every program in that shell.
 
-- **The path is the user's, and absolute.** Ask where the bundle came from; never `~` or `$HOME` in a command they paste, because your `HOME` and their shell's need not match.
-- **This is the Go CLI's Linux behaviour.** On macOS and Windows the CLI uses the system trust store, so the variable does nothing there and the certificate has to be trusted by the operating system instead.
-- **It only lasts for that shell.** Making it permanent means editing their shell startup file, so say which file and why, and ask before writing to it. A login shell reads `~/.bash_profile` or `~/.profile` and ignores `~/.bashrc` unless one sources the other, so the wrong file looks like the fix silently failing.
-- **The runner does not need this variable.** It has `--ssl-verify <path>`, which scopes the bundle to its own connection. See `runner-setup`.
+- **The path is the user's, and absolute.** Never `~` or `$HOME` in a command they paste, because your `HOME` and their shell's need not match.
+- **It only lasts for that shell.** Making it permanent means editing their shell startup file, so say which file and why, and ask before writing to it. A login shell reads `~/.bash_profile` or `~/.profile` and ignores `~/.bashrc` unless one sources the other.
+- **The runner has its own setting**, `--ssl-verify <path>`. See `runner-setup`.
 
-Verify in a shell that did not set it interactively, rather than in the one where you just exported it:
+Verify in a fresh login shell rather than the one where you just exported it:
 
 ```bash
 bash -lc 'artemis status'
 ```
-
-Ask the user where the bundle came from before trusting it. Never fetch a CA bundle from a source the user did not name, and never disable certificate verification to work around this.
-
-When the user later moves to a deployment with an ordinary certificate, the variable has to come back out of their shell files, or it follows them and breaks the new one.
 
 ## Verify
 
@@ -196,51 +179,10 @@ artemis project scripts --help
 artemis discovery create --help
 ```
 
-`discovery create` must accept `--script` and `--llm-metrics`. Update the CLI if either flag is missing, using the direct download above rather than `--dev`: the installer's `dev` channel is months behind and has neither flag.
+`discovery create` must accept `--script` and `--llm-metrics`. If either flag is missing, update the CLI by direct download (*Where to download from*).
 
 Report the installed version, base URL, and authenticated user. Do not report success if `status` shows missing endpoints or an unauthenticated session.
 
 ## Update
 
 Record the current version, download the newer build the same way as a fresh install (*Where to download from*), and repeat status verification. An update replaces the binary only, so the existing login normally survives; log in again only if `status` says so. Report the version before and after. Do not change deployment while performing an update.
-
-## The official installer, once its source is fixed
-
-1. Open `<deployment-base-url>/settings/cli` for the deployment you are setting up. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
-2. Confirm whether this is hosted Artemis or an on-prem deployment with a custom base URL — it selects which invocation below to use.
-
-The installer detects the platform, installs the CLI, and configures service endpoints.
-
-**Check which version it produces before relying on it.** Its built-in download source currently carries nothing above 1.0.11, which cannot run a discovery run on a current deployment. On any deployment needing 1.1.8 or newer, use the direct download in *The installer's own download source is stale* below, then `artemis login`. Use the installer when 1.0.11 is genuinely enough, or once the file server is fixed.
-
-For hosted (SaaS) Artemis:
-
-```bash
-(
-  set -e
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
-    -o "$TMP/installer.sh"
-  chmod +x "$TMP/installer.sh"
-  "$TMP/installer.sh"
-)
-```
-
-For on-prem Artemis, add the deployment's base URL:
-
-```bash
-(
-  set -e
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
-    -o "$TMP/installer.sh"
-  chmod +x "$TMP/installer.sh"
-  "$TMP/installer.sh" --base-url https://your-custom.artemis.turintech.ai
-)
-```
-
-The installer selects two independent things. **Which build:** the newest stable release by default, or `--version X.Y.Z` to pin one, `--nightly` to include prereleases, `--dev` for the rolling development build. **Which deployment the CLI points at:** `--base-url` with a full URL, which writes the endpoint config and does not change where the binary is downloaded from.

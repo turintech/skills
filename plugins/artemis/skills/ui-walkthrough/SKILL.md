@@ -18,7 +18,7 @@ metadata:
 
 ## Requirements
 
-- The deployment base URL reported by `artemis status`, for example `https://artemis.turintech.ai`. Use whatever that command reports rather than any URL written here.
+- The deployment base URL reported by `artemis status`. Use whatever that command reports rather than any URL written here.
 - The project, discovery, and version IDs captured by the owning skill.
 
 ## 1. Check the browser is usable
@@ -26,7 +26,7 @@ metadata:
 1. **Load the browser tools before deciding they are missing.** On hosts where they are deferred, browser tools exist only as names until their schemas are loaded, so a plain look finds nothing even when a browser is connected and the session was started for it. In Claude Code, load them in one call:
 
    ```text
-   ToolSearch: select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp
+   ToolSearch: select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__list_connected_browsers,mcp__claude-in-chrome__select_browser,mcp__claude-in-chrome__switch_browser
    ```
 
    Only if that returns nothing is there genuinely no browser control. Then print the Web UI link and continue without the browser.
@@ -70,7 +70,7 @@ metadata:
 
 Deployments differ. On newer ones a Discovery run sits under `/discover` and has no separate page per version; on older ones it sits under `/discovery` and each version has its own page. **Do not build URLs from memory.**
 
-1. Open `<base-url>/projects/<project-id>` and let it settle.
+1. Open `<deployment-base-url>/projects/<project-id>` and let it settle.
 2. Read the page's own navigation and use those links: the project sections (Discover, Branches, Changesets, Files, Settings) and, inside a run, its tabs (Experiments, Versions, Metrics).
 3. Follow the link for what you want to show instead of typing a path.
 4. Reuse the paths you resolved for the rest of the session; they do not change while you work.
@@ -95,8 +95,10 @@ Apply it to every step that creates or changes something:
 | About to run | Be here first | What the user sees |
 |---|---|---|
 | `project import` | Projects | The new project appears in the list |
-| `discovery create` | The project overview | The run appears on the overview |
-| Anything that adds a version, branch or changeset | The tab that lists them | The row arrives while they watch |
+| `changeset create` | The project's Branches | The branch appears |
+| `changeset validate` | The branch's Script runs | The run appears, then passes with its number |
+| `discovery create` | The project's Discover list | The run appears in the list |
+| Anything else that adds a version | The tab that lists them | The row arrives while they watch |
 
 Then move the pointer to the thing that just appeared and click into it, so the next page is somewhere they saw you go rather than somewhere you jumped to.
 
@@ -139,7 +141,8 @@ Each of these is a separate tool call, so it is slower and costs more. That is t
 
 | Situation | Do |
 |---|---|
-| No browser tool after loading, or no connected browser | Offer the section 1 fixes and wait. Print the link and continue only once those have failed |
+| No browser tool after loading | Print the link and continue |
+| No connected browser | The section 1 request. If the caller said the browser is optional, hand back after that one request; otherwise offer the section 1 fixes, and print links only once they have failed |
 | The page header shows a different account | Stop and ask the user |
 | A 500 error mentioning `URL.canParse` | Ask the user to update Chrome to version 120 or newer |
 | "Project Not Found" | Check the account and the deployment base URL before retrying |
@@ -147,7 +150,7 @@ Each of these is a separate tool call, so it is slower and costs more. That is t
 
 ## Checklist
 
-- [ ] Browser tools loaded, a live browser probed, and the section 1 fixes offered before any fallback to links
+- [ ] Browser tools loaded, a live browser probed, and the section 1 fixes offered before any fallback to links, or one request only when the caller said the browser is optional
 - [ ] One tab, and the header account matches the CLI
 - [ ] Each page explained in chat, with the pointer on the relevant element
 - [ ] No state-changing click without an explicit yes, and no credential handled

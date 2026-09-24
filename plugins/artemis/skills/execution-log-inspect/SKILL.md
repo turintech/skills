@@ -28,7 +28,7 @@ artemis --output-format json discovery versions get "<version-id>"
 
 Record `processId`. If it is absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
 
-The current version record exposes `processId`. Prefer the version-native shortcut:
+Prefer the version-native shortcut:
 
 ```bash
 artemis discovery versions logs "<version-id>"

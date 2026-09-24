@@ -29,7 +29,7 @@ When the user names a downstream task and supplies its inputs, route directly to
 
 Artemis evaluates repository code on a user-supplied runner with root-level `compile`, `test`, and `benchmark` commands stored as a project validation script. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
 
-A **project** imports a repository branch at a specific commit; a **version** is the baseline or an AI-generated candidate; a **discovery run** generates and evaluates versions against a metric.
+A **project** imports a repository branch at a specific commit; a **changeset** (shown as a **branch** in the Web UI) holds versions of that code; a **version** is the baseline or an AI-generated candidate; a **validation** is one measured execution of a script on a version (a script run in the Web UI); a **Discovery run** generates and evaluates versions against a metric.
 
 ### Official docs
 
@@ -52,7 +52,7 @@ Give a clickable Markdown link with a short label:
 
 If the user is onboarding, route to `quickstart` instead of classifying further. That covers a brand-new user (they pasted the Quickstart prompt from the Connect your agent page, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), a repository that is not yet a project, and a request carrying a project URL or id (the prompt behind **Set up with local agent** on a project's overview page). `quickstart` works out which of those it is from what arrived and resumes at the first missing step.
 
-**This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding. Load `quickstart` first and let it call those skills in order. Skipping it drops the browser offer, the demo recommendation, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
+**This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding. Load `quickstart` first and let it call those skills in order. Once routed to `quickstart`, sections 3 to 5 below do not apply: it fixes the run settings and announces its steps instead of asking. Skipping it drops the browser offer, the demo recommendation, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
 
 | Workflow | Intended outcome | Required infrastructure |
 |---|---|---|
@@ -75,8 +75,7 @@ Use available local and Artemis state to inspect the repository and its document
 When resuming existing work, ask the user to paste the URL of the most specific entity they are viewing. Artemis URLs expose the required UUIDs:
 
 - `/projects/<project-id>/...`
-- the run: `/projects/<project-id>/discover/<run-id>` on newer deployments, `/projects/<project-id>/discovery/<run-id>` on older ones
-- anything deeper, such as versions, experiments, metrics, branches or changesets, follows those segments
+- anything deeper (a run, its versions, a branch) follows that segment; `ui-walkthrough` §2 has the path shapes
 
 Extract all available IDs from that URL; do not ask for each separately. Use the deployment base URL shown by the user.
 
@@ -84,8 +83,8 @@ Extract all available IDs from that URL; do not ask for each separately. Use the
 
 After creating, importing, or reporting a user-visible resource, give the user a clickable Web UI link immediately. Build it from the authenticated deployment base URL and the captured UUIDs:
 
-- project: `<base-url>/projects/<project-id>`
-- anything inside a project: give the project link and name the page to open, because deployments differ. A run is `/discover/<run-id>` on newer deployments and `/discovery/<run-id>` on older ones, and newer ones have no separate page per version.
+- project: `<deployment-base-url>/projects/<project-id>`
+- anything inside a project: give the project link and name the page to open, because path shapes differ between deployments
 
 Use Markdown links with a short label such as `Open project` or `Open Discovery`. Keep using UUIDs for CLI commands; a link is a user handoff, not a substitute for verified identifiers.
 
@@ -121,7 +120,7 @@ External changes requiring approval:
 
 Omit fields that do not apply. A missing prerequisite is not a user choice. The **seed** is the exact imported commit later checked against a discovery's `baselineVersionSha`.
 
-For discovery or validation, settle the correctness gate, metric and direction, runner, and stopping boundary; for discovery also settle the task, optional model, and version budget. For Maintain, settle scan/fix scope, model when overriding the default, and whether fixes stop at changesets, branches, or pull requests.
+For discovery or validation, settle the correctness gate, metric and direction, runner, and stopping boundary; for discovery also settle the task, model, and version budget. For Maintain, settle scan/fix scope, model when overriding the default, and whether fixes stop at changesets, branches, or pull requests.
 
 ## 5. Make long-running work deliberate
 

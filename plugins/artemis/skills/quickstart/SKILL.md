@@ -36,8 +36,8 @@ Check silently, and skip later steps that are already done.
 |---|---|
 | Assistant host | Claude Code, Cursor, Codex, or GitHub Copilot |
 | Browser control | Load the browser tools before looking; deferred tools report none until loaded. `ui-walkthrough` section 1 has the exact call |
-| Operating system | `uname -s`. `Darwin` means no runner on this machine (section 10) |
-| CLI | `artemis --version` is 1.1.8 or newer, and `artemis status` is authenticated to the deployment in hand |
+| Operating system | `uname -s`, for `runner-setup`'s platform check |
+| CLI | `artemis --version` meets the skills' minimum (`metadata.artemis-cli-min`), and `artemis status` is authenticated to the deployment in hand |
 | Runner | `artemis runner list` shows one online |
 | The project, when one was given | `artemis --output-format json project list --all`, matching the id. Keep its `gitUrl`, `gitBranch` and `gitHash`. **`--all` matters**: the default is one page of 20, so on a busy deployment a real project reads as missing without it |
 | Commands already stored | `artemis project scripts list --project <id>` |
@@ -96,7 +96,7 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 | Git access | `project-import` | Connects a Git provider if the account has none | Git |
 | Runner on this machine | `runner-setup` | Agrees to start a long-lived process | Runners, once online |
 
-Reuse a runner that is online **and on this machine**; install one only if there is none. Whichever runner this step starts or finds is the one every later step uses; pass it on rather than asking the user to choose.
+`runner-setup` decides whether a runner online can be reused (only one on this machine). Whichever runner this step starts or finds is the one every later step uses; pass it on rather than asking the user to choose.
 
 ## 6. Rules for this flow
 
@@ -113,8 +113,8 @@ This mirrors what the Web UI's setup flow does by hand: an Artemis branch, comma
 |---|---|---|---|
 | 1. CLI installed and authenticated | `cli-setup` | `artemis status`, then return here | Same |
 | 2. An Artemis branch over the current code | this skill | `artemis changeset create --project <id> --name <name>` | Same |
-| 3. A runner that can build this project | `runner-setup` | Reuse one online **and on this machine**; install one only if there is none | Same |
-| 4. Commands that produce a number | `repo-command-setup` | `artemis project scripts create ...`, build and test as `--setup-cmd`, the measured one as `--benchmark-cmd` | Commands fixed in 7a. No toolchain probe or authoring, and tell `repo-command-setup` to skip its own verification: step 5 is the verification |
+| 3. A runner that can build this project | `runner-setup` | Reuse or start one, per `runner-setup` | Same |
+| 4. Commands that produce a number | `repo-command-setup` | `artemis project scripts create ...`; pass it the changeset and runner from steps 2 and 3 so it validates on them instead of creating its own | Commands fixed in 7a. No toolchain probe or authoring, and tell `repo-command-setup` to skip its own verification: step 5 is the verification |
 | 5. Run them on the branch | this skill | `artemis changeset validate <changeset-id> --project <id> --version original --runner <name> --wait` | Same, about a minute |
 | 6. Confirm metrics exist | this skill | `artemis changeset validation get`, then `changeset validation logs` for the values | Same: `simulation_fps` near 32 |
 | 7. Discovery from that branch | `discovery-start` | `artemis discovery create --source-changeset <changeset-id> ...` | Settings and target files from 7a |
@@ -129,7 +129,6 @@ A new changeset holds one version: the project's code as it is now. Capture its 
 
 The project record carries a `gitHash`, but a new changeset is created from the **current head of the tracked branch**, which is often newer. Read the commit that went in with `artemis changeset versions <changeset-id> --project <id>` and report that one.
 
-For the script: there is no `--compile-cmd` or `--test-cmd`. Building and testing are `--setup-cmd`, run once and not measured; only `--benchmark-cmd` is repeated and measured. Pass `--measure none` unless command runtime is genuinely the target, because the default adds a runtime metric beside the repository's own and the user then has two numbers to choose between.
 
 ### Before step 4, ask the runner what it has
 
@@ -163,7 +162,7 @@ artemis --output-format json changeset validation get "<validation-id>" --projec
 artemis changeset validation logs "<validation-id>" --project "<project-id>"
 ```
 
-`validation get` reports exit codes and resources per command and **nothing about the benchmark's own metrics**. The logs are the proof: look for `artemis_results.json content:` and `Wrote N metric values to observation`. If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run it again before going near Discovery.
+`validation get` does not show the benchmark's metrics; the values are in `validation logs` (`repo-command-setup` §5b says what to look for). If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run it again before going near Discovery.
 
 Report the measured value in the repository's own units, never the runtime of the benchmark command.
 
@@ -171,11 +170,11 @@ Report the measured value in the repository's own units, never the runtime of th
 
 First check `artemis discovery list --project <id> --all`. If a run is queued, running, or awaiting approval, give its link and hand over to `discovery-inspect`; do not create another.
 
-Settings, so the user is never asked: 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`, model `gpt-5.6-terra`. **`--model` is required**; the API has no default. If the catalogue lacks `gpt-5.6-terra`, use the catalogue default, say which in one line, and continue.
+Settings, so the user is never asked: 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`, and the model `gpt-5.6-terra`. This is the one place the model is named; change it here. **`--model` is required**; the API has no default. If the catalogue lacks this model, use the catalogue default, say which in one line, and continue.
 
 ```bash
 artemis discovery create --project "<project-id>" --source-changeset "<changeset-id>" \
-  --runner "<runner-name>" --script "<script-id>" --model gpt-5.6-terra \
+  --runner "<runner-name>" --script "<script-id>" --model "<the model above>" \
   --task "<the user's goal, in their words>" \
   --versions 5 --eval-mode fixed --eval-runs 3 --llm-metrics=false
 ```
@@ -195,10 +194,10 @@ The user already chose the demo; that was the decision. Go through section 7 in 
 - task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.`
 - measurement: `--eval-mode fixed --eval-runs 3`
 - scoring: `--llm-metrics=false`
-- model: `gpt-5.6-terra`
+- model: the one named in step 7
 - runner: the one section 5 started or found
 
-Why these are fixed. The model is pinned because the win this demo exists to show, a spatial grid replacing the all-pairs loop, is model-dependent; the catalogue default turns it into a coin flip. `gpt-5.6-terra` found it on dev on 24 Sept (11.8x). LLM-judged metrics are off because a judged score beside the measured `simulation_fps` invites the reader to treat an opinion as a measurement. Three measurements give the range the charts are built on; Particle Life measures in about three seconds, so this costs two minutes here and is not a default to copy onto a slow benchmark.
+Why these are fixed. The model is pinned because the win this demo exists to show, a spatial grid replacing the all-pairs loop, is model-dependent; the catalogue default turns it into a coin flip. LLM-judged metrics are off because a judged score beside the measured `simulation_fps` invites the reader to treat an opinion as a measurement. Three measurements give the range the charts are built on; Particle Life measures in about three seconds, so this costs two minutes here and is not a default to copy onto a slow benchmark.
 
 Do not check or ask about credits before the run: new accounts have them. If the run fails with a 402 or `INSUFFICIENT_BALANCE`, that is the account's credit, not a platform fault; say so and point to the balance in the Web UI header.
 
@@ -231,8 +230,8 @@ The user should always know where the thing that just happened is. Each time som
 
 | Moment | Link | What they will see |
 |---|---|---|
-| Runner online | `<base-url>/settings/runners` | Their machine listed as online |
-| Project imported | `<base-url>/projects/<project-id>` | The project's overview page, under the name you gave it |
+| Runner online | Settings, then **Runners** | Their machine listed as online |
+| Project imported | `<deployment-base-url>/projects/<project-id>` | The project's overview page, under the name you gave it |
 | Branch created | The project, then **Branches** | A branch named `artemis/measure` |
 | Measured run finished | The branch's **Script runs** | One run, passed, with the measured number (for the demo, `simulation_fps` near 32) |
 | Discovery started | The project, then **Discover**, then the run | The run, with experiments filling in as the agent plans them |
@@ -240,7 +239,7 @@ The user should always know where the thing that just happened is. Each time som
 
 For example: "Your project is in Artemis: [Open project](<link>). You'll see the Particle Life overview; nothing has run yet." Link the project and name the page for anything deeper, because run and branch paths differ between deployments. Keep it to what is on screen; the user does not need the command behind it.
 
-In the browser route, hand each step to `ui-walkthrough` and follow its *Arrive before the change, never after*: the Projects list before an import, the project page before the branch appears, the branch before the measured run, the run's Experiments tab while versions are generated, then Metrics and the winning version's code change.
+In the browser route, hand each step to `ui-walkthrough` and follow its *Arrive before the change, never after* table, then end on the Metrics tab and the winning version's code change.
 
 ## 9. Human-only steps
 
@@ -255,10 +254,10 @@ In the browser route, hand each step to `ui-walkthrough` and follow its *Arrive 
 | Situation | Do |
 |---|---|
 | The browser route fails | Continue in the terminal with links |
-| The run fails before any version exists, and its narration shows a model error (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Start one fresh run from the same branch with `gpt-5.6-terra`, or the catalogue default if Terra was the model that failed. Say in one line which model failed and which you are using. Once only, and never for a build, test or benchmark failure: those are the code's, and a new model will not fix them |
-| The CLI is missing, unauthenticated, or older than 1.1.8 | `cli-setup`, then return to where you were |
+| The run fails before any version exists, and its narration shows a model error (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Start one fresh run from the same branch with the catalogue default, or with the step 7 model if a different one had been used. Say in one line which model failed and which you are using. Once only, and never for a build, test or benchmark failure: those are the code's, and a new model will not fix them |
+| The CLI is missing, unauthenticated, or older than the skills' minimum | `cli-setup`, then return to where you were |
 | The project URL's deployment is not the one the CLI is logged into | Say both, and settle it before creating anything |
-| `uname -s` reports `Darwin` | There is no macOS runner build. Say so before recommending anything, and use a runner on another machine |
+| `runner-setup` finds no runner build for this platform | Say so before recommending anything, and use a runner on another machine |
 | No runner, and the user does not want one | Say that nothing can be measured without a machine, and stop. Do not start a run |
 | The runner is online but lacks the toolchain | Name the missing tool and the machine. Installing it is the user's call |
 | The benchmark produces no numbers | Fix the script and re-run. Never start Discovery on an unmeasured branch |

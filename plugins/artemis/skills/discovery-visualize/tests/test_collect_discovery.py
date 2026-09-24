@@ -55,7 +55,8 @@ class MetricMathTests(unittest.TestCase):
         self.assertAlmostEqual(collector.pct_better(10.0, 6.0, False), 40.0)
         self.assertAlmostEqual(collector.pct_better(0.5, 0.7, True), 40.0)
         self.assertIsNone(collector.pct_better(None, 1.0, False))
-        self.assertEqual(collector.pct_better(0.0, 1.0, False), 0.0)
+        # A percentage of a zero baseline is undefined, and a report should show a gap, not 0%.
+        self.assertIsNone(collector.pct_better(0.0, 1.0, False))
 
     def test_kind_classification(self) -> None:
         self.assertEqual(collector.classify_kind("compile_runtime", "worker"), "harness")
@@ -84,7 +85,7 @@ class SnapshotFixtureTests(unittest.TestCase):
         self.assertEqual(snap["run"]["id"], "11111111-1111-1111-1111-111111111111")
         self.assertEqual(
             snap["run"]["webUrl"],
-            "https://artemis.example/projects/22222222-2222-2222-2222-222222222222/discovery/11111111-1111-1111-1111-111111111111",
+            "https://artemis.example/projects/22222222-2222-2222-2222-222222222222/discover/11111111-1111-1111-1111-111111111111",
         )
         kinds = {item["key"]: item["kind"] for item in snap["metrics"]}
         self.assertEqual(kinds["latency_ms"], "target")
