@@ -24,7 +24,7 @@ metadata:
 
 ## Operating rule: inspect, resume, delegate
 
-Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not re-import a project that exists, start a second runner on a machine that has one, replace commands that already produce a number, create a second `artemis/measure` branch, or start another Discovery when one is queued, running, or has already completed for the same request.
+Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not re-import a project that exists, start a second runner on a machine that has one, replace commands that already produce a number, create a second `artemis/measure` branch, or start another Discovery when one is queued, running, or has already completed for the same request. The one exception is the demo, when the user chooses a fresh start (section 4).
 
 Carry these between skills so nothing is asked twice: deployment and whether the CLI is authenticated to it; the CLI download directory, when the prompt gave one, for `cli-setup`; repository URL and branch; project id; changeset id and the commit it holds; script id; runner name and what its machine has installed; validation id; run id.
 
@@ -81,23 +81,26 @@ If they are undecided about the demo, recommend it again once and move on.
 
 ## 4. Show the plan
 
-Your next message after the two answers is the plan, and nothing else: no tool call first. Returning users see it once their starting point is clear. Show what is about to happen in one short message: a list of plain steps, one line each, marking what is already done. Only the steps this user needs; say which are theirs and roughly how long the long ones take. For a brand-new user choosing the demo:
+Your next message after the two answers is the plan, and nothing else: no tool call first. Returning users see it once their starting point is clear. Always as a numbered list, one step per line, never as a sentence. Only the steps this user needs; say which are theirs and roughly how long the long ones take. For a brand-new user choosing the demo:
 
-> **Here's the plan**
->
-> ✓ Artemis skills, already installed
-> ○ Install the Artemis CLI
-> ○ Sign in: you'll create an API key
-> ○ Start a runner on this machine
-> ○ Import Particle Life
-> ○ Measure it on a branch, about a minute
-> ○ Start a Discovery run, about 15 minutes
+```text
+Here's the plan:
+1. ✓ Artemis skills, already installed
+2. ○ Install the Artemis CLI
+3. ○ Sign in: you'll create an API key
+4. ○ Start a runner on this machine
+5. ○ Import Particle Life
+6. ○ Measure it on a branch, about a minute
+7. ○ Start a Discovery run, about 15 minutes
+```
 
-Show it again, with the finished steps ticked, when setup is done and at the close (section 11). Not after every step.
+Show it again when setup is done, when the measurement has its number, and at the close (section 11). Each ticked line ends with its link from the "Tell them" columns, for example `5. ✓ Particle Life imported: <project link>`.
 
 Then the starting point decides what comes before section 7:
 
-- **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. If `project-import` finds a Particle Life project to reuse, say once that you are reusing it; never announce an import first.
+- **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the project and when it was created:
+  - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in step 7, about 15 minutes, using credits.
+  - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch.
 - **Their own code:** where it lives (repository URL and branch, and can Artemis reach it), `project-import` if it is not a project yet, then 7b and section 7.
 - **A project URL:** 7b, then section 7.
 
@@ -113,8 +116,6 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 | Project imported or reused | `project-import` | Nothing | `<deployment-base-url>/projects/<project-id>`: the project's overview page |
 
 Whichever runner `runner-setup` reuses or starts is the one every later step uses; pass it on rather than asking.
-
-When setup is done, show the plan again with those steps ticked, before section 7.
 
 ## 6. Rules for this flow
 
@@ -151,7 +152,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units.
 
-**Step 7.** If a run is queued or running, give its link and hand over to `discovery-inspect`. If one has completed and the user asked for a first run, that request is met: give its result with the link, and offer to steer it (`discovery-steer`), start a fresh run, or set up their own project. Otherwise hand these to `discovery-start`:
+**Step 7.** If a run is queued or running, give its link and hand over to `discovery-inspect`. If one has completed and the user asked for a first run, that request is met: give its result with the link and the date it ran, never as this session's result, and offer to steer it (`discovery-steer`), start a fresh run, or set up their own project. Otherwise hand these to `discovery-start`:
 
 - `--source-changeset` from step 2, so the run starts from the code and numbers the user just saw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
@@ -228,7 +229,8 @@ Say once, while the run is going, that it continues on the platform if the termi
 
 - [ ] State checked first, and the starting point taken from what arrived
 - [ ] New users: both opening questions asked together; returning users: only where the code lives
-- [ ] The plan shown before starting, and again ticked after setup and at the close
+- [ ] The plan shown as a numbered list before starting, and again after setup, after the measurement and at the close, each ticked line with its link
+- [ ] Demo: an existing Particle Life project found before importing, and the user asked fresh or continue
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
 - [ ] A link and what they will see each time something appeared in Artemis

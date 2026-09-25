@@ -51,7 +51,7 @@ artemis project list --help
 artemis --output-format json project list --all
 ```
 
-When a calling skill passes an existing project, or asks for the demo and a project with that `gitUrl` already exists, reuse it. Otherwise default to importing a new project even if one already represents this repository and branch: separate projects keep work decoupled. Skim the existing list only to pick a project `--name` that won't be confused with another project against the same repository (e.g. suffix it with the task, target, or feature being optimised).
+When a calling skill passes an existing project, reuse it. Otherwise default to importing a new project even if one already represents this repository and branch: separate projects keep work decoupled. Skim the existing list only to pick a project `--name` that won't be confused with another project against the same repository (e.g. suffix it with the task, target, or feature being optimised).
 
 Reuse an existing project's UUID instead of importing again only when the user explicitly asks to continue that same prior work. Project names are labels, not stable identifiers; use UUIDs in every later command regardless.
 
