@@ -65,7 +65,7 @@ function BaselineToWinner() {
 
   return (
     <Stack gap={8}>
-      <H2>{snapshot.metric}: baseline vs best measured version</H2>
+      <H2>How far did {snapshot.metric} move from the baseline?</H2>
       <Row gap={18} align="center">
         <Stat
           value={`${snapshot.baseline.mean} ${snapshot.unit}`}
@@ -74,7 +74,7 @@ function BaselineToWinner() {
         <Stack gap={2} style={{ minWidth: 110, textAlign: "center" }}>
           <Text
             weight="semibold"
-            style={{ color: theme.category.green }}
+            style={{ color: theme.accent.primary }}
           >
             +{winner.pctBetter.toFixed(1)}%
           </Text>
@@ -143,7 +143,7 @@ function MetricTrajectory() {
 
   return (
     <Stack gap={8}>
-      <H2>{snapshot.metric}: generation-order trajectory</H2>
+      <H2>How did {snapshot.metric} change as versions were made?</H2>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
@@ -186,7 +186,7 @@ function MetricTrajectory() {
               r={point.label === winnerLabel ? 6 : 3}
               fill={
                 point.label === winnerLabel
-                  ? theme.category.green
+                  ? theme.accent.primary
                   : theme.accent.primary
               }
             />
@@ -198,7 +198,7 @@ function MetricTrajectory() {
               key={`best-${point.label}`}
               x={x(index) + 10}
               y={y(point.mean) + 4}
-              fill={theme.category.green}
+              fill={theme.accent.primary}
               fontSize="11"
               fontWeight="590"
             >
@@ -239,7 +239,7 @@ function MetricTrajectory() {
         ))}
       </svg>
       <Text size="small" tone="tertiary">
-        Observed mean in generation order. Green mark is the raw winner (
+        Observed mean in generation order. The accent mark is the raw winner (
         {winnerLabel}), not a running-best overlay. Baseline{" "}
         {snapshot.baselineSha}. Source: {snapshot.source}.
       </Text>
@@ -251,7 +251,11 @@ export default function DiscoveryOverviewExample() {
   return (
     <Stack gap={20}>
       <Stack gap={5}>
-        <H1>{snapshot.metric}: baseline vs best measured version</H1>
+        <H1>
+          {snapshot.rawWinner.label} cuts {snapshot.metric} by{" "}
+          {snapshot.rawWinner.pctBetter}%, from {snapshot.baseline.mean} to{" "}
+          {snapshot.rawWinner.mean} {snapshot.unit}
+        </H1>
         <Text tone="secondary">
           Baseline {snapshot.baselineSha} · collected {snapshot.collectedAt}
         </Text>
@@ -279,6 +283,16 @@ export default function DiscoveryOverviewExample() {
       ) : null}
 
       <MetricTrajectory />
+      <Callout
+        tone="info"
+        title={`${snapshot.rawWinner.label} is the best measured version, and nothing after it beat it.`}
+      >
+        <Text>
+          Each version is a mean of {snapshot.rawWinner.count} runs. Say what
+          the trajectory shows, with numbers from the snapshot: when the best
+          result arrived and whether later versions came close.
+        </Text>
+      </Callout>
     </Stack>
   );
 }

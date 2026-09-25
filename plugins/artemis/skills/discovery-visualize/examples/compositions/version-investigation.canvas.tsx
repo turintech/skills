@@ -1,8 +1,10 @@
 import {
+  Callout,
   Card,
   CardBody,
   CardHeader,
   H1,
+  H2,
   Link,
   Stack,
   Text,
@@ -58,13 +60,17 @@ export default function VersionInvestigationExample() {
   return (
     <Stack gap={18}>
       <Stack gap={5}>
-        <H1>Versions ranked by simulation_fps improvement</H1>
+        <H1>
+          {versions[0].label} leads with +{versions[0].pctBetter.toFixed(1)}% on
+          simulation_fps by building on {versions[0].parent?.label}
+        </H1>
         <Text tone="secondary">
           Open a version to read its intent and lineage.
         </Text>
         <Link href={discoveryUrl}>Open discovery in Artemis</Link>
       </Stack>
 
+      <H2>What did each version try, and how did it measure?</H2>
       <Stack gap={8}>
         {versions.map((version) => (
           <div key={version.label}>
@@ -80,12 +86,7 @@ export default function VersionInvestigationExample() {
                   <Text
                     as="span"
                     weight="semibold"
-                    style={{
-                      color:
-                        version.pctBetter >= 0
-                          ? theme.category.green
-                          : theme.category.red,
-                    }}
+                    style={{ color: theme.text.primary }}
                   >
                     {version.pctBetter > 0 ? "+" : ""}
                     {version.pctBetter.toFixed(1)}%
@@ -116,10 +117,20 @@ export default function VersionInvestigationExample() {
         ))}
       </Stack>
 
+      <Callout
+        tone="info"
+        title="The gain came from building on the ordered merge, not from the first idea."
+      >
+        <Text>
+          v1&apos;s axis-first rejection measured slower than the baseline; v2
+          and v3 carried the improvement. State the answer first, then the
+          evidence, using numbers from the snapshot.
+        </Text>
+      </Callout>
       <Text size="small" tone="tertiary">
-        Best first by simulation_fps mean vs baseline. Green/red shows measured
-        improvement/regression, not experiment status. Blue version numbers
-        open Artemis.
+        Best first by simulation_fps mean vs baseline. Signs show the measured
+        change; colour does not encode better or worse. Version numbers open
+        Artemis.
       </Text>
     </Stack>
   );

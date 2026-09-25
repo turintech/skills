@@ -1,5 +1,7 @@
 # Discovery visualization component catalog
 
+The recipes below are TypeScript for a Cursor canvas. For the HTML report every host builds by default, the same figures are functions in the kit: see [report-kit.md](report-kit.md).
+
 Choose recipes by the user's question. Read only the matching files, copy the
 component into the host artifact, and adapt its props to the normalized
 snapshot. These files are examples, not an importable runtime package.

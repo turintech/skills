@@ -39,7 +39,7 @@ export function BaselineComparison({
 
   return (
     <Stack gap={8}>
-      <H2>{metric}: baseline vs best measured version</H2>
+      <H2>How far did {metric} move from the baseline?</H2>
       <Row gap={16} align="center">
         <Stat
           value={valueLabel(baseline.mean, unit)}
@@ -49,10 +49,7 @@ export function BaselineComparison({
           <Text
             weight="semibold"
             style={{
-              color:
-                winner.pctBetter >= 0
-                  ? theme.category.green
-                  : theme.category.red,
+              color: theme.text.primary,
             }}
           >
             {signedPct}

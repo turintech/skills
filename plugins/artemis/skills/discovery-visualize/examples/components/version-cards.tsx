@@ -63,10 +63,7 @@ export function VersionCards({
                   as="span"
                   weight="semibold"
                   style={{
-                    color:
-                      version.pctBetter >= 0
-                        ? theme.category.green
-                        : theme.category.red,
+                    color: theme.text.primary,
                   }}
                 >
                   {version.pctBetter > 0 ? "+" : ""}

@@ -1,6 +1,8 @@
 # Cursor adapter
 
-Read the Cursor canvas skill if it is available, then write **one** `.canvas.tsx` beside the chat.
+**Default: the same HTML report as every other host.** Build it with the kit ([report-kit.md](report-kit.md)), check it, then open it in Cursor's browser (or give the file path). The report then looks the same whoever built it, and every custom chart in the kit is available.
+
+**A canvas only when the user wants the chart inside the chat.** Then read the Cursor canvas skill if it is available and write **one** `.canvas.tsx` beside the chat, as below, with the same page anatomy: the finding as the H1, a question as each figure's H2, and a `Callout` finding under each chart.
 
 ## Location
 

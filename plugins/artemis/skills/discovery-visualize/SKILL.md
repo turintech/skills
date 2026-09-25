@@ -38,11 +38,11 @@ Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / tra
 
 4. Read the snapshot. Trust `perMetricWinners`, `rankings`, raw `metrics` means, `runs` and `timesBetter`. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
 5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. Use [references/component-catalog.md](references/component-catalog.md) for code recipes; examples are recipes, not runtime imports.
-6. Build the page. On Claude Code, GitHub Copilot or any HTML host, use the kit in [references/report-kit.md](references/report-kit.md): write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. Then read the matching adapter:
-   - Cursor: [references/cursor.md](references/cursor.md)
-   - Claude Code: [references/claude-code.md](references/claude-code.md)
-   - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md)
-   - Unknown host: write the fallback HTML report from `report-design.md`.
+6. Build the page with the kit in [references/report-kit.md](references/report-kit.md), on every host: write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. The result is one HTML file that looks the same whichever agent built it. Then read the adapter for how to hand it over:
+   - Claude Code: [references/claude-code.md](references/claude-code.md) (publish as an Artifact)
+   - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md) (open in the editor's browser)
+   - Cursor: [references/cursor.md](references/cursor.md) (open in the browser; a canvas only when the user wants the chart in the chat)
+   - Codex or any other agent: return the file path, and open it in a browser when the host can.
 7. Check every number in a title or finding against the snapshot, then look at the rendered page once for collisions and clipping. Return the artifact link plus the Discovery Web UI link.
 
 The data contract is in [references/data-contract.md](references/data-contract.md).

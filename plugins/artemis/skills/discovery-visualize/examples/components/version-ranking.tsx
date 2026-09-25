@@ -74,10 +74,7 @@ export function VersionRanking({
                   style={{
                     minWidth: 64,
                     textAlign: "right",
-                    color:
-                      row.pctBetter >= 0
-                        ? theme.category.green
-                        : theme.category.red,
+                    color: theme.text.primary,
                   }}
                 >
                   {row.pctBetter > 0 ? "+" : ""}

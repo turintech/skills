@@ -127,8 +127,8 @@ export function MetricTrajectory({
               r={point.label === winnerLabel ? 6 : 3}
               fill={
                 point.label === winnerLabel
-                  ? theme.category.green
-                  : theme.accent.primary
+                  ? theme.accent.primary
+                  : theme.text.tertiary
               }
             />
           ),
@@ -139,7 +139,7 @@ export function MetricTrajectory({
               key={`best-${point.label}`}
               x={x(index) + 10}
               y={y(point.mean) + 4}
-              fill={theme.category.green}
+              fill={theme.accent.primary}
               fontSize="11"
               fontWeight="590"
             >
@@ -182,7 +182,7 @@ export function MetricTrajectory({
         )}
       </svg>
       <Text size="small" tone="tertiary">
-        Observed mean in generation order. Green mark is the raw winner (
+        Observed mean in generation order. The accent mark is the raw winner (
         {winnerLabel}), not a running-best overlay. Missing observations remain
         gaps. Baseline {baselineSha}. Source: {source}.
       </Text>

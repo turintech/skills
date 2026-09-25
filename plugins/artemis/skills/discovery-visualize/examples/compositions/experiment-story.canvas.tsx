@@ -1,5 +1,6 @@
 import {
   H1,
+  H2,
   Link,
   Stack,
   Text,
@@ -115,10 +116,11 @@ export default function ExperimentStoryExample() {
   return (
     <Stack gap={16}>
       <Stack gap={5}>
-        <H1>How experiments produced versions</H1>
+        <H1>The spatial grid idea produced both grid versions; the cache idea was refuted</H1>
         <Text tone="secondary">
           Select a node to inspect its intent, status, and platform link.
         </Text>
+        <H2>Which ideas led to which versions?</H2>
       </Stack>
 
       <div style={{ overflowX: "auto" }}>
