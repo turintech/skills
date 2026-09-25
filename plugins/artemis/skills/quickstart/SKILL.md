@@ -14,7 +14,7 @@ metadata:
 - **Problem:** One skill for the whole first mile: from a pasted prompt to a setup the user has watched, a measured baseline, and a first Discovery run, resuming at whichever step is missing.
 - **Must be available:** A coding assistant with the Artemis skills installed, network access, and a user who can create an API key in the Artemis Web UI. A repository or project by the time repository setup begins.
 - **Use / don't use:** Use for both copyable prompts, for "get started" and "try Artemis", for a returning user setting up a new project, and for any request carrying a project URL or id. Don't use it when the user names a specific lower-level task and its inputs; the `artemis` router sends those to the owning skill.
-- **Next skill:** This skill runs almost nothing itself. It hands each step to `cli-setup`, `project-import`, `runner-setup`, `repo-command-setup`, `discovery-start` and `discovery-inspect`, and in the browser route to `ui-walkthrough`. The two commands it owns are `changeset create` and `changeset validate`.
+- **Next skill:** This skill runs almost nothing itself. It hands each step to `cli-setup`, `project-import`, `runner-setup`, `repo-command-setup`, `discovery-start` and `discovery-inspect`, and in the browser route to `cli-follow-along`. The two commands it owns are `changeset create` and `changeset validate`.
 
 ## Requirements
 
@@ -35,7 +35,7 @@ Check silently, and skip later steps that are already done.
 | Check | How |
 |---|---|
 | Assistant host | Claude Code, Cursor, Codex, or GitHub Copilot |
-| Browser control | Load the browser tools before looking; deferred tools report none until loaded. `ui-walkthrough` section 1 has the exact call |
+| Browser control | Load the browser tools before looking; deferred tools report none until loaded. `cli-follow-along` section 1 has the exact call |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
 | CLI | `artemis --version` meets the skills' minimum (`metadata.artemis-cli-min`), and `artemis status` is authenticated to the deployment in hand |
 | Runner | `artemis runner list` shows one online |
@@ -75,7 +75,7 @@ First write the section 2 welcome as reply text: the question box shows no text 
 1. **Start with:** **Particle Life demo (recommended)**, a deliberately slow C++ simulation that shows a real optimisation end to end in about 15 minutes, or **your own project**.
 2. **Follow along in:** **Terminal, with links (recommended)**, or **Terminal with computer use in your browser**, which also drives Chrome so they watch each page change and needs the Claude browser extension. Recommend the terminal even when a browser is connected.
 
-If they choose the browser, hand the connection to `ui-walkthrough` section 1 and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
+If they choose the browser, hand the connection to `cli-follow-along` section 1 and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
 
 If they are undecided about the demo, recommend it again once and move on.
 
@@ -191,7 +191,7 @@ End on the code, not a number: the run's **Metrics** tab to show which version w
 
 The user should always know where the thing that just happened is. The "Tell them" columns in sections 5 and 7 say when and where; say it in one or two plain sentences: what happened, the link, and what they will see there.
 
-For example: "Your project is in Artemis: [Open project](<link>). You'll see the Particle Life overview; nothing has run yet." Link the project and name the page for anything deeper, because paths differ between deployments. In the browser route the page is already open: say what to look at, and follow `ui-walkthrough`'s *Arrive before the change* table.
+For example: "Your project is in Artemis: [Open project](<link>). You'll see the Particle Life overview; nothing has run yet." Link the project and name the page for anything deeper, because paths differ between deployments. In the browser route the page is already open: say what to look at, and follow `cli-follow-along`'s *Arrive before the change* table.
 
 ## 9. Human-only steps
 

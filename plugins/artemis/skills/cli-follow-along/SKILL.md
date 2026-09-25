@@ -1,19 +1,19 @@
 ---
-name: ui-walkthrough
-description: Show the user the Artemis Web UI page that matches each step while you work, in one browser tab, navigating only. Use when the user has chosen to follow along in their browser and a browser-control tool such as Claude in Chrome is connected. Do not use it to change settings or start work without the user's explicit approval.
+name: cli-follow-along
+description: While the CLI does the work, show the user the Artemis Web UI page that matches each step, in one browser tab, navigating only. Use when the user has chosen to follow along in their browser and a browser-control tool such as Claude in Chrome is connected. Do not use it to change settings or start work without the user's explicit approval. To teach a task through the Web UI itself, without the CLI, use platform-tour.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+, plus a browser-control tool such as Claude in Chrome. Without one, print links instead. Page paths differ between deployments, so the skill follows the app's own navigation.
 metadata:
   artemis-cli-min: "1.1.8"
   artemis-platform-min: "3.1.0"
 ---
 
-# Show the Artemis Web UI while working
+# Follow the CLI's work in the browser
 
 ## At a glance
 
 - **Problem:** Opens the page that matches what was just done, so the user sees and understands each step instead of a black box.
 - **Must be available:** A connected browser-control tool, the authenticated deployment base URL, and the IDs of the resource to show.
-- **Use / don't use:** Use only after the user chose the browser route. Don't use it to do the work: the CLI and the owning skills make every change.
+- **Use / don't use:** Use only after the user chose the browser route. Don't use it to do the work: the CLI and the owning skills make every change. "Show me how to do it in the Web UI" is `platform-tour`.
 - **Next skill:** Return to the skill that called it.
 
 ## Requirements

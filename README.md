@@ -53,7 +53,7 @@ Skills are versioned independently of the Artemis CLI and platform. Commits use 
 | Skill | Use when |
 |---|---|
 | `quickstart` | Take a user from any starting point to a first measured result, in the terminal by default or the browser if they choose |
-| `ui-walkthrough` | Show the matching Artemis Web UI page while work happens |
+| `cli-follow-along` | Show the matching Artemis Web UI page while work happens |
 | `platform-tour` | Show how a task is done in the Web UI by doing it in the user's Chrome, no CLI |
 | `artemis` | Classify a request and route to the right skill |
 | `cli-setup` | Install or authenticate the CLI |

@@ -75,7 +75,7 @@ Use available local and Artemis state to inspect the repository and its document
 When resuming existing work, ask the user to paste the URL of the most specific entity they are viewing. Artemis URLs expose the required UUIDs:
 
 - `/projects/<project-id>/...`
-- anything deeper (a run, its versions, a branch) follows that segment; `ui-walkthrough` §2 has the path shapes
+- anything deeper (a run, its versions, a branch) follows that segment; `cli-follow-along` §2 has the path shapes
 
 Extract all available IDs from that URL; do not ask for each separately. Use the deployment base URL shown by the user.
 
@@ -135,7 +135,7 @@ Before launching discovery, validation, or Maintain:
 ## 6. Route to the owning skill
 
 - Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and any request carrying a project URL or id from **Set up with local agent** on a project's overview page: `quickstart`
-- Showing the matching Web UI page when the user follows along in their browser: `ui-walkthrough`
+- Showing the matching Web UI page when the user follows along in their browser: `cli-follow-along`
 - "How do I … in Artemis", "where is …", "show me how" through the Web UI, without the CLI: `platform-tour`
 - CLI: `cli-setup`
 - Runner: `runner-setup`
