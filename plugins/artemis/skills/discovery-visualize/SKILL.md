@@ -43,9 +43,31 @@ Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / tra
    - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md) (open in the editor's browser)
    - Cursor: [references/cursor.md](references/cursor.md) (open in the browser; a canvas only when the user wants the chart in the chat)
    - Codex or any other agent: return the file path, and open it in a browser when the host can.
-7. Check every number in a title or finding against the snapshot, then look at the rendered page once for collisions and clipping. Return the artifact link plus the Discovery Web UI link.
+7. Check every number in a title or finding against the snapshot, then look at the rendered page once for collisions and clipping.
+8. Hand it over as in *Hand it over* below: a summary of at most four lines, then the link in a box.
 
 The data contract is in [references/data-contract.md](references/data-contract.md).
+
+## 8. Hand it over
+
+Keep the message short: the report says the rest. In this order, and nothing after the box:
+
+1. **At most four lines of summary:** the main finding in one sentence, then up to two supporting facts or one caveat, each with a number. No nested bullets, no restating every figure.
+2. **The link in a box, as its own block,** so it cannot be missed:
+
+````text
+```
+┌──────────────────────────────────────────────────────────┐
+│  OPEN YOUR REPORT                                        │
+└──────────────────────────────────────────────────────────┘
+```
+
+<report link, or the file path on hosts without Artifacts>
+
+Private until you share it from the page's Share menu. The run in Artemis: <Discovery Web UI link>
+````
+
+On a host without Artifacts the box says **OPEN YOUR REPORT** and the line under it is the file path, opened in the browser where the host can.
 
 ## Recipe rules
 
@@ -90,5 +112,4 @@ The collector already strips logger noise before JSON and joins `observationGrou
 - [ ] Each target metric has a baseline, change and raw winner view; any raw/eligible difference is explained without making eligibility the headline.
 - [ ] Failed and missing versions are accounted for.
 - [ ] Caption names the CLI source and that % is mean vs baseline.
-- [ ] Host artifact or fallback HTML opened/linked.
-- [ ] Discovery Web UI link returned.
+- [ ] Handed over with at most four lines of summary and the report link in the box, then the Discovery Web UI link.

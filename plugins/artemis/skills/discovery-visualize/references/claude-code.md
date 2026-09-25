@@ -24,7 +24,7 @@ Follow the anatomy in [report-design.md](report-design.md): the main finding as 
 
 ## Publish
 
-Publish without asking: an Artifact starts private to the user. Return its URL first, then the Discovery Web UI link, and say in one line that it is private until they share it from the page's Share menu. Later edits republish the same artifact.
+Publish without asking: an Artifact starts private to the user. Hand it over as in SKILL.md *Hand it over*: a summary of at most four lines, then the Artifact link in the **OPEN YOUR REPORT** box, the privacy line and the Discovery Web UI link. Later edits republish the same artifact.
 
 If Artifacts are disabled, leave the local HTML in place and give the file path.
 
