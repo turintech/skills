@@ -89,8 +89,8 @@ artemis maintain rules import-defaults --project <p> --rule <default-id-1> --rul
 ### Author your own from a prompt
 
 ```bash
-artemis maintain rules create --project <p> \
-  --prompt "Flag any SQL query built with string concatenation"
+artemis maintain chat --project <p> \
+  -m "create a rule that flags SQL queries built with string concatenation"
 ```
 
 Rule creation is **asynchronous** — a fresh rule comes back `IsDraft` with a
