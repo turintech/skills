@@ -73,8 +73,13 @@ def check(cmd):
     return [f for f in flags if f not in known and f != "--help"]
 
 
+# maintain is owned outside the onboarding skills and checked by its owner.
+SKIP = {"maintain"}
+
 failures, checked = [], []
 for skill in sorted(SKILLS.iterdir()):
+    if skill.name in SKIP:
+        continue
     for f in sorted(skill.rglob("*.md")):
         for cmd in set(commands(f.read_text())):
             checked.append(cmd)
