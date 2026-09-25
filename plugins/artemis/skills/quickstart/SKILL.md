@@ -59,7 +59,7 @@ The first time you use a word the platform owns, say what it means in one short 
 
 ## 2. Welcome
 
-For a user with nothing yet. Send these four short lines as a message before calling the question tool; the question box shows no text of its own:
+For a user with nothing yet, as the first part of section 3. Four short lines:
 
 1. Artemis uses AI to try improvements to real code and measures every attempt.
 2. The measuring happens on the user's own machine, through a small program called a runner.
@@ -70,7 +70,7 @@ Say once, before the first run, that runs use account credits and the balance is
 
 ## 3. Two questions, asked together
 
-In one short message, straight after the welcome. Ask them even when the prompt says not to ask about settings: they are about the session, not the run, and they are the only questions before it, apart from the fresh-or-continue question in section 4.
+First write the section 2 welcome as reply text: the question box shows no text of its own, and narration in your reasoning is not seen. Then ask both questions in one question box, in the same turn. Ask them even when the prompt says not to ask about settings: they are about the session, not the run, and they are the only questions before it, apart from the fresh-or-continue question in section 4.
 
 1. **Start with:** **Particle Life demo (recommended)**, a deliberately slow C++ simulation that shows a real optimisation end to end in about 15 minutes, or **your own project**.
 2. **Follow along in:** **Terminal, with links (recommended)**, or **Terminal with computer use in your browser**, which also drives Chrome so they watch each page change and needs the Claude browser extension. Recommend the terminal even when a browser is connected.
@@ -81,7 +81,11 @@ If they are undecided about the demo, recommend it again once and move on.
 
 ## 4. Show the plan
 
-Your next message after the two answers is the plan, and nothing else: no tool call first. Send it as a message the user sees; a plan in your reasoning has not been shown. Returning users see it once their starting point is clear. Always as a numbered list, one step per line, never as a sentence. Only the steps this user needs; say which are theirs and roughly how long the long ones take. For a brand-new user choosing the demo:
+Your first action after the two answers is the plan, before any other tool call. Returning users get it once their starting point is clear.
+
+Put it in the host's task list (Claude Code's task list, Cursor's todos, Codex's plan tool): one item per step, the finished ones already done. It stays on screen and ticks as the session goes. When a step finishes, mark it done and add its link from the "Tell them" columns to the item. Only when the host has no task list, send it as a numbered message instead, and again after setup and after the measurement.
+
+Only the steps this user needs; say which are theirs and roughly how long the long ones take. At the close (section 11), send it as a numbered message, one step per line, each ticked line with its link. For a brand-new user choosing the demo:
 
 ```text
 Here's the plan:
@@ -94,7 +98,7 @@ Here's the plan:
 7. ○ Start a Discovery run, about 15 minutes
 ```
 
-Show it again when setup is done, when the measurement has its number, and at the close (section 11). Each ticked line ends with its link from the "Tell them" columns, for example `5. ✓ Particle Life imported: <project link>`.
+At the close each ticked line ends with its link, for example `5. ✓ Particle Life imported: <project link>`.
 
 Then the starting point decides what comes before section 7:
 
@@ -169,7 +173,7 @@ The user chose the demo; that was the decision. Go through section 7 in one pass
 - test: `ctest --test-dir build --output-on-failure`
 - benchmark: `python3 tools/benchmark.py --no-visualize`
 - target files: `src/simulation.cpp`, `src/simulation.hpp`
-- task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.`
+- task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests. The tests compare floating-point results exactly, so keep the order in which forces are added.`
 
 The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. LLM-judged metrics are off so only the measured `simulation_fps` is on show.
 
@@ -229,7 +233,8 @@ Say once, while the run is going, that it continues on the platform if the termi
 
 - [ ] State checked first, and the starting point taken from what arrived
 - [ ] New users: both opening questions asked together; returning users: only where the code lives
-- [ ] The plan shown as a numbered list before starting, and again after setup, after the measurement and at the close, each ticked line with its link
+- [ ] Welcome written as text before the question box
+- [ ] The plan in the host's task list before any other tool call, each item ticked with its link, and a numbered list at the close
 - [ ] Demo: an existing Particle Life project found before importing, and the user asked fresh or continue
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
