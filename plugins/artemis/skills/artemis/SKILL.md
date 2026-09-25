@@ -136,6 +136,7 @@ Before launching discovery, validation, or Maintain:
 
 - Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and any request carrying a project URL or id from **Set up with local agent** on a project's overview page: `quickstart`
 - Showing the matching Web UI page when the user follows along in their browser: `ui-walkthrough`
+- "How do I … in Artemis", "where is …", "show me how" through the Web UI, without the CLI: `platform-tour`
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository commands, validation scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
