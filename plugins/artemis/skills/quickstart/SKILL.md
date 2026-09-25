@@ -81,7 +81,7 @@ If they are undecided about the demo, recommend it again once and move on.
 
 ## 4. Show the plan
 
-Before doing anything, show what is about to happen, in one short message: a list of plain steps, one line each, marking what is already done. Only the steps this user needs; say which are theirs and roughly how long the long ones take. For a brand-new user choosing the demo:
+Your next message after the two answers is the plan, and nothing else: no tool call first. Returning users see it once their starting point is clear. Show what is about to happen in one short message: a list of plain steps, one line each, marking what is already done. Only the steps this user needs; say which are theirs and roughly how long the long ones take. For a brand-new user choosing the demo:
 
 > **Here's the plan**
 >
@@ -97,7 +97,7 @@ Show it again, with the finished steps ticked, when setup is done and at the clo
 
 Then the starting point decides what comes before section 7:
 
-- **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs.
+- **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. If `project-import` finds a Particle Life project to reuse, say once that you are reusing it; never announce an import first.
 - **Their own code:** where it lives (repository URL and branch, and can Artemis reach it), `project-import` if it is not a project yet, then 7b and section 7.
 - **A project URL:** 7b, then section 7.
 
@@ -105,13 +105,16 @@ Then the starting point decides what comes before section 7:
 
 Hand each missing item to its skill. Say plainly when a step is the user's, and wait.
 
-| Item | Skill | Human part |
-|---|---|---|
-| CLI installed and signed in | `cli-setup` | Creates an API key and enters it in their own terminal |
-| Git access | `project-import` | Connects a Git provider if the account has none |
-| Runner on this machine | `runner-setup` | Nothing: announce it, start it, give the stop command |
+| Item | Skill | Human part | Tell them (section 8) |
+|---|---|---|---|
+| CLI installed and signed in | `cli-setup` | Creates an API key and enters it in their own terminal | |
+| Git access | `project-import` | Connects a Git provider if the account has none | |
+| Runner on this machine | `runner-setup` | Nothing: announce it, start it, give the stop command | Settings, then **Runners**: their machine, online |
+| Project imported or reused | `project-import` | Nothing | `<deployment-base-url>/projects/<project-id>`: the project's overview page |
 
 Whichever runner `runner-setup` reuses or starts is the one every later step uses; pass it on rather than asking.
+
+When setup is done, show the plan again with those steps ticked, before section 7.
 
 ## 6. Rules for this flow
 
@@ -124,15 +127,17 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 
 What the Web UI's setup flow does by hand: an Artemis branch, commands that produce a number, a machine, a measured run, and a Discovery started from that branch. The demo and a user's own project both follow it. Each owning skill has the commands; this section says what to pass it.
 
-| Step | Owner | What happens | For the demo |
-|---|---|---|---|
-| 1. CLI signed in | `cli-setup` | Already done in section 5 | Same |
-| 2. A branch over the current code | this skill | `changeset create`, below | Same |
-| 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | No probe |
-| 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3, so it validates on them instead of making its own | Commands fixed in 7a; tell it to skip its own verification |
-| 5. A measured run on the branch | this skill | `changeset validate --wait` on the runner (`repo-command-setup` §5b) | About a minute |
-| 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 |
-| 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a |
+| Step | Owner | What happens | For the demo | Tell them (section 8) |
+|---|---|---|---|---|
+| 1. CLI signed in | `cli-setup` | Already done in section 5 | Same | |
+| 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
+| 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | No probe | |
+| 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3, so it validates on them instead of making its own | Commands fixed in 7a; tell it to skip its own verification | |
+| 5. A measured run on the branch | this skill | `changeset validate --wait` on the runner (`repo-command-setup` §5b) | About a minute | The branch's **Script runs**: one run, passed |
+| 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
+| 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later its **Metrics** tab and the winning version |
+
+A step is not finished until its "Tell them" line has been said.
 
 **Step 2.** Reuse the newest changeset named `artemis/measure` (`changeset list --project <id>`) unless the project's code has moved on since (its `baseVersionSha` differs from the project's `gitHash`). Otherwise:
 
@@ -179,16 +184,7 @@ End on the code, not a number: the run's **Metrics** tab to show which version w
 
 ## 8. Where to look
 
-The user should always know where the thing that just happened is. Each time something appears in Artemis, say it in one or two plain sentences: what happened, the link, and what they will see there.
-
-| Moment | Link | What they will see |
-|---|---|---|
-| Runner online | Settings, then **Runners** | Their machine, online |
-| Project imported | `<deployment-base-url>/projects/<project-id>` | The project's overview page |
-| Branch created | The project, then **Branches** | A branch named `artemis/measure` |
-| Measured run finished | The branch's **Script runs** | One run, passed, with its number |
-| Discovery started | The project, then **Discover**, then the run | Experiments filling in as the agent plans them |
-| Result | The run's **Metrics** tab, then the winning version | Which version won, and its code change |
+The user should always know where the thing that just happened is. The "Tell them" columns in sections 5 and 7 say when and where; say it in one or two plain sentences: what happened, the link, and what they will see there.
 
 For example: "Your project is in Artemis: [Open project](<link>). You'll see the Particle Life overview; nothing has run yet." Link the project and name the page for anything deeper, because paths differ between deployments. In the browser route the page is already open: say what to look at, and follow `ui-walkthrough`'s *Arrive before the change* table.
 
