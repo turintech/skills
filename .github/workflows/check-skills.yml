@@ -22,5 +22,7 @@ jobs:
           echo "ARTEMIS_CLI=$RUNNER_TEMP/artemis" >> "$GITHUB_ENV"
       - name: Check skill metadata, references and CLI commands
         run: scripts/check-skills.sh
+      - name: Test the discovery-visualize collector, report kit and checker
+        run: python3 -m unittest discover -s plugins/artemis/skills/discovery-visualize/tests -p "test_*.py" -v
       - name: Report where skills could be shorter
         run: python3 scripts/skill_length_report.py
