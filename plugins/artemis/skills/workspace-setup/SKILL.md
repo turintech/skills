@@ -13,7 +13,7 @@ metadata:
 
 - **Problem:** Keeps one prebuilt tree on the runner so each version rebuilds only what changed, for projects whose clean build is too slow to repeat for every version.
 - **Must be available:** A runner you can reach, disk for the cached tree, and the project's verified build commands.
-- **Use / don't use:** Use when clean builds dominate a run's time. Skip it for projects that build in a minute or two.
+- **Use / don't use:** Use when compile takes more than about 5 minutes on the runner, since every Discovery version repeats it. Skip it for projects that build in a minute or two.
 - **Next skill:** Return to `repo-command-setup` to store the commands that use the workspace.
 
 Every Artemis version arrives in a fresh checkout, so large projects lose incremental build state and pay a full rebuild for each candidate.
@@ -26,7 +26,7 @@ See [WORKSPACE.md](WORKSPACE.md) for optional shell sketches.
 
 ## Requirements
 
-- Create a dedicated directory on the runner host and build the project there. Do not use a developer's active checkout.
+- Create a dedicated directory on the runner host and build the project there. Do not use a developer's active checkout. Mark it (for example a `.artemis-managed-workspace` file) and refuse any destructive cleanup where the marker is missing.
 - Seed that tree at the same commit as the project on the platform (`gitHash`, or Discovery `baselineVersionSha` when a run exists). If they differ, stop and resolve that before creating a cache.
 - In the Artemis compile command, sync candidate changes into the tree and rebuild incrementally. Sync every path the agent may change; an incomplete copy silently measures old code.
 - Run test and benchmark against that same built tree.
@@ -34,6 +34,7 @@ See [WORKSPACE.md](WORKSPACE.md) for optional shell sketches.
 - If candidates share one tree, serialize compile through benchmark so another candidate cannot overwrite the binary mid-transaction.
 - Start a new cache when the seed commit, toolchain, or incompatible build options change.
 - A failed sync or build must not leave a previous binary or stale results file looking current.
+- Now and then, reproduce a result with a clean build.
 
 ## Examples
 

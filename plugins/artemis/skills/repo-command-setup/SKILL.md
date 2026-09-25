@@ -218,7 +218,7 @@ artemis changeset validation get "<validation-id>" --project "<project-uuid>"
 artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
 ```
 
-Confirm every command shows `exitCode: 0` and that the intended runner and toolchain were used. Both commands come through the platform, so neither needs access to the runner's host.
+Confirm every command shows `exitCode: 0` and that the intended runner and toolchain were used. If compile takes more than about 5 minutes, every Discovery version repeats it: use `workspace-setup` for an incremental build before Discovery. Both commands come through the platform, so neither needs access to the runner's host.
 
 `validation get` reports only `exitCode`, `runtime`, `cpu` and `memory`, never metric values. The values are in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Read command output there, or with `execution-log-inspect` and the validate response's `processId`, not a per-command `logId`.
 

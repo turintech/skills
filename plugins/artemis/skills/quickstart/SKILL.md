@@ -154,7 +154,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 
 **Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take.
 
-**Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units.
+**Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
 
 **Step 7.** If a run is queued or running, give its link and hand over to `discovery-inspect`. If one has completed and the user asked for a first run, that request is met: give its result with the link and the date it ran, never as this session's result, and offer to steer it (`discovery-steer`), start a fresh run, or set up their own project. Otherwise hand these to `discovery-start`:
 

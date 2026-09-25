@@ -13,60 +13,7 @@ These are escape hatches, not defaults. They introduce machine-specific state an
 
 ## Persistent build workspace
 
-### Problem
-
-Use this when a clean build is prohibitively slow because the project needs expensive dependency installation, generated assets, compilation caches, or a large incremental build tree.
-
-### Pattern
-
-Create a dedicated runner-owned clone or workspace. Never point this pattern at a developer's active checkout. Add an unmistakable marker and refuse destructive cleanup without it.
-
-Example compile command:
-
-```bash
-set -eu
-ORIG="$PWD"
-WORKSPACE="/srv/artemis/workspaces/my-project"
-test -f "$WORKSPACE/.artemis-managed-workspace"
-cd "$WORKSPACE"
-git reset --hard HEAD
-git clean -fd
-cp -a "$ORIG/src/." src/
-<compile-command>
-```
-
-Test and benchmark commands run against the same workspace:
-
-```bash
-cd /srv/artemis/workspaces/my-project && <test-command>
-```
-
-The benchmark must copy its result back to the directory Artemis is observing:
-
-```bash
-set -eu
-ORIG="$PWD"
-cd /srv/artemis/workspaces/my-project
-rm -f artemis_results.json artemis_results.csv
-<benchmark-command>
-if test -f artemis_results.json; then
-  cp artemis_results.json "$ORIG/"
-elif test -f artemis_results.csv; then
-  cp artemis_results.csv "$ORIG/"
-else
-  echo "benchmark produced no Artemis results file" >&2
-  exit 1
-fi
-```
-
-### Safeguards
-
-- Pin and record the workspace's seed commit, dependency lockfiles, compiler, and runtime.
-- Copy every path the optimization agent may change; an incomplete copy silently benchmarks old code.
-- Invalidate caches when build configuration, generated-code inputs, or toolchain versions change.
-- Serialize tasks that share the workspace.
-- Ensure a failed copy or build cannot leave a previous binary or metrics file looking current.
-- Periodically reproduce the result with a clean build.
+Use the `workspace-setup` skill when a clean build is prohibitively slow because the project needs expensive dependency installation, generated assets, compilation caches, or a large incremental build tree. It keeps a runner-owned built tree, syncs each candidate into it, rebuilds incrementally, and copies results back to `$PWD`. The sections below extend that workspace.
 
 ## Managed service lifecycle
 
