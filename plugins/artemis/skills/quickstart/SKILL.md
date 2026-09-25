@@ -59,7 +59,7 @@ The first time you use a word the platform owns, say what it means in one short 
 
 ## 2. Welcome
 
-For a user with nothing yet. Say four short lines:
+For a user with nothing yet. Send these four short lines as a message before calling the question tool; the question box shows no text of its own:
 
 1. Artemis uses AI to try improvements to real code and measures every attempt.
 2. The measuring happens on the user's own machine, through a small program called a runner.
@@ -70,7 +70,7 @@ Say once, before the first run, that runs use account credits and the balance is
 
 ## 3. Two questions, asked together
 
-In one short message, straight after the welcome. Ask them even when the prompt says not to ask about settings: they are about the session, not the run, and they are the only questions before it.
+In one short message, straight after the welcome. Ask them even when the prompt says not to ask about settings: they are about the session, not the run, and they are the only questions before it, apart from the fresh-or-continue question in section 4.
 
 1. **Start with:** **Particle Life demo (recommended)**, a deliberately slow C++ simulation that shows a real optimisation end to end in about 15 minutes, or **your own project**.
 2. **Follow along in:** **Terminal, with links (recommended)**, or **Terminal with computer use in your browser**, which also drives Chrome so they watch each page change and needs the Claude browser extension. Recommend the terminal even when a browser is connected.
@@ -81,7 +81,7 @@ If they are undecided about the demo, recommend it again once and move on.
 
 ## 4. Show the plan
 
-Your next message after the two answers is the plan, and nothing else: no tool call first. Returning users see it once their starting point is clear. Always as a numbered list, one step per line, never as a sentence. Only the steps this user needs; say which are theirs and roughly how long the long ones take. For a brand-new user choosing the demo:
+Your next message after the two answers is the plan, and nothing else: no tool call first. Send it as a message the user sees; a plan in your reasoning has not been shown. Returning users see it once their starting point is clear. Always as a numbered list, one step per line, never as a sentence. Only the steps this user needs; say which are theirs and roughly how long the long ones take. For a brand-new user choosing the demo:
 
 ```text
 Here's the plan:
@@ -98,7 +98,7 @@ Show it again when setup is done, when the measurement has its number, and at th
 
 Then the starting point decides what comes before section 7:
 
-- **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the project and when it was created:
+- **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the newest such project, when it was created, and how many there are:
   - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in step 7, about 15 minutes, using credits.
   - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch.
 - **Their own code:** where it lives (repository URL and branch, and can Artemis reach it), `project-import` if it is not a project yet, then 7b and section 7.
@@ -216,7 +216,7 @@ Anything else goes to the owning skill: `cli-setup`, `runner-setup`, `repo-comma
 Show the plan again with everything ticked, then a short readiness report, whether the session finished or stopped early. Every line comes from a check you ran:
 
 - **Agent and skills:** the host, and that the Artemis skills are installed.
-- **CLI:** version, deployment, account, and whether it was already there, updated or new.
+- **CLI:** version, deployment, the account when the CLI shows it, and whether it was already there, updated or new.
 - **Runner:** name and machine, and whether it was reused, started, or skipped and why.
 - **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the original and best measured values.
 - **Still yours to do:** anything left for the user, or "nothing".
