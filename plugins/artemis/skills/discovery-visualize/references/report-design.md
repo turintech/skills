@@ -53,6 +53,8 @@ One line per figure: what a mark is (mean of `n`, or one run), the baseline comm
 
 **Change per version (ranked bars).** Horizontal bars of `pctBetter` (or `timesBetter`), sorted best first, from a zero line that is the baseline. Value label at each bar's end, version label on the left. The best version in the accent colour, the rest neutral. Versions with no measurement listed at the bottom as text, not as zero-length bars.
 
+**Distributions.** When the user asks to compare distributions, show every individual run until there are about ten per version; a box plot, violin or density curve drawn from three points invents a shape. Mark each group's range and mean, and label the gap between the groups when they do not overlap.
+
 **Every run against the baseline (strip plot).** One row per version, baseline first. Each individual run (`runs`) is a dot; a short tick marks the mean. A shaded band spans the baseline's min to max across the whole plot. This is the honest answer to "is it real": say how many of a version's runs fall inside the baseline band. Skip it when `count` is 1 and say so in the lede.
 
 **Search trajectory.** `pctBetter` by version number (versions are numbered in the order they were made). A zero line for the baseline, a line through consecutive measured versions that breaks at gaps, a ring on the best version, and a value label on the points the finding mentions. Annotate what explains the shape when it is known from this conversation or the run: a steer ("steered toward the solver loops" between v5 and v6), a version set aside. Do not add a running-best line unless the reader is judging how fast the search found things.
