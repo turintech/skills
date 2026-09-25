@@ -23,16 +23,14 @@ metadata:
 
 ## 1. Check the browser is usable
 
-1. **Load the browser tools before deciding they are missing.** On hosts where they are deferred, browser tools exist only as names until their schemas are loaded, so a plain look finds nothing even when a browser is connected and the session was started for it. In Claude Code, load them in one call:
+1. **Load the browser tools before deciding they are missing.** Where they are deferred, a plain look finds nothing even when a browser is connected. In Claude Code, load them in one call:
 
    ```text
    ToolSearch: select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__list_connected_browsers,mcp__claude-in-chrome__select_browser,mcp__claude-in-chrome__switch_browser
    ```
 
-   Only if that returns nothing is there genuinely no browser control. Then print the Web UI link and continue without the browser.
-2. **You cannot connect it yourself, so ask once, plainly.** `/chrome` is typed by the user in their client; no tool here can run it.
-
-   **The connection is per session, not per browser.** A user whose Chrome extension is installed, signed in and working in other sessions still starts this one unattached, unless they launched it with `--chrome`. So a probe finding nothing says nothing about their setup, and "I already have it connected" is usually true and beside the point. Do not treat it as a fault or ask them to check anything: every new session costs this one command. Probe with `tabs_context_mcp`, and if nothing is connected, send the request as its own message, boxed and alone, the way `cli-setup` sends the login step:
+   Only if that returns nothing is there no browser control: print the Web UI link and continue.
+2. **Ask once, plainly.** Only the user can type `/chrome`, and every new session needs it, even when their extension works elsewhere; it is not a fault. Probe with `tabs_context_mcp`, and if nothing is connected, send the request as its own message, boxed and alone, the way `cli-setup` sends the login step:
 
    ````text
    ```
@@ -48,21 +46,17 @@ metadata:
    Then tell me when it's done and I'll check again.
    ````
 
-   Nothing else in that message: no ladder, no alternatives, no mention of restarting. Re-probe when they answer.
+   Nothing else in that message. Re-probe when they answer.
 
-   **When the calling skill says the browser is optional, stop here.** If that one request does not connect it, hand back so the caller continues in the terminal. The steps below are for a user who has asked to keep trying.
-
-   Only if that fails, ask one question: **is the Claude extension installed in Chrome at all?**
+   **When the calling skill says the browser is optional, stop here:** if that one request does not connect it, hand back so the caller continues in the terminal. For a user who wants to keep trying, ask one question: **is the Claude extension installed in Chrome at all?**
 
    - **No.** It is a one-off install from `https://claude.ai/chrome`, signed in to the same account as this session. Then `/chrome` again.
    - **Yes.** Make sure a Chrome window is open and **visible**, not minimised, then `/chrome` again. If it still fails, restart Chrome and try once more.
 
    Relaunching the session as `claude --chrome` comes last and only if they still want it: it costs them the conversation.
 
-3. **Check it is still there before the moments that matter.** A connection made at the start does not survive a long run: the extension can drop while nobody is clicking, and the first sign is a tool call failing much later. Re-probe with `tabs_context_mcp` before each showpiece, above all before the result sequence, and if it has gone say so **then**, offer `/chrome`, and wait. When the browser is optional, offer it once, and if the user would rather not, carry on with links. Discovering it at the end, after the run everyone waited for, is the one place a dropped browser costs the user something they cannot get back by scrolling.
-4. **If it lands in the wrong Chrome, that is a choice, not a fault.** Browsers pair with the user's Claude account, not with a window, so a machine can have several connected: an everyday profile, a separate demo profile, another computer. `list_connected_browsers` names each one, says which appear to be on this computer, and `select_browser` switches to the one the user picks; `switch_browser` puts a Connect prompt in every connected extension so they can click the right window. Ask which one before driving anything, and never choose for them.
-
-   A new, signed-out window usually means their everyday Chrome's extension is not connected to this account, so the only thing listening was another profile.
+3. **Check it is still there before the moments that matter.** The extension can drop during a long run. Re-probe with `tabs_context_mcp` before each showpiece, above all before the result, and if it has gone say so then, offer `/chrome`, and wait. When the browser is optional, offer it once, then carry on with links.
+4. **If it lands in the wrong Chrome, ask which one.** Several browsers can be paired with one account (profiles, other computers). `list_connected_browsers` names them, `select_browser` switches to the one the user picks, and `switch_browser` puts a Connect prompt in every one. Never choose for them. A new, signed-out window usually means another profile answered.
 5. Use one tab for the whole session. Create it once, then navigate within it.
 6. On the first page load, read the account shown in the page header. If it is not the account the CLI is authenticated as, stop and ask the user.
 
@@ -88,9 +82,7 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 
 ### Arrive before the change, never after
 
-**Be on the page that is about to change, then run the command.** This is the difference between showing someone the platform and reporting to them about it. If the CLI creates a project while the user is looking at a terminal, they see a line of output. If they are already on Projects when it runs, they watch the project appear, and the link between the command and the platform becomes obvious without being explained.
-
-Apply it to every step that creates or changes something:
+**Be on the page that is about to change, then run the command,** so the user watches the result appear instead of reading about it. For every step that creates or changes something:
 
 | About to run | Be here first | What the user sees |
 |---|---|---|
@@ -100,14 +92,12 @@ Apply it to every step that creates or changes something:
 | `discovery create` | The project's Discover list | The run appears in the list |
 | Anything else that adds a version | The tab that lists them | The row arrives while they watch |
 
-Then move the pointer to the thing that just appeared and click into it, so the next page is somewhere they saw you go rather than somewhere you jumped to.
-
-Do not narrate the change before it is visible, and do not take a screenshot of the result and describe it afterwards. Stand still on the right page and let the platform do the talking.
+Then move the pointer to the thing that appeared and click into it. Do not narrate the change before it is visible, or describe a screenshot of it afterwards.
 
 ### Show it
 
 1. Navigate the tab to the link you found, or move there with the page's own tabs and sidebar when already inside the project.
-2. **Bring the tab to the front, every time.** Creating a tab in the background leaves the user looking at whatever they had open, so the walkthrough happens where nobody is watching. Activate the tab when you create it, and make sure it is the frontmost tab before each navigation. If the user says they cannot see what you are describing, this is the first thing to check.
+2. **Bring the tab to the front, every time,** when you create it and before each navigation. A background tab means nobody is watching; if the user cannot see what you describe, check this first.
 3. Wait for the page to load, then take a screenshot to confirm it shows what you expect.
 4. Hover over the element you are describing so the user can see where to look.
 5. Say in the chat, in one or two sentences, what is on screen and why it matters.
@@ -117,17 +107,16 @@ Never open `/settings` on its own: on admin accounts it lists every user's name 
 
 ### Make it watchable, first-run demo only
 
-The first time someone sees Artemis, the pointer is the explanation: they follow it around the page. Use this pacing only for that first tour, when the calling skill says this is a first-run demo. Once the user has seen it, or asks for speed, navigate plainly.
+On a first-run demo the pointer is the explanation. Use this pacing only when the calling skill says so; once the user has seen it, or asks for speed, navigate plainly.
 
-1. **Make the pointer's journey visible.** Move it across the page in four or five small steps along a straight line toward the target, not one teleport. The user should be able to see where it is heading before it arrives, so the click is the end of a movement rather than a surprise.
-2. **Land, pause, then click.** Rest on the target for a beat once you arrive, so the eye catches up with the pointer before the page changes.
+1. **Make the pointer's journey visible:** four or five small moves in a straight line toward the target, not one jump.
+2. **Land, pause, then click,** so the eye catches up before the page changes.
 3. Scroll the target into view rather than jumping straight to it, and let the page settle.
 4. Keep the pointer on the element while you explain it, so the words and the pointer agree.
 5. One idea per step. Do not queue several actions between explanations.
-6. **Hold still while work is being generated.** When a page is filling by itself, such as experiments appearing in a run, stay on it and say what is arriving. Do not wander to other tabs for status: read that from the CLI and leave the screen where the user is looking.
-7. Read the page again before each click. References go stale as the page updates, and this pacing gives the page more chances to change under you.
+6. **Hold still while work is being generated.** When a page fills by itself, stay on it and say what is arriving; read status from the CLI, not other tabs.
 
-Each of these is a separate tool call, so it is slower and costs more. That is the point during a demo and waste afterwards.
+Each of these is a separate tool call: worth it during a demo, waste afterwards.
 
 ## 3. Clicking
 
@@ -142,7 +131,7 @@ Each of these is a separate tool call, so it is slower and costs more. That is t
 | Situation | Do |
 |---|---|
 | No browser tool after loading | Print the link and continue |
-| No connected browser | The section 1 request. If the caller said the browser is optional, hand back after that one request; otherwise offer the section 1 fixes, and print links only once they have failed |
+| No connected browser | Section 1: one request when the browser is optional, otherwise its fixes before falling back to links |
 | The page header shows a different account | Stop and ask the user |
 | A 500 error mentioning `URL.canParse` | Ask the user to update Chrome to version 120 or newer |
 | "Project Not Found" | Check the account and the deployment base URL before retrying |
