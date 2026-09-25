@@ -13,13 +13,13 @@ metadata:
 
 - **Problem:** Turns a Discovery run into a report someone can take a conclusion away from: one normalized snapshot, then figures that each answer a question and state the answer, on the current agent host.
 - **Must be available:** An authenticated CLI for the run's deployment and the discovery run ID.
-- **Use / don't use:** Use for graphs, charts, canvases, artifacts, or visual discovery reports. Use `discovery-inspect` to diagnose a run, read diffs, or decide what the numbers mean before drawing them.
+- **Use / don't use:** Use for graphs, charts, canvases, artifacts, or visual discovery reports, for one run or for comparing every run in a project. Use `discovery-inspect` to diagnose a run, read diffs, or decide what the numbers mean before drawing them.
 - **Next skill:** None required. Return to `discovery-inspect` for rationale/diff review, or `discovery-steer` for more versions.
 
 ## Requirements
 
 - `artemis status` succeeds on the run's deployment.
-- A `run_id`. If unknown, ask for the Web UI URL and extract IDs using `artemis` §2.
+- A `run_id`, or a project id to compare its runs. If unknown, ask for the Web UI URL and extract IDs using `artemis` §2.
 - Python 3, stdlib only, to run [scripts/collect_discovery.py](scripts/collect_discovery.py).
 
 ## Workflow

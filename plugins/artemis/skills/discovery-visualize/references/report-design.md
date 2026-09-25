@@ -83,7 +83,17 @@ A professional data designer should be happy to put their name to it.
 - One direction per metric, from the snapshot (`higherIsBetter`). When `higherIsBetterInferred` is true, confirm it from the run's task or ask before naming a winner.
 - No single overall winner across several objectives unless the user gives the rule.
 
-## 6. Sparse states
+## 6. Comparing several runs
+
+When the user asks about a project, several runs, or "all the branches", collect every run (`artemis discovery list --project <id> --all`, then the collector per run) and compare versions across them.
+
+- **Each run has its own baseline measurement,** and the same code can measure differently on different days. Never rank raw values across runs. Compare each version against its own run's baseline (`pctBetter`, `timesBetter`).
+- **Look for a built-in control first.** A reference measured in the same benchmark process (cuBLAS next to a Triton kernel, a reference implementation next to the candidate) cancels machine drift: rank by candidate ÷ reference. Check it works: the baseline's ratio should agree across runs. Say that the ratio is the report's analysis, not an Artemis score.
+- **Colour follows the run,** in date order, one categorical hue each, labelled in a legend and in the figures.
+- **Account for every run,** including the ones that produced nothing: all versions failed to run, still in setup, cancelled. A table of runs with what happened is usually a figure in its own right.
+- Flag versions measured once, and versions that failed their correctness check, in the ranking itself (faded bars, a label), not only in the table.
+
+## 7. Sparse states
 
 - **Baseline only:** provenance, progress, the baseline number, and "No version has been measured yet". No arrow, no figures.
 - **Nothing beat the baseline:** the title says so. Keep the ranked bars (they show how close each came) and the strip plot, and lead the findings with why, from the experiment conclusions.

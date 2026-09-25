@@ -22,12 +22,11 @@ Follow the anatomy in [report-design.md](report-design.md): the main finding as 
 - Honor `prefers-color-scheme` / `data-theme`.
 - Give each SVG a `role="img"` and an `aria-label` that names the metric and baseline.
 - Hover tooltips are enough. Do not add zoom/brush unless asked.
+- Never name a top-level script variable `top`, `name`, `parent`, `status`, `length` or `origin`: they are browser globals, and a `const top` stops the whole script with nothing on the page to show why.
 
 ## Publish
 
-Ask before the first publish. Tell the user the page is uploaded to claude.ai and contains the snapshot (run IDs, metrics, experiment titles).
-
-After approval, publish or update the Artifact and return its URL plus the Discovery Web UI link. Later edits republish the same artifact when the user gives that URL.
+Publish without asking: an Artifact starts private to the user. Return its URL first, then the Discovery Web UI link, and say in one line that it is private until they share it from the page's Share menu. Later edits republish the same artifact.
 
 If Artifacts are disabled, leave the local HTML in place and give the file path.
 

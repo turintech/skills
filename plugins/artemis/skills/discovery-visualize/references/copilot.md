@@ -6,15 +6,15 @@ Write the same self-contained HTML report as Claude Code, then preview it locall
 
 - One `.html` file with inline CSS/JS, semantic markup, and SVG charts.
 - Follow [report-design.md](report-design.md).
-- Default the opening to a neutral metric title, compact provenance with the Artemis link, version-budget progress, then baseline mean → directional SVG arrow with `pctBetter` above it → raw winner mean/version.
-- Keep values out of the title. Do not show execution-success or experiment-status count tiles by default.
+- Use the page anatomy in report-design.md: the main finding as the title, then provenance with the Artemis link, the headline comparison, and figures that each carry a question heading and a finding.
+- Do not show execution-success or experiment-status count tiles.
 - If raw and eligible winners differ, keep the raw measurement primary, warn about the failed gate, and show the eligible alternative secondarily. With no measured version, omit the arrow and empty charts.
 - Default output: a temp path or an untracked file the user can open. Do **not** commit it unless asked.
 - Cloud agents cannot assume a local browser; they should still write the file and return its path.
 
 ## Preview
 
-In VS Code / Copilot agent mode, open the file in the integrated browser when browser tools are available (`workbench.browser.enableChatTools`, `#browser`). Check that tiles, one target chart, and the audit table render.
+In VS Code / Copilot agent mode, open the file in the integrated browser when browser tools are available (`workbench.browser.enableChatTools`, `#browser`). Check that the title, every figure and its finding, and the version table render, with no clipped labels.
 
 If the browser tools are off, return a clickable file path and tell the user to open it.
 
