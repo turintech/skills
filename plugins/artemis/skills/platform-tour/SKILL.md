@@ -31,9 +31,11 @@ metadata:
 
 ## 2. Run the tour
 
+**Follow the platform's own path.** Each page has one purple primary button that moves to the next step: follow it. Use what the page already offers before typing anything: example prompt chips, the project's default script, defaults that are already filled in. Change a default only when the tour says to, and say why.
+
 For each step:
 
-1. **Arrive first.** Navigate with the page's own links and tabs, never a typed path from memory. Stand on the page that is about to change before changing it.
+1. **Arrive first.** Navigate with the page's own links and tabs, never a typed path from memory. Stand on the page that is about to change before changing it. If a click by element reference does nothing, take a fresh screenshot and click the centre of the control.
 2. **Point, then explain.** Move the pointer to the control and say in one sentence what it does and why this step matters.
 3. **Ask before anything that changes state:** Create, Save, Run, Start, Delete, or sending a message in a run's chat. Name the project it will change and wait for a yes. Navigation needs no approval.
 4. **Show the result.** Stay on the page while the change appears, then point at it.
@@ -53,14 +55,24 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 | Import a repository | **Projects**, **New**, **Connect Git Repository**; it needs a Git connection Artemis can read | Yes |
 | Try a sample project | **Projects**, **New**, **Open a sample project**: Particle Life or Smoke | Yes |
 | Set up a benchmark | The project overview's Getting Started card, **Setup**, **Create branch** (default name `artemis/measure`), the branch's **Script runs**, **Add your commands**, **Run script**, then read the number. A run that measured nothing shows "No metrics recorded yet" | Yes |
-| Start a Discovery run | From a measured script run, **Optimise in Discover**; or **Discover** directly: the task, the number of versions, **Run code after each version**, **Start** | Yes |
+| Start a Discovery run | Section 3a | Yes |
 
-Two things to say on the Discovery tour, because the page does not:
+### 3a. Start a Discovery run
 
-- **Run code after each version is off by default.** Left off, versions are written but never built or measured. Turn it on unless the user says otherwise.
-- **Mentioning a file with @ is a hint to the agent, not a limit** on which files change.
+**Discover** first. If the list already has a run marked **Setup pending**, that is an abandoned setup: offer to continue it (click the row) rather than start another.
 
-**Optimise in Discover** carries the script run into Discovery only when that run measured the branch head; say so if the user has changed the branch since.
+| Step | Page heading | What to do | Purple button |
+|---|---|---|---|
+| 0 | Discover | Click an example prompt under the box to fill it (the first, **Optimise performance**, suits a first run), or type the goal. Pick the model from the picker under the box | the round arrow (send) |
+| 1 | Candidate preferences | **Approval mode**: Automatic lets the agent's judges approve experiments. **Number of candidates**: default 10; say that each one costs credits | **Next: Select a runner** |
+| 2 | Where should we run your code? | Pick from **Runner**. The list shows every online runner on the deployment, other people's included: pick the user's own. None of theirs online: **Set up a new runner** | **Next: Select a script** |
+| 3 | How should we test and measure your code? | The project's default script is already chosen; read its setup and benchmark commands aloud in a line. **Benchmark runs** defaults to 1; 3 gives a spread to compare. Click **Run** and wait for every command to pass | **Next: Configure metrics** |
+| 4 | Configure your metrics | The baseline number from that run appears here. Check **Direction** (higher or lower is better) and **Importance**. **Artemis Score** adds AI-judged metrics; leave it off unless asked | **Next: Review setup** |
+| 5 | Review Setup | Read the summary back. This is the click that spends credits: ask first | **Start Discovery** |
+
+The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, and the **Discovery agent** chat on the right, where the agent explains what it is trying. Stay on Overview while the first experiments arrive.
+
+Say one thing the page does not: mentioning a file with @ (the **+** button) is a hint to the agent about where to look, not a limit on which files change.
 
 ## 4. When the page does not match
 
@@ -75,5 +87,5 @@ Two things to say on the Discovery tour, because the page does not:
 - [ ] The plan said in at most four lines, naming what will change
 - [ ] Each step: arrived first, pointer on the control, one sentence of why
 - [ ] A yes before every state-changing click, on the project named
-- [ ] On the Discovery tour, Run code after each version turned on and the @ hint explained
+- [ ] On the Discovery tour, the purple button followed on every step, the user's own runner picked, and the script run passing before Next
 - [ ] Ended with a recap of page and button names and a link to where they finished
