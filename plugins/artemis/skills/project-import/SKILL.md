@@ -116,7 +116,7 @@ List or inspect the project using the installed CLI and confirm:
 
 If the imported commit differs because the branch moved, stop and record the new state rather than treating the original seed as valid. Use the UUID rather than the project name for validation, command configuration, and discovery.
 
-When a calling skill invoked this one, return the project UUID to it. Otherwise follow `repo-command-setup`'s workflow path: verify locally before import, or return to §5b after import for runner verification.
+When a calling skill invoked this one, return the project UUID to it. Otherwise follow `repo-command-setup`'s workflow path: verify locally before import, or return to `repo-command-setup` §5b after import for runner verification.
 
 ## Checklist
 

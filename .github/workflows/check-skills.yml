@@ -12,5 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Check skill metadata and router
+      - name: Download the newest Artemis CLI release
+        run: |
+          base=https://files.artemis.turintech.ai/public/artemis-cli
+          auth="Artemis_User:Artemis_Custom_Runner_2025"
+          ver=$(curl -fsS --anyauth -u "$auth" "$base/" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV | tail -1)
+          curl -fsSL --anyauth -u "$auth" "$base/$ver/artemis-cli-linux-amd64" -o "$RUNNER_TEMP/artemis"
+          chmod +x "$RUNNER_TEMP/artemis"
+          echo "ARTEMIS_CLI=$RUNNER_TEMP/artemis" >> "$GITHUB_ENV"
+      - name: Check skill metadata, references and CLI commands
         run: scripts/check-skills.sh
+      - name: Report where skills could be shorter
+        run: python3 scripts/skill_length_report.py

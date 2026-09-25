@@ -28,5 +28,14 @@ for ref in $(sed -n '/^## 6\. Route to the owning skill/,$p' "$SKILLS/artemis/SK
   fi
 done
 
+python3 "$ROOT/scripts/check_refs.py" || fail=1
+
+# Commands and flags against a real CLI, when one is given (CI downloads the newest release).
+if [ -n "${ARTEMIS_CLI:-}" ]; then
+  python3 "$ROOT/scripts/check_cli.py" "$ARTEMIS_CLI" || fail=1
+else
+  echo "SKIP CLI command check: set ARTEMIS_CLI to an artemis binary"
+fi
+
 [ "$fail" = 0 ] && echo "OK: all skills valid"
 exit "$fail"
