@@ -35,6 +35,7 @@ COMMANDS = (
     "artemis --output-format json discovery get <run-id>",
     "artemis --output-format json discovery versions list <run-id> --all",
     "artemis --output-format json discovery metrics <run-id> --all --stats",
+    "artemis --output-format json discovery metrics <run-id> --all",
     "artemis --output-format json discovery experiments list <run-id> --all",
 )
 
@@ -91,6 +92,13 @@ def pct_better(baseline: float | None, value: float | None, higher_is_better: bo
     return ((baseline - value) / abs(baseline)) * 100.0
 
 
+def times_better(baseline: float | None, value: float | None, higher_is_better: bool) -> float | None:
+    """How many times better than baseline, so 2.0 reads as "2x faster" in either direction."""
+    if baseline is None or value is None or baseline <= 0 or value <= 0:
+        return None
+    return value / baseline if higher_is_better else baseline / value
+
+
 def infer_higher_is_better(name: str) -> bool:
     lowered = name.lower()
     for token in ("_ms", "runtime", "latency", "memory", "cpu", "error", "loss"):
@@ -129,10 +137,13 @@ def load_from_dir(directory: str) -> dict[str, Any]:
     versions = extract_json(load_text(first_existing(directory, ("versions.json",))))
     metrics = extract_json(load_text(first_existing(directory, ("metrics.json", "stats.json"))))
     experiments = extract_json(load_text(os.path.join(directory, "experiments.json")))
+    observations_path = os.path.join(directory, "observations.json")
+    observations = extract_json(load_text(observations_path)) if os.path.isfile(observations_path) else None
     return {
         "run": run,
         "versions": versions,
         "metrics": metrics,
+        "observations": observations,
         "experiments": experiments,
     }
 
@@ -155,6 +166,7 @@ def fetch_cli(run_id: str) -> dict[str, Any]:
         "run": extract_json(run_artemis(["discovery", "get", run_id])),
         "versions": extract_json(run_artemis(["discovery", "versions", "list", run_id, "--all"])),
         "metrics": extract_json(run_artemis(["discovery", "metrics", run_id, "--all", "--stats"])),
+        "observations": extract_json(run_artemis(["discovery", "metrics", run_id, "--all"])),
         "experiments": extract_json(run_artemis(["discovery", "experiments", "list", run_id, "--all"])),
         "status": extract_json(run_artemis(["status"])),
     }
@@ -269,6 +281,23 @@ def build_snapshot(
 
     experiments_by_id = {item["id"]: item for item in experiments_raw if item.get("id")}
 
+    # Individual measurements, and the direction the platform stores with each one.
+    runs_by_group: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    direction_by_name: dict[str, bool] = {}
+    for row in as_docs(payloads.get("observations")) if payloads.get("observations") is not None else []:
+        group_id = row.get("observationGroupId")
+        name = row.get("metricName")
+        if not group_id or not name or row.get("value") is None:
+            continue
+        runs_by_group.setdefault(group_id, {}).setdefault(name, []).append(
+            {"value": row["value"], "createdAt": row.get("createdAt")}
+        )
+        if row.get("higherIsBetter") is not None:
+            direction_by_name[name] = bool(row["higherIsBetter"])
+    for metrics in runs_by_group.values():
+        for rows in metrics.values():
+            rows.sort(key=lambda item: item.get("createdAt") or "")
+
     stats_by_group: dict[str, dict[str, dict[str, Any]]] = {}
     names_by_id: dict[str, str] = {}
     for row in stats_raw:
@@ -278,7 +307,11 @@ def build_snapshot(
         if not group_id or not name:
             continue
         names_by_id[metric_id] = name
-        stats_by_group.setdefault(group_id, {})[name] = _stat_payload(row)
+        payload = _stat_payload(row)
+        runs = runs_by_group.get(group_id, {}).get(name)
+        if runs:
+            payload["runs"] = [item["value"] for item in runs]
+        stats_by_group.setdefault(group_id, {})[name] = payload
 
     schema_by_id = {item.get("metricId"): item for item in (run.get("metricsSchema") or []) if item.get("metricId")}
     metric_defs: dict[str, dict[str, Any]] = {}
@@ -287,6 +320,9 @@ def build_snapshot(
         source = schema.get("source")
         if "higherIsBetter" in schema:
             higher = bool(schema["higherIsBetter"])
+            inferred = False
+        elif name in direction_by_name:
+            higher = direction_by_name[name]
             inferred = False
         else:
             higher = infer_higher_is_better(name)
@@ -321,6 +357,11 @@ def build_snapshot(
             }
             payload = dict(stat)
             payload["pctBetter"] = pct_better(
+                baseline_means.get(name),
+                stat.get("mean"),
+                bool(definition["higherIsBetter"]),
+            )
+            payload["timesBetter"] = times_better(
                 baseline_means.get(name),
                 stat.get("mean"),
                 bool(definition["higherIsBetter"]),
@@ -366,6 +407,7 @@ def build_snapshot(
                     "label": version["label"],
                     "mean": stat["mean"],
                     "pctBetter": stat.get("pctBetter"),
+                    "timesBetter": stat.get("timesBetter"),
                     "eligible": version["eligible"],
                     "lifecycle": version["lifecycle"],
                     "executionStatus": version["executionStatus"],
@@ -460,6 +502,7 @@ def build_snapshot(
         "collectedAt": collected_at,
         "provenance": {
             "source": "artemis discovery metrics --all --stats",
+            "runsSource": "artemis discovery metrics --all" if runs_by_group else None,
             "commands": list(COMMANDS),
             "cli": "artemis",
         },

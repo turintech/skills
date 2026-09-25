@@ -8,13 +8,11 @@ Publish a **self-contained HTML** discovery report as a Claude Code Artifact.
 2. Inline CSS and JavaScript. Zero npm. No backend.
 3. Prefer semantic HTML (`header`, `section`, `figure`, `table`, `details`) and hand-built SVG, as in a typical Claude Artifact dashboard.
 4. Allowed extra libraries, if needed, come only from Artifact CDN hosts (`cdnjs.cloudflare.com`, `cdn.jsdelivr.net`, `cdn.tailwindcss.com`, `code.jquery.com`). Default to no CDN.
-5. Follow [report-design.md](report-design.md): compact provenance and Artemis link, version-budget progress, baseline → percentage change → raw winner, generation-order figures, optional Pareto, and collapsible audit tables.
+5. Follow [report-design.md](report-design.md): the story, the page anatomy, the figures, and the visual standard.
 
-## Recommended opening
+## Page
 
-Use a neutral metric title without values. Follow it with compact provenance and a progress element, then render baseline mean on the left and the raw per-metric winner on the right with a directional SVG arrow; place the snapshot's `pctBetter` above the arrow. Do not repeat the three values in the title.
-
-Do not show execution-success or experiment-status count tiles by default. If the raw winner is ineligible, keep the measured result primary, add a warning naming the failed gate, and show the eligible alternative as secondary context. With no measured version, omit the arrow and show only provenance, progress, and baseline.
+Follow the anatomy in [report-design.md](report-design.md): the main finding as the title, a lede, provenance with the Artemis link, the headline comparison, then numbered figures that each carry a question heading and a finding. Do not show execution-success or experiment-status count tiles. With no measured version, show only provenance, progress, and the baseline.
 
 ## Artifact constraints
 
@@ -35,8 +33,8 @@ If Artifacts are disabled, leave the local HTML in place and give the file path.
 
 ## Patterns to keep
 
-- Compact provenance and Artemis link before any chart
-- Version-budget progress, then baseline → percentage change → raw winner
-- Generation-order means with a mark on the raw winner, not a running-best overlay
-- `<details>` tables under each figure
+- The finding in the title, and a finding under every figure
+- Provenance and the Artemis link before any chart
+- Individual runs against the baseline band when there are several per version
+- `<details>` for the full version table
 - Explicit notes for `n=1`, LLM quality scores, and ineligible raw winners without making eligibility the headline

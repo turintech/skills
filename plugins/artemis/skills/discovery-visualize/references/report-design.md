@@ -1,60 +1,95 @@
-# Shared discovery report design
+# Discovery report design
 
-Render the snapshot. Do not re-join CLI JSON. Headings state evidence, not slogans.
+A report exists so someone can take a conclusion away from it. Every figure answers one question and says its answer in words beside the chart. Render the snapshot; do not re-join CLI JSON.
 
-## Recommended default
+## 1. Settle the story first
 
-Users may request any presentation. Without further direction, optimize the opening for one left-to-right question: where did the metric start, where is the best measured version, and how large is the change?
+Work out what the reader wants to take away before choosing a chart. Most prompts say it:
 
-For each target metric:
+| The prompt says | The story | Figures |
+|---|---|---|
+| "how much faster", "what did we gain", "chart this run" | How much better did it get? | Headline, then change per version (ranked bars) |
+| "is it real", "is it noise", "significant", "reliable" | Is the gain bigger than run-to-run noise? | Every run against the baseline's spread (strip plot) |
+| "how did it go", "over time", "did steering help" | How did the search unfold? | Generation-order trajectory, annotated |
+| "what did it try", "what worked", "why did it fail" | What did the agent try, and what came of it? | Versions grouped by outcome, with the agent's verdicts |
+| two metrics, "trade-off", "cost of" | What does one metric cost in the other? | Pareto scatter over the named axes |
+| a specific chart ("a bar chart of...", "just the table") | Theirs | Exactly what they asked for, under the same truth rules |
 
-1. **Neutral title** — `<metric>: baseline vs best measured version`. Keep values out of the title; the comparison below owns them.
-2. **Compact provenance** — project/run identity, status, baseline SHA, `collectedAt`, and a prominent Web UI link.
-3. **Version-budget progress** — `versionCount` / `numVersions` when the host has a compact progress primitive.
-4. **Baseline-to-best comparison** — baseline mean → directional arrow with `pctBetter` above it → raw per-metric winner mean and version label. Include units and observation counts.
-5. **One trajectory per target metric** — generation-order means with a baseline reference and a mark on the raw per-metric winner (`perMetricWinners[metric].raw`). Gaps stay empty. Do not plot a running-best overlay unless the user is evaluating search speed.
-6. **Focused candidate** — the raw winner's experiment title/status, quality metrics when present, and one-line rationale.
-7. **Failure accounting** — show a concise warning only when versions failed, target metrics are missing, or the raw winner is ineligible.
-8. **Audit table** — every version: lifecycle, execution, fitness, target means, % vs baseline, experiment status. Collapse it if the host allows progressive disclosure.
+When the prompt names no story, and only then, ask one question before building, with a recommendation:
 
-Use `perMetricWinners[metric].raw` for the default comparison. Do not introduce “eligible” in the title or primary comparison. If raw and eligible differ, retain the raw result as the measured headline, add a warning that names the failed gate, and show the eligible alternative as secondary context. Eligibility is a report-safety filter, not a measurement or statistical conclusion.
+> What should this report help you (or the person you send it to) take away?
+> 1. How much better the best version is (recommended for a first look)
+> 2. Whether the gains are real or run-to-run noise
+> 3. How the search went, version by version
+> 4. What the agent tried and what worked
 
-Do not show execution-success or experiment-status counts as headline tiles by default. They add little when healthy. Keep experiment details in a secondary or collapsible section; surface counts only when the user asks or when a failure pattern is itself the finding.
+If the user cannot be asked (a scheduled or unattended run), build the default: **how much better** plus **is it real** (when there is more than one measurement per version) plus **what worked**, in that order. Three figures at most by default; more only on request.
 
-### Sparse and multi-metric states
+## 2. Page anatomy
 
-- With a baseline but no measured version, show provenance, progress, and the baseline only. Omit the arrow, uplift, winner, trajectory, and empty tables.
-- With measured versions but no eligible winner, still show the raw winner and explain the gate failure.
-- With multiple target metrics, render one baseline-to-best comparison and trajectory per metric. Never create an aggregate winner unless the user supplies the aggregation rule.
+1. **Eyebrow:** project or repository, the metric key, the target files. Small, neutral.
+2. **Title: the main finding, as a sentence.** It must be true of the raw measurements on the page, for example "v1 runs the simulation 3.9x faster than the original" or "No version beat the baseline". Numbers are welcome in the title; adjectives need evidence on the page.
+3. **Lede:** one or two sentences on what was run: the task in plain words, how many versions, how many measurements each.
+4. **Provenance line** (small, mono): run id, runner, baseline commit, collected time, and a prominent **Open in Artemis** link.
+5. **Headline comparison:** baseline mean, then the change (`timesBetter` as "3.9x" when it reads naturally, otherwise `pctBetter`), then the best measured version's mean and name. Units and `n` under each number.
+6. **Figures**, each as: a small "Figure N" label, the **question as its heading**, the chart, a **finding** directly under it, then a one-line caption.
+7. **Every version** table, collapsed.
+8. **Footer:** the task text, the CLI commands, collected time.
 
-Optional, only when the snapshot includes them or the user asked:
+### Findings
 
-- Pareto scatter of two named axes. Caption: analytical view, not a verdict. Label only non-dominated points.
-- Grouped bars when the same metric family has shape/batch keys (for example `m=1` / `m=8` / `m=32`).
-- Experiment counts as compact secondary stats, not a fake donut of “success”.
+A finding is what a reader should remember from its figure.
 
-## Captions
+- **Lead with the answer, in bold,** then one or two sentences of evidence with numbers from the snapshot: "**Yes: every v1 run beat every baseline run.** Its slowest run, 125.3 fps, is 3.9x the fastest baseline run."
+- Answer the heading's question. "How much faster is each version?" is answered by a comparison, not by a description of the chart.
+- Name versions by label and change: "v4, merged neighbour cell lists".
+- Say when the answer is "no" or "can't tell". A report that finds nothing is still a finding.
 
-Every plot names:
+### Captions
 
-- the metric key and units
-- that values are **means** (and `n` / min / max when `count != 1`)
-- the baseline SHA
-- the source: `artemis discovery metrics --all --stats`
+One line per figure: what a mark is (mean of `n`, or one run), the baseline commit, the source command, and that percentages are mean vs baseline mean.
 
-State that % is mean vs baseline, not an Artemis statistical verdict.
+## 3. The figures
 
-## Interaction
+**Change per version (ranked bars).** Horizontal bars of `pctBetter` (or `timesBetter`), sorted best first, from a zero line that is the baseline. Value label at each bar's end, version label on the left. The best version in the accent colour, the rest neutral. Versions with no measurement listed at the bottom as text, not as zero-length bars.
 
-Keep it small: hover tooltips, a rank-by or focus control, and collapsible tables. No live polling. Refresh = re-run the collector and rewrite the artifact.
+**Every run against the baseline (strip plot).** One row per version, baseline first. Each individual run (`runs`) is a dot; a short tick marks the mean. A shaded band spans the baseline's min to max across the whole plot. This is the honest answer to "is it real": say how many of a version's runs fall inside the baseline band. Skip it when `count` is 1 and say so in the lede.
 
-## Accessibility and tone
+**Search trajectory.** `pctBetter` by version number (versions are numbered in the order they were made). A zero line for the baseline, a line through consecutive measured versions that breaks at gaps, a ring on the best version, and a value label on the points the finding mentions. Annotate what explains the shape when it is known from this conversation or the run: a steer ("steered toward the solver loops" between v5 and v6), a version set aside. Do not add a running-best line unless the reader is judging how fast the search found things.
 
-- Charts need a title, axis labels with units, and an accessible name.
-- Support light and dark if the host has a theme hook; otherwise follow `prefers-color-scheme`.
-- Separate factual summary from editorial analysis. If you write an interpretive heading (“the search converges late”), the figure body must show the generation-order mean series and the raw-winner mark that justify it.
-- Do not colour bars as better/worse/noise.
+**Versions by outcome.** Cards or a compact table grouped as measured improvement, no measurable change, slower, and failed or not measured. Each row: label, the experiment title, the measured change, and the agent's verdict, visibly separate from the measurement.
+
+**Pareto scatter.** Only for two named axes. Label the non-dominated points; caption it as an analytical view, not an Artemis verdict.
+
+## 4. Visual standard
+
+A professional data designer should be happy to put their name to it.
+
+- **One accent carries the story:** the best version, or everything after a steer. Everything else is a calm neutral. A second hue only for a real category the reader needs (before and after a steer). Never colour by better and worse.
+- **Validate the palette** when the dataviz skill's validator is available, in both themes.
+- **Recessive structure:** faint grid lines, no chart borders, no drop shadows on marks. Axis labels name the metric and unit.
+- **Label directly:** value labels on the marks the finding talks about; no legend for a single series; a legend when colour carries a category.
+- **Type:** a sans for prose and headings, a mono with tabular figures for numbers and ids. Headings at least one step above body text; the title is the largest thing on the page.
+- **Figures sized to read:** at least 520px of drawing width, horizontal scroll on phones rather than squashing.
+- **Hover** shows the exact values (mean, runs, % vs baseline, the agent's verdict). Nothing on the page depends on hover.
+- Light and dark themes both designed, and a background set on the page.
+
+## 5. What the data can and cannot say
+
+- The best version is the raw per-metric winner (`perMetricWinners[metric].raw`). If it fails the eligibility gate, it stays the measured headline, and a note names the gate and the best eligible version.
+- A version with a strong measurement and a **refuted** verdict usually means it did not beat an earlier version. Say so in the finding, from `experimentConclusion`, so the table does not read as a failure.
+- Missing measurements are gaps with a reason (`executionStatus`, `lifecycle`), never zeros.
+- "Real" or "clear" needs the runs: say "all 3 v1 runs beat all 3 baseline runs", or "two of v2's runs sit inside the baseline band". Do not compute p-values or confidence intervals.
+- One direction per metric, from the snapshot (`higherIsBetter`). When `higherIsBetterInferred` is true, confirm it from the run's task or ask before naming a winner.
+- No single overall winner across several objectives unless the user gives the rule.
+
+## 6. Sparse states
+
+- **Baseline only:** provenance, progress, the baseline number, and "No version has been measured yet". No arrow, no figures.
+- **Nothing beat the baseline:** the title says so. Keep the ranked bars (they show how close each came) and the strip plot, and lead the findings with why, from the experiment conclusions.
+- **One measurement per version:** no strip plot; say in the lede that each number is a single run.
+- **Several target metrics:** one headline and one ranked figure per metric, no combined winner.
 
 ## Fallback HTML
 
-If the native host surface is missing, write one self-contained `.html` file (inline CSS/JS, no npm). Prefer semantic HTML + SVG. Put it outside the repository unless the user asks to keep it. Include the same sections as the minimum report.
+If the host has no native surface, write one self-contained `.html` file (inline CSS and JS, no npm) outside the repository unless the user asks to keep it, with the same anatomy.

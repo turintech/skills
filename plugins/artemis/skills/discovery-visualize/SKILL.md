@@ -11,7 +11,7 @@ metadata:
 
 ## At a glance
 
-- **Problem:** Turns CLI discovery records into one normalized snapshot, then renders that snapshot on the current agent host without changing metric semantics.
+- **Problem:** Turns a Discovery run into a report someone can take a conclusion away from: one normalized snapshot, then figures that each answer a question and state the answer, on the current agent host.
 - **Must be available:** An authenticated CLI for the run's deployment and the discovery run ID.
 - **Use / don't use:** Use for graphs, charts, canvases, artifacts, or visual discovery reports. Use `discovery-inspect` to diagnose a run, read diffs, or decide what the numbers mean before drawing them.
 - **Next skill:** None required. Return to `discovery-inspect` for rationale/diff review, or `discovery-steer` for more versions.
@@ -25,7 +25,8 @@ metadata:
 ## Workflow
 
 1. Confirm authentication and the run ID.
-2. Collect the snapshot (do not hand-join CLI JSON):
+2. **Settle the story.** Work out what the reader should take away (how much better, is it real, how the search went, what worked) from the prompt, using the table under *Settle the story first* in [references/report-design.md](references/report-design.md). If the prompt does not say, ask that one question with a recommendation before building. A user who asks for a specific chart gets that chart.
+3. Collect the snapshot (do not hand-join CLI JSON):
 
 ```bash
 python3 "<skill-dir>/scripts/collect_discovery.py" \
@@ -35,14 +36,14 @@ python3 "<skill-dir>/scripts/collect_discovery.py" \
 
 Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / trade-off view and named the axes, or when one target metric and one quality metric are the obvious pair and you label it as analysis.
 
-3. Read the snapshot. Trust `perMetricWinners`, `rankings`, and raw `metrics` means. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
-4. Identify the user's primary question and read the matching recipes in [references/component-catalog.md](references/component-catalog.md). Copy and adapt only the components needed to answer it; examples are recipes, not runtime imports.
-5. Read [references/report-design.md](references/report-design.md), then the matching adapter:
+4. Read the snapshot. Trust `perMetricWinners`, `rankings`, raw `metrics` means, `runs` and `timesBetter`. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
+5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. Use [references/component-catalog.md](references/component-catalog.md) for code recipes; examples are recipes, not runtime imports.
+6. Build the page, then read the matching adapter:
    - Cursor: [references/cursor.md](references/cursor.md)
    - Claude Code: [references/claude-code.md](references/claude-code.md)
    - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md)
    - Unknown host: write the fallback HTML report from `report-design.md`.
-6. Verify labels, units, baseline deltas, gaps, and captions against the snapshot. Return the artifact link plus the Discovery Web UI link.
+7. Check every number in a title or finding against the snapshot, then look at the rendered page once for collisions and clipping. Return the artifact link plus the Discovery Web UI link.
 
 The data contract is in [references/data-contract.md](references/data-contract.md).
 
@@ -61,11 +62,11 @@ These override any host chart default:
 - Rank by the raw target metric, not `fitness`. Show fitness only as a separate platform score.
 - Use the **raw** per-metric winner in the default headline comparison. A per-metric **eligible** winner requires `lifecycle=completed`, `executionStatus=success`, and `experimentStatus != refuted`; when the raw winner fails that gate, warn clearly and show the eligible alternative secondarily.
 - Never claim one overall winner for multiple objectives unless the user supplied the aggregation rule.
-- If `higherIsBetterInferred` is true for a headline metric, the direction was guessed from its name. Confirm it with the user or the run's metrics schema before naming a winner.
+- The collector reads each metric's direction from the platform. If `higherIsBetterInferred` is still true, it was guessed from the name: confirm it from the run's task or with the user before naming a winner.
 - Missing observations are gaps, not zeroes. `generation_failed` versions never reached the runner.
-- Plot and caption `mean` / `min` / `max` / `count`. Do not invent confidence intervals or UI `better` / `worse` / `noise` verdicts.
+- Plot and caption `mean` / `min` / `max` / `count`, and individual `runs` when present. Say whether a version's runs sit inside the baseline's range; do not compute p-values or confidence intervals, and do not colour marks as better or worse.
 - Keep worker measurements, agent-scored quality metrics, and experiment verdicts visually distinct.
-- Default trajectory plots generation-order means and marks the raw winner only. Do not plot running-best unless the user is evaluating search dynamics.
+- Versions are numbered in the order they were made, so version order is generation order. The trajectory marks the raw winner only; plot running-best only when the user is judging search speed.
 - A Pareto front is an analytical view over named axes, not an Artemis verdict.
 
 ## Collector flags
@@ -83,7 +84,9 @@ The collector already strips logger noise before JSON and joins `observationGrou
 ## Checklist
 
 - [ ] Snapshot written; `schemaVersion` is 1.
-- [ ] Each target metric has a baseline → % change → raw winner view; any raw/eligible difference is explained without making eligibility the headline.
+- [ ] The story was settled from the prompt, or asked, before building.
+- [ ] The title states the main finding, and every figure has a question heading and a finding that answers it, with numbers from the snapshot.
+- [ ] Each target metric has a baseline, change and raw winner view; any raw/eligible difference is explained without making eligibility the headline.
 - [ ] Failed and missing versions are accounted for.
 - [ ] Caption names the CLI source and that % is mean vs baseline.
 - [ ] Host artifact or fallback HTML opened/linked.

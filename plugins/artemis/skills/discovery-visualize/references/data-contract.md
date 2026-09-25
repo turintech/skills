@@ -9,9 +9,9 @@
 | `collectedAt` | UTC timestamp of the collect |
 | `provenance.commands` | CLI commands used |
 | `run` | Status, task, counts, baseline SHA/observation, `projectUrl` (stable), `webUrl` (the run on newer deployments; if it 404s, link the project and name the Discover page) |
-| `metrics[]` | `key`, `source`, `higherIsBetter`, `higherIsBetterInferred` (`true` when the direction was guessed from the name, not the run's schema), `kind` (`target` / `quality` / `harness`) |
-| `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them) |
-| `versions[]` | Lifecycle, execution, fitness, experiment fields, per-metric stats + `pctBetter`, `eligible` |
+| `metrics[]` | `key`, `source`, `higherIsBetter`, `higherIsBetterInferred` (`true` only when neither the run's schema nor the platform's measurements gave a direction, so it was guessed from the name), `kind` (`target` / `quality` / `harness`) |
+| `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them, and `runs`: each individual measurement in order) |
+| `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), per-metric stats + `runs`, `pctBetter`, `timesBetter`, `eligible` |
 | `experiments[]` | Title, status, confidence, parents, linked version |
 | `rankings[metric]` | Best-first rows with `eligible` and experiment status |
 | `runningBest[metric]` | Generation order; `mean` is `null` on gaps; `bestVersion`/`bestMean` carry forward |
@@ -24,6 +24,8 @@
 
 - minimize: `(baseline - value) / |baseline| * 100`
 - maximize: `(value - baseline) / |baseline| * 100`
+
+`timesBetter` is the same comparison as a ratio, so `2.0` reads as "2x faster" either way: `value / baseline` when maximizing, `baseline / value` when minimizing. `null` when either is zero or negative.
 
 `eligible` is `lifecycle=completed` and `executionStatus=success` and `experimentStatus != refuted`.
 

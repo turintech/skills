@@ -10,6 +10,7 @@ snapshot. These files are examples, not an importable runtime package.
 |---|---|---|
 | Where did the metric start, and what is the best measured result? | [Baseline comparison](../examples/components/baseline-comparison.tsx) | `baseline.metrics`, `perMetricWinners`, metric metadata |
 | Which versions improved or regressed most? | [Version ranking](../examples/components/version-ranking.tsx) | `rankings[metric]`, version URLs |
+| Is the gain bigger than run-to-run noise? | Strip plot, described in [report-design.md](report-design.md) section 3 | `baseline.metrics[metric].runs`, each version's `runs` |
 | How did the metric evolve through the run? | [Metric trajectory](../examples/components/metric-trajectory.tsx) | `runningBest[metric]`, baseline metric, `perMetricWinners[metric].raw` |
 | What was each version trying to do? | [Version cards](../examples/components/version-cards.tsx) | `versions`, experiment titles or rationales, version URLs |
 | Which ideas or versions build on earlier work? | [Experiment lineage](../examples/components/experiment-lineage.tsx) | `experiments`, parent IDs, linked versions |

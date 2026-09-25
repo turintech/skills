@@ -58,6 +58,11 @@ class MetricMathTests(unittest.TestCase):
         # A percentage of a zero baseline is undefined, and a report should show a gap, not 0%.
         self.assertIsNone(collector.pct_better(0.0, 1.0, False))
 
+    def test_times_better_both_directions(self) -> None:
+        self.assertAlmostEqual(collector.times_better(10.0, 5.0, False), 2.0)
+        self.assertAlmostEqual(collector.times_better(32.0, 128.0, True), 4.0)
+        self.assertIsNone(collector.times_better(0.0, 1.0, True))
+
     def test_kind_classification(self) -> None:
         self.assertEqual(collector.classify_kind("compile_runtime", "worker"), "harness")
         self.assertEqual(collector.classify_kind("quality_score", "agent"), "quality")
@@ -169,3 +174,40 @@ class SnapshotFixtureTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ObservationTests(unittest.TestCase):
+    """Individual runs and the platform's direction come from `discovery metrics --all`."""
+
+    def payloads(self, observations):
+        return {
+            "run": {"id": "run-1", "projectId": "p-1", "baselineGroupId": "g-base", "metricsSchema": [{"metricId": "m-fps", "source": "worker"}]},
+            "versions": [{"id": "v-1", "versionNumber": 1, "observationGroupId": "g-1", "lifecycle": "completed", "executionStatus": "success"}],
+            "metrics": [
+                {"observationGroupId": "g-base", "metricId": "m-fps", "metricName": "frame_time", "mean": 10.0, "min": 9.0, "max": 11.0, "count": 2},
+                {"observationGroupId": "g-1", "metricId": "m-fps", "metricName": "frame_time", "mean": 20.0, "min": 19.0, "max": 21.0, "count": 2},
+            ],
+            "observations": observations,
+            "experiments": [],
+        }
+
+    def test_runs_and_direction_from_observations(self) -> None:
+        observations = [
+            {"observationGroupId": "g-base", "metricName": "frame_time", "value": 11.0, "higherIsBetter": True, "createdAt": "2026-01-01T00:00:02Z"},
+            {"observationGroupId": "g-base", "metricName": "frame_time", "value": 9.0, "higherIsBetter": True, "createdAt": "2026-01-01T00:00:01Z"},
+            {"observationGroupId": "g-1", "metricName": "frame_time", "value": 19.0, "higherIsBetter": True, "createdAt": "2026-01-01T00:00:03Z"},
+            {"observationGroupId": "g-1", "metricName": "frame_time", "value": 21.0, "higherIsBetter": True, "createdAt": "2026-01-01T00:00:04Z"},
+        ]
+        snap = collector.build_snapshot(self.payloads(observations), collected_at="2026-01-01T00:00:00Z")
+        metric = snap["metrics"][0]
+        # The name says lower is better; the platform's stored direction wins.
+        self.assertTrue(metric["higherIsBetter"])
+        self.assertFalse(metric["higherIsBetterInferred"])
+        self.assertEqual(snap["baseline"]["metrics"]["frame_time"]["runs"], [9.0, 11.0])
+        self.assertEqual(snap["versions"][0]["metrics"]["frame_time"]["runs"], [19.0, 21.0])
+        self.assertAlmostEqual(snap["versions"][0]["metrics"]["frame_time"]["pctBetter"], 100.0)
+
+    def test_without_observations_direction_is_inferred(self) -> None:
+        snap = collector.build_snapshot(self.payloads(None), collected_at="2026-01-01T00:00:00Z")
+        self.assertTrue(snap["metrics"][0]["higherIsBetterInferred"])
+        self.assertNotIn("runs", snap["baseline"]["metrics"]["frame_time"])
