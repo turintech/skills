@@ -38,7 +38,7 @@ Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / tra
 
 4. Read the snapshot. Trust `perMetricWinners`, `rankings`, raw `metrics` means, `runs` and `timesBetter`. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
 5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. Use [references/component-catalog.md](references/component-catalog.md) for code recipes; examples are recipes, not runtime imports.
-6. Build the page, then read the matching adapter:
+6. Build the page. On Claude Code, GitHub Copilot or any HTML host, use the kit in [references/report-kit.md](references/report-kit.md): write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. Then read the matching adapter:
    - Cursor: [references/cursor.md](references/cursor.md)
    - Claude Code: [references/claude-code.md](references/claude-code.md)
    - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md)
@@ -74,6 +74,7 @@ These override any host chart default:
 ```text
 --run-id UUID          live CLI collect
 --from-dir DIR         fixture/replay collect (run.json, versions.json, metrics.json|stats.json, experiments.json)
+--project UUID         every Discovery run in a project, one snapshot each
 --output PATH          write JSON; default stdout
 --base-url URL         Web UI origin if status cannot infer it
 --pareto a,b           optional axes; repeatable

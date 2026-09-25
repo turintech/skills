@@ -211,3 +211,48 @@ class ObservationTests(unittest.TestCase):
         snap = collector.build_snapshot(self.payloads(None), collected_at="2026-01-01T00:00:00Z")
         self.assertTrue(snap["metrics"][0]["higherIsBetterInferred"])
         self.assertNotIn("runs", snap["baseline"]["metrics"]["frame_time"])
+
+
+class ClassificationAndReferenceTests(unittest.TestCase):
+    def test_harness_names(self) -> None:
+        for name in ("compile_runtime", "Benchmark_cpu", "command 2_memory", "unit_test_runtime"):
+            self.assertEqual(collector.classify_kind(name, "worker"), "harness", name)
+        self.assertEqual(collector.classify_kind("simulation_fps", "worker"), "target")
+        self.assertEqual(collector.classify_kind("benchmark_integrity", "agent"), "quality")
+
+    def test_units_from_names(self) -> None:
+        self.assertEqual(collector.infer_unit("simulation_fps"), "fps")
+        self.assertEqual(collector.infer_unit("MatMul(M=4096)_triton_tflops"), "TFLOPS")
+        self.assertEqual(collector.infer_unit("latency_ms"), "ms")
+        self.assertIsNone(collector.infer_unit("score"))
+
+    def test_reference_pairs(self) -> None:
+        names = ["MatMul_triton_tflops", "MatMul_cublas_tflops", "MatMul_triton_ms", "MatMul_cublas_ms", "simulation_fps"]
+        pairs = collector.find_references(names)
+        self.assertIn({"target": "MatMul_triton_tflops", "reference": "MatMul_cublas_tflops"}, pairs)
+        self.assertIn({"target": "MatMul_triton_ms", "reference": "MatMul_cublas_ms"}, pairs)
+        self.assertFalse(any(p["target"] == "simulation_fps" for p in pairs))
+
+    def test_quartiles(self) -> None:
+        q = collector.quartiles([4.0, 1.0, 3.0, 2.0])
+        self.assertAlmostEqual(q["q1"], 1.75)
+        self.assertAlmostEqual(q["median"], 2.5)
+        self.assertAlmostEqual(q["q3"], 3.25)
+
+    def test_reference_ratio_in_snapshot(self) -> None:
+        def obs(group, name, value, higher):
+            return {"observationGroupId": group, "metricName": name, "value": value, "higherIsBetter": higher, "createdAt": "2026-01-01T00:00:00Z"}
+        stats = lambda group, name, mean: {"observationGroupId": group, "metricId": name, "metricName": name, "mean": mean, "min": mean, "max": mean, "count": 1}
+        payloads = {
+            "run": {"id": "r", "projectId": "p", "baselineGroupId": "gb"},
+            "versions": [{"id": "v", "versionNumber": 1, "observationGroupId": "g1", "lifecycle": "completed", "executionStatus": "success"}],
+            "metrics": [stats("gb", "k_triton_ms", 8.0), stats("gb", "k_cublas_ms", 6.0), stats("g1", "k_triton_ms", 5.0), stats("g1", "k_cublas_ms", 6.0)],
+            "observations": [obs("gb", "k_triton_ms", 8.0, False), obs("gb", "k_cublas_ms", 6.0, False), obs("g1", "k_triton_ms", 5.0, False), obs("g1", "k_cublas_ms", 6.0, False)],
+            "experiments": [],
+        }
+        snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
+        # Lower is better, so the ratio is reference / target: above 1 means faster than the reference.
+        self.assertAlmostEqual(snap["versions"][0]["metrics"]["k_triton_ms"]["vsReference"]["ratio"], 1.2)
+        self.assertAlmostEqual(snap["baseline"]["metrics"]["k_triton_ms"]["vsReference"]["ratio"], 0.75)
+        roles = {m["key"]: m.get("role") for m in snap["metrics"]}
+        self.assertEqual(roles["k_cublas_ms"], "reference")

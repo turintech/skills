@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -107,8 +108,47 @@ def infer_higher_is_better(name: str) -> bool:
     return True
 
 
+# The runner's own timings of each command: "compile_runtime", "Benchmark_cpu", "command 2_memory".
+HARNESS_PATTERN = re.compile(r"^(compile|unit_test|test|benchmark|setup|teardown|command \d+)_(runtime|cpu|memory)$", re.I)
+
+# A metric measured beside the target in the same benchmark process, used as a control for machine drift.
+REFERENCE_TOKENS = ("cublas", "cudnn", "torch", "pytorch", "numpy", "mkl", "eigen", "openblas", "reference", "ref", "baseline_impl")
+
+# Units recognised from a metric's name when the platform stores none.
+UNIT_SUFFIXES = (
+    ("tflops", "TFLOPS"), ("gflops", "GFLOPS"), ("fps", "fps"), ("tokens_per_s", "tokens/s"), ("tok_s", "tokens/s"),
+    ("ms", "ms"), ("us", "\u00b5s"), ("ns", "ns"), ("seconds", "s"), ("runtime", "s"), ("mb", "MB"), ("gb", "GB"), ("memory", "bytes"),
+)
+
+
+def infer_unit(name: str) -> str | None:
+    tail = re.split(r"[_\s]", name.lower())[-1]
+    for suffix, unit in UNIT_SUFFIXES:
+        if tail == suffix or name.lower().endswith("_" + suffix):
+            return unit
+    return None
+
+
+def find_references(names: list[str]) -> list[dict[str, str]]:
+    """Pair a target with a reference whose name differs only by a reference token, e.g. X_triton_ms and X_cublas_ms."""
+    pairs = []
+    lowered = {name.lower(): name for name in names}
+    for name in names:
+        parts = re.split(r"(_)", name)
+        for i, part in enumerate(parts):
+            if part.lower() in REFERENCE_TOKENS:
+                continue
+            for token in REFERENCE_TOKENS:
+                candidate = "".join(parts[:i] + [token] + parts[i + 1:])
+                if candidate.lower() in lowered and lowered[candidate.lower()] != name:
+                    pair = {"target": name, "reference": lowered[candidate.lower()]}
+                    if pair not in pairs:
+                        pairs.append(pair)
+    return pairs
+
+
 def classify_kind(name: str, source: str | None) -> str:
-    if name in HARNESS_METRICS:
+    if name in HARNESS_METRICS or HARNESS_PATTERN.match(name):
         return "harness"
     if source == "agent":
         return "quality"
@@ -161,6 +201,10 @@ def run_artemis(args: list[str]) -> str:
     return completed.stdout
 
 
+def list_project_runs(project_id: str) -> list[dict[str, Any]]:
+    return as_docs(extract_json(run_artemis(["discovery", "list", "--project", project_id, "--all"])))
+
+
 def fetch_cli(run_id: str) -> dict[str, Any]:
     return {
         "run": extract_json(run_artemis(["discovery", "get", run_id])),
@@ -183,6 +227,18 @@ def _stat_payload(row: dict[str, Any]) -> dict[str, Any]:
         if optional in row:
             payload[optional] = row[optional]
     return payload
+
+
+def quartiles(values: list[float]) -> dict[str, float]:
+    """First quartile, median and third quartile by linear interpolation (the usual "type 7")."""
+    ordered = sorted(values)
+
+    def at(p: float) -> float:
+        index = (len(ordered) - 1) * p
+        low, high = int(index), min(int(index) + 1, len(ordered) - 1)
+        return ordered[low] + (ordered[high] - ordered[low]) * (index - low)
+
+    return {"q1": at(0.25), "median": at(0.5), "q3": at(0.75)}
 
 
 def _is_better(value: float, incumbent: float, higher_is_better: bool) -> bool:
@@ -284,6 +340,7 @@ def build_snapshot(
     # Individual measurements, and the direction the platform stores with each one.
     runs_by_group: dict[str, dict[str, list[dict[str, Any]]]] = {}
     direction_by_name: dict[str, bool] = {}
+    unit_by_name: dict[str, str] = {}
     for row in as_docs(payloads.get("observations")) if payloads.get("observations") is not None else []:
         group_id = row.get("observationGroupId")
         name = row.get("metricName")
@@ -294,6 +351,8 @@ def build_snapshot(
         )
         if row.get("higherIsBetter") is not None:
             direction_by_name[name] = bool(row["higherIsBetter"])
+        if row.get("unit"):
+            unit_by_name[name] = row["unit"]
     for metrics in runs_by_group.values():
         for rows in metrics.values():
             rows.sort(key=lambda item: item.get("createdAt") or "")
@@ -311,6 +370,7 @@ def build_snapshot(
         runs = runs_by_group.get(group_id, {}).get(name)
         if runs:
             payload["runs"] = [item["value"] for item in runs]
+            payload.update(quartiles(payload["runs"]))
         stats_by_group.setdefault(group_id, {})[name] = payload
 
     schema_by_id = {item.get("metricId"): item for item in (run.get("metricsSchema") or []) if item.get("metricId")}
@@ -336,12 +396,32 @@ def build_snapshot(
             "higherIsBetterInferred": inferred,
             "importance": schema.get("importance"),
             "kind": classify_kind(name, source),
+            "unit": unit_by_name.get(name) or infer_unit(name),
             "description": schema.get("description"),
         }
+
+    # Controls measured beside a target: both worker metrics, same direction.
+    reference_pairs = [
+        pair for pair in find_references([n for n, d in metric_defs.items() if d["kind"] == "target"])
+        if metric_defs[pair["target"]]["higherIsBetter"] == metric_defs[pair["reference"]]["higherIsBetter"]
+    ]
+    for pair in reference_pairs:
+        metric_defs[pair["reference"]]["role"] = "reference"
+        metric_defs[pair["target"]]["reference"] = pair["reference"]
+
+    def add_reference_ratios(metrics: dict[str, dict[str, Any]]) -> None:
+        for pair in reference_pairs:
+            target, reference = metrics.get(pair["target"]), metrics.get(pair["reference"])
+            if not target or not reference or not target.get("mean") or not reference.get("mean"):
+                continue
+            higher = metric_defs[pair["target"]]["higherIsBetter"]
+            ratio = target["mean"] / reference["mean"] if higher else reference["mean"] / target["mean"]
+            target["vsReference"] = {"reference": pair["reference"], "ratio": ratio}
 
     baseline_group = run.get("baselineGroupId")
     baseline_stats = stats_by_group.get(baseline_group or "", {})
     baseline_means = {key: (stat or {}).get("mean") for key, stat in baseline_stats.items()}
+    add_reference_ratios(baseline_stats)
 
     versions: list[dict[str, Any]] = []
     for item in sorted(versions_raw, key=lambda row: (row.get("versionNumber") is None, row.get("versionNumber") or 0)):
@@ -367,6 +447,7 @@ def build_snapshot(
                 bool(definition["higherIsBetter"]),
             )
             joined[name] = payload
+        add_reference_ratios(joined)
         record = {
             "label": f"v{number}" if number is not None else item.get("id"),
             "version": number,
@@ -543,12 +624,14 @@ def build_snapshot(
         },
         "experimentSummary": status_counts,
         "pareto": pareto,
+        "references": reference_pairs,
     }
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect a normalized Artemis discovery snapshot.")
     parser.add_argument("--run-id", help="Discovery run UUID")
+    parser.add_argument("--project", help="Project UUID: collect every Discovery run in it, one snapshot each")
     parser.add_argument("--from-dir", help="Load run/versions/metrics/experiments JSON from a directory")
     parser.add_argument("--output", help="Write JSON to this path instead of stdout")
     parser.add_argument("--base-url", help="Web UI origin, e.g. https://artemis.turintech.ai")
@@ -573,9 +656,25 @@ def parse_pareto_axes(values: list[str]) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    if not args.run_id and not args.from_dir:
-        print("collect_discovery.py: --run-id or --from-dir is required", file=sys.stderr)
+    if not args.run_id and not args.from_dir and not args.project:
+        print("collect_discovery.py: --run-id, --project or --from-dir is required", file=sys.stderr)
         return 2
+    collected_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    if args.project:
+        runs, skipped = [], []
+        for item in sorted(list_project_runs(args.project), key=lambda r: r.get("createdAt") or ""):
+            try:
+                runs.append(build_snapshot(fetch_cli(item["id"]), collected_at=collected_at, base_url=args.base_url))
+            except (RuntimeError, ValueError) as error:
+                skipped.append({"id": item.get("id"), "status": item.get("status"), "reason": str(error)[:200]})
+        result = {"schemaVersion": SCHEMA_VERSION, "kind": "project", "projectId": args.project, "collectedAt": collected_at, "runs": runs, "skipped": skipped}
+        encoded = json.dumps(result, indent=2)
+        if args.output:
+            with open(args.output, "w", encoding="utf-8") as handle:
+                handle.write(encoded + "\n")
+        else:
+            print(encoded)
+        return 0
     if args.from_dir:
         payloads = load_from_dir(args.from_dir)
     else:

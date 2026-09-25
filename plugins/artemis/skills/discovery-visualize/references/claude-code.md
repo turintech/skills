@@ -4,11 +4,9 @@ Publish a **self-contained HTML** discovery report as a Claude Code Artifact.
 
 ## Build
 
-1. Write one `.html` file in a temporary directory outside the project unless the user asked to keep it.
-2. Inline CSS and JavaScript. Zero npm. No backend.
-3. Prefer semantic HTML (`header`, `section`, `figure`, `table`, `details`) and hand-built SVG, as in a typical Claude Artifact dashboard.
-4. Allowed extra libraries, if needed, come only from Artifact CDN hosts (`cdnjs.cloudflare.com`, `cdn.jsdelivr.net`, `cdn.tailwindcss.com`, `code.jquery.com`). Default to no CDN.
-5. Follow [report-design.md](report-design.md): the story, the page anatomy, the figures, and the visual standard.
+1. Build with the kit ([report-kit.md](report-kit.md)): a page script, `build_report.py`, then `check_report.py`. Write files in a temporary directory outside the project unless the user asked to keep them.
+2. The built page is one self-contained file: kit, styles and snapshot inlined, no npm, no backend, no CDN.
+3. Follow [report-design.md](report-design.md): the story, the page anatomy, the figures, and the visual standard. For a chart the kit does not have, draw SVG with `ArtemisReport.s` in the same style.
 
 ## Page
 

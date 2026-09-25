@@ -23,6 +23,23 @@ When the prompt names no story, and only then, ask one question before building,
 > 3. How the search went, version by version
 > 4. What the agent tried and what worked
 
+**Before building anything, check what was named exists:** the run, the version number, the metric. If it does not (a "version 12" in a run of ten), say what does exist and ask; never chart the nearest match silently.
+
+### Custom requests
+
+When the user names the chart, build that chart, with the same page anatomy and truth rules:
+
+| The user asks for | Draw |
+|---|---|
+| a distribution, spread, or "how noisy" | every measurement (`strip`) below about ten per group; box plots with the points overlaid (`boxes`) from there, or whenever they ask for box plots |
+| two things compared (a version and the baseline, two versions) | a two-row `strip` or `boxes`, the gap between the groups labelled when they do not overlap |
+| a change over the run, or since a steer | `trajectory`, annotated at the steer |
+| a relationship between two metrics | `scatter`, with ratio lines when one is a reference |
+| a ranking, "which is best" | `rankedBars` of the change, best first |
+| "all the runs", a project, "all the branches" | `--project`, then section 6 |
+
+If the request fits none of these, draw it with the kit's SVG helpers in the same style, and keep one finding under it.
+
 If the user cannot be asked (a scheduled or unattended run), build the default: **how much better** plus **is it real** (when there is more than one measurement per version) plus **what worked**, in that order. Three figures at most by default; more only on request.
 
 ## 2. Page anatomy
@@ -90,7 +107,7 @@ A professional data designer should be happy to put their name to it.
 When the user asks about a project, several runs, or "all the branches", collect every run (`artemis discovery list --project <id> --all`, then the collector per run) and compare versions across them.
 
 - **Each run has its own baseline measurement,** and the same code can measure differently on different days. Never rank raw values across runs. Compare each version against its own run's baseline (`pctBetter`, `timesBetter`).
-- **Look for a built-in control first.** A reference measured in the same benchmark process (cuBLAS next to a Triton kernel, a reference implementation next to the candidate) cancels machine drift: rank by candidate ÷ reference. Check it works: the baseline's ratio should agree across runs. Say that the ratio is the report's analysis, not an Artemis score.
+- **Look for a built-in control first.** A reference measured in the same benchmark process (cuBLAS next to a Triton kernel, a reference implementation next to the candidate) cancels machine drift: rank by candidate ÷ reference. The collector finds these pairs (`references`) and gives each version `vsReference`. Check it works: the baseline's ratio should agree across runs. Say that the ratio is the report's analysis, not an Artemis score.
 - **Colour follows the run,** in date order, one categorical hue each, labelled in a legend and in the figures.
 - **Account for every run,** including the ones that produced nothing: all versions failed to run, still in setup, cancelled. A table of runs with what happened is usually a figure in its own right.
 - Flag versions measured once, and versions that failed their correctness check, in the ranking itself (faded bars, a label), not only in the table.

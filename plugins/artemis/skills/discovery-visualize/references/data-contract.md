@@ -9,8 +9,8 @@
 | `collectedAt` | UTC timestamp of the collect |
 | `provenance.commands` | CLI commands used |
 | `run` | Status, task, counts, baseline SHA/observation, `projectUrl` (stable), `webUrl` (the run on newer deployments; if it 404s, link the project and name the Discover page) |
-| `metrics[]` | `key`, `source`, `higherIsBetter`, `higherIsBetterInferred` (`true` only when neither the run's schema nor the platform's measurements gave a direction, so it was guessed from the name), `kind` (`target` / `quality` / `harness`) |
-| `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them, and `runs`: each individual measurement in order) |
+| `metrics[]` | `key`, `source`, `unit` (from the platform, else from the name, e.g. `fps`), `role: "reference"` on a control metric and `reference` on the target it controls, `higherIsBetter`, `higherIsBetterInferred` (`true` only when neither the run's schema nor the platform's measurements gave a direction, so it was guessed from the name), `kind` (`target` / `quality` / `harness`) |
+| `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them, `runs`: each individual measurement in order, `q1`/`median`/`q3` from those runs, and `vsReference`) |
 | `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), per-metric stats + `runs`, `pctBetter`, `timesBetter`, `eligible` |
 | `experiments[]` | Title, status, confidence, parents, linked version |
 | `rankings[metric]` | Best-first rows with `eligible` and experiment status |
@@ -19,11 +19,16 @@
 | `executionSummary` | Completed / generation_failed / scoring_failed / execution_* / `missingTargetMetrics` |
 | `experimentSummary` | validated / refuted / inconclusive counts |
 | `pareto` | `null` unless `--pareto` was passed |
+| `references` | Target and reference metric pairs, such as a Triton kernel and cuBLAS measured in the same benchmark |
 
 `pctBetter` is oriented so positive means better given `higherIsBetter`:
 
 - minimize: `(baseline - value) / |baseline| * 100`
 - maximize: `(value - baseline) / |baseline| * 100`
+
+`vsReference.ratio` compares a target with its reference in the same measurement group, oriented like `timesBetter`: above 1 means better than the reference. Because both come from the same benchmark process, it cancels machine drift between runs.
+
+With `--project`, the output is `{kind: "project", projectId, runs: [snapshot, ...], skipped: [...]}`, one snapshot per run in creation order.
 
 `timesBetter` is the same comparison as a ratio, so `2.0` reads as "2x faster" either way: `value / baseline` when maximizing, `baseline / value` when minimizing. `null` when either is zero or negative.
 

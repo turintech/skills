@@ -4,7 +4,7 @@ Write the same self-contained HTML report as Claude Code, then preview it locall
 
 ## Build
 
-- One `.html` file with inline CSS/JS, semantic markup, and SVG charts.
+- Build with the kit ([report-kit.md](report-kit.md)): a page script, `build_report.py`, then `check_report.py`.
 - Follow [report-design.md](report-design.md).
 - Use the page anatomy in report-design.md: the main finding as the title, then provenance with the Artemis link, the headline comparison, and figures that each carry a question heading and a finding.
 - Do not show execution-success or experiment-status count tiles.
