@@ -18,14 +18,7 @@ metadata:
 
 ## Requirements
 
-Either of:
-
-- a local checkout with a toolchain matching what the selected runner actually has, **or**
-- an already selected/online Artemis runner, plus a project imported (or ready to import) against this repository — runner-based verification happens after import, since it validates through the platform.
-
-Plus, either way:
-
-- agreement on which performance behaviour matters, when the repository doesn't make it obvious — ask the user rather than guessing.
+A local checkout with the runner's toolchain, or an online runner and a project imported (or ready to import) for this repository. When the repository does not make the performance target obvious, ask the user rather than guessing.
 
 ## Choose the workflow path
 
@@ -58,17 +51,7 @@ Each command runs in its own shell, so nothing carries over between commands exc
 - **truthful** — return non-zero when its phase fails;
 - **runner-compatible** — use tools and paths that exist on the selected runner, in POSIX shell.
 
-### The results file
-
-The benchmark reports its metrics by writing `artemis_results.json` or `artemis_results.csv`:
-
-- **JSON:** one object, or a list of objects, mapping metric names to numbers, for example `{"simulation_fps": 32.2}`.
-- **CSV:** metric names as column headers and one row per measurement, not `name,value` pairs.
-- **One file.** The runner searches the whole checkout, subfolders included. JSON wins over CSV, and among several files of one type the first one found is used, in no fixed order. Write exactly one, and delete any stale copy before writing it.
-- **Parseable, plain numbers.** A file that cannot be read gives no metrics for that run; an unreadable JSON file does not fall back to a CSV beside it.
-- **Fresh every run.** Repetitions read the file again, so write it anew each time rather than appending.
-
-Stdout is for diagnostics, not metrics, and a passing benchmark does not mean anything was measured: confirm the values in `changeset validation logs` (§5b).
+The benchmark reports its metrics in a results file (section 4), not on stdout, and a passing benchmark does not mean anything was measured: confirm the values in `changeset validation logs` (§5b).
 
 Do not configure Artemis with unverified commands unless verification was skipped under the rule above; then record them as unverified.
 
@@ -105,7 +88,6 @@ Choose tests that protect the behavior the optimization may change.
 - Include a focused correctness test for the optimized path.
 - Keep the command deterministic and reasonably fast because it runs for every version.
 - Ensure a deliberately incorrect implementation makes the command fail.
-- Follow [HARNESS.md](HARNESS.md) when the repo does not already have a correctness-gated microbenchmark.
 
 ### Benchmark
 
@@ -116,8 +98,6 @@ Measure the requested optimization target directly.
 - Use deterministic, representative inputs.
 - Emit the metric that should rank versions, with stable units and direction.
 - Keep diagnostic output concise enough to avoid delaying task-log upload.
-
-When no harness exists yet, author it with [HARNESS.md](HARNESS.md). This skill then wires and verifies the command.
 
 ## 3. Make environment requirements explicit
 
@@ -160,7 +140,7 @@ Rejected JSON:
 
 Reduce required state to numeric metrics, for example `"passed": 1`. Do not encode identifiers or arbitrary metadata in the results file.
 
-CSV is also supported when every non-header cell is numeric:
+CSV is also supported: metric names as column headers, one row per measurement (not `name,value` pairs), every other cell numeric:
 
 ```csv
 median_ms,throughput
@@ -168,9 +148,9 @@ median_ms,throughput
 12.1,82.6
 ```
 
-Use exactly `artemis_results.json` or `artemis_results.csv`. If both exist, JSON takes priority. Keep metric names and units stable across baseline and generated versions.
+Use exactly `artemis_results.json` or `artemis_results.csv`, and write only one. The runner searches the whole checkout, subfolders included: JSON wins over CSV, and among several files of one type the first found is used, in no fixed order. A file that cannot be parsed gives no metrics for that run, and an unreadable JSON does not fall back to a CSV beside it. Keep metric names and units stable across baseline and generated versions.
 
-The benchmark must create the file in the working directory from which Artemis invoked it. Verify that an old result file cannot survive and make a failed benchmark look successful: remove stale output before measuring and write the new result atomically when practical.
+Repetitions read the file again, so write it fresh each run rather than appending. Remove stale output before measuring, so an old file cannot make a failed benchmark look successful, and write the new result atomically when practical.
 
 ## 5. Where to verify
 
@@ -203,9 +183,7 @@ Record the literal commands and measured duration of each phase.
 
 ### 5b. Verify via the runner
 
-This exercises the commands through the platform, on the real execution environment, instead of guessing that local success transfers. It needs a project already imported (`project-import`) and a runner already online.
-
-Check the installed command surface, then use **`artemis changeset validate`** — the same primitive discovery uses to evaluate generated versions and the baseline:
+Runs the commands through the platform on the real runner. Needs an imported project (`project-import`) and an online runner. **`artemis changeset validate`** is the same primitive Discovery uses for the baseline and every version:
 
 ```bash
 artemis changeset validate --help
@@ -233,9 +211,7 @@ artemis --output-format json changeset validate "<changeset-id>" \
   --runner "<runner-name>" --wait
 ```
 
-`--wait` exits with code 6 when its `--timeout` (20 minutes by default) runs out. That means the CLI stopped waiting, not that the validation stopped. Check the branch's Script runs, or the runner, before running it again, or the same work runs twice.
-
-The validation script uses the same literal commands as the project defaults. Compile and test are unmeasured setup commands; the benchmark publishes the repository's custom metrics, so `--measure none` avoids adding command-runtime metrics unless they are part of the optimization target. `--version original` resolves the changeset's original version automatically. `--wait` returns the final per-command `exitCode`, runtime, resource usage, and status. Re-check later, or from a different session, with:
+The script uses the same literal commands as the project defaults. `--measure none` keeps command-runtime metrics out unless runtime is the target; `--version original` resolves the changeset's original code. `--wait` returns each command's `exitCode`, runtime and resources, and exits with code 6 when its `--timeout` (20 minutes by default) runs out: the CLI stopped waiting, not the validation, so check the branch's Script runs before running it again. Re-check later with:
 
 ```bash
 artemis changeset validation get "<validation-id>" --project "<project-uuid>"
@@ -244,7 +220,7 @@ artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
 
 Confirm every command shows `exitCode: 0` and that the intended runner and toolchain were used. Both commands come through the platform, so neither needs access to the runner's host.
 
-`validation get` reports only `exitCode`, `runtime`, `cpu` and `memory`. It never reports metric values and never says whether the results file was written, so a passing benchmark there is not evidence that anything was measured. The values are in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Use those logs, or `execution-log-inspect` with `processId` from the validate response, to read command output; do not substitute a per-command `logId`.
+`validation get` reports only `exitCode`, `runtime`, `cpu` and `memory`, never metric values. The values are in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Read command output there, or with `execution-log-inspect` and the validate response's `processId`, not a per-command `logId`.
 
 For a discovery run the equivalent is `artemis discovery metrics "<run-id>" --all`, or `--stats` for mean, standard deviation and sample count across repeated measurements.
 
@@ -261,9 +237,7 @@ Use the verified commands unchanged:
 
 - `artemis project scripts create` stores the validation script that Discovery and `changeset validate --script` execute. Execution-enabled Discovery requires this script (or a project default). Pass `--default` only when this script should become the project's default.
 - `artemis project commands set` stores optional compile, test, and benchmark defaults for the Web UI. Those fields are legacy on Discovery create and do **not** replace a validation script.
-- `discovery-start` passes the same script to `discovery create --script`. Do not invent a second command set for Discovery.
-
-Do not maintain two semantically different command sets for validation and discovery.
+- `discovery-start` passes the same script to `discovery create --script`. Never keep a second command set for Discovery.
 
 ## Advanced cases
 
