@@ -160,7 +160,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 
 - `--source-changeset` from step 2, so the run starts from the code and numbers the user just saw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
-- model `gpt-5.6-terra`. This is the one place the model is named; change it here. If the catalogue lacks it, use the catalogue default and say so in one line
+- model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, use the catalogue default and say so in one line
 - `--target-files` only when the repository made them obvious
 
 Then follow the run with `discovery-inspect`.
