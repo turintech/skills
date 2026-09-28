@@ -57,6 +57,8 @@ def static_checks(html: str) -> list[str]:
     for name in RESERVED:
         if re.search(rf"^\s*(const|let)\s+{name}\s*=", html, re.M):
             problems.append(f"RESERVED NAME: a top-level `{name}` clashes with a browser global and stops the script")
+    if re.search(r"monospace|\bPlex Mono\b", html, re.I):
+        problems.append("MONOSPACE: the report uses one sans family with tabular figures, no monospace")
     if re.search(r"\bfetch\(|XMLHttpRequest", html):
         problems.append("LIVE FETCH: the page must embed its data, not fetch it")
     if "<title>" not in html[:8192]:

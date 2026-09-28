@@ -256,3 +256,67 @@ class ClassificationAndReferenceTests(unittest.TestCase):
         self.assertAlmostEqual(snap["baseline"]["metrics"]["k_triton_ms"]["vsReference"]["ratio"], 0.75)
         roles = {m["key"]: m.get("role") for m in snap["metrics"]}
         self.assertEqual(roles["k_cublas_ms"], "reference")
+
+
+class WelchTests(unittest.TestCase):
+    """Checked against scipy.stats.ttest_ind(equal_var=False) on a real run's measurements."""
+
+    BASELINE = [2.72438907623291, 2.7017710208892822, 2.715749979019165]
+
+    def close(self, actual: float, expected: float, rel: float = 1e-6) -> None:
+        self.assertLessEqual(abs(actual - expected), rel * abs(expected), msg=f"{actual} vs {expected}")
+
+    def test_matches_scipy(self) -> None:
+        cases = [
+            ([3.041734457015991, 3.027451753616333, 2.961209774017334],
+             {"t": 11.53885502913434, "df": 2.280871517033882, "p": 0.004527460133295737, "ciLowPct": 7.287801505379235, "ciHighPct": 14.537197793295755}),
+            ([2.8946189880371094, 2.8803341388702393, 2.8693151473999023],
+             {"t": 16.995528343688573, "df": 3.956068689457447, "p": 7.595036146595095e-05, "ciLowPct": 5.157642993608562, "ciHighPct": 7.182414645641918}),
+            ([2.630793571472168, 2.7820160388946533, 2.794607639312744],
+             {"p": 0.7194349688192156, "ciLowPct": -7.364448637204417, "ciHighPct": 8.973583911988808}),
+        ]
+        for runs, expected in cases:
+            result = collector.welch_vs_baseline(self.BASELINE, runs, True)
+            self.assertEqual((result["test"], result["n"], result["nBaseline"]), ("welch", 3, 3))
+            for key, value in expected.items():
+                self.close(result[key], value, 1e-4 if key == "p" else 1e-6)
+            self.assertEqual(result["significant"], expected["ciLowPct"] > 0)
+
+    def test_df_stays_fractional(self) -> None:
+        result = collector.welch_vs_baseline(self.BASELINE, [3.04, 3.03, 2.96], True)
+        self.assertNotEqual(result["df"], int(result["df"]))
+
+    def test_lower_is_better_mirrors(self) -> None:
+        runs = [3.041734457015991, 3.027451753616333, 2.961209774017334]
+        up = collector.welch_vs_baseline(self.BASELINE, runs, True)
+        down = collector.welch_vs_baseline(self.BASELINE, runs, False)
+        self.close(down["ciLowPct"], -up["ciHighPct"])
+        self.close(down["ciHighPct"], -up["ciLowPct"])
+        self.close(down["t"], -up["t"])
+        self.close(down["p"], up["p"])
+        self.assertFalse(down["significant"])
+
+    def test_too_few_runs_is_null(self) -> None:
+        self.assertIsNone(collector.welch_vs_baseline(self.BASELINE, [3.0], True))
+        self.assertIsNone(collector.welch_vs_baseline([2.7], [3.0, 3.1], True))
+
+    def test_snapshot_carries_vs_baseline(self) -> None:
+        observations = [
+            {"observationGroupId": group, "metricName": "fps", "value": value, "higherIsBetter": True, "createdAt": "2026-01-01T00:00:00Z"}
+            for group, values in (("gb", self.BASELINE), ("g1", [3.0, 3.1, 3.05]), ("g2", [2.9]))
+            for value in values
+        ]
+        stat = lambda group, values: {"observationGroupId": group, "metricId": "m", "metricName": "fps", "mean": sum(values) / len(values), "min": min(values), "max": max(values), "count": len(values)}
+        payloads = {
+            "run": {"id": "r", "projectId": "p", "baselineGroupId": "gb"},
+            "versions": [
+                {"id": "a", "versionNumber": 1, "observationGroupId": "g1", "lifecycle": "completed", "executionStatus": "success"},
+                {"id": "b", "versionNumber": 2, "observationGroupId": "g2", "lifecycle": "completed", "executionStatus": "success"},
+            ],
+            "metrics": [stat("gb", self.BASELINE), stat("g1", [3.0, 3.1, 3.05]), stat("g2", [2.9])],
+            "observations": observations,
+            "experiments": [],
+        }
+        snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
+        self.assertTrue(snap["versions"][0]["metrics"]["fps"]["vsBaseline"]["significant"])
+        self.assertIsNone(snap["versions"][1]["metrics"]["fps"]["vsBaseline"])

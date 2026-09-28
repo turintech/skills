@@ -10,7 +10,7 @@ Publish a **self-contained HTML** discovery report as a Claude Code Artifact.
 
 ## Page
 
-Follow the anatomy in [report-design.md](report-design.md): the main finding as the title, a lede, provenance with the Artemis link, the headline comparison, then numbered figures that each carry a question heading and a finding. Do not show execution-success or experiment-status count tiles. With no measured version, show only provenance, progress, and the baseline.
+Follow the anatomy in [report-design.md](report-design.md): the main finding as the title, chips, the headline comparison, figures that each carry a question heading and bullet findings, a method note, and a footer with provenance and the Artemis link. Do not show execution-success or experiment-status count tiles. With no measured version, show only provenance, progress, and the baseline.
 
 ## Artifact constraints
 
@@ -30,8 +30,8 @@ If Artifacts are disabled, leave the local HTML in place and give the file path.
 
 ## Patterns to keep
 
-- The finding in the title, and a finding under every figure
-- Provenance and the Artemis link before any chart
+- The finding in the title, and bullet findings under every figure
+- Provenance and the Artemis link on the page, in the footer
 - Individual runs against the baseline band when there are several per version
 - `<details>` for the full version table
 - Explicit notes for `n=1`, LLM quality scores, and ineligible raw winners without making eligibility the headline

@@ -27,7 +27,13 @@
     times: (x, d = 2) => (x == null ? '' : Number(x).toFixed(d) + '×'),
     share: (x, d = 1) => (x == null ? '' : (x * 100).toFixed(d) + '%'),
     short: (text, max = 36) => (!text || text.length <= max ? text || '' : text.slice(0, max - 2).replace(/\s+\S*$/, '') + '…'),
+    p: p => (p == null ? '' : p < 0.001 ? 'p < 0.001' : 'p = ' + p.toFixed(p < 0.01 ? 3 : 2)),
   };
+  // Text with <b> kept and everything else escaped, for findings written from snapshot titles.
+  function boldOnly(el, text) {
+    el.innerHTML = String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&lt;(\/?)b&gt;/g, '<$1b>');
+    return el;
+  }
 
   // Quartiles by linear interpolation between order statistics (the usual "type 7").
   function stats(values) {
@@ -40,7 +46,7 @@
   // Text width in px, so label gutters fit the labels instead of a guess.
   const ctx = document.createElement('canvas').getContext('2d');
   function textWidth(text, font) { ctx.font = font; return ctx.measureText(text || '').width; }
-  const FONT = { lab: '600 13px "IBM Plex Sans", system-ui, sans-serif', sub: '400 11.5px "IBM Plex Sans", system-ui, sans-serif', val: '600 12px "IBM Plex Mono", monospace' };
+  const FONT = { lab: '600 13px "IBM Plex Sans", system-ui, sans-serif', sub: '400 11.5px "IBM Plex Sans", system-ui, sans-serif', val: '600 12px "IBM Plex Sans", system-ui, sans-serif' };
 
   // One tooltip for the page.
   let tipEl = null;
@@ -92,17 +98,30 @@
   }
 
   // ---------- Page pieces ----------
-  /* header(el, { eyebrow, title: string | [string | {em}], lede, prov: [string], link: {href, label} }) */
+  function provRow(cls, o) {
+    const pv = h('div', cls);
+    (o.prov || []).forEach(x => pv.append(h('span', '', x)));
+    if (o.link) { const a = h('a', 'ar-open', o.link.label || 'Open in Artemis'); a.href = o.link.href; a.target = '_blank'; a.rel = 'noreferrer'; pv.append(a); }
+    return pv;
+  }
+
+  /* header(el, { eyebrow, title: string | [string | {em}], chips: [{text, strong}], lede, prov: [string], link: {href, label} })
+     Leave out prov and link here when footer() carries them. */
   function header(el, o) {
     if (o.eyebrow) el.append(h('div', 'ar-eyebrow', o.eyebrow));
     const t = h('h1');
     (Array.isArray(o.title) ? o.title : [o.title]).forEach(p => t.append(typeof p === 'string' ? p : h('em', '', p.em)));
     el.append(t);
+    if (o.chips) el.append(chips(h('div'), o.chips));
     if (o.lede) el.append(h('p', 'ar-lede', o.lede));
-    const pv = h('div', 'ar-prov');
-    (o.prov || []).forEach(x => pv.append(h('span', '', x)));
-    if (o.link) { const a = h('a', 'ar-open', o.link.label || 'Open in Artemis'); a.href = o.link.href; a.target = '_blank'; a.rel = 'noreferrer'; pv.append(a); }
-    el.append(pv);
+    if ((o.prov && o.prov.length) || o.link) el.append(provRow('ar-prov', o));
+  }
+
+  /* footer(parent, { prov: [string], link: {href, label} }): provenance and Open in Artemis at the foot of the page. */
+  function footer(parent, o) {
+    const f = provRow('ar-foot', o);
+    parent.append(f);
+    return f;
   }
 
   /* headline(el, { left: {k, v, unit, n}, mid: {big, small}, right: {k, v, unit, n} }) */
@@ -119,7 +138,6 @@
     };
     const m = h('div', 'ar-mid');
     m.append(h('b', '', o.mid.big));
-    m.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 120 16" aria-hidden="true"><path d="M2 8H112M104 2L114 8L104 14" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>');
     if (o.mid.small) m.append(h('span', '', o.mid.small));
     el.append(side(o.left), m, side(o.right, true));
   }
@@ -137,23 +155,46 @@
     return sp;
   }
 
-  /* figure(parent, { n, question }) -> { chart, key(items), finding(bold, rest), caption(text) } */
+  /* figure(parent, { n, question }) -> { top, chart, key(items), finding(bold, rest), bullets(items), caption(text) }
+     `top` sits above the question, for a headline inside the card. */
   function figure(parent, o) {
     const sec = h('section', 'ar-fig');
+    const slot = h('div', 'ar-top');
+    sec.append(slot);
     if (o.n != null) sec.append(h('span', 'ar-fn', 'Figure ' + o.n));
     sec.append(h('h2', '', o.question));
     const key = h('div', 'ar-key'); key.hidden = true;
     const chart = h('div', 'ar-chart');
-    const finding = h('p', 'ar-finding');
+    const finding = h('ul', 'ar-finding');
     const cap = h('p', 'ar-cap');
     sec.append(key, chart, finding, cap);
     parent.append(sec);
     return {
-      section: sec, chart,
+      section: sec, top: slot, chart,
       key: items => { key.textContent = ''; items.forEach(i => key.append(keyItem(i))); key.hidden = false; },
-      finding: (bold, rest) => { finding.textContent = ''; finding.append(h('b', '', bold)); if (rest) finding.append(' ' + rest); },
+      finding: (bold, rest) => { finding.textContent = ''; const li = h('li'); li.append(h('b', '', bold)); if (rest) li.append(' ' + rest); finding.append(li); },
+      bullets: items => { finding.textContent = ''; items.forEach(t => finding.append(boldOnly(h('li'), t))); },
       caption: text => { cap.textContent = text; },
     };
+  }
+
+  /* chips(el, [{ text, strong, color }]): a row of pills; strong is the accent pill with a dot. */
+  function chips(el, items) {
+    el.classList.add('ar-chips');
+    items.forEach(i => {
+      const c = h('span', 'ar-chip' + (i.strong ? ' strong' : ''), i.text);
+      if (i.color) c.style.setProperty('--chip', i.color);
+      el.append(c);
+    });
+    return el;
+  }
+
+  /* bullets(el, items, { quiet }): a full-width list; items may contain <b>. quiet is the small method note. */
+  function bullets(el, items, o = {}) {
+    const ul = h('ul', 'ar-bullets' + (o.quiet ? ' quiet' : ''));
+    items.forEach(t => ul.append(boldOnly(h('li'), t)));
+    el.append(ul);
+    return ul;
   }
 
   // ---------- Charts ----------
@@ -237,7 +278,7 @@
       if (!b) { s(svg, 'text', { x: L + 4, y: yc + 4, class: 'ar-note' }, 'not measured'); return; }
       s(svg, 'line', { x1: x(b.min), x2: x(b.max), y1: yc, y2: yc, style: `stroke:${c};stroke-width:1.5` });
       [b.min, b.max].forEach(v => s(svg, 'line', { x1: x(v), x2: x(v), y1: yc - 6, y2: yc + 6, style: `stroke:${c};stroke-width:1.5` }));
-      const box = s(svg, 'rect', { x: x(b.q1), y: yc - 13, width: Math.max(2, x(b.q3) - x(b.q1)), height: 26, rx: 3, style: `fill:${r.fill || 'var(--ar-neutral-soft)'};stroke:${c};stroke-width:1.5` });
+      const box = s(svg, 'rect', { x: x(b.q1), y: yc - 13, width: Math.max(2, x(b.q3) - x(b.q1)), height: 26, rx: 3, style: r.fill ? `fill:${r.fill};stroke:${c};stroke-width:1.5` : r.color ? `fill:${c};fill-opacity:.18;stroke:${c};stroke-width:1.5` : `fill:var(--ar-neutral-soft);stroke:${c};stroke-width:1.5` });
       s(svg, 'line', { x1: x(b.med), x2: x(b.med), y1: yc - 13, y2: yc + 13, style: `stroke:${c};stroke-width:3` });
       r.values.forEach((v, j) => s(svg, 'circle', { cx: x(v), cy: yc + ((j * 7) % 15) - 7, r: 2.8, style: `fill:${c};fill-opacity:.55` }));
       s(svg, 'text', { x: x(b.max) + 8, y: yc + 4, class: 'ar-val' }, fmt.num(b.med, dp));
@@ -316,6 +357,75 @@
     return svg;
   }
 
+  /* compareRuns(el, base, best, opts): every run of the original and the best version, with the gap between the means.
+     base, best: { label, sub, runs: [], mean, color }
+     opts: { pctText (the bracket label, e.g. "+10.9%  (p = 0.005)"), axisLabel, aria, colors: {base, best}, decimals } */
+  function compareRuns(el, base, best, o = {}) {
+    const W = 880, H = 250, R = 30, T = 40, yb = 115;
+    const cols = o.colors || {};
+    const rows = [
+      Object.assign({ y: 80, c: base.color || cols.base || 'var(--ar-mark)', hero: false }, base),
+      Object.assign({ y: 150, c: best.color || cols.best || 'var(--ar-accent)', hero: true }, best),
+    ];
+    const L = gutter(rows) + 20;
+    const all = rows.flatMap(r => r.runs || []).concat(rows.map(r => r.mean));
+    const pad = (Math.max(...all) - Math.min(...all)) * 0.08 || 0.5;
+    const x = xScale([[Math.min(...all) - pad, Math.max(...all) + pad]], L, W - R);
+    const svg = svgRoot(el, W, H, o.aria);
+    drawXAxis(svg, x, T - 10, H - 44, o);
+    if (o.axisLabel) s(svg, 'text', { x: W - R, y: H - 4, 'text-anchor': 'end', class: 'ar-sub' }, o.axisLabel);
+    const dp = o.decimals != null ? o.decimals : 2;
+    rows.forEach(r => {
+      const custom = r.hero ? (best.color || cols.best) : (base.color || cols.base);
+      s(svg, 'text', { x: L - 16, y: r.y - 2, 'text-anchor': 'end', class: 'ar-lab' + (r.hero ? ' strong' : '') }, r.label);
+      if (r.sub) s(svg, 'text', { x: L - 16, y: r.y + 14, 'text-anchor': 'end', class: 'ar-sub' }, r.sub);
+      const runs = r.runs || [];
+      if (runs.length) {
+        const mn = Math.min(...runs), mx = Math.max(...runs);
+        const band = custom ? `fill:${r.c};fill-opacity:.15` : `fill:var(${r.hero ? '--ar-accent-soft' : '--ar-band'})`;
+        s(svg, 'rect', { x: x(mn), y: r.y - 16, width: Math.max(3, x(mx) - x(mn)), height: 32, rx: 6, style: band });
+      }
+      s(svg, 'line', { x1: x(r.mean), x2: x(r.mean), y1: r.y - 22, y2: r.y + 22, style: `stroke:${r.c};stroke-width:3;stroke-linecap:round` });
+      runs.forEach((v, i) => tip(s(svg, 'circle', { cx: x(v), cy: r.y, r: 8, style: `fill:${r.c};fill-opacity:.85;stroke:var(--ar-paper);stroke-width:2` }), [r.label + ', run ' + (i + 1), fmt.num(v, 3)]));
+      s(svg, 'text', { x: x(r.mean), y: r.hero ? r.y + 38 : r.y - 28, 'text-anchor': 'middle', class: 'ar-val', style: `fill:${r.c}` }, 'mean ' + fmt.num(r.mean, dp));
+    });
+    const x1 = x(base.mean), x2 = x(best.mean), bc = rows[1].c;
+    s(svg, 'path', { d: `M${x1} ${yb - 6} V${yb} H${x2} V${yb - 6}`, style: `fill:none;stroke:${bc};stroke-width:1.5` });
+    if (o.pctText) s(svg, 'text', { x: (x1 + x2) / 2, y: yb + 16, 'text-anchor': 'middle', class: 'ar-val', style: `fill:${bc};font-size:13px` }, o.pctText);
+    return svg;
+  }
+
+  /* forest(el, rows, opts): each version's % change against the original with its 95% interval.
+     rows: [{ label, sub, pct, lo, hi, p, significant, hero, color }] in the order to draw
+     opts: { aria, header }. Filled dot: the interval excludes 0 (significant, or hi < 0, a real loss); hollow: not significant. */
+  function forest(el, rows, o = {}) {
+    const W = 880, rowH = 46, T = 30, R = 150, H = T + rows.length * rowH + 44;
+    const L = gutter(rows) + 20;
+    const vals = rows.flatMap(r => [r.pct, r.lo, r.hi]).filter(v => v != null).concat([0]);
+    const span = Math.max(...vals) - Math.min(...vals) || 1;
+    const x = xScale([[Math.min(...vals) - span * 0.06, Math.max(...vals) + span * 0.06]], L, W - R);
+    const svg = svgRoot(el, W, H, o.aria);
+    drawXAxis(svg, x, T - 10, H - 40, { tickFormat: t => (Math.abs(t) < 1e-9 ? '0%' : fmt.pct(t, 0)) });
+    s(svg, 'line', { x1: x(0), x2: x(0), y1: T - 10, y2: H - 40, class: 'ar-zero' });
+    s(svg, 'text', { x: x(0) + 6, y: T - 14, class: 'ar-ax' }, 'original');
+    s(svg, 'text', { x: W - 8, y: T - 14, 'text-anchor': 'end', class: 'ar-ax' }, o.header || 'change · p-value');
+    rows.forEach((r, i) => {
+      const y = T + i * rowH + 16;
+      const c = r.color || (r.hero ? 'var(--ar-accent)' : r.significant ? 'var(--ar-mark)' : 'var(--ar-quiet)');
+      s(svg, 'text', { x: L - 16, y: y - 2, 'text-anchor': 'end', class: 'ar-lab' + (r.hero ? ' strong' : '') }, r.label);
+      if (r.sub) s(svg, 'text', { x: L - 16, y: y + 13, 'text-anchor': 'end', class: 'ar-sub' }, r.sub);
+      if (r.pct == null) { s(svg, 'text', { x: L + 4, y: y + 4, class: 'ar-note' }, r.note || 'not measured'); return; }
+      if (r.lo != null && r.hi != null) s(svg, 'line', { x1: x(r.lo), x2: x(r.hi), y1: y, y2: y, style: `stroke:${c};stroke-width:${r.hero ? 4 : 3};stroke-linecap:round` });
+      const real = r.significant || (r.hi != null && r.hi < 0);
+      const dot = s(svg, 'circle', { cx: x(r.pct), cy: y, r: r.hero ? 8 : 6.5, style: `fill:${real ? c : 'var(--ar-paper)'};stroke:${c};stroke-width:2.5` });
+      tip(dot, [r.label + ': ' + fmt.pct(r.pct), r.lo != null ? '95% interval ' + fmt.pct(r.lo) + ' to ' + fmt.pct(r.hi) : 'no interval', fmt.p(r.p)].filter(Boolean));
+      const strong = real ? (r.color || (r.hero ? 'var(--ar-accent)' : 'var(--ar-ink)')) : 'var(--ar-faint)';
+      s(svg, 'text', { x: W - 8, y: y - 1, 'text-anchor': 'end', class: 'ar-val', style: `fill:${strong};font-size:13px` }, fmt.pct(r.pct));
+      s(svg, 'text', { x: W - 8, y: y + 14, 'text-anchor': 'end', class: 'ar-sub' }, r.lo == null ? (r.note || 'no interval') : real ? fmt.p(r.p) : 'not significant');
+    });
+    return svg;
+  }
+
   /* table(el, headers, rows, numericColumns): rows are arrays of strings */
   function table(el, headers, rows, numeric = []) {
     const wrap = h('div', 'ar-tbl'), t = h('table');
@@ -330,5 +440,5 @@
   // Categorical colours for runs or groups, in a fixed order (validated for colour-vision deficiency).
   const series = i => 'var(--ar-c' + ((i % 6) + 1) + ')';
 
-  window.ArtemisReport = { h, s, fmt, stats, tip, header, headline, figure, rankedBars, strip, boxes, BOX_KEY, scatter, trajectory, table, series };
+  window.ArtemisReport = { h, s, fmt, stats, tip, header, footer, headline, figure, chips, bullets, rankedBars, strip, boxes, BOX_KEY, compareRuns, forest, scatter, trajectory, table, series };
 })();

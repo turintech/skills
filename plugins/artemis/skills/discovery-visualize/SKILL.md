@@ -25,7 +25,7 @@ metadata:
 ## Workflow
 
 1. Confirm authentication and the run ID.
-2. **Settle the story.** Work out what the reader should take away (how much better, is it real, how the search went, what worked) from the prompt, using the table under *Settle the story first* in [references/report-design.md](references/report-design.md). If the prompt does not say, ask that one question with a recommendation before building. A user who asks for a specific chart gets that chart.
+2. **Settle the story.** The user's prompt takes precedence: a chart, chart type, colours, versions or layout they ask for is drawn exactly as asked. When the prompt only says compare, show, chart or visualise the run, build the default, **best vs baseline**, without asking. Other stories (how the search went, what worked) come from the table under *Settle the story first* in [references/report-design.md](references/report-design.md).
 3. Collect the snapshot (do not hand-join CLI JSON):
 
 ```bash
@@ -36,7 +36,7 @@ python3 "<skill-dir>/scripts/collect_discovery.py" \
 
 Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / trade-off view and named the axes, or when one target metric and one quality metric are the obvious pair and you label it as analysis.
 
-4. Read the snapshot. Trust `perMetricWinners`, `rankings`, raw `metrics` means, `runs` and `timesBetter`. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
+4. Read the snapshot. Trust `perMetricWinners`, `rankings`, raw `metrics` means, `runs`, `timesBetter` and `vsBaseline`. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
 5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. The figures are kit functions ([references/report-kit.md](references/report-kit.md)); [references/component-catalog.md](references/component-catalog.md) is only for a Cursor canvas.
 6. Build the page with the kit in [references/report-kit.md](references/report-kit.md), on every host: write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. The result is one HTML file that looks the same whichever agent built it. Then read the adapter for how to hand it over:
    - Claude Code: [references/claude-code.md](references/claude-code.md) (publish as an Artifact)
@@ -86,7 +86,9 @@ These override any host chart default:
 - Never claim one overall winner for multiple objectives unless the user supplied the aggregation rule.
 - The collector reads each metric's direction from the platform. If `higherIsBetterInferred` is still true, it was guessed from the name: confirm it from the run's task or with the user before naming a winner.
 - Missing observations are gaps, not zeroes. `generation_failed` versions never reached the runner.
-- Plot and caption `mean` / `min` / `max` / `count`, and individual `runs` when present. Say whether a version's runs sit inside the baseline's range; do not compute p-values or confidence intervals, and do not colour marks as better or worse.
+- Plot `mean` / `min` / `max` / `count`, and individual `runs` when present.
+- Significance comes only from the collector's `vsBaseline` (Welch, two-sided, fractional df); never compute statistics in the page. Show `n` beside any "significant". Say "not significant", not "worse", when the interval crosses 0. With 3 runs, say the intervals are wide.
+- Colour by better and worse only when the user asks for it.
 - Keep worker measurements, agent-scored quality metrics, and experiment verdicts visually distinct.
 - Versions are numbered in the order they were made, so version order is generation order. The trajectory marks the raw winner only; plot running-best only when the user is judging search speed.
 - A Pareto front is an analytical view over named axes, not an Artemis verdict.
@@ -107,9 +109,9 @@ The collector already strips logger noise before JSON and joins `observationGrou
 ## Checklist
 
 - [ ] Snapshot written; `schemaVersion` is 1.
-- [ ] The story was settled from the prompt, or asked, before building.
-- [ ] The title states the main finding, and every figure has a question heading and a finding that answers it, with numbers from the snapshot.
+- [ ] The user's own chart, colours and versions were drawn exactly as asked; otherwise the default, best vs baseline.
+- [ ] The title states the main finding and whether it is significant, and every figure has a question heading and bullet findings, with numbers from the snapshot.
 - [ ] Each target metric has a baseline, change and raw winner view; any raw/eligible difference is explained without making eligibility the headline.
 - [ ] Failed and missing versions are accounted for.
-- [ ] Caption names the CLI source and that % is mean vs baseline.
+- [ ] The method note or a caption names the test, `n` and the CLI source, and that % is mean vs baseline.
 - [ ] Handed over with at most four lines of summary and the report link in the box, then the Discovery Web UI link.

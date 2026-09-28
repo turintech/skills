@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -239,6 +240,106 @@ def quartiles(values: list[float]) -> dict[str, float]:
         return ordered[low] + (ordered[high] - ordered[low]) * (index - low)
 
     return {"q1": at(0.25), "median": at(0.5), "q3": at(0.75)}
+
+
+def _betacf(a: float, b: float, x: float) -> float:
+    """Continued fraction for the regularized incomplete beta (modified Lentz)."""
+    tiny, qab, qap, qam = 1e-300, a + b, a + 1.0, a - 1.0
+    c, d = 1.0, 1.0 - qab * x / qap
+    d = 1.0 / (d if abs(d) > tiny else tiny)
+    result = d
+    for m in range(1, 300):
+        m2 = 2 * m
+        for aa in (m * (b - m) * x / ((qam + m2) * (a + m2)), -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))):
+            d = 1.0 + aa * d
+            d = 1.0 / (d if abs(d) > tiny else tiny)
+            c = 1.0 + aa / c
+            c = c if abs(c) > tiny else tiny
+            result *= d * c
+        if abs(d * c - 1.0) < 1e-15:
+            break
+    return result
+
+
+def betainc(a: float, b: float, x: float) -> float:
+    """Regularized incomplete beta I_x(a, b)."""
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    front = math.exp(math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b) + a * math.log(x) + b * math.log1p(-x))
+    if x < (a + 1.0) / (a + b + 2.0):
+        return front * _betacf(a, b, x) / a
+    return 1.0 - front * _betacf(b, a, 1.0 - x) / b
+
+
+def t_two_sided_p(t: float, df: float) -> float:
+    """Two-sided p-value of Student's t with a fractional df."""
+    return betainc(df / 2.0, 0.5, df / (df + t * t))
+
+
+def t_quantile_975(df: float) -> float:
+    """The t value with 2.5% in the upper tail, by bisection on the p-value."""
+    low, high = 0.0, 1.0
+    while t_two_sided_p(high, df) > 0.05:
+        high *= 2.0
+    for _ in range(200):
+        mid = (low + high) / 2.0
+        if t_two_sided_p(mid, df) > 0.05:
+            low = mid
+        else:
+            high = mid
+    return (low + high) / 2.0
+
+
+def welch_vs_baseline(baseline: list[float], values: list[float], higher_is_better: bool) -> dict[str, Any] | None:
+    """Welch's two-sided t-test of a version's runs against the baseline's runs.
+
+    t and the interval are oriented like pctBetter: positive means better. df stays fractional.
+    """
+    nb, n = len(baseline), len(values)
+    if nb < 2 or n < 2:
+        return None
+    mb, mv = sum(baseline) / nb, sum(values) / n
+    if mb == 0:
+        return None
+    vb = sum((x - mb) ** 2 for x in baseline) / (nb - 1) / nb
+    vv = sum((x - mv) ** 2 for x in values) / (n - 1) / n
+    se = math.sqrt(vb + vv)
+    if se == 0:
+        return None
+    df = (vb + vv) ** 2 / (vb ** 2 / (nb - 1) + vv ** 2 / (n - 1))
+    sign = 1.0 if higher_is_better else -1.0
+    diff = sign * (mv - mb)
+    half = t_quantile_975(df) * se
+    t = diff / se
+    low, high = (diff - half) / abs(mb) * 100.0, (diff + half) / abs(mb) * 100.0
+    return {
+        "test": "welch",
+        "n": n,
+        "nBaseline": nb,
+        "t": t,
+        "df": df,
+        "p": t_two_sided_p(t, df),
+        "ciLowPct": low,
+        "ciHighPct": high,
+        "significant": low > 0,
+    }
+
+
+def add_vs_baseline(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Give each version's target metrics a `vsBaseline` Welch test; null when either side has fewer than 2 runs."""
+    baseline = (snapshot.get("baseline") or {}).get("metrics") or {}
+    for definition in snapshot.get("metrics") or []:
+        if definition.get("kind") != "target":
+            continue
+        name = definition["key"]
+        base_runs = (baseline.get(name) or {}).get("runs") or []
+        for version in snapshot.get("versions") or []:
+            stat = (version.get("metrics") or {}).get(name)
+            if stat is not None:
+                stat["vsBaseline"] = welch_vs_baseline(base_runs, stat.get("runs") or [], bool(definition["higherIsBetter"]))
+    return snapshot
 
 
 def _is_better(value: float, incumbent: float, higher_is_better: bool) -> bool:
@@ -578,7 +679,7 @@ def build_snapshot(
             "note": "Analytical view over the named axes, not an Artemis verdict.",
         }
 
-    return {
+    return add_vs_baseline({
         "schemaVersion": SCHEMA_VERSION,
         "collectedAt": collected_at,
         "provenance": {
@@ -625,7 +726,7 @@ def build_snapshot(
         "experimentSummary": status_counts,
         "pareto": pareto,
         "references": reference_pairs,
-    }
+    })
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
