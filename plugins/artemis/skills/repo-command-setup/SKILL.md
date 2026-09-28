@@ -104,7 +104,7 @@ Measure the requested optimization target directly.
 The runner starts a non-interactive shell. Commands must explicitly select required runtimes and environments:
 
 ```bash
-source .venv/bin/activate && python -m pytest
+. .venv/bin/activate && python -m pytest
 conda run -n myenv python benchmarks/run.py
 JAVA_HOME=/path/to/jdk17 ./mvnw test
 ```
@@ -218,7 +218,7 @@ artemis changeset validation get "<validation-id>" --project "<project-uuid>"
 artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
 ```
 
-Confirm every command shows `exitCode: 0` and that the intended runner and toolchain were used. If compile takes more than about 5 minutes, every Discovery version repeats it: use `workspace-setup` for an incremental build before Discovery. Both commands come through the platform, so neither needs access to the runner's host.
+Confirm every command shows `exitCode: 0` and that the intended runner and toolchain were used. If compile takes more than about 5 minutes, every Discovery version repeats it: use `workspace-setup` for an incremental build before Discovery. `validation get` and `validation logs` both read through the platform; no access to the runner host is needed.
 
 `validation get` reports only `exitCode`, `runtime`, `cpu` and `memory`, never metric values. The values are in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Read command output there, or with `execution-log-inspect` and the validate response's `processId`, not a per-command `logId`.
 

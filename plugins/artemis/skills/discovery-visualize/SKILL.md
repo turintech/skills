@@ -37,7 +37,7 @@ python3 "<skill-dir>/scripts/collect_discovery.py" \
 Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / trade-off view and named the axes, or when one target metric and one quality metric are the obvious pair and you label it as analysis.
 
 4. Read the snapshot. Trust `perMetricWinners`, `rankings`, raw `metrics` means, `runs` and `timesBetter`. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
-5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. Use [references/component-catalog.md](references/component-catalog.md) for code recipes; examples are recipes, not runtime imports.
+5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. The figures are kit functions ([references/report-kit.md](references/report-kit.md)); [references/component-catalog.md](references/component-catalog.md) is only for a Cursor canvas.
 6. Build the page with the kit in [references/report-kit.md](references/report-kit.md), on every host: write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. The result is one HTML file that looks the same whichever agent built it. Then read the adapter for how to hand it over:
    - Claude Code: [references/claude-code.md](references/claude-code.md) (publish as an Artifact)
    - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md) (open in the editor's browser)
@@ -67,9 +67,9 @@ Keep the message short: the report says the rest. In this order, and nothing aft
 Private until you share it from the page's Share menu. The run in Artemis: <Discovery Web UI link>
 ````
 
-On a host without Artifacts the box says **OPEN YOUR REPORT** and the line under it is the file path, opened in the browser where the host can.
+On a host without Artifacts the box says **OPEN YOUR REPORT** and the line under it is the file path, opened in the browser where the host can. Drop the "Private until…" sentence there; keep the Discovery link.
 
-## Recipe rules
+## Recipe rules (Cursor canvas only)
 
 - Select components by the question they answer, not by chart type.
 - Copy recipes into the generated artifact; do not import files from this skill.

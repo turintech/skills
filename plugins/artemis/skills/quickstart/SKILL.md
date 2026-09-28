@@ -38,7 +38,7 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Browser control | Load the browser tools before looking; deferred tools report none until loaded. `cli-follow-along` section 1 has the exact call |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
 | CLI | `artemis --version` meets the skills' minimum (`metadata.artemis-cli-min`), and `artemis status` is authenticated to the deployment in hand |
-| Runner | `artemis runner list` shows one online |
+| Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
 | The code, locally | `git -C . remote get-url origin` against the project's `gitUrl` |
@@ -160,7 +160,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 
 - `--source-changeset` from step 2, so the run starts from the code and numbers the user just saw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
-- model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, use the catalogue default and say so in one line
+- model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
 - `--target-files` only when the repository made them obvious
 
 Then follow the run with `discovery-inspect`.
@@ -179,7 +179,7 @@ The model is pinned because the win this demo shows, a spatial grid replacing th
 
 Do not check or ask about credits first: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance in the Web UI header.
 
-End on the code, not a number: the run's **Metrics** tab to show which version won and by how much, then that version's **code change**. Say which numbers are measured and which are AI-judged.
+End on the code, not a number: the run's **Metrics** tab to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the AI score beside it is not a measurement.
 
 ## 7b. Before section 7 on their own code
 
@@ -204,7 +204,7 @@ For example: "Your project is in Artemis: [Open project](<link>). You'll see the
 
 | Situation | Do |
 |---|---|
-| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Start one fresh run from the same branch with the catalogue default, or the step 7 model if another was used, and say which model failed. Once only, and never for a build, test or benchmark failure |
+| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Start one fresh run from the same branch with a model from the top tier in `artemis model groups` (name it in one line), or the step 7 model if another was used, and say which model failed. Once only, and never for a build, test or benchmark failure |
 | The project URL's deployment is not the one the CLI is signed in to | Say both, and settle it before creating anything |
 | No runner can run here, or the user does not want one | Say that nothing can be measured without a machine, and stop |
 | The runner lacks the toolchain | Name the tool and the machine; installing it is the user's call |

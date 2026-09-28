@@ -36,11 +36,12 @@ Record:
 Resolve and record the branch tip before import:
 
 ```bash
-SEED_SHA="$(git ls-remote --exit-code --heads \
-  "<git-url>" "refs/heads/<branch>" | cut -f1)"
-test -n "$SEED_SHA"
+SEED_SHA="$(GIT_TERMINAL_PROMPT=0 git ls-remote --exit-code --heads \
+  "<git-url>" "refs/heads/<branch>" | cut -f1)" || true
 printf '%s\n' "$SEED_SHA"
 ```
+
+If it is empty, use the imported project's `gitHash` as the seed and say so.
 
 Always pass `--branch`. Import may accept a typo and fail only when Artemis later attempts checkout. Carry `SEED_SHA` through verification and handoff.
 
@@ -51,7 +52,7 @@ artemis project list --help
 artemis --output-format json project list --all
 ```
 
-When a calling skill passes an existing project, reuse it. Otherwise default to importing a new project even if one already represents this repository and branch: separate projects keep work decoupled. Skim the existing list only to pick a project `--name` that won't be confused with another project against the same repository (e.g. suffix it with the task, target, or feature being optimised).
+When a calling skill passes an existing project, skip sections 3 and 4: confirm its `importedStatus` is `success` and its `gitUrl`/`gitBranch`, then return its UUID. Otherwise default to importing a new project even if one already represents this repository and branch: separate projects keep work decoupled. Skim the existing list only to pick a project `--name` that won't be confused with another project against the same repository (e.g. suffix it with the task, target, or feature being optimised).
 
 Reuse an existing project's UUID instead of importing again only when the user explicitly asks to continue that same prior work. Project names are labels, not stable identifiers; use UUIDs in every later command regardless.
 
@@ -69,7 +70,11 @@ Reuse a credential that can read the repository. Check the provider values retur
 If no suitable credential exists, present **both** setup routes and let the user choose. For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
 
 1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account on the Git page of their deployment (`<deployment-base-url>/settings/git`). Then re-run `artemis key list`: a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
-2. **PAT via CLI:** have the user run `artemis key add` in their own terminal (for GitHub, typically `--name "<key-name>" --provider github --token <pat>`) so the secret never enters chat. Say once that `key add` has no interactive prompt, so the token sits on the command line and therefore in their shell history: they may want to clear that line afterwards, or use the OAuth route instead.
+2. **PAT via CLI:** have the user run this in their own terminal so the secret never enters chat or their shell history (for GitHub; other providers need their own flags):
+
+   ```bash
+   stty -echo; printf 'Token: '; read -r T; stty echo; echo; artemis key add --name "<key-name>" --provider github --token "$T"; unset T
+   ```
 
 Prefer an existing GitHub OAuth credential over adding a new PAT when both would work. For GitLab, Bitbucket, or Azure DevOps, use the provider-specific `artemis key add` flow unless the Web UI offers an equivalent connect path. Record the selected key UUID.
 
@@ -100,9 +105,10 @@ Use the authenticated deployment base URL, including for on-prem deployments. Re
 
 ```bash
 artemis --output-format json project list --all | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus'
+artemis --output-format json project list --all | python3 -c 'import json,sys; print(next((p.get("importedStatus") for p in json.load(sys.stdin).get("docs") or [] if p.get("id")=="<project-uuid>"), ""))'
 ```
 
-Wait for `success` before running anything against the project.
+Wait for `success` before running anything against the project. Poll every 10 s. On `failed`, check the key can read the repo and the branch exists, then import once more; don't loop.
 
 ## 5. Verify and hand off
 

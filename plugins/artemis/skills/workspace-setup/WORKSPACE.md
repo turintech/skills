@@ -4,10 +4,10 @@ These sketches illustrate the requirements in [SKILL.md](SKILL.md). Adapt them t
 
 ## Cache location
 
-Resolve the runner cache from an environment variable. Do not commit a user's home directory.
+Use a literal absolute path on the runner host. The runner sees only environment exported before `artemis-runner start`, so a variable set in your shell is not there.
 
 ```bash
-ARTEMIS_CACHE_ROOT="${ARTEMIS_CACHE_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/artemis/my-project}"
+ARTEMIS_CACHE_ROOT="/absolute/path/on/runner/artemis-workspaces/<project>"
 ```
 
 Record the repository URL, seed commit, and toolchain in the cache so a later command can refuse a mismatched tree.
@@ -17,7 +17,7 @@ Record the repository URL, seed commit, and toolchain in the cache so a later co
 Artemis invokes commands from the candidate checkout. Preserve that directory before changing into the cache:
 
 ```bash
-ORIG="${ARTEMIS_TASK_ROOT:-$PWD}"
+ORIG="$PWD"
 ```
 
 Benchmark results must land in `$ORIG`, not only in the cache.

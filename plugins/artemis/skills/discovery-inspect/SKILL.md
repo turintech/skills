@@ -123,13 +123,7 @@ Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`),
 
 ### 4. What are the real numbers? (metrics — the source of truth)
 
-```bash
-artemis discovery metrics <run-id> --all
-```
-
-Grouped by version, metric IDs resolved to names. Compare each version's custom metric (e.g. `decode_b8_ms`) against the `baseline:` row. **This is what you trust**, not fitness (see traps).
-
-That grouping applies to the text output. `--output-format json` returns a flat `docs[]` keyed by `observationGroupId` with no version number — to rank by version, join it against `discovery versions list` (`observationGroupId` → `versionNumber`), and read `baselineGroupId` off the run record for the baseline row.
+`artemis discovery metrics <run-id> --all --stats` gives the mean, spread and sample count per version and baseline. Compare means against the baseline and treat any difference smaller than the spread as noise. Without `--stats` you get one row per repetition, each carrying its version and baseline keys. **This is what you trust**, not fitness (see *Common misreads*).
 
 To see the winning change, read its `llmRationale` (`discovery versions get <version-id>`) and then read the diff itself — confirm it actually does what you asked (e.g. registers/calls the C++ op) rather than a shortcut that happens to score well. A rationale describing an optimisation is not evidence the diff implements one.
 
@@ -146,7 +140,7 @@ A run can fail while the machine, the runner, and the project are all healthy. T
 
 Symptoms, together: the run goes terminal with far fewer versions than its budget, the last version completed normally seconds earlier, the runner is still online with a live process, and the platform may return intermittent `502`s while you read the run.
 
-It can also happen **before the baseline exists**, a minute into a new run: `versionCount` and `experimentCount` both zero, `baselineObservationId` null, and the narration ending mid-analysis. That looks like a broken setup and is not one. The giveaway is that the narration shows the agent reading the repository successfully and reasoning about it right up to the last message, and that the Web UI may still show the run spinning after the record says `failed`.
+It can also happen **before the baseline exists**, a minute into a new run: `versionCount` and `experimentCount` both zero, `baselineGroupId` null, and the narration ending mid-analysis. That looks like a broken setup and is not one. The giveaway is that the narration shows the agent reading the repository successfully and reasoning about it right up to the last message, and that the Web UI may still show the run spinning after the record says `failed`.
 
 ```bash
 run=$(artemis --output-format json discovery get <run-id>)
@@ -164,9 +158,8 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 ## Common misreads
 
 - **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and available execution logs; exploration may not have started. If it becomes terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
-- **Fitness is often not meaningful.** Agent-derived metric schemas may weight every metric equally (~0.02) and bundle compile-time/memory in, so `fitness` can be near-zero or **negative** for a version that improved your target metric. Rank by the **raw metric value**, not fitness.
+- **Fitness is an AI score, not a measurement.** It can be near zero or negative for a version that improved your target, so rank by the raw metric. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. LLM-judged metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
 - **Task logs cover only versions that reached a runner.** Use `execution-log-inspect` for compile, test, benchmark, and ingestion evidence. Cross-check `discovery versions list` because `generation_failed` versions were never dispatched.
-- **`discovery metrics` prints logger noise to stdout.** vLLM/other imports emit WARNING/INFO to stdout, so piping the text output into a JSON parser fails. Use `--output-format json`, or read the printed table directly.
 - **Names drift.** A project's platform-side name can diverge from whatever you called it at import time; always reference the **project UUID**.
 
 ## Checklist
@@ -175,5 +168,5 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 - [ ] `discovery metrics --all`: each version's target metric compared to `baseline:` — the numbers, not `fitness`, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
-- [ ] Clickable Discovery, winning version, and changeset links returned to the user.
+- [ ] Project link returned, naming the page to open (Discover, the run, its Versions tab, the winning version).
 - [ ] A run that ended short of its budget checked against the agent narration first, so a platform-side stop is reported as such and not as a project, runner, or setup fault.

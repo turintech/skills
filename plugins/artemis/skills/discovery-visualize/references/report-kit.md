@@ -5,10 +5,10 @@ For hosts that show an HTML page (Claude Code, GitHub Copilot, the fallback). Wr
 ## Build and check
 
 ```bash
-python3 "<skill-dir>/scripts/collect_discovery.py" --run-id "<run-id>" --output /tmp/snapshot.json
+python3 "<skill-dir>/scripts/collect_discovery.py" --run-id "<run-id>" --output /tmp/discovery-snapshot.json
 # or every run in a project: --project "<project-id>"
 # write /tmp/page.js (below), then:
-python3 "<skill-dir>/scripts/build_report.py" --snapshot /tmp/snapshot.json --page /tmp/page.js \
+python3 "<skill-dir>/scripts/build_report.py" --snapshot /tmp/discovery-snapshot.json --page /tmp/page.js \
   --title "<short name>" --output /tmp/report.html
 python3 "<skill-dir>/scripts/check_report.py" /tmp/report.html
 ```

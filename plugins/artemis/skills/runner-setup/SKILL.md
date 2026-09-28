@@ -37,7 +37,7 @@ Runner binaries are published at `https://files.artemis.turintech.ai/public/arte
 https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-<version>-linux
 ```
 
-Read that directory and pick the newest build for the platform rather than reusing a version from memory: the published set moves, and a version named in a document goes stale. If the listing has no build for this machine's platform, it cannot host a runner; use a runner on another machine. macOS has had no build, so check the listing for one rather than assuming either way.
+Read that directory and pick the newest build for the platform rather than reusing a version from memory: the published set moves, and a version named in a document goes stale. If the listing has no build for this machine's platform, it cannot host a runner; use a runner on another machine. Ignore `-wheels` archives. macOS cannot host a runner: use another machine.
 
 Match the runner to the deployment. A build that is too old for a deployment fails its registration or task calls with `404`s, which looks like a network or credential fault and is not one.
 
@@ -60,25 +60,28 @@ Before starting anything, check `artemis runner list` and local processes so an 
 
 State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Then start it and report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
 
-The runner registers itself on first start: give it a new, unique name and the deployment URL, and authenticate with the API key. Supply the key through the environment so it stays off the command line and out of `ps`:
+The runner registers itself on first start: give it a new, unique name and the deployment URL, and authenticate with the API key. Supply the key through the environment so it stays off the command line and out of `ps`. `<absolute-home>` is the expanded home path, such as `/home/alice`, never `~`:
 
 ```bash
-set -a; . ~/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY
-./artemis-runner start \
+chmod +x artemis-runner-<version>-linux && mv artemis-runner-<version>-linux artemis-runner
+set -a; . <absolute-home>/.config/artemis/.env; set +a   # exports ARTEMIS_API_KEY
+nohup ./artemis-runner start \
   --runner-name <unique-name> \
   --url <deployment-base-url> \
-  --no-delete-task-output
+  --no-delete-task-output > runner.log 2>&1 &
+echo $! > runner.pid   # stop: kill "$(cat runner.pid)"
 ```
 
 On a deployment whose certificate this machine does not trust, and only when TLS actually fails, pass the CA bundle in the start command:
 
 ```bash
-set -a; . ~/.config/artemis/.env; set +a
-./artemis-runner start \
+set -a; . <absolute-home>/.config/artemis/.env; set +a
+nohup ./artemis-runner start \
   --runner-name <unique-name> \
   --url <deployment-base-url> \
   --ssl-verify /absolute/path/to/ca-bundle.pem \
-  --no-delete-task-output
+  --no-delete-task-output > runner.log 2>&1 &
+echo $! > runner.pid   # stop: kill "$(cat runner.pid)"
 ```
 
 `--ssl-verify` applies the bundle to the runner's own connection only. Do not use environment variables such as `REQUESTS_CA_BUNDLE` instead: they replace the trust store for the runner and every build it starts, and a runner restarted from another shell comes up without them. Use the absolute path the user gave you, never `~` or `$HOME`, because the runner's `HOME` need not be the one you are reading. See `cli-setup` for the CLI side.
@@ -116,13 +119,13 @@ Before a project's commands are written, probe what the runner actually has, thr
 
 ```bash
 artemis project scripts create --project "<project-id>" --name "toolchain-probe" \
-  --setup-cmd "python3 --version; node --version; cargo --version; which uv poetry cmake" --measure none
+  --setup-cmd 'for t in python3 node cargo uv poetry cmake; do command -v "$t" >/dev/null && echo "$t: $("$t" --version 2>&1 | head -n1)" || echo "$t: MISSING"; done' --measure none
 artemis changeset validate "<changeset-id>" --project "<project-id>" --version original \
   --script "<probe-script-id>" --runner "<runner-name>" --wait
 artemis changeset validation logs "<validation-id>" --project "<project-id>"
 ```
 
-Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
+Use the changeset the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
 
 Report the runner name, host, and verification result. Do not claim success from a quiet process or log alone.
 

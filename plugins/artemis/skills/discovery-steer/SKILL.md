@@ -29,7 +29,8 @@ Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions
 ### Budget gate
 
 - Active with budget remaining: steer directly.
-- Terminal: add versions first. If an active run has exhausted its budget, wait for terminal status before continuing:
+- Completed: ask how many versions to add unless the user said (each version spends credits), then `continue`. If an active run has exhausted its budget, wait for it to complete first.
+- Failed or cancelled: don't continue. Start a fresh run with `discovery-start` (see `discovery-inspect`, *When the agent stops, not the runner*).
 
 ```bash
 artemis discovery continue "<run-id>" --versions <n>
@@ -64,8 +65,8 @@ The steering instruction should appear as the child run's user message. If respo
 After the agent has had time to propose or complete another experiment:
 
 ```bash
-artemis discovery experiments list "<run-id>"
-artemis discovery versions list "<run-id>"
+artemis discovery experiments list "<run-id>" --all
+artemis discovery versions list "<run-id>" --all
 ```
 
 Read relevant version rationales and diffs with `discovery-inspect`. In-flight work from before the steer may finish; judge uptake from subsequent experiments and code changes. If the agent repeatedly follows the old direction, report that as non-compliance rather than claiming the steer failed to deliver.

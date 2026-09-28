@@ -18,9 +18,9 @@ metadata:
 
 ## Requirements
 
-- The browser, connected as in `cli-follow-along` section 1. This skill follows `cli-follow-along` for one tab, bringing it to the front, pointer pacing (*Make it watchable*), and *Clicking*: the rules there apply to every step here.
-- The deployment base URL, from the user or the page they have open.
-- A project. Tours that change something run on the demo project (a Particle Life project, or **Open a sample project** to make one) unless the user names another.
+- The browser, connected as in `cli-follow-along` section 1. This skill follows `cli-follow-along` for one tab, bringing it to the front, pointer pacing (*Make it watchable*), and *Clicking* for element references, credentials and the chat box. Its approval rule does not apply here: section 2 step 3 decides when to stop.
+- The deployment base URL, found as in section 1 step 2.
+- A project. Tours that change something run on the demo project (a Particle Life project, or make one with the *Try a sample project* tour) unless the user names another.
 
 ## 1. Before the tour
 
@@ -30,7 +30,7 @@ metadata:
 4. Keep other people's details off screen. **Platform Settings** opens on a page that lists every user on admin accounts, and **Users**, the **Runners** owner column, the project list's owner filter and a project's owner row show names or emails. Go around them; when a tour must pass one, say so first.
 5. Pick the tour from section 3 by the user's question. If none fits, say which tours exist and ask which is closest.
 6. Check what the tour needs before starting. For a Discovery run or a benchmark: one of the user's own runners online (**Runner and Scripts**) and a script on the project. If one is missing, the plan starts with setting it up, and say so with one recommendation ("No runner of yours is online. I'd connect one first, about 5 minutes."), not a list of options.
-7. Say the plan in at most four lines: the steps, what will change, on which project, and the one step you will stop at. Then ask once: "Go ahead?" That yes covers every step in the plan.
+7. Say the plan in at most four lines: the steps, what will change, on which project, and any step you will stop at (none for a read-only tour). Then ask once: "Go ahead?" That yes covers every step in the plan.
 
 ## 2. Run the tour
 

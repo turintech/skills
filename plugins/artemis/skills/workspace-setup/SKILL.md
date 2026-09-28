@@ -27,7 +27,7 @@ See [WORKSPACE.md](WORKSPACE.md) for optional shell sketches.
 ## Requirements
 
 - Create a dedicated directory on the runner host and build the project there. Do not use a developer's active checkout. Mark it (for example a `.artemis-managed-workspace` file) and refuse any destructive cleanup where the marker is missing.
-- Seed that tree at the same commit as the project on the platform (`gitHash`, or Discovery `baselineVersionSha` when a run exists). If they differ, stop and resolve that before creating a cache.
+- Seed that tree at the same commit as the project on the platform (`gitHash`, or Discovery `baselineVersionSha` when a run exists). If they differ, stop and resolve that before creating a cache. Seed it on the runner host with `git clone --branch <branch> <git-url> <workspace>/source && git -C <workspace>/source checkout <gitHash>`, as the user who runs the runner.
 - In the Artemis compile command, sync candidate changes into the tree and rebuild incrementally. Sync every path the agent may change; an incomplete copy silently measures old code.
 - Run test and benchmark against that same built tree.
 - Publish `artemis_results.json` or `.csv` back to the working directory (`$PWD`). Artemis does not read results from the cache.
@@ -45,7 +45,7 @@ Compile syncs the candidate into the built tree and rebuilds:
 ```bash
 set -eu
 ORIG="$PWD"
-WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
+WORKSPACE="/absolute/path/on/runner/artemis-workspaces/<project>"   # literal path; the runner sees only env exported before artemis-runner start
 # confirm the workspace is seeded at the platform commit, then:
 # sync every path the agent may change from "$ORIG" into "$WORKSPACE"
 # rebuild incrementally in "$WORKSPACE"
@@ -56,7 +56,7 @@ Benchmark measures that tree and copies results back to `$PWD`:
 ```bash
 set -eu
 ORIG="$PWD"
-WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
+WORKSPACE="/absolute/path/on/runner/artemis-workspaces/<project>"   # literal path; the runner sees only env exported before artemis-runner start
 rm -f "$ORIG/artemis_results.json" "$ORIG/artemis_results.csv"
 # run the headless benchmark against "$WORKSPACE"
 # copy the fresh numeric results file back to "$ORIG"
