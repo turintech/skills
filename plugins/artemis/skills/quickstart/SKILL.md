@@ -35,9 +35,9 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Check | How |
 |---|---|
 | Assistant host | Claude Code, Cursor, Codex, or GitHub Copilot |
-| Browser control | Load the browser tools before looking; deferred tools report none until loaded. `cli-follow-along` section 1 has the exact call |
+| Browser control | Load the browser tools before looking; deferred tools report none until loaded. Load the skill and follow `cli-follow-along` section 1 for the exact call |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
-| CLI | `artemis --version` meets the skills' minimum (`metadata.artemis-cli-min`), and `artemis status` is authenticated to the deployment in hand |
+| CLI | `artemis --version` meets the skills' minimum (`metadata.artemis-cli-min`), `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key) |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
@@ -75,7 +75,7 @@ First write the section 2 welcome as reply text: the question box shows no text 
 1. **Start with:** **Particle Life demo (recommended)**, a deliberately slow C++ simulation that shows a real optimisation end to end in about 15 minutes, or **your own project**.
 2. **Follow along in:** **Terminal, with links (recommended)**, or **Terminal with computer use in your browser**, which also drives Chrome so they watch each page change and needs the Claude browser extension. Recommend the terminal even when a browser is connected.
 
-If they choose the browser, hand the connection to `cli-follow-along` section 1 and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
+If they choose the browser, load the skill and follow `cli-follow-along` section 1 for the connection, and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
 
 If they are undecided about the demo, recommend it again once and move on.
 

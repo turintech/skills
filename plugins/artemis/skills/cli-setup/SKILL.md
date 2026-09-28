@@ -30,9 +30,10 @@ Before installing anything, look at the CLI that is already on this machine:
 ```bash
 artemis --version
 artemis status
+artemis runner list
 ```
 
-If the version meets the skills' minimum (see *Verify*) and `status` is authenticated to the target deployment, there is nothing to do here. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
+`status` can report authentication as ok with a revoked key, so the key is only proven when `runner list` succeeds; a `401` there means log in again. If the version meets the skills' minimum (see *Verify*), `status` names the target deployment and `runner list` succeeds, there is nothing to do here. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
 
 ## Install the CLI
 
@@ -94,7 +95,7 @@ A direct download configures nothing, so the CLI needs a login with the API key 
 
 One invariant decides the order here: **the key is the last thing the user copies.** Anything they have to copy after it overwrites it on the clipboard.
 
-1. **In the browser route, open the API keys page first**, with `cli-follow-along`, pointer on the control that creates a key. Navigating costs the user nothing and touches no clipboard. Being shown where to go is most of the value of that route, so do not settle for printing a link until you have checked properly: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser (`cli-follow-along` section 1).
+1. **In the browser route, open the API keys page first**, with `cli-follow-along`, pointer on the control that creates a key. Navigating costs the user nothing and touches no clipboard. Being shown where to go is most of the value of that route, so do not settle for printing a link until you have checked properly: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser (load the skill and follow `cli-follow-along` section 1).
 2. **Then send the step as its own message**, three numbered boxes and nothing else.
 3. **The user acts:** they paste the command, create the key on the page already in front of them, and paste it at the waiting `API key:` prompt.
 
@@ -173,6 +174,7 @@ Compare the installed CLI with the skills you are about to use. Each skill decla
 ```bash
 artemis --version || artemis version
 artemis status
+artemis runner list   # proves the key; status alone can pass with a revoked one
 ```
 
 Confirm the build carries the command groups the task needs. For Discovery on current deployments, the CLI must expose:

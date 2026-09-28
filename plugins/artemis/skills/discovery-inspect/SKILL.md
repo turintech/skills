@@ -22,7 +22,7 @@ The central rule is **completed does not mean passed**. Terminal status means th
 
 - CLI authenticated (`artemis status`) on the run's deployment.
 - The `run_id` (from `discovery create`'s output, or `artemis discovery list --project <uuid>`).
-- If the run or version ID is unknown, ask for its Web UI URL and extract the project, discovery, and optional version UUIDs using `artemis` §2.
+- If the run or version ID is unknown, ask for its Web UI URL and extract the project, discovery, and optional version UUIDs using the router: load the skill and follow `artemis` §2.
 - For a runner-executed failure, use the version's `processId` with `execution-log-inspect`, or use `artemis discovery versions logs <version-id>`.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 

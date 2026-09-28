@@ -18,13 +18,13 @@ metadata:
 
 ## Requirements
 
-- The browser, connected as in `cli-follow-along` section 1. This skill follows `cli-follow-along` for one tab, bringing it to the front, pointer pacing (*Make it watchable*), and *Clicking* for element references, credentials and the chat box. Its approval rule does not apply here: section 2 step 3 decides when to stop.
+- The browser, connected as in `cli-follow-along` section 1 (load that skill; do not open its file). This skill follows `cli-follow-along` for one tab, bringing it to the front, pointer pacing (*Make it watchable*), and *Clicking* for element references, credentials and the chat box. Its approval rule does not apply here: section 2 step 3 decides when to stop.
 - The deployment base URL, found as in section 1 step 2.
 - A project. Tours that change something run on the demo project (a Particle Life project, or make one with the *Try a sample project* tour) unless the user names another.
 
 ## 1. Before the tour
 
-1. Connect the browser (`cli-follow-along` section 1). If it does not connect, say in one line that the tour needs the Claude browser extension and answer in the terminal instead.
+1. Connect the browser: load the skill and follow `cli-follow-along` section 1. If it does not connect, say in one line that the tour needs the Claude browser extension and answer in the terminal instead.
 2. Find the deployment address: the CLI config if there is one, then an address already in the conversation, otherwise `https://artemis.turintech.ai`. Do not install the CLI for this.
 3. Open `<deployment-base-url>/projects` and read the account in the page header. Ask for the address only if the page does not show the user signed in, or shows someone else's account.
 4. Keep other people's details off screen. **Platform Settings** opens on a page that lists every user on admin accounts, and **Users**, the **Runners** owner column, the project list's owner filter and a project's owner row show names or emails. Go around them; when a tour must pass one, say so first.

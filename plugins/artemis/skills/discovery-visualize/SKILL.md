@@ -19,7 +19,7 @@ metadata:
 ## Requirements
 
 - `artemis status` succeeds on the run's deployment.
-- A `run_id`, or a project id to compare its runs. If unknown, ask for the Web UI URL and extract IDs using `artemis` §2.
+- A `run_id`, or a project id to compare its runs. If unknown, ask for the Web UI URL and extract IDs using the router: load the skill and follow `artemis` §2.
 - Python 3, stdlib only, to run [scripts/collect_discovery.py](scripts/collect_discovery.py).
 
 ## Workflow
