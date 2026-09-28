@@ -41,7 +41,8 @@ For each step:
 1. **Arrive first.** Navigate with the page's own links and tabs, never a typed path from memory. Stand on the page that is about to change before changing it. If a click by element reference does nothing, take a fresh screenshot and click the centre of the control.
 2. **Point, then explain.** Move the pointer to the control and say in one sentence what it does and why this step matters.
 3. **Keep going.** The user asked to be shown, and the yes to the plan covers its steps: do not stop to ask before each click. Stop only before a click that spends credits (**Start Discovery**), deletes something, changes a setting that already existed, or is not in the plan. When you stop, say what the click does and recommend an answer.
-4. **Show the result.** Stay on the page while the change appears, then point at it.
+4. **Show the result.** Stay on the page while the change appears, then point at it. A screenshot straight after a click can show the page before it updates: wait a second and look again before deciding a click failed.
+5. **Inside a dialog, close a dropdown by choosing an option, never with Escape:** Escape closes the whole dialog.
 
 End with a recap the user can follow alone: the path as a short list of page and button names, and a link to where they finished.
 
@@ -57,9 +58,9 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 | Compare two versions | Section 3b, then a version's **Compare** control above its diff, or the Versions **Graphs** | No |
 | Find why a build failed | **Branches**, the branch, its **Validations** tab. The **Script runs** list is on the left: open the failed run, then the failing command under **Commands** to read its log. Hover status icons: some reasons only show as a tooltip | No |
 | Connect a machine | **Runner and Scripts**, then **Set up a new runner**: choose the operating system and architecture and follow the steps. Never reach it through **Platform Settings**: that opens a page listing every user on admin accounts | No, unless they run the steps |
-| Import a repository | **Projects**, **Import Project**, **Connect a Git repository**, pick the repository, then **Create Project**. It needs a Git connection Artemis can read; the page offers one if there is none | Yes |
-| Try a sample project | **Projects**, **Import Project**, **Try a sample project**. Featured: Particle Life (C++), Julia Set (Java) and Smoke (Python), each with **Import project** | Yes |
-| Set up a benchmark | Overview, the **Run and measure your code** card, **Setup**, **Create branch** (default name `artemis/measure`). That opens the branch's **Validations**: **Add your commands** (or **Run script** once the project has a script), pick the runner, **Run**, then open the run and read **Measurements**. Commands live in **Runner and Scripts** under **Scripts** | Yes |
+| Import a repository | **Projects**, **New**, **Connect Git Repository**, pick the repository, then **Create Project**. It needs a Git connection Artemis can read; the page offers one if there is none | Yes |
+| Try a sample project | **Projects**, **New**, **Open a sample project**. Featured: Particle Life (C++), Julia Set (Java) and Smoke (Python), each with **Import project**; the project opens when the import finishes | Yes |
+| Set up a benchmark | Overview, the **Run and measure your code** card, **Setup**, **Create branch** (default name `artemis/measure`). That opens the branch's **Validations**: **Ask agent** has the in-app agent write the script (it spends credits, a few dollars; say so first), **Add manually** is free. Then **Run script**: pick the runner (the first run makes it the project's default), set **Benchmark runs**, **Run**, and read **Measurements**. A passing run becomes the branch's baseline and offers **Optimise in Discover**. Commands live in **Runner and Scripts** under **Scripts** | Yes |
 | Start a Discovery run | Section 3a | Yes |
 
 ### 3a. Start a Discovery run
@@ -68,14 +69,14 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 
 | Step | Page heading | What to do | Purple button |
 |---|---|---|---|
-| 0 | Discover | Click an example prompt under the box to fill it (the first, **Optimise performance**, suits a first run), or type the goal. Pick the model from the picker under the box | the round arrow (send) |
+| 0 | Discover | Arriving from **Optimise in Discover**, the goal and the measured branch are already filled in: keep them. Otherwise click an example prompt under the box (**Optimise performance** suits a first run) or type the goal. Pick the model from the picker under the box | the round arrow (send) |
 | 1 | Candidate preferences | **Approval mode**: Automatic lets the agent's judges approve experiments. **Number of candidates**: default 10; say that each one costs credits | **Next: Select a runner** |
 | 2 | Where should we run your code? | Pick from **Runner**. The list shows every online runner on the deployment, other people's included: pick the user's own. None of theirs online: **Set up a new runner** | **Next: Select a script** |
 | 3 | How should we test and measure your code? | The project's default script is already chosen; read its setup and benchmark commands aloud in a line. **Benchmark runs** defaults to 1; 3 gives a spread to compare. Click **Run** and wait for every command to pass; Next stays greyed until it finishes | **Next: Configure metrics** |
 | 4 | Configure your metrics | The baseline number from that run appears here. Check **Direction** (higher or lower is better) and **Importance**. **Artemis Score** adds AI-judged metrics; leave it off unless asked | **Next: Review setup** |
 | 5 | Review Setup | Read the summary back. This is the click that spends credits: ask first | **Start Discovery** |
 
-The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, **Setup**, and the **Discovery agent** chat on the right, where the agent explains what it is trying. Stay on Overview while the first experiments arrive.
+The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, **Setup**, and the **Discovery agent** chat, where the agent explains what it is trying. It may start collapsed: open it with **Expand panel** at the top right. Stay on Overview while the first experiments arrive.
 
 Say one thing the page does not: mentioning a file with @ (the **+** button) is a hint to the agent about where to look, not a limit on which files change.
 
