@@ -30,7 +30,7 @@ Carry these between skills so nothing is asked twice: deployment and whether the
 
 ## 0. Look before asking
 
-Check silently, and skip later steps that are already done.
+Check silently, and skip later steps that are already done. A missing CLI or a folder that is not a git repository is an answer, not a failure: end each check with `|| true` so the user's first sight of Artemis is not a red error.
 
 | Check | How |
 |---|---|
