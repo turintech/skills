@@ -96,7 +96,7 @@ A direct download configures nothing, so the CLI needs a login with the API key 
 One invariant decides the order here: **the key is the last thing the user copies.** Anything they have to copy after it overwrites it on the clipboard.
 
 1. **In the browser route, open the API keys page first**, with `cli-follow-along`, pointer on the control that creates a key. Navigating costs the user nothing and touches no clipboard. Being shown where to go is most of the value of that route, so do not settle for printing a link until you have checked properly: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser (`cli-follow-along` section 1).
-2. **Then send the step as its own message**, two numbered boxes and nothing else.
+2. **Then send the step as its own message**, three numbered boxes and nothing else.
 3. **The user acts:** they paste the command, create the key on the page already in front of them, and paste it at the waiting `API key:` prompt.
 
 Never read, type or copy a key, and never ask for one in the chat.
@@ -120,7 +120,13 @@ artemis login --url <deployment-base-url>
 
 <deployment-base-url>/settings/api-keys
 
-Paste the key at the waiting `API key:` prompt, not here.
+```
+┌──────────────────────────────────────────────────────────┐
+│  3  PASTE THE KEY INTO THAT TERMINAL                     │
+└──────────────────────────────────────────────────────────┘
+```
+
+At the waiting `API key:` prompt, not here in the chat.
 ````
 
 Rules for that message:
@@ -128,7 +134,7 @@ Rules for that message:
 - **Nothing else in it.** No docs links, no status lines, no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
 - **One command, one line.** If an environment variable is genuinely needed for an already-open terminal, put it on the same line so it is a single copy.
 - **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
-- **Say what "done" looks like**, in one sentence: the prompt is waiting, the key goes there, not in the chat.
+- **Three boxes, one per user action:** run the command, create the key, paste the key. The line under box 3 says where it goes: the waiting prompt, not the chat.
 - Ask any follow-up question in a separate message afterwards, never stacked under the command.
 
 Keep the surrounding chatter short. At this step the user needs the command, where to click, and nothing else: status reports, version notes and next-step previews all belong before or after, never wrapped around the one thing they must act on.
