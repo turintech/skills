@@ -136,7 +136,7 @@ Before launching discovery, validation, or Maintain:
 
 - Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and any request carrying a project URL or id from **Set up with local agent** on a project's overview page: `quickstart`
 - Showing the matching Web UI page when the user follows along in their browser: `cli-follow-along`
-- A question such as "how do I … in Artemis", "where is …" or "show me how": `platform-tour`, which asks whether to show it in the browser, explain it, or do it. A request to do the work goes to the task skill with no tour offered
+- Asking to be shown in the browser ("show me in my browser", "use computer use", a tour of the platform): `platform-tour`. A plain "how do I" is answered in the terminal by the task skill
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository commands, validation scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
