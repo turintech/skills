@@ -37,7 +37,7 @@ Runner binaries are published at `https://files.artemis.turintech.ai/public/arte
 https://files.artemis.turintech.ai/public/artemis-runner/artemis-runner-<version>-linux
 ```
 
-Read that directory and pick the newest build for the platform rather than reusing a version from memory: the published set moves, and a version named in a document goes stale. If the listing has no build for this machine's platform, it cannot host a runner; use a runner on another machine. Ignore `-wheels` archives. macOS cannot host a runner: use another machine.
+Read that directory and pick the newest build for the platform rather than reusing a version from memory: the published set moves, and a version named in a document goes stale. If the listing has no build for this machine's platform, it cannot host a runner; use a runner on another machine. Take the newest stable build: skip release candidates (`rc` in the name) and `-wheels` archives. macOS cannot host a runner: use another machine.
 
 Match the runner to the deployment. A build that is too old for a deployment fails its registration or task calls with `404`s, which looks like a network or credential fault and is not one.
 
