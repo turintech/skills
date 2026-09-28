@@ -25,11 +25,12 @@ metadata:
 ## 1. Before the tour
 
 1. Connect the browser (`cli-follow-along` section 1). If it does not connect, say in one line that the tour needs the Claude browser extension and answer in the terminal instead.
-2. Find the deployment address: an Artemis tab already open in Chrome first, then the CLI config, and ask only if neither has it.
-3. Open `<deployment-base-url>/projects` and read the account in the page header. Stop and ask if it is not the user's.
+2. Find the deployment address: the CLI config if there is one, then an address already in the conversation, otherwise `https://artemis.turintech.ai`. Do not install the CLI for this.
+3. Open `<deployment-base-url>/projects` and read the account in the page header. Ask for the address only if the page does not show the user signed in, or shows someone else's account.
 4. Keep other people's details off screen. **Platform Settings** opens on a page that lists every user on admin accounts, and **Users**, the **Runners** owner column, the project list's owner filter and a project's owner row show names or emails. Go around them; when a tour must pass one, say so first.
 5. Pick the tour from section 3 by the user's question. If none fits, say which tours exist and ask which is closest.
-6. Say the plan in at most four lines: the steps, what will change, and on which project.
+6. Check what the tour needs before starting. For a Discovery run or a benchmark: one of the user's own runners online (**Runner and Scripts**) and a script on the project. If one is missing, the plan starts with setting it up, and say so with one recommendation ("No runner of yours is online. I'd connect one first, about 5 minutes."), not a list of options.
+7. Say the plan in at most four lines: the steps, what will change, on which project, and the one step you will stop at. Then ask once: "Go ahead?" That yes covers every step in the plan.
 
 ## 2. Run the tour
 
@@ -39,7 +40,7 @@ For each step:
 
 1. **Arrive first.** Navigate with the page's own links and tabs, never a typed path from memory. Stand on the page that is about to change before changing it. If a click by element reference does nothing, take a fresh screenshot and click the centre of the control.
 2. **Point, then explain.** Move the pointer to the control and say in one sentence what it does and why this step matters.
-3. **Ask before anything that changes state:** Create, Save, Run, Start, Delete, or sending a message in a run's chat. Name the project it will change and wait for a yes. Navigation needs no approval.
+3. **Keep going.** The user asked to be shown, and the yes to the plan covers its steps: do not stop to ask before each click. Stop only before a click that spends credits (**Start Discovery**), deletes something, changes a setting that already existed, or is not in the plan. When you stop, say what the click does and recommend an answer.
 4. **Show the result.** Stay on the page while the change appears, then point at it.
 
 End with a recap the user can follow alone: the path as a short list of page and button names, and a link to where they finished.
@@ -63,7 +64,7 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 
 ### 3a. Start a Discovery run
 
-**Discover** first. If the list already has a run marked **Setup pending**, that is an abandoned setup: offer to continue it (click the row) rather than start another.
+**Discover** first. If the list already has a run marked **Setup pending**, that is an abandoned setup: continue it (click the row) rather than start another, and say so.
 
 | Step | Page heading | What to do | Purple button |
 |---|---|---|---|
@@ -113,7 +114,7 @@ Three things to say while on Versions:
 
 - **A button is greyed out:** hover it. The tooltip says what is missing, such as "Pick a runner first." or "Wait for the run to finish."
 - **A button is missing or renamed:** read the page's navigation, use the control that does the same job, and say in one line what it is called now. Never click by guesswork or by coordinates from an earlier screenshot.
-- **A step needs something that is not there** (no machine online, no Git connection): say what is missing, show where it is set up, and ask whether to continue that tour first.
+- **A step needs something that is not there** (no machine online, no Git connection): say what is missing and recommend the one next step, usually setting it up through its own tour. Never pick another person's runner.
 - **A 500 mentioning `URL.canParse`:** Chrome is older than version 120; ask the user to update it.
 - **The user wants it done, not shown:** stop the tour, say what was done so far, and hand over to `quickstart`.
 
@@ -122,6 +123,6 @@ Three things to say while on Versions:
 - [ ] Browser connected and the header account checked before the first step
 - [ ] The plan said in at most four lines, naming what will change
 - [ ] Each step: arrived first, pointer on the control, one sentence of why
-- [ ] A yes before every state-changing click, on the project named
+- [ ] One yes to the plan, then no stops except before credits, deletes, changed settings or anything outside the plan, each with a recommendation
 - [ ] On the Discovery tour, the purple button followed on every step, the user's own runner picked, and the script run passing before Next
 - [ ] Ended with a recap of page and button names and a link to where they finished
