@@ -50,7 +50,7 @@ Give a clickable Markdown link with a short label:
 
 ## 1. Classify the workflow
 
-If the user is onboarding, route to `quickstart` instead of classifying further. That covers a brand-new user (they pasted the Quickstart prompt from the Connect your agent page, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), a repository that is not yet a project, and a request carrying a project URL or id (the prompt behind **Set up with local agent** on a project's overview page). `quickstart` works out which of those it is from what arrived and resumes at the first missing step.
+If the user is onboarding, route to `quickstart` instead of classifying further. That covers a brand-new user (they pasted the Quickstart prompt from the Connect your agent page, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), a repository that is not yet a project, and a request to set up a project from its URL or id (the prompt behind **Setup with a local agent** on a project's overview page). A URL given only to inspect or resume existing work stays here (section 2). `quickstart` works out which of those it is from what arrived and resumes at the first missing step.
 
 **This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding. Load `quickstart` first and let it call those skills in order. Once routed to `quickstart`, sections 3 to 5 below do not apply: it fixes the run settings and announces its steps instead of asking. Skipping it drops the browser offer, the demo recommendation, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
 
@@ -134,7 +134,7 @@ Before launching discovery, validation, or Maintain:
 
 ## 6. Route to the owning skill
 
-- Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and any request carrying a project URL or id from **Set up with local agent** on a project's overview page: `quickstart`
+- Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and a request to set up a project from its URL or id, as from **Setup with a local agent** on a project's overview page: `quickstart`
 - Showing the matching Web UI page when the user follows along in their browser: `cli-follow-along`
 - Asking to be shown in the browser ("show me in my browser", "use computer use", a tour of the platform): `platform-tour`. A plain "how do I" is answered in the terminal by the task skill
 - CLI: `cli-setup`

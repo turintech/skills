@@ -1,6 +1,6 @@
 ---
 name: quickstart
-description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and recommends the Particle Life example to anyone who has not run Artemis before. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id, or asks for a project to be set up and measured.
+description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and recommends the Particle Life example to anyone who has not run Artemis before. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -137,7 +137,7 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 1. CLI signed in | `cli-setup` | Already done in section 5 | Same | |
 | 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
 | 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | No probe | |
-| 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3, so it validates on them instead of making its own | Commands fixed in 7a; tell it to skip its own verification | |
+| 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
 | 5. A measured run on the branch | this skill | `changeset validate --wait` on the runner (`repo-command-setup` §5b) | About a minute | The branch's **Script runs**: one run, passed |
 | 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
 | 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later its **Metrics** tab and the winning version |
@@ -210,7 +210,6 @@ For example: "Your project is in Artemis: [Open project](<link>). You'll see the
 | The runner lacks the toolchain | Name the tool and the machine; installing it is the user's call |
 | Nothing worth measuring | Say so and stop |
 | A run fails within seconds with no baseline | `discovery-inspect` |
-| A skill named here is not installed | Say which, then do that step with the commands in this file |
 | The user wants to stop | Give the section 11 report, with ids, so this skill can resume |
 
 Anything else goes to the owning skill: `cli-setup`, `runner-setup`, `repo-command-setup`, `discovery-start` or `discovery-inspect`.
