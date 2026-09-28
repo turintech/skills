@@ -320,3 +320,43 @@ class WelchTests(unittest.TestCase):
         snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
         self.assertTrue(snap["versions"][0]["metrics"]["fps"]["vsBaseline"]["significant"])
         self.assertIsNone(snap["versions"][1]["metrics"]["fps"]["vsBaseline"])
+
+
+class CliArgsTests(unittest.TestCase):
+    def test_cli_and_config_reach_every_call(self) -> None:
+        from unittest import mock
+
+        calls = []
+
+        def fake_run(argv, **_kwargs):
+            calls.append(argv)
+            if argv[5:7] == ["project", "list"]:
+                out = json.dumps({"docs": [{"id": "p-1", "name": "Smoke"}]})
+            elif argv[5:7] == ["discovery", "get"]:
+                out = json.dumps({"id": "r-1", "projectId": "p-1", "runnerName": "box-1"})
+            else:
+                out = "[]"
+            return mock.Mock(returncode=0, stdout=out, stderr="")
+
+        with mock.patch.object(collector.subprocess, "run", side_effect=fake_run), tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "snap.json")
+            code = collector.main(["--run-id", "r-1", "--cli", "/opt/artemis-cli", "--config", "/etc/a.env", "--output", out])
+            snap = json.loads(Path(out).read_text(encoding="utf-8"))
+        self.assertEqual(code, 0)
+        self.assertGreaterEqual(len(calls), 7)
+        for argv in calls:
+            self.assertEqual(argv[:5], ["/opt/artemis-cli", "--config", "/etc/a.env", "--output-format", "json"])
+        self.assertEqual(snap["run"]["projectName"], "Smoke")
+        self.assertEqual(snap["run"]["runner"], "box-1")
+
+    def test_defaults_add_no_config(self) -> None:
+        from unittest import mock
+
+        with mock.patch.object(collector.subprocess, "run", return_value=mock.Mock(returncode=0, stdout="{}", stderr="")) as run:
+            collector.run_artemis(["status"])
+        self.assertEqual(run.call_args.args[0], ["artemis", "--output-format", "json", "status"])
+
+    def test_runner_falls_back_to_id(self) -> None:
+        snap = collector.build_snapshot({"run": {"id": "r", "runnerUserId": "u-9"}, "versions": [], "metrics": [], "experiments": []}, collected_at="t")
+        self.assertEqual(snap["run"]["runner"], "u-9")
+        self.assertIsNone(snap["run"]["projectName"])

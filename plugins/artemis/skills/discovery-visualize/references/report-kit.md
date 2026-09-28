@@ -28,12 +28,15 @@ const def = S.metrics.find(m => m.key === key), unit = def.unit || '', up = def.
 const word = up ? 'faster' : 'lower';  // the metric's own word: faster, smaller, more accurate
 const base = S.baseline.metrics[key], win = S.perMetricWinners[key].raw;
 const winV = S.versions.find(v => v.version === win.version), winM = winV.metrics[key], t = winM.vsBaseline;
-const sha = S.run.baselineVersionSha.slice(0, 7);
+const sha = S.run.baselineVersionSha.slice(0, 7), project = S.run.projectName;
+const gain = { em: F.pct(win.pctBetter).replace('+', '') + ' ' + word };
+const verdict = t ? (t.significant ? ', and the gain is statistically significant' : ', but the gain is not statistically significant') : '';
+const counts = S.versions.filter(v => v.metrics[key]).map(v => v.metrics[key].count);
+const perVersion = Math.min(...counts) === Math.max(...counts) ? String(counts[0]) : Math.min(...counts) + ' to ' + Math.max(...counts);
 
 R.header(document.getElementById('header'), {
-  eyebrow: 'Artemis Discovery · ' + key,
-  title: [winV.label + ' is ', { em: F.pct(win.pctBetter).replace('+', '') + ' ' + word }, ' than the original',
-    t ? (t.significant ? ', and the gain is statistically significant' : ', but the gain is not statistically significant') : ''],
+  eyebrow: 'Artemis Discovery · ' + (project ? project + ' · ' : '') + key,
+  title: project ? ['Artemis made ' + project + ' ', gain, verdict] : [winV.label + ' is ', gain, ' than the original', verdict],
   chips: t ? [
     { text: (t.significant ? 'Statistically significant · ' : 'Not significant · ') + F.p(t.p), strong: t.significant },
     { text: '95% interval ' + F.pct(t.ciLowPct) + ' to ' + F.pct(t.ciHighPct) },
@@ -71,7 +74,7 @@ const f2 = R.figure(page, { question: 'Which changes made a real difference?' })
 R.forest(f2.chart, measured.map(v => {
   const m = v.metrics[key], vb = m.vsBaseline;
   return { label: v.label, sub: F.short(v.experimentTitle, 52), pct: m.pctBetter, lo: vb && vb.ciLowPct, hi: vb && vb.ciHighPct,
-    p: vb && vb.p, significant: !!(vb && vb.significant), hero: v.version === win.version, note: vb ? null : 'n = ' + m.count + ', no interval' };
+    p: vb && vb.p, n: m.count, significant: !!(vb && vb.significant), hero: v.version === win.version, note: vb ? null : 'n = ' + m.count + ', no interval' };
 }), { aria: 'Change in ' + key + ' per version against the original, with 95% intervals' });
 const sig = measured.filter(v => (v.metrics[key].vsBaseline || {}).significant).map(v => v.label).sort();
 const not = measured.filter(v => !(v.metrics[key].vsBaseline || {}).significant).map(v => v.label).sort();
@@ -82,16 +85,16 @@ f2.bullets([
 ].filter(Boolean));
 
 // Method note.
-const verdict = winV.experimentStatus;
+const agent = winV.experimentStatus;
 R.bullets(page, [
-  (t ? t.n : base.count) + ' benchmark runs per version and for the original, on the same runner',
+  perVersion + ' benchmark runs per version, ' + base.count + ' for the original, on the same runner',
   'Welch’s two-sample t-test, two-sided; interval = 95% interval of the difference in means, as % of the original',
   t && t.n <= 3 ? 'With ' + t.n + ' runs each, intervals are wide' : '',
-  t && verdict && (verdict === 'validated') !== t.significant ? 'Artemis’s agent labelled ' + winV.label + ' “' + verdict + '”; this test uses only the measured runs' : '',
+  t && agent && (agent === 'validated') !== t.significant ? 'Artemis’s agent labelled ' + winV.label + ' “' + agent + '”; this test uses only the measured runs' : '',
 ].filter(Boolean), { quiet: true });
 
 R.footer(page, {
-  prov: ['run ' + S.run.id.slice(0, 8), S.run.runnerName ? 'runner ' + S.run.runnerName : '', 'baseline ' + sha, 'source: artemis discovery metrics ' + S.run.id.slice(0, 8)].filter(Boolean),
+  prov: ['run ' + S.run.id.slice(0, 8), S.run.runner ? 'runner ' + S.run.runner : '', 'baseline ' + sha, 'source: artemis discovery metrics ' + S.run.id.slice(0, 8)].filter(Boolean),
   link: { href: S.run.webUrl },
 });
 ```
@@ -107,7 +110,7 @@ R.footer(page, {
 | `figure(parent, {n, question})` | A figure card; returns `{top, chart, key(items), finding(bold, rest), bullets(items), caption(text)}`; `top` holds a headline inside the card |
 | `bullets(el, items, {quiet})` | A full-width list; items may contain `<b>`, everything else is escaped; `quiet` for the method note |
 | `compareRuns(el, base, best, {pctText, axisLabel, aria, colors})` | Every run of the original and the best version, means, ranges and the bracket between the means; `base`/`best` are `{label, sub, runs, mean, color}` |
-| `forest(el, rows, {aria, header})` | Each version's % change and 95% interval; rows `{label, sub, pct, lo, hi, p, significant, hero, color, note}` |
+| `forest(el, rows, {aria, header})` | Each version's % change and 95% interval; rows `{label, sub, pct, lo, hi, p, n, significant, hero, color, note}`; `n` prints beside the p |
 | `rankedBars(el, rows, {base, min, max, refs, tickFormat, note})` | Horizontal bars from `base`; rows `{label, sub, value, text, color, faded, strong, tip}` |
 | `strip(el, groups, {band, refs, domains, axisLabel})` | Every measurement as a dot per group; two `domains` break the axis |
 | `boxes(el, groups, {refs, axisLabel, valueDecimals})` | Box plots with every measurement overlaid; pair with `fig.key(R.BOX_KEY)` |

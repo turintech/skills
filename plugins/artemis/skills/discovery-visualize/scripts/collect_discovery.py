@@ -39,6 +39,7 @@ COMMANDS = (
     "artemis --output-format json discovery metrics <run-id> --all --stats",
     "artemis --output-format json discovery metrics <run-id> --all",
     "artemis --output-format json discovery experiments list <run-id> --all",
+    "artemis --output-format json project list --all",
 )
 
 
@@ -189,9 +190,9 @@ def load_from_dir(directory: str) -> dict[str, Any]:
     }
 
 
-def run_artemis(args: list[str]) -> str:
+def run_artemis(args: list[str], cli: str = "artemis", config: str | None = None) -> str:
     completed = subprocess.run(
-        ["artemis", "--output-format", "json", *args],
+        [cli, *(["--config", config] if config else []), "--output-format", "json", *args],
         check=False,
         capture_output=True,
         text=True,
@@ -202,18 +203,32 @@ def run_artemis(args: list[str]) -> str:
     return completed.stdout
 
 
-def list_project_runs(project_id: str) -> list[dict[str, Any]]:
-    return as_docs(extract_json(run_artemis(["discovery", "list", "--project", project_id, "--all"])))
+def list_project_runs(project_id: str, cli: str = "artemis", config: str | None = None) -> list[dict[str, Any]]:
+    return as_docs(extract_json(run_artemis(["discovery", "list", "--project", project_id, "--all"], cli, config)))
 
 
-def fetch_cli(run_id: str) -> dict[str, Any]:
+def project_names(cli: str = "artemis", config: str | None = None) -> dict[str, str]:
+    """Project id to name. The CLI has no `project get`, so this reads `project list`; empty if that fails."""
+    try:
+        return {p["id"]: p["name"] for p in as_docs(extract_json(run_artemis(["project", "list", "--all"], cli, config))) if p.get("id") and p.get("name")}
+    except (RuntimeError, ValueError):
+        return {}
+
+
+def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, names: dict[str, str] | None = None) -> dict[str, Any]:
+    call = lambda *args: extract_json(run_artemis(list(args), cli, config))
+    run = call("discovery", "get", run_id)
+    if names is None:
+        names = project_names(cli, config)
+    project_id = (run.get("docs") or [run])[0].get("projectId") if isinstance(run, dict) else None
     return {
-        "run": extract_json(run_artemis(["discovery", "get", run_id])),
-        "versions": extract_json(run_artemis(["discovery", "versions", "list", run_id, "--all"])),
-        "metrics": extract_json(run_artemis(["discovery", "metrics", run_id, "--all", "--stats"])),
-        "observations": extract_json(run_artemis(["discovery", "metrics", run_id, "--all"])),
-        "experiments": extract_json(run_artemis(["discovery", "experiments", "list", run_id, "--all"])),
-        "status": extract_json(run_artemis(["status"])),
+        "run": run,
+        "versions": call("discovery", "versions", "list", run_id, "--all"),
+        "metrics": call("discovery", "metrics", run_id, "--all", "--stats"),
+        "observations": call("discovery", "metrics", run_id, "--all"),
+        "experiments": call("discovery", "experiments", "list", run_id, "--all"),
+        "status": call("status"),
+        "projectName": names.get(project_id or ""),
     }
 
 
@@ -704,6 +719,8 @@ def build_snapshot(
             "createdAt": run.get("createdAt"),
             "updatedAt": run.get("updatedAt"),
             "runnerName": run.get("runnerName"),
+            "runner": run.get("runnerName") or run.get("runnerId") or run.get("runnerUserId"),
+            "projectName": payloads.get("projectName") or run.get("projectName"),
             "projectUrl": project_url,
             "webUrl": web_url,
         },
@@ -736,6 +753,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--from-dir", help="Load run/versions/metrics/experiments JSON from a directory")
     parser.add_argument("--output", help="Write JSON to this path instead of stdout")
     parser.add_argument("--base-url", help="Web UI origin, e.g. https://artemis.turintech.ai")
+    parser.add_argument("--cli", default="artemis", help="The artemis binary to run (default: artemis on PATH)")
+    parser.add_argument("--config", help="Passed to every artemis call as --config")
     parser.add_argument(
         "--pareto",
         action="append",
@@ -763,9 +782,10 @@ def main(argv: list[str] | None = None) -> int:
     collected_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     if args.project:
         runs, skipped = [], []
-        for item in sorted(list_project_runs(args.project), key=lambda r: r.get("createdAt") or ""):
+        names = project_names(args.cli, args.config)
+        for item in sorted(list_project_runs(args.project, args.cli, args.config), key=lambda r: r.get("createdAt") or ""):
             try:
-                runs.append(build_snapshot(fetch_cli(item["id"]), collected_at=collected_at, base_url=args.base_url))
+                runs.append(build_snapshot(fetch_cli(item["id"], args.cli, args.config, names), collected_at=collected_at, base_url=args.base_url))
             except (RuntimeError, ValueError) as error:
                 skipped.append({"id": item.get("id"), "status": item.get("status"), "reason": str(error)[:200]})
         result = {"schemaVersion": SCHEMA_VERSION, "kind": "project", "projectId": args.project, "collectedAt": collected_at, "runs": runs, "skipped": skipped}
@@ -779,7 +799,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.from_dir:
         payloads = load_from_dir(args.from_dir)
     else:
-        payloads = fetch_cli(args.run_id)
+        payloads = fetch_cli(args.run_id, args.cli, args.config)
     snapshot = build_snapshot(
         payloads,
         collected_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),

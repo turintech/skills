@@ -396,7 +396,7 @@
   }
 
   /* forest(el, rows, opts): each version's % change against the original with its 95% interval.
-     rows: [{ label, sub, pct, lo, hi, p, significant, hero, color }] in the order to draw
+     rows: [{ label, sub, pct, lo, hi, p, n, significant, hero, color }] in the order to draw
      opts: { aria, header }. Filled dot: the interval excludes 0 (significant, or hi < 0, a real loss); hollow: not significant. */
   function forest(el, rows, o = {}) {
     const W = 880, rowH = 46, T = 30, R = 150, H = T + rows.length * rowH + 44;
@@ -421,7 +421,7 @@
       tip(dot, [r.label + ': ' + fmt.pct(r.pct), r.lo != null ? '95% interval ' + fmt.pct(r.lo) + ' to ' + fmt.pct(r.hi) : 'no interval', fmt.p(r.p)].filter(Boolean));
       const strong = real ? (r.color || (r.hero ? 'var(--ar-accent)' : 'var(--ar-ink)')) : 'var(--ar-faint)';
       s(svg, 'text', { x: W - 8, y: y - 1, 'text-anchor': 'end', class: 'ar-val', style: `fill:${strong};font-size:13px` }, fmt.pct(r.pct));
-      s(svg, 'text', { x: W - 8, y: y + 14, 'text-anchor': 'end', class: 'ar-sub' }, r.lo == null ? (r.note || 'no interval') : real ? fmt.p(r.p) : 'not significant');
+      s(svg, 'text', { x: W - 8, y: y + 14, 'text-anchor': 'end', class: 'ar-sub' }, (r.lo == null ? (r.note || 'no interval') : real ? fmt.p(r.p) : 'not significant') + (r.n ? ' · n = ' + r.n : ''));
     });
     return svg;
   }

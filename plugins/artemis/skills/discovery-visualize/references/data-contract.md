@@ -8,7 +8,7 @@
 |---|---|
 | `collectedAt` | UTC timestamp of the collect |
 | `provenance.commands` | CLI commands used |
-| `run` | Status, task, counts, baseline SHA/observation, `projectUrl` (stable), `webUrl` (the run on newer deployments; if it 404s, link the project and name the Discover page) |
+| `run` | Status, task, counts, baseline SHA/observation, `projectName` (from `project list`; `null` if unavailable), `runner` (the runner's name, else its id), `projectUrl` (stable), `webUrl` (the run on newer deployments; if it 404s, link the project and name the Discover page) |
 | `metrics[]` | `key`, `source`, `unit` (from the platform, else from the name, e.g. `fps`), `role: "reference"` on a control metric and `reference` on the target it controls, `higherIsBetter`, `higherIsBetterInferred` (`true` only when neither the run's schema nor the platform's measurements gave a direction, so it was guessed from the name), `kind` (`target` / `quality` / `harness`) |
 | `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them, `runs`: each individual measurement in order, `q1`/`median`/`q3` from those runs, and `vsReference`) |
 | `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), per-metric stats + `runs`, `pctBetter`, `timesBetter`, `vsBaseline` (target metrics), `eligible` |

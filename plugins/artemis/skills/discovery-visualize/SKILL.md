@@ -102,6 +102,8 @@ These override any host chart default:
 --output PATH          write JSON; default stdout
 --base-url URL         Web UI origin if status cannot infer it
 --pareto a,b           optional axes; repeatable
+--cli PATH             path to the CLI binary; default `artemis` on PATH
+--config PATH          passed to every CLI call as `--config`, e.g. a runner env file
 ```
 
 The collector already strips logger noise before JSON and joins `observationGroupId` / `experimentId`.
