@@ -51,7 +51,7 @@ mkdir -p ~/.local/bin && curl -fL "$DIR/artemis-cli-$PLATFORM" -o ~/.local/bin/a
 artemis --version
 ```
 
-A directory on `files.artemis.turintech.ai` needs the shared download credentials: add `--anyauth -u "Artemis_User:Artemis_Custom_Runner_2025"` as in the public-path command below. Only send them to that host; a directory on any other host gets a plain request.
+The public download paths need no login, so send no credentials.
 
 **Match the build to this machine.** Read `uname -s` and `uname -m` (on Windows, the processor architecture), and pick the file:
 
@@ -69,8 +69,7 @@ If the directory has no file for this machine, never install a different archite
 Without a directory from the prompt, install from the public path, which carries current releases. Check the listing first and take the newest, rather than trusting a version named here:
 
 ```bash
-curl -s --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-  "https://files.artemis.turintech.ai/public/artemis-cli/" \
+curl -s "https://files.artemis.turintech.ai/public/artemis-cli/" \
   | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV | tail -5
 ```
 
@@ -79,7 +78,7 @@ Then fetch that version for the platform, verify it, and put it on `PATH`:
 ```bash
 VER=<the newest version in the listing above>
 PLATFORM="linux-amd64"   # from the table above
-mkdir -p ~/.local/bin && curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
+mkdir -p ~/.local/bin && curl -fL \
   "https://files.artemis.turintech.ai/public/artemis-cli/$VER/artemis-cli-$PLATFORM" \
   -o ~/.local/bin/artemis && chmod +x ~/.local/bin/artemis
 artemis --version
@@ -87,7 +86,7 @@ artemis --version
 
 A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`. Check that the user's own shell finds it with `bash -lc 'command -v artemis'`; if not, use the absolute path in the login box and offer, asking first, to add `~/.local/bin` to PATH in their shell startup file. On Windows, download the `.exe` and ask the user where to put it on PATH.
 
-The download credentials above are the published shared ones from the Web UI and the docs, not per-user secrets, so they can be used directly. Any *API key* is still a secret and must never enter the conversation.
+An *API key* is a secret and must never enter the conversation.
 
 ## Authenticate
 

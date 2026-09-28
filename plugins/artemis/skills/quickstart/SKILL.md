@@ -83,7 +83,7 @@ If they are undecided about the demo, recommend it again once and move on.
 
 Your first action after the two answers is the plan, before any other tool call. Returning users get it once their starting point is clear.
 
-Put it in the host's task list (Claude Code's task list, Cursor's todos, Codex's plan tool): one item per step, the finished ones already done. It stays on screen and ticks as the session goes. When a step finishes, mark it done and add its link from the "Tell them" columns to the item. Only when the host has no task list, send it as a numbered message instead, and again after setup and after the measurement.
+Put it in the host's task list (Claude Code's task list, Cursor's todos, Codex's plan tool; load the task tools first if they are deferred, as with the browser tools): one item per step, the finished ones already done. It stays on screen and ticks as the session goes. When a step finishes, mark it done and add its link from the "Tell them" columns to the item. Only when the host has no task list, send it as a numbered message instead, and again after setup and after the measurement.
 
 Only the steps this user needs; say which are theirs and roughly how long the long ones take. At the close (section 11), send it as a numbered message, one step per line, each ticked line with its link. For a brand-new user choosing the demo:
 
