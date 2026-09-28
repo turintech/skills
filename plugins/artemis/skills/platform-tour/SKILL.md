@@ -1,6 +1,6 @@
 ---
 name: platform-tour
-description: Show someone how to do a task on the Artemis platform by doing it in their Chrome while they watch, through the Web UI and without the CLI. Use when the user asks how to do something in Artemis, where to find something, or wants to be shown a part of the platform, such as setting up a benchmark, starting a Discovery run, reading results, or finding why a build failed.
+description: Show someone how to do a task on the Artemis platform by doing it in their Chrome while they watch, through the Web UI and without the CLI. Use when the user asks a how-to or where-is question about the platform ("how do I start a Discovery run?", "where are my results?") or asks to be shown something, not when they ask for the work to be done. First offer to show them in their browser, with explaining it in the terminal or doing it for them as the alternatives.
 compatibility: Requires Artemis Platform 3.1.0+ and a browser-control tool such as Claude in Chrome. Uses no CLI.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -13,7 +13,7 @@ metadata:
 
 - **Problem:** Teaches a task on the platform by doing it in the user's browser, one page at a time, so next time they can do it alone.
 - **Must be available:** A connected browser-control tool, the user signed in to their Artemis deployment in that browser, and a project to work in.
-- **Use / don't use:** Use for "how do I", "where is", "show me". When the user wants the work done rather than learned, use the CLI skills through `artemis`.
+- **Use / don't use:** Use for "how do I", "where is", "show me". When the user asks for the work to be done ("start a Discovery run"), use the CLI skills through `artemis` and do not offer a tour.
 - **Next skill:** None. Offer the CLI route (`quickstart`) at the end if they want it done for them next time.
 
 ## Requirements
@@ -24,11 +24,15 @@ metadata:
 
 ## 1. Before the tour
 
-1. Connect the browser (`cli-follow-along` section 1). Without one, say this skill needs it and offer the CLI route instead.
-2. Open `<deployment-base-url>/projects` and read the account in the page header. Stop and ask if it is not the user's.
-3. Keep other people's details off screen. **Platform Settings** opens on a page that lists every user on admin accounts, and **Users**, the **Runners** owner column, the project list's owner filter and a project's owner row show names or emails. Go around them; when a tour must pass one, say so first.
-4. Pick the tour from section 3 by the user's question. If none fits, say which tours exist and ask which is closest.
-5. Say the plan in at most four lines: the steps, what will change, and on which project.
+1. Ask once how they want the answer, unless the question already says (it names the CLI or terminal: explain the commands and stop here):
+   - **Show me in my browser (recommended):** you do it in their Chrome while they watch.
+   - **Just explain it:** the steps in the terminal, using the task skill's own instructions.
+   - **Do it for me:** hand over to the task skill (for a Discovery run, `discovery-start`).
+2. For the browser, connect it (`cli-follow-along` section 1). If it does not connect, say in one line that the tour needs the Claude browser extension and give the other two options.
+3. Open `<deployment-base-url>/projects` and read the account in the page header. Stop and ask if it is not the user's.
+4. Keep other people's details off screen. **Platform Settings** opens on a page that lists every user on admin accounts, and **Users**, the **Runners** owner column, the project list's owner filter and a project's owner row show names or emails. Go around them; when a tour must pass one, say so first.
+5. Pick the tour from section 3 by the user's question. If none fits, say which tours exist and ask which is closest.
+6. Say the plan in at most four lines: the steps, what will change, and on which project.
 
 ## 2. Run the tour
 
