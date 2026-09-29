@@ -1,6 +1,6 @@
 ---
 name: quickstart
-description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and recommends the Particle Life example to anyone who has not run Artemis before. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
+description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and recommends the Particle Life example to anyone who has not run Artemis before, or stops once the CLI and a runner are ready when the user only wants setup. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -63,7 +63,7 @@ For a user with nothing yet, as the first part of section 3. Four short lines:
 
 1. Artemis uses AI to try improvements to real code and measures every attempt.
 2. The measuring happens on the user's own machine, through a small program called a runner.
-3. Next comes a quick setup, then either a demo or their own project.
+3. Next comes a quick setup, then a demo, their own project, or nothing more until they are ready.
 4. Setup takes a few minutes. The Particle Life demo then runs 5 versions, about 15 minutes, most of it watching results arrive.
 
 Say once, before the first run, that runs use account credits and the balance is in the Web UI header. Nothing more, and do not repeat it.
@@ -72,7 +72,7 @@ Say once, before the first run, that runs use account credits and the balance is
 
 First write the section 2 welcome as reply text: the question box shows no text of its own, and narration in your reasoning is not seen. Then ask both questions in one question box, in the same turn. Ask them even when the prompt says not to ask about settings: they are about the session, not the run, and they are the only questions before it, apart from the fresh-or-continue question in section 4.
 
-1. **Start with:** **Particle Life demo (recommended)**, a deliberately slow C++ simulation that shows a real optimisation end to end in about 15 minutes, or **your own project**.
+1. **Start with:** **Particle Life demo (recommended)**, a deliberately slow C++ simulation that shows a real optimisation end to end in about 15 minutes; **your own project**; or **just set me up**, the CLI, sign-in and a runner, then stop, with no project and no run.
 2. **Follow along in:** **Terminal, with links (recommended)**, or **Terminal with computer use in your browser**, which also drives Chrome so they watch each page change and needs the Claude browser extension. Recommend the terminal even when a browser is connected.
 
 If they choose the browser, load the skill and follow `cli-follow-along` section 1 for the connection, and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
@@ -107,6 +107,7 @@ Then the starting point decides what comes before section 7:
   - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch.
 - **Their own code:** where it lives (repository URL and branch, and can Artemis reach it), `project-import` if it is not a project yet, then 7b and section 7.
 - **A project URL:** 7b, then section 7.
+- **Just set me up:** the plan is steps 1 to 4 only. Do section 5's CLI and runner items, skip Git access and the project, then go straight to section 11.
 
 ## 5. Setup
 
@@ -224,7 +225,7 @@ Show the plan again with everything ticked, then a short readiness report, wheth
 - **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the original and best measured values.
 - **Still yours to do:** anything left for the user, or "nothing".
 
-Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project.
+Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.
 
 Say once, while the run is going, that it continues on the platform if the terminal is closed; and at the end, that the runner is still running, with its stop command.
 
@@ -235,6 +236,7 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] Welcome written as text before the question box
 - [ ] The plan in the host's task list before any other tool call, each item ticked with its link, and a numbered list at the close
 - [ ] Demo: an existing Particle Life project found before importing, and the user asked fresh or continue
+- [ ] Just set me up: stopped after the runner, with no project imported and no run started
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
 - [ ] A link and what they will see each time something appeared in Artemis
