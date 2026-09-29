@@ -1,12 +1,11 @@
 ---
 name: quickstart
 description: Take a user from any onboarding point to a first measured Artemis result, whether they have no setup, a repository that needs a benchmark, or an existing Artemis project URL or id. Use when the user asks to get started with Artemis, wants to prepare and optimize a repository, pastes a project link, or wants to resume an incomplete first run.
-compatibility: Production Platform 3.0.3 quickstart requires Artemis CLI 1.0.8 and runner 5.2.1; stable CLI 1.0.9 through 1.0.11 and runner 5.3.0 are not compatible with this flow.
+compatibility: Requires the Artemis CLI release that ships this epic (artemis login <url>, settings.yaml, runner ids, the runner inside the CLI); version pending until it is released.
 metadata:
-  artemis-cli-min: "1.0.8"
-  artemis-cli-tested: "1.0.8"
-  artemis-runner-tested: "5.2.1"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: ""
+  artemis-cli-tested: ""
+  artemis-platform-min: ""
 ---
 
 # Quickstart or resume onboarding
@@ -89,7 +88,7 @@ After the repository path is chosen, say once that agent-backed operations such 
 
 Check silently:
 
-- `artemis --version` reports 1.0.8 exactly;
+- `artemis version` succeeds;
 - `artemis status` is authenticated to the intended deployment;
 - `artemis changeset create --help` succeeds;
 - `artemis discovery create --help` offers `--compile-cmd`, `--test-cmd`, and `--benchmark-cmd`;
@@ -97,7 +96,7 @@ Check silently:
 
 Use `cli-setup` for missing installation or authentication. Login and API-key entry are the user's steps; give instructions and wait without asking for the secret.
 
-Version ordering is not a compatibility test: stable 1.0.9 through 1.0.11 lack the required changeset commands. If the version is not 1.0.8 or any required command or flag is missing, stop and use `cli-setup`. Do not fall back to `validation run`, install a dev build, or continue because some newer commands happen to exist.
+If any required command or flag is missing, stop and use `cli-setup`. Do not fall back to `validation run` or continue because some other commands happen to exist.
 
 If `discovery create --help` offers `--script` and not `--compile-cmd`, stop. That CLI targets a newer platform than this production flow. Do not pass `--script`, `--source-changeset`, `--eval-mode`, `--eval-runs`, `--llm-metrics`, or `--setup-cmd`.
 
@@ -148,9 +147,9 @@ Give `[Open project](<base-url>/projects/<project-id>)` as soon as the UUID is k
 
 Read repository requirements before judging runner suitability. `artemis runner list` showing “online” proves connectivity, not that the machine can build this project.
 
-Production Platform 3.0.3 quickstart uses runner 5.2.1 exactly. Verify the local binary or the runner's reported version before starting or reusing it. Do not run its self-updater or accept the 5.3.0 upgrade prompt; 5.3.0 rejects this flow's ad-hoc validation payload before commands run. Match the intended runner by name and online state rather than relying on fleet totals that may include stale registrations.
+The runner is the `artemis` CLI itself (`artemis runner start`), so its version is the CLI's. Match the intended runner by its id and online state; names are labels two machines can share, and `--runner` takes the id.
 
-Reuse an already confirmed 5.2.1-compatible runner. If several are plausible, ask which to use. If none exists, use `runner-setup`; explain that it is a long-lived process executing repository code on the user's machine and obtain permission before starting it.
+Reuse an already confirmed runner. If several are plausible, ask which to use. If none exists, use `runner-setup`; explain that it is a long-lived process executing repository code on the user's machine and obtain permission before starting it.
 
 Probe the selected runner for the repository's actual toolchain through a short validation. Name missing tools and the machine; do not rewrite correct repository commands to avoid a missing dependency.
 
