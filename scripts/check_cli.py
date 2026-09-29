@@ -27,9 +27,21 @@ def help_for(path):
         # Commands are listed after "Usage:", in "Available Commands:" or grouped sections, before "Flags:".
         listing = out.rsplit("Usage:", 1)[-1].split("Flags:", 1)[0]
         subs = set(re.findall(r"^  ([a-z][a-z0-9-]*)\s+[A-Z]", listing, re.M))
-        flags = set(re.findall(r"^\s+(?:-\w, )?(--[a-z][a-z0-9-]*)", out, re.M))
+        # Only the flag lists count: a flag named in an example is not proof it exists.
+        sections = re.findall(r"^(?:Global )?Flags:\n(.*?)(?:\n\n|\Z)", out, re.M | re.S)
+        flags = set(re.findall(r"^\s+(?:-\w, )?(--[a-z][a-z0-9-]*)", "\n".join(sections), re.M))
         _help[key] = (subs, flags)
     return _help[key]
+
+
+def alias_of(path, word):
+    """The command `word` names under `path` when it is an alias the listing does not show, else None."""
+    out = subprocess.run([CLI, *path, word, "--help"], capture_output=True, text=True,
+                         env={**os.environ, "HOME": HOME}).stdout
+    m = re.search(r"^Aliases:\n\s+(.+)$", out, re.M)
+    if not m or word not in [a.strip() for a in m.group(1).split(",")]:
+        return None
+    return m.group(1).split(",")[0].strip()
 
 
 def commands(text):
@@ -42,6 +54,8 @@ def commands(text):
                     yield m.group(1)
     roots = help_for([])[0]
     for m in re.finditer(r"`([a-z][^`]*)`", text):
+        if re.search(r"\b(?:no|not)\s+$", text[max(0, m.start() - 5):m.start()]):
+            continue  # "There is no `...`" names a command that must not be used.
         words = m.group(1).split()
         if words[0] == "artemis" and len(words) > 1:
             yield m.group(1)
@@ -58,19 +72,26 @@ def check(cmd):
     # Drop global flags that take a value, so the value is not read as a command.
     toks = [t for i, t in enumerate(toks)
             if t not in VALUED and (i == 0 or toks[i - 1] not in VALUED)]
-    path, flags, i = [], [], 1
+    path, flags, problems, i = [], [], [], 1
     while i < len(toks):
         t = toks[i]
+        subs = help_for(path)[0]
         if t.startswith("--"):
             flags.append(t.split("=", 1)[0])
-        elif not t.startswith("-") and t in help_for(path)[0]:
+        elif not t.startswith("-") and t in subs:
             path.append(t)
+        elif not t.startswith("-") and subs and alias_of(path, t):
+            path.append(alias_of(path, t))
+        elif path and subs and re.fullmatch(r"[a-z][a-z-]+", t) and not toks[i - 1].startswith("-"):
+            # A word where the CLI expects one of its subcommands, not a value or a placeholder.
+            problems.append(f"command {' '.join(path + [t])!r}")
+            break
         i += 1
     if not path:
         rest = [t for t in toks[1:] if not t.startswith("-")]
         return [f"unknown command {rest[0]!r}"] if rest and re.fullmatch(r"[a-z][a-z-]+", rest[0]) else []
     known = help_for(path)[1] | help_for([])[1]
-    return [f for f in flags if f not in known and f != "--help"]
+    return problems + [f for f in flags if f not in known and f != "--help"]
 
 
 failures, checked = [], []
