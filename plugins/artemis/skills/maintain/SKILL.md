@@ -31,7 +31,7 @@ The lifecycle of one issue:
 ```
 open ──confirm──▶ true_positive ──fix──▶ changeset ──publish──▶ branch ──pr──▶ pull request
   │
-  └──dismiss──▶ false_positive (closed)     └──close──▶ closed (validity untouched)
+  └──dismiss──▶ false_positive (closed)     └──archive──▶ closed (validity untouched)
 ```
 
 Maintain does **not** need a runner or a benchmark harness: it reads the code,
@@ -128,8 +128,8 @@ artemis maintain scans run --project <p> \
   non-draft rules produce findings.
 - `--count` (default 5, range 1–1000) is the *target* number of issues to
   surface — a ceiling the agent aims for, not a guarantee.
-- `--path` (repeatable) restricts the scan to a subtree; `--commit <sha>` pins
-  it to a specific commit instead of project head.
+- `--commit <sha>` pins the scan to a specific commit instead of project head.
+  There is no `--path`: a scan covers the whole project.
 - `--wait` blocks until the scan reaches a terminal state (`done` or `failed`),
   with `--timeout` (default 20m; exit code 6 on expiry). Without `--wait` the
   scan runs in the background and the command returns immediately.
@@ -159,7 +159,7 @@ If a scan you expected to be productive comes back with no issues:
 
 - Confirm the rules were **not still drafts** when the scan ran (§1) — a scan
   against a draft rule surfaces nothing.
-- Check `--path` / `--commit` didn't scope the scan away from the relevant code.
+- Check `--commit` didn't pin the scan to a commit without the relevant code.
 - Try a broader or differently-worded rule; rule phrasing drives recall.
 
 ---
@@ -194,13 +194,13 @@ finding is a true positive, and firing the fix agent at noise wastes a run.
 ```bash
 artemis maintain issues confirm <issue-id> [<issue-id>...]   # → true_positive
 artemis maintain issues dismiss <issue-id> [<issue-id>...]   # → false_positive + closed
-artemis maintain issues close   <issue-id> [<issue-id>...]   # → closed, validity untouched
+artemis maintain issues archive <issue-id> [<issue-id>...]   # → closed, validity untouched
 ```
 
 All three take **multiple IDs**. `confirm` marks genuine findings so you can
 batch-fix them; `dismiss` is for false positives (records *why* the board
-shrank); `close` retires an issue without judging it true/false (won't-fix,
-duplicate).
+shrank); `archive` retires an issue without judging it true/false (won't-fix,
+duplicate). `unarchive` puts it back; CLIs before 1.1 call `archive` `close`.
 
 ## 6. Fix — dispatch the fix agent
 
@@ -325,7 +325,7 @@ before acting on anything old.
 - [ ] Rules in place and **not `[DRAFT]`** — `rules list` is clean.
 - [ ] `scans run` reached `done` (not `failed`); `issues list` shows a non-zero
       board — a `done` scan with 0 issues is "ran", not necessarily "clean".
-- [ ] Findings **triaged** (`confirm` / `dismiss` / `close`) before any `fix`.
+- [ ] Findings **triaged** (`confirm` / `dismiss` / `archive`) before any `fix`.
 - [ ] `fix` agent polled to `fixStatus: done` (not the non-existent `fixed`)
       **before** `publish`/`pr`; unrelated issues in **separate** `fix` calls.
 - [ ] Changeset confirmed **non-empty** (`numberOfCommitsAhead` > 0, not an
