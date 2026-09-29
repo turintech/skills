@@ -67,6 +67,8 @@ artemis --output-format json key list
 
 Reuse a credential that can read the repository. Check the provider values returned by the installed CLI rather than assuming they match the values accepted by `key add`.
 
+Use a key for the repository's git service even when the repository is public. Without one, Artemis reads it from GitHub unauthenticated, which GitHub rate-limits, and later checks such as the upstream check on `changeset create` start failing.
+
 If no suitable credential exists, present **both** setup routes and let the user choose. For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
 
 1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account on the Git page of their deployment (`<deployment-base-url>/settings/git`). Then re-run `artemis key list`: a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
