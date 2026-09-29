@@ -37,7 +37,7 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Assistant host | Claude Code, Cursor, Codex, or GitHub Copilot |
 | Browser control | Load the browser tools before looking; deferred tools report none until loaded. Load the skill and follow `cli-follow-along` section 1 for the exact call |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
-| CLI | `artemis --version` meets the skills' minimum (`metadata.artemis-cli-min`), `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key) |
+| CLI | `artemis --version` meets the skills' minimum (`metadata.artemis-cli-min`), `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
