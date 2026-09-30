@@ -129,7 +129,9 @@ artemis maintain scans run --project <p> \
 - `--count` (default 5, range 1–1000) is the *target* number of issues to
   surface — a ceiling the agent aims for, not a guarantee.
 - `--commit <sha>` pins the scan to a specific commit instead of project head.
-  There is no `--path`: a scan covers the whole project.
+  There is no `--path`: a scan covers the whole project. From CLI 1.1.13,
+  `--focus "<text>"` points it at part of the code, like the Web UI's "What to
+  focus on" box.
 - `--wait` blocks until the scan reaches a terminal state (`done` or `failed`),
   with `--timeout` (default 20m; exit code 6 on expiry). Without `--wait` the
   scan runs in the background and the command returns immediately.
