@@ -1,9 +1,9 @@
 ---
 name: change-validate
 description: Check whether a local code change really makes a project faster (or better on any metric), measured on an Artemis runner. Puts the uncommitted change on a new Artemis branch, measures the original code and the change the same number of times on the same runner and script, and reports the platform's verdict per metric with its interval and the Validations link. Use when the user asks whether their change or their agent's change is faster, wants a before/after benchmark, or wants to validate a local change on a runner.
-compatibility: Requires Artemis CLI 1.1.13+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.13"
+  artemis-cli-min: "1.1.14"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -59,8 +59,8 @@ Report per metric: the original's value, the change's value, the improvement and
 | Verdict | Say |
 |---|---|
 | `better` / `worse` | The change is faster or slower, by the improvement, with the interval |
-| `noise` | No difference could be measured. If `recommendedReadings` is set, that many runs per side would settle it; offer to run the extra pairs |
-| `pending` | Too few runs to tell. Run the extra pairs `recommendedReadings` asks for, then compare again |
+| `noise` | No difference could be measured. If `recommendedReadings` is set, it is the total readings per side that would settle it, counting those already taken; offer to run the extra pairs |
+| `pending` | Too few runs to tell. Run pairs until both sides reach `recommendedReadings`, then compare again |
 
 When `recommendedReadingsReason` is `settled`, the verdict stands. When it is `too_small`, no reasonable number of runs would separate them: say the change makes no practical difference.
 
