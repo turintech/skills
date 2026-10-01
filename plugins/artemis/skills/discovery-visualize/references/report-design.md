@@ -16,6 +16,7 @@ Work out what the reader wants to take away before choosing a chart. Most prompt
 | "is it real", "is it noise", "significant", "reliable" | Is the gain bigger than run-to-run noise? | The default, or every run against the baseline's spread (`strip`) for one version |
 | "how did it go", "over time", "did steering help" | How did the search unfold? | Generation-order trajectory, annotated |
 | "what did it try", "what worked", "why did it fail" | What did the agent try, and what came of it? | Versions grouped by outcome, with the agent's verdicts |
+| "AI-assessed", "code quality", "what did the model think" | How did the run's model score the code? | AI-assessed metrics, in their own figure |
 | two metrics, "trade-off", "cost of" | What does one metric cost in the other? | Pareto scatter over the named axes |
 | a specific chart ("a bar chart of...", "just the table") | Theirs | Exactly what they asked for (section 0) |
 
@@ -92,7 +93,13 @@ Optional. One line when a mark needs explaining: what a mark is (mean of `n`, or
 
 **Search trajectory.** `pctBetter` by version number (versions are numbered in the order they were made). A zero line for the baseline, a line through consecutive measured versions that breaks at gaps, a ring on the best version, and a value label on the points the finding mentions. Annotate what explains the shape when it is known from this conversation or the run: a steer ("steered toward the solver loops" between v5 and v6), a version set aside. Do not add a running-best line unless the reader is judging how fast the search found things.
 
+Steers: the CLI does not list a run's past steers, and versions do not record which agent made them. Mark a steer only when this conversation sent it (`discovery-steer`) or the user says when it happened, and place it by `createdAt`: after the last version made before the steer. Never guess a steer from the shape of the line.
+
+When the user asks for the composite score over time, plot each version's `fitness` as its own trajectory, titled "Composite score (the agent's score)", never on the same axis as a measured metric and without a zero line.
+
 **Versions by outcome.** Cards or a compact table grouped as measured improvement, no measurable change, slower, and failed or not measured. Each row: label, the experiment title, the measured change, and the agent's verdict, visibly separate from the measurement.
+
+**AI-assessed metrics.** Metrics with `kind: quality` are scored by the run's model from the code, not measured. Give them their own figure, after the measured ones: `rankedBars` of each version's score per AI-assessed metric, with the baseline as the reference line when it has a score. Caption it "Scored by the run's model from the code; a judgement, not a measurement." Never put them in the title, the headline, `forest` or a significance claim, and never average them with measured metrics. When the user asks for "all metrics", show measured and AI-assessed metrics as two separate figures.
 
 **Pareto scatter.** Only for two named axes. Label the non-dominated points; caption it as an analytical view, not an Artemis verdict.
 
