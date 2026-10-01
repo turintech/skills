@@ -51,7 +51,7 @@ it doesn't build or execute it. All it needs is an imported project.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it
   is just one option — any JSON filter works (e.g. `python3 -c`).
 
-Every rule and issue carries a human-friendly **display ID** (`RULE-7`,
+Every rule and issue carries a human-friendly **display ID** (`RUL-7`,
 `ISS-143`) shown for readability, but **all commands take the UUID** as their
 argument. Lift `.id`, not `.displayId`, into anything scripted.
 
@@ -80,11 +80,13 @@ Three ways to get them, and every rule is scoped to one project.
 ### Fastest: import the default catalogue
 
 ```bash
-artemis maintain rules defaults                       # browse the catalogue first
-artemis maintain rules import-defaults --project <p>  # import them all
-# ...or cherry-pick:
+artemis maintain rules defaults --all                 # browse the catalogue first
 artemis maintain rules import-defaults --project <p> --rule <default-id-1> --rule <default-id-2>
 ```
+
+Pick the rules rather than importing the whole catalogue: it has 22, a scan takes at
+most 20, and three of them (GitHub, JIRA and Sentry issue import) bring in issues from
+those tools rather than scan the code.
 
 ### Author your own from a prompt
 
@@ -93,10 +95,9 @@ artemis maintain chat --project <p> \
   -m "create a rule that flags SQL queries built with string concatenation"
 ```
 
-Rule creation is **asynchronous** — a fresh rule comes back `IsDraft` with a
-`ChatID` while the agent finishes writing it. It is not scannable until the
-draft clears. Follow it with `artemis chat messages <chat-id>`, or just
-`rules list` until the `[DRAFT]` marker is gone.
+The maintain agent reads the project's code, writes the rule and puts it on the
+board. Check `rules list` before scanning: a rule still marked `[DRAFT]` scans
+nothing.
 
 ### Author from a markdown definition
 
@@ -176,7 +177,7 @@ artemis maintain issues list --project <p> --severity high --status open
 
 # Confirmed true positives that still need a fix, biggest first
 artemis maintain issues list --project <p> \
-  --validity true_positive --fix-status not_fixed --sort size_of_fix --order desc
+  --validity true_positive --fix-status not_set --sort size_of_fix --order desc
 
 # One issue in full
 artemis maintain issues get <issue-id>
@@ -184,7 +185,8 @@ artemis maintain issues get <issue-id>
 
 `issues list` filters on `--rule`, `--severity`
 (critical|high|medium|low|info), `--status` (open|closed), `--validity`
-(true_positive|false_positive|not_set), `--fix-status`, `--sync-status`,
+(true_positive|false_positive|not_set), `--fix-status`
+(pending|in_progress|done|failed|cancelled|not_set), `--sync-status`,
 `--complexity` (small|medium|large) and `--path-prefix`; it sorts on
 `--sort`/`--order` and paginates with `--all`.
 
@@ -221,7 +223,7 @@ artemis chat messages <fix-chat-id>          # watch the fix agent's tool calls
 artemis maintain issues get <issue-id>       # ChangesetID / FixStatus / PRUrl fill in
 ```
 
-**The terminal `fixStatus` is `done` (or `failed`) — not `fixed`.** When you poll
+**The terminal `fixStatus` is `done`, `failed` or `cancelled` — not `fixed`.** When you poll
 `issues get`, wait for `.fixStatus == "done"`; there is no `fixed`/`complete`
 state, so a loop that breaks on the wrong string will spin forever against a fix
 that already finished. Poll like:
@@ -229,7 +231,7 @@ that already finished. Poll like:
 ```bash
 until fs=$(artemis --output-format json maintain issues get <issue-id> \
              | jq -r '.fixStatus'); \
-      [ "$fs" = "done" ] || [ "$fs" = "failed" ]; do sleep 20; done
+      [ "$fs" = "done" ] || [ "$fs" = "failed" ] || [ "$fs" = "cancelled" ]; do sleep 20; done
 ```
 
 **`done` ≠ produced a real edit — verify the changeset is non-empty before you
@@ -298,12 +300,12 @@ before acting on anything old.
 ## Traps
 
 - **Display ID vs UUID.** Every command argument is the **UUID**; `ISS-143` /
-  `RULE-7` are for reading only. Scripts must lift `.id`.
-- **Draft rules scan nothing.** A rule created from a prompt is `[DRAFT]` until
-  the authoring agent finishes; a scan against it surfaces zero issues.
+  `RUL-7` are for reading only. Scripts must lift `.id`.
+- **Draft rules scan nothing.** A rule still marked `[DRAFT]` surfaces zero issues;
+  check `rules list` first.
 - **`done` scan ≠ found something.** A scan that ran cleanly can still record 0
-  issues — that's "ran", not necessarily "clean". Rule out draft rules / path
-  scoping first (§3).
+  issues — that's "ran", not necessarily "clean". Rule out draft rules or a
+  `--focus` aimed elsewhere first (§3).
 - **`fix` is async, and its terminal state is `done`.** A returned `ChangesetID`
   means *dispatched*, not *done*. Poll `issues get` until `.fixStatus == "done"`
   (or `"failed"`) before `publish`/`pr` — there is no `fixed`/`complete` value,
