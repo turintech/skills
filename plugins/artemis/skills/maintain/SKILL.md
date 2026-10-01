@@ -237,12 +237,13 @@ until fs=$(artemis --output-format json maintain issues get <issue-id> \
 **`done` ≠ produced a real edit — verify the changeset is non-empty before you
 ship.** `fix` returning a `ChangesetID` means the agent was *dispatched*, not
 that a fix exists; a fix can even reach `fixStatus: done` having written
-nothing. The tell is in the `publish`/`pr` output: a `numberOfCommitsAhead` of
-`0` (and a description of **"Empty branch with no modifications"**) means the
-changeset is empty — publishing it ships nothing useful. If it's empty, don't
-ship it: re-run `fix`, and if it's *still* empty, the bug was likely already
-fixed upstream (check with a `syncs run`, §8) — the changeset base sitting
-several commits *behind* the branch is a hint the finding is stale.
+nothing. Check before publishing with
+`artemis changeset diff <changeset-id> --project <p>`: it lists the files the fix
+changed. Don't judge by `numberOfCommitsAhead` or "Empty branch with no
+modifications" in `publish`/`pr` output; those read empty for every fix that
+hasn't been published yet. If the diff is empty, don't ship it: re-run `fix`,
+and if it's *still* empty, the bug was likely already fixed upstream (check with
+a `syncs run`, §8).
 
 ### Prefer your own coding agent? Export the prompt instead
 
@@ -310,10 +311,11 @@ before acting on anything old.
   means *dispatched*, not *done*. Poll `issues get` until `.fixStatus == "done"`
   (or `"failed"`) before `publish`/`pr` — there is no `fixed`/`complete` value,
   so watching for the wrong string hangs forever on an already-finished fix.
-- **`fixStatus: done` can still be an empty changeset.** Check the `publish`/`pr`
-  output: `numberOfCommitsAhead: 0` / "Empty branch with no modifications" means
-  the agent wrote nothing — don't ship it. Re-run `fix`; if still empty, the
-  finding is probably already fixed upstream (`syncs run`, §8).
+- **`fixStatus: done` can still be an empty changeset.** Check with
+  `changeset diff` before publishing, not the `publish`/`pr` output, which reads
+  empty for every unpublished fix. No changed files means the agent wrote
+  nothing: re-run `fix`; if still empty, the finding is probably already fixed
+  upstream (`syncs run`, §8).
 - **One changeset per `fix` call.** Multiple issues in a single `fix` share a
   changeset and PR. Split unrelated work into separate `fix` calls up front;
   you can't cleanly un-bundle them afterwards.
@@ -332,7 +334,7 @@ before acting on anything old.
 - [ ] Findings **triaged** (`confirm` / `dismiss` / `archive`) before any `fix`.
 - [ ] `fix` agent polled to `fixStatus: done` (not the non-existent `fixed`)
       **before** `publish`/`pr`; unrelated issues in **separate** `fix` calls.
-- [ ] Changeset confirmed **non-empty** (`numberOfCommitsAhead` > 0, not an
-      "Empty branch") before shipping; git provider connected.
+- [ ] Changeset confirmed **non-empty** with `changeset diff` before shipping;
+      git provider connected.
 - [ ] Board **resynced** (`syncs run`) after the code changed, before trusting
       old findings.
