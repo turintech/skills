@@ -20,7 +20,7 @@ const snapshot = {
   baseline: { mean: 10, count: 5 },
   versionCount: 4,
   versionBudget: 6,
-  webUrl: "https://artemis.example/projects/project/discovery/run",
+  webUrl: "https://artemis.example/projects/project/discover/run",
   collectedAt: "2026-09-03T10:00:00Z",
   source: "artemis discovery metrics --all --stats",
   rawWinner: {
