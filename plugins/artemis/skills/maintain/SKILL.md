@@ -1,6 +1,6 @@
 ---
 name: maintain
-description: Run Artemis Maintain end to end on a project — author or import rules, scan the code for issues, triage the findings, fix them with the fix agent, ship each fix as a branch or PR, and resync stale issues as the code moves on. Use when the user wants to scan a project for code-health issues, set up maintain rules, or triage/fix/ship maintain findings.
+description: Run Artemis Maintain end to end on a project — author or import rules, scan the code for issues, triage the findings, fix them with the fix agent, ship each fix as a branch or PR, and re-sync stale issues as the code moves on. Use when the user wants to scan a project for code-health issues, set up maintain rules, or triage/fix/ship maintain findings.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -21,7 +21,7 @@ of **rules**, records each finding as an **issue** on a board, and helps you
 triage and fix them. The whole flow:
 
 ```
-rules ──scan──▶ issues ──triage──▶ confirmed ──fix──▶ changeset ──publish/pr──▶ branch / PR
+rules ──scan──▶ issues ──triage──▶ confirmed ──fix──▶ Branch ──publish/pr──▶ git branch / PR
                                                                                     │
                                                               syncs keep the board honest as code changes
 ```
@@ -29,7 +29,7 @@ rules ──scan──▶ issues ──triage──▶ confirmed ──fix──
 The lifecycle of one issue:
 
 ```
-open ──confirm──▶ true_positive ──fix──▶ changeset ──publish──▶ branch ──pr──▶ pull request
+open ──confirm──▶ true_positive ──fix──▶ Branch ──publish──▶ git branch ──pr──▶ pull request
   │
   └──dismiss──▶ false_positive (closed)     └──archive──▶ closed (validity untouched)
 ```
@@ -127,8 +127,9 @@ artemis maintain scans run --project <p> \
 
 - `--rule` is **required and repeatable** (max 20 rules per scan). Only
   non-draft rules produce findings.
-- `--count` (default 5, range 1–1000) is the *target* number of issues to
-  surface — a ceiling the agent aims for, not a guarantee.
+- `--count` is the *target* number of issues to surface, up to 100 (the Web
+  UI's "Approximate number of issues") — a ceiling the agent aims for, not a
+  guarantee.
 - `--commit <sha>` pins the scan to a specific commit instead of project head.
   There is no `--path`: a scan covers the whole project. From CLI 1.1.13,
   `--focus "<text>"` points it at part of the code, like the Web UI's "What to
@@ -202,8 +203,8 @@ artemis maintain issues archive <issue-id> [<issue-id>...]   # → closed, valid
 ```
 
 All three take **multiple IDs**. `confirm` marks genuine findings so you can
-batch-fix them; `dismiss` is for false positives (records *why* the board
-shrank); `archive` retires an issue without judging it true/false (won't-fix,
+batch-fix them; `dismiss` marks false positives (the Web UI's **False
+positive**) and archives them, recording *why* the board shrank; `archive` retires an issue without judging it true/false (won't-fix,
 duplicate). `unarchive` puts it back; CLIs before 1.1 call `archive` `close`.
 
 ## 6. Fix — dispatch the fix agent
@@ -212,15 +213,16 @@ duplicate). `unarchive` puts it back; CLIs before 1.1 call `archive` `close`.
 artemis maintain issues fix <issue-id> [<issue-id>...] [--model claude-sonnet-5]
 ```
 
-- Takes **multiple issues**; **all their fixes land in one changeset** and the
+- Takes **multiple issues**; **all their fixes land in one Branch** and the
   agent's work streams into **one fix chat**. Group related issues; keep
-  unrelated ones in separate `fix` calls so each gets its own changeset/PR.
-- The command returns a `ChangesetID` and a `FixChatID` and then **returns
+  unrelated ones in separate `fix` calls so each gets its own Branch and PR.
+- The command returns the Branch's ID (`changesetId` in JSON) and a fix chat
+  ID and then **returns
   immediately** — the agent works in the background. Follow it:
 
 ```bash
 artemis chat messages <fix-chat-id>          # watch the fix agent's tool calls
-artemis maintain issues get <issue-id>       # ChangesetID / FixStatus / PRUrl fill in
+artemis maintain issues get <issue-id>       # Branch ID, fix status and PR URL fill in
 ```
 
 **The terminal `fixStatus` is `done`, `failed` or `cancelled` — not `fixed`.** When you poll
@@ -234,18 +236,20 @@ until fs=$(artemis --output-format json maintain issues get <issue-id> \
       [ "$fs" = "done" ] || [ "$fs" = "failed" ] || [ "$fs" = "cancelled" ]; do sleep 20; done
 ```
 
-**`done` ≠ produced a real edit — verify the changeset is non-empty before you
-ship.** `fix` returning a `ChangesetID` means the agent was *dispatched*, not
+**`done` ≠ produced a real edit — verify the Branch is non-empty before you
+ship.** `fix` returning a Branch ID means the agent was *dispatched*, not
 that a fix exists; a fix can even reach `fixStatus: done` having written
 nothing. Check before publishing with
 `artemis changeset diff <changeset-id> --project <p>`: it lists the files the fix
 changed. Don't judge by `numberOfCommitsAhead` or "Empty branch with no
 modifications" in `publish`/`pr` output; those read empty for every fix that
-hasn't been published yet. If the diff is empty, don't ship it: re-run `fix`,
+hasn't been published yet. If the diff is empty, don't ship it: re-run `fix` (**Retry fix** in the Web UI),
 and if it's *still* empty, the bug was likely already fixed upstream (check with
 a `syncs run`, §8).
 
 ### Prefer your own coding agent? Export the prompt instead
+
+This is the Web UI's **Copy for local agent**.
 
 ```bash
 artemis maintain issues prompt <issue-id> [<issue-id>...] --project <p>
@@ -260,13 +264,13 @@ artemis maintain issues prompt <issue-id> --project <p> | my-coding-agent
 
 ## 7. Ship — branch and/or PR
 
-Both commands require the issue to **already have a fix changeset** (run `fix`
-first) and both are idempotent — an already-published changeset keeps its
+Both commands require the issue to **already have a fix Branch** (run `fix`
+first) and both are idempotent — an already-published Branch keeps its git
 branch; an issue that already has a PR reports the existing one instead of
 opening a duplicate.
 
 ```bash
-# Publish the changeset to a branch, no PR
+# Publish the Branch to a git branch, no PR
 artemis maintain issues publish <issue-id> --project <p>
 
 # Publish (if needed) AND open a PR in one step
@@ -284,10 +288,10 @@ to a new line, or may no longer apply. A **sync** re-evaluates issues against th
 current code so the board doesn't rot.
 
 ```bash
-# Resync every outdated issue in the project
+# Re-sync every outdated issue in the project
 artemis maintain syncs run --project <p> --wait
 
-# Resync only specific issues
+# Re-sync only specific issues
 artemis maintain syncs run --project <p> <issue-id-1> <issue-id-2> --wait
 
 artemis maintain syncs list --project <p>
@@ -307,17 +311,17 @@ before acting on anything old.
 - **`done` scan ≠ found something.** A scan that ran cleanly can still record 0
   issues — that's "ran", not necessarily "clean". Rule out draft rules or a
   `--focus` aimed elsewhere first (§3).
-- **`fix` is async, and its terminal state is `done`.** A returned `ChangesetID`
+- **`fix` is async, and its terminal state is `done`.** A returned Branch ID
   means *dispatched*, not *done*. Poll `issues get` until `.fixStatus == "done"`
   (or `"failed"`) before `publish`/`pr` — there is no `fixed`/`complete` value,
   so watching for the wrong string hangs forever on an already-finished fix.
-- **`fixStatus: done` can still be an empty changeset.** Check with
+- **`fixStatus: done` can still be an empty Branch.** Check with
   `changeset diff` before publishing, not the `publish`/`pr` output, which reads
   empty for every unpublished fix. No changed files means the agent wrote
   nothing: re-run `fix`; if still empty, the finding is probably already fixed
   upstream (`syncs run`, §8).
-- **One changeset per `fix` call.** Multiple issues in a single `fix` share a
-  changeset and PR. Split unrelated work into separate `fix` calls up front;
+- **One Branch per `fix` call.** Multiple issues in a single `fix` share a
+  Branch and PR. Split unrelated work into separate `fix` calls up front;
   you can't cleanly un-bundle them afterwards.
 - **`publish`/`pr` need a connected git provider.** Both push to GitHub; a
   project imported without push-capable git auth fails at the push step, not at
@@ -334,7 +338,7 @@ before acting on anything old.
 - [ ] Findings **triaged** (`confirm` / `dismiss` / `archive`) before any `fix`.
 - [ ] `fix` agent polled to `fixStatus: done` (not the non-existent `fixed`)
       **before** `publish`/`pr`; unrelated issues in **separate** `fix` calls.
-- [ ] Changeset confirmed **non-empty** with `changeset diff` before shipping;
+- [ ] Branch confirmed **non-empty** with `changeset diff` before shipping;
       git provider connected.
-- [ ] Board **resynced** (`syncs run`) after the code changed, before trusting
+- [ ] Board **re-synced** (`syncs run`) after the code changed, before trusting
       old findings.
