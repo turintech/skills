@@ -207,8 +207,8 @@ artemis maintain issues archive <issue-id> [<issue-id>...]   # → closed, valid
 
 All three take **multiple IDs**. `confirm` marks genuine findings so you can
 batch-fix them; `dismiss` marks false positives (the Web UI's **False
-positive**) and archives them, recording *why* the board shrank; `archive` retires an issue without judging it true/false (won't-fix,
-duplicate). `unarchive` puts it back; CLIs before 1.1 call `archive` `close`.
+positive**) and archives them, recording *why* the board shrank; `archive`
+retires an issue without judging it true/false (won't-fix, duplicate). `unarchive` puts it back; CLIs before 1.1 call `archive` `close`.
 
 ## 6. Fix — dispatch the fix agent
 
@@ -217,12 +217,11 @@ artemis maintain issues fix <issue-id> [<issue-id>...] [--model claude-sonnet-5]
 ```
 
 - Takes **multiple issues**; **all their fixes land in one Branch** (one
-  changeset in the CLI) and the
-  agent's work streams into **one fix chat**. Group related issues; keep
-  unrelated ones in separate `fix` calls so each gets its own Branch and PR.
+  changeset in the CLI) and the agent's work streams into **one fix chat**.
+  Group related issues; keep unrelated ones in separate `fix` calls so each
+  gets its own Branch and PR.
 - The command returns a `Changeset ID` (the Branch) and a `Fix Chat ID` and
-  then **returns
-  immediately** — the agent works in the background. Follow it:
+  then **returns immediately** — the agent works in the background. Follow it:
 
 ```bash
 artemis chat messages <fix-chat-id>          # watch the fix agent's tool calls
@@ -247,8 +246,8 @@ nothing. Check before publishing with
 `artemis changeset diff <changeset-id> --project <p>`: it lists the files the fix
 changed. Don't judge by `numberOfCommitsAhead` or "Empty branch with no
 modifications" in `publish`/`pr` output; those read empty for every fix that
-hasn't been published yet. If the diff is empty, don't ship it: re-run `fix` (**Retry fix** in the Web UI),
-and if it's *still* empty, the bug was likely already fixed upstream (check with
+hasn't been published yet. If the diff is empty, don't ship it: re-run `fix`
+(**Retry fix** in the Web UI), and if it's *still* empty, the bug was likely already fixed upstream (check with
 a `syncs run`, §8).
 
 ### Prefer your own coding agent? Export the prompt instead
@@ -269,8 +268,7 @@ artemis maintain issues prompt <issue-id> --project <p> | my-coding-agent
 ## 7. Ship — branch and/or PR
 
 Both commands require the issue to **already have a fix Branch** (its
-`Changeset ID`; run `fix`
-first) and both are idempotent — an already-published Branch keeps its git
+`Changeset ID`; run `fix` first) and both are idempotent — an already-published Branch keeps its git
 branch; an issue that already has a PR reports the existing one instead of
 opening a duplicate.
 
