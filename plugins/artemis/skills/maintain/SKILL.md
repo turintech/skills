@@ -26,6 +26,9 @@ rules ──scan──▶ issues ──triage──▶ confirmed ──fix──
                                                               syncs keep the board honest as code changes
 ```
 
+A fix's code changes are a **Branch** in the Web UI; the CLI calls it a
+**changeset** (`artemis changeset diff <id>`, `Changeset ID` in output).
+
 The lifecycle of one issue:
 
 ```
@@ -127,9 +130,9 @@ artemis maintain scans run --project <p> \
 
 - `--rule` is **required and repeatable** (max 20 rules per scan). Only
   non-draft rules produce findings.
-- `--count` is the *target* number of issues to surface, up to 100 (the Web
-  UI's "Approximate number of issues") — a ceiling the agent aims for, not a
-  guarantee.
+- `--count` is the *target* number of issues to surface, 5 by default and up
+  to 100 (the Web UI's "Approximate number of issues") — a ceiling the agent
+  aims for, not a guarantee.
 - `--commit <sha>` pins the scan to a specific commit instead of project head.
   There is no `--path`: a scan covers the whole project. From CLI 1.1.13,
   `--focus "<text>"` points it at part of the code, like the Web UI's "What to
@@ -213,16 +216,17 @@ duplicate). `unarchive` puts it back; CLIs before 1.1 call `archive` `close`.
 artemis maintain issues fix <issue-id> [<issue-id>...] [--model claude-sonnet-5]
 ```
 
-- Takes **multiple issues**; **all their fixes land in one Branch** and the
+- Takes **multiple issues**; **all their fixes land in one Branch** (one
+  changeset in the CLI) and the
   agent's work streams into **one fix chat**. Group related issues; keep
   unrelated ones in separate `fix` calls so each gets its own Branch and PR.
-- The command returns the Branch's ID (`changesetId` in JSON) and a fix chat
-  ID and then **returns
+- The command returns a `Changeset ID` (the Branch) and a `Fix Chat ID` and
+  then **returns
   immediately** — the agent works in the background. Follow it:
 
 ```bash
 artemis chat messages <fix-chat-id>          # watch the fix agent's tool calls
-artemis maintain issues get <issue-id>       # Branch ID, fix status and PR URL fill in
+artemis maintain issues get <issue-id>       # ChangesetID / FixStatus / PRUrl fill in
 ```
 
 **The terminal `fixStatus` is `done`, `failed` or `cancelled` — not `fixed`.** When you poll
@@ -237,7 +241,7 @@ until fs=$(artemis --output-format json maintain issues get <issue-id> \
 ```
 
 **`done` ≠ produced a real edit — verify the Branch is non-empty before you
-ship.** `fix` returning a Branch ID means the agent was *dispatched*, not
+ship.** `fix` returning a `Changeset ID` means the agent was *dispatched*, not
 that a fix exists; a fix can even reach `fixStatus: done` having written
 nothing. Check before publishing with
 `artemis changeset diff <changeset-id> --project <p>`: it lists the files the fix
@@ -264,7 +268,8 @@ artemis maintain issues prompt <issue-id> --project <p> | my-coding-agent
 
 ## 7. Ship — branch and/or PR
 
-Both commands require the issue to **already have a fix Branch** (run `fix`
+Both commands require the issue to **already have a fix Branch** (its
+`Changeset ID`; run `fix`
 first) and both are idempotent — an already-published Branch keeps its git
 branch; an issue that already has a PR reports the existing one instead of
 opening a duplicate.
@@ -311,7 +316,7 @@ before acting on anything old.
 - **`done` scan ≠ found something.** A scan that ran cleanly can still record 0
   issues — that's "ran", not necessarily "clean". Rule out draft rules or a
   `--focus` aimed elsewhere first (§3).
-- **`fix` is async, and its terminal state is `done`.** A returned Branch ID
+- **`fix` is async, and its terminal state is `done`.** A returned `Changeset ID`
   means *dispatched*, not *done*. Poll `issues get` until `.fixStatus == "done"`
   (or `"failed"`) before `publish`/`pr` — there is no `fixed`/`complete` value,
   so watching for the wrong string hangs forever on an already-finished fix.
