@@ -48,9 +48,9 @@ Treat the smaller tiers as screening evidence. Nested inputs do not guarantee th
 
 ## Parallel runners: measurement conditions
 
-Speed and memory measurements from different machines are not comparable. For Fast-track Discovery, use identical machines (same hardware, OS, toolchain and load), or compare each version against a baseline measured on that same machine. Accuracy-only benchmarks can use any machine with the required environment. Keep workloads, metric definitions and correctness gates fixed across instances.
+Speed and memory measurements from different machines are not comparable. A runner pool sharing one name assigns tasks to any member and a Discovery measures its baseline once, so pool members must be interchangeable (same hardware, OS, toolchain and load) for timing or memory benchmarks. Machines that differ need separate runner names and separate runs, each with its own baseline. Accuracy-only benchmarks can use any machine with the required environment. Keep workloads, metric definitions and correctness gates fixed across instances.
 
-Record machine identity and measurement conditions alongside each execution, outside the numeric results file. A shared runner name identifies a group, not a machine; a fresh Discovery baseline need not execute on the candidate's machine. Verify attribution and baseline pairing before comparing results. If that cannot be established and machines are not identical, measure candidates and baseline on one machine. Apply this rule to tier screening and final full-benchmark validation alike.
+Record machine identity and measurement conditions alongside each execution, outside the numeric results file. A shared runner name identifies a group, not a machine; verify the pool members really are interchangeable before trusting timing results from it, and fall back to one machine or separately named runners when they are not. Apply this rule to tier screening and final full-benchmark validation alike.
 
 `discovery-start` owns approval before starting or reusing additional runners and verification of active instances; `runner-setup` owns registration. More capacity does not relax the harness contract.
 
