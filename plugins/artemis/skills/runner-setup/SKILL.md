@@ -52,6 +52,8 @@ For an on-prem deployment, use that deployment's page rather than inventing serv
 
 Before starting anything, check `artemis runner list` and local processes so an existing runner is not duplicated.
 
+Before starting or reusing additional runners, ask the user: name the machines, explain that their code will execute there and use their hardware, and wait for approval. The startup instructions below apply after that approval; ordinary single-runner setup is unchanged.
+
 **Do not offer a menu of ways to start it.** Say in one line what you are about to do, start it as a background process, and report the result. A first-time user has no basis to choose between a background process, a visible terminal and a tmux session, and asking turns setup into an interview. Use `tmux` only when the user has already asked for it.
 
 State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Start it, and only once the check below passes, report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
@@ -94,11 +96,17 @@ Use a visible terminal or a named `tmux` session only when the user asks for one
 
 Ask separately before creating an operating-system service, even if the user already approved starting a process.
 
+### Shared names add capacity
+
+Several runner processes on different machines can serve the same Discovery when registered with the same exact name (Mike confirmed 22 Sep and 5 Oct 2026). Public docs still say names must be unique; interpret this as **unique per runner group**, intentionally shared only to add capacity. Verify `artemis runner list` and the run's actual executions through `discovery-inspect` before relying on multiple instances; an online name alone does not prove they are taking work.
+
+For speed or memory comparisons, require identical hardware, OS, toolchain and load, or compare each version with a baseline measured on its own machine. Accuracy-only benchmarks can use any machine with the required environment. Follow [Fast-track Discovery](../discovery-start/SKILL.md#fast-track-discovery-time-to-trustworthy-results) for measurement checks.
+
 ## Whose runner is that?
 
-`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so only reuse a runner you can show belongs to **this** machine: read the running process (`--runner-name` on the local `artemis-runner start` command) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online.
+`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so default to reusing a runner you can show belongs to **this** machine: read the running process (`--runner-name` on the local `artemis-runner start` command) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online. For approved parallel capacity, verify the additional hosts and intended group with the user; a local process match does not establish ownership of every instance sharing its name.
 
-`runner list --output-format json` carries a `userId` per runner, but `artemis status` does not report who you are and there is no identity command, so that field cannot be compared against the current user. The local-process check is what works.
+`runner list --output-format json` carries a `userId` per runner, but `artemis status` does not report who you are and there is no identity command, so that field cannot be compared against the current user. Use the local-process check for a single local runner, and user-confirmed hosts for additional instances.
 
 ## Verify
 

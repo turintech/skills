@@ -46,7 +46,7 @@ Otherwise confirm which runner to use before `discovery create`; do not select o
 
 Check whether the project already has a queued or running discovery:
 
-- Queuing is **per runner**: runs on one runner serialize; runs on different runners can execute concurrently.
+- Queuing is **per runner**: work on one runner process serializes; different runners execute concurrently. A runner group can have multiple processes; see Fast-track Discovery below.
 - An offline runner blocks its queue indefinitely, including later work assigned to it.
 
 ```bash
@@ -56,7 +56,7 @@ artemis --output-format json discovery list --project "<project-uuid>" --all \
       | "\(.id) \(.status) vc=\(.versionCount)"'
 ```
 
-Choose whether to accept serialization, use another runner, or provision one. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
+Choose whether to accept serialization, use another runner, or provision one. Ask the user before starting or reusing additional runners: this executes their code on more machines and uses their hardware. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
 
 Execution runs require a validation script. Creating without `--script` or a project default fails with `NoDefaultValidationScriptError`.
 
@@ -114,15 +114,23 @@ Repetitions multiply **runner** time, not agent time: a 10-version run at three 
 
 Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Use verified timings when available; otherwise ask. Estimate benchmark time as duration × (versions + one baseline) × repetitions; use the cap for `until_stable`. Add build/test time per version and queue delays separately, and give the estimate before creating the run.
 
-### When the benchmark is slow: a staged Discovery
+### Fast-track Discovery: time to trustworthy results
 
-Offer staging when the planned run would spend hours benchmarking and a representative smaller workload could materially reduce that cost. Keep a single run for an already cheap benchmark or when reducing the workload would stop measuring the target behavior. Slow builds alone call for `workspace-setup`, not benchmark tiers. Honor a plan already chosen by the user or calling skill.
+**Fast-track Discovery** combines two levers for long benchmarks: smaller benchmark stages and parallel runner capacity. Minimize elapsed time until the user has trustworthy results, including final validation. Keep a single Discovery for fast benchmarks. If a smaller workload would stop measuring the target behavior, keep the full benchmark and consider parallel capacity alone. Slow builds call for `workspace-setup`, not benchmark tiers. Honor a plan already chosen by the user or calling skill.
 
-Before launching, offer the single-run and staged estimates, including per-stage version budgets, repetitions, baseline measurements and finalist validation. Let the user choose if they have not already. Prepare and verify the [nested benchmark tiers](../repo-command-setup/HARNESS.md#long-benchmarks-small-medium-and-full-tiers) through `repo-command-setup`, with one saved validation script per tier. The agent driving the workflow selects each script explicitly with `--script`; the agent writing candidate versions must not choose the tier or change its workload or correctness gate. Keep the selected script fixed within each run.
+Before launching, compare the single-run estimate with useful combinations of stages and parallel capacity. Include version budgets, repetitions, fresh baselines, build/test time, queue delays and finalist validation. Parallelism can reduce elapsed time, not total runner work; do not promise a linear speedup. Let the user choose if they have not already.
+
+**Parallel runners.** Independent Discoveries or stages with their inputs ready can run on different runners, for example several small-tier Discoveries exploring different directions. Promotion still waits for measured candidates. Several runner processes on different machines can also serve the **same Discovery** by registering with the **same exact runner name**, spreading the project's work across them. This is supported (Mike confirmed 22 Sep and 5 Oct 2026). Public docs still require unique names: use a unique name per runner group, shared intentionally only to add capacity, as reconciled in `runner-setup`.
+
+Ask before starting or reusing additional runners, naming the machines and explaining that they execute the user's code and consume their hardware. After approval, use `runner-setup`, inspect `artemis runner list`, and verify the run's actual executions through `discovery-inspect` (version records and logs). Confirm which instances take work before relying on added capacity; an online group name alone is not proof.
+
+Speed and memory measurements from different machines are not comparable. Parallel timing or memory benchmarks require identical machines (same hardware, OS, toolchain and load), or each version compared against a baseline measured on the same machine. A shared runner name does not guarantee either. Verify machine attribution and baseline pairing in the executions; if neither condition can be established, use one machine for those comparisons. Accuracy-only benchmarks can use any machine with the required environment. See [harness measurement conditions](../repo-command-setup/HARNESS.md#parallel-runners-measurement-conditions).
+
+**Benchmark stages.** Prepare and verify the [nested benchmark tiers](../repo-command-setup/HARNESS.md#long-benchmarks-small-medium-and-full-tiers) through `repo-command-setup`, with one saved validation script per tier. The agent driving the workflow selects each script explicitly with `--script`; the agent writing candidate versions must not choose the tier or change its workload or correctness gate. Keep the selected script fixed within each run.
 
 1. **Small.** Search broadly with the small script and the agreed version budget. Use `discovery-inspect` to shortlist passing candidates by measured metrics and trade-offs, retaining alternatives when results are close or noisy.
 2. **Medium.** Start a new Discovery from the best passing candidate's `changesetId` using `--source-changeset`, the medium `--script`, and a smaller version budget. Get `changesetId` and `versionSha` from `artemis discovery versions get <version-id>`; a Discovery version ID is not a changeset ID. In `--task`, carry forward the goal and constraints, the prior run ID, other top candidates' IDs/SHAs, changes and tier-labelled results, and failed or inconclusive directions with their evidence. Only the seed's code is copied; this prompt supplies the search history.
-3. **Full.** Validate the best few candidates with the full script, or run a small final Discovery if further search is worthwhile. Measure the original starting code with the full script too, on the same runner and settings, and choose and report gains from those full-benchmark results.
+3. **Full.** Validate the best few candidates with the full script, or run a small final Discovery if further search is worthwhile. Measure the original starting code with the full script too, under the machine-comparability rules above and the same settings, and choose and report gains from those full-benchmark results.
 
 Carrying alternatives in the prompt does not measure them. Remeasure the shortlisted alternatives on the next tier before discarding them on a smaller tier's ranking:
 
@@ -134,7 +142,7 @@ artemis changeset validate "<candidate-changeset-id>" \
 
 This validates one version without generating candidates. For repeats, invoke validation again on the same SHA and script; `--eval-mode` and `--eval-runs` belong on `discovery create`. Follow `repo-command-setup` §5b to read metrics and handle a wait timeout without submitting duplicate work.
 
-Every new Discovery measures its seed as a fresh baseline; verify `baselineVersionSha` matches the selected code. Compare candidates only on the same tier, runner and settings. Identical metric names do not make small and full measurements interchangeable. If larger-tier results overturn the ranking, revisit the shortlist rather than treating the small-tier winner as settled.
+Every new Discovery measures its seed as a fresh baseline; verify `baselineVersionSha` matches the selected code. Compare candidates only on the same tier and settings, with comparable machines or baselines paired on each machine as above. Identical metric names do not make small and full measurements interchangeable. If larger-tier results overturn the ranking, revisit the shortlist rather than treating the small-tier winner as settled.
 
 Capture `run_id` from the JSON; every later command needs it.
 
@@ -215,6 +223,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
 - [ ] `--llm-metrics=false` unless LLM-judged metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
+- [ ] If Fast-track Discovery uses extra runners: user approval recorded, active instances verified through executions, and machine/baseline comparability established for speed or memory metrics
 - [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (`baselineVersionSha` + schema non-null) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`

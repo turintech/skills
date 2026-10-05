@@ -1,6 +1,6 @@
 # Author a Discovery-ready benchmark harness
 
-Use this companion when the repository lacks a suitable correctness-gated benchmark that writes Artemis metrics, or needs tiers for a staged Discovery. After the harness exists and has been verified locally, return to [SKILL.md](SKILL.md) to wire and verify the three commands.
+Use this companion when the repository lacks a suitable correctness-gated benchmark that writes Artemis metrics, or needs benchmark tiers or measurement conditions for Fast-track Discovery. After the harness exists and has been verified locally, return to [SKILL.md](SKILL.md) to wire and verify the three commands.
 
 ## What Artemis needs
 
@@ -38,13 +38,21 @@ Confirm the results file contains the ranking metric as a number. Then return to
 
 ## Long benchmarks: small, medium and full tiers
 
-Prepare tiers when a staged Discovery has been chosen under `discovery-start`. Reuse existing workload-selection options where possible; a custom harness could accept `--tier small`, `--tier medium` and `--tier full`. These are harness options, not Artemis CLI flags.
+Fast-track Discovery minimizes time to trustworthy results using benchmark tiers and parallel runners; `discovery-start` owns the choice and launch. Keep fast benchmarks on a single Discovery. Prepare tiers when staging has been chosen. Reuse existing workload-selection options where possible; a custom harness could accept `--tier small`, `--tier medium` and `--tier full`. These are harness options, not Artemis CLI flags.
 
 - Use fixed, representative inputs nested small ⊆ medium ⊆ full. Preserve the behavior being optimized; fewer tasks or samples must still exercise the target path.
 - Keep metric names, units, definitions and directions identical across tiers. Keep the correctness gate at every tier with the same acceptance criteria; reducing benchmark coverage must not disable tests or relax quality tolerances.
 - Save one project validation script per tier with its workload fixed in the benchmark command and the build/test gate included. Record each script ID, workload and measured duration, and verify each through [SKILL.md](SKILL.md). Keep harness, workload selection and gates outside the candidate agent's edit scope.
 
 Treat the smaller tiers as screening evidence. Nested inputs do not guarantee the same ranking; `discovery-start` owns promotion and the final full-benchmark comparison.
+
+## Parallel runners: measurement conditions
+
+Speed and memory measurements from different machines are not comparable. For Fast-track Discovery, use identical machines (same hardware, OS, toolchain and load), or compare each version against a baseline measured on that same machine. Accuracy-only benchmarks can use any machine with the required environment. Keep workloads, metric definitions and correctness gates fixed across instances.
+
+Record machine identity and measurement conditions alongside each execution, outside the numeric results file. A shared runner name identifies a group, not a machine; a fresh Discovery baseline need not execute on the candidate's machine. Verify attribution and baseline pairing before comparing results. If that cannot be established and machines are not identical, measure candidates and baseline on one machine. Apply this rule to tier screening and final full-benchmark validation alike.
+
+`discovery-start` owns approval before starting or reusing additional runners and verification of active instances; `runner-setup` owns registration. More capacity does not relax the harness contract.
 
 ## Minimal JSON example
 
