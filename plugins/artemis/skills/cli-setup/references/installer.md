@@ -1,6 +1,6 @@
 # The official CLI installer
 
-1. Open `<deployment-base-url>/settings/cli` for the deployment you are setting up. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
+1. Open the **Connect Your Agent** page, `<deployment-base-url>/settings/connect-agent`, for the deployment you are setting up. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
 2. Confirm whether this is hosted Artemis or an on-prem deployment with a custom base URL. It selects which invocation below to use.
 
 The installer detects the platform, installs the CLI, and configures service endpoints.

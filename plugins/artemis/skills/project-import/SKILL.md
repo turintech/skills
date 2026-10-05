@@ -65,20 +65,16 @@ artemis key list --help
 artemis --output-format json key list
 ```
 
-Reuse a credential that can read the repository. Check the provider values returned by the installed CLI rather than assuming they match the values accepted by `key add`.
+Reuse a credential that can read the repository. Check the provider values the installed CLI returns rather than assuming them.
 
 Use a key for the repository's git service even when the repository is public. Without one, Artemis reads it from GitHub unauthenticated, which GitHub rate-limits, and later checks such as the upstream check on `changeset create` start failing.
 
 If no suitable credential exists, present **both** setup routes and let the user choose. For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
 
 1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account on the Git page of their deployment (`<deployment-base-url>/settings/git`). Then re-run `artemis key list`: a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
-2. **PAT via CLI:** have the user run this in their own terminal so the secret never enters chat or their shell history (for GitHub; other providers need their own flags):
+2. **Access key in the Web UI:** ask the user to add it on `<deployment-base-url>/settings/git/create-key` (**Add access key**: a GitHub, GitLab or Azure DevOps personal access token, a Bitbucket API token or app password, or an SSH key). They paste the secret into that page, never into chat or a command line, where `ps` and shell history can see it. Then re-run `artemis key list` and take the new key's UUID.
 
-   ```bash
-   stty -echo; printf 'Token: '; read -r T; stty echo; echo; artemis key add --name "<key-name>" --provider github --token "$T"; unset T
-   ```
-
-Prefer an existing GitHub OAuth credential over adding a new PAT when both would work. For GitLab, Bitbucket, or Azure DevOps, use the provider-specific `artemis key add` flow unless the Web UI offers an equivalent connect path. Record the selected key UUID.
+Prefer an existing GitHub OAuth credential over adding a new access key when both would work. Record the selected key UUID.
 
 ## 4. Import once
 
@@ -110,7 +106,7 @@ artemis --output-format json project list --all | jq -r '.docs[]? | select(.id==
 artemis --output-format json project list --all | python3 -c 'import json,sys; print(next((p.get("importedStatus") for p in json.load(sys.stdin).get("docs") or [] if p.get("id")=="<project-uuid>"), ""))'
 ```
 
-Wait for `success` before running anything against the project. Poll every 10 s. On `failed`, check the key can read the repo and the branch exists, then import once more; don't loop.
+Wait for `success` before running anything against the project. Check every 10 s for up to 8 minutes, each check its own short command rather than one long-running loop. If it is still `importing` after that, give the user the project link, say the import is still running, and stop. On `failed`, check the key can read the repo and the branch exists, then import once more; don't loop.
 
 ## 5. Verify and hand off
 
@@ -132,7 +128,7 @@ When a calling skill invoked this one, return the project UUID to it. Otherwise 
 - [ ] Remote URL, explicit branch, and seed SHA recorded.
 - [ ] Project name is distinct enough to avoid confusion with other projects against the same repository.
 - [ ] Existing readable Git credential reused when possible (GitHub OAuth preferred over a new PAT).
-- [ ] If no credential existed, both OAuth (Web UI) and `key add` (PAT) routes were offered; any new secret entered by the user outside chat.
+- [ ] If no credential existed, both Web UI routes (GitHub connect, Add access key) were offered; the user entered any new secret in the browser, never in chat or a command line.
 - [ ] Import performed once with confirmed inputs.
 - [ ] Project UUID captured and imported `gitHash` verified against the seed SHA.
 - [ ] Clickable project link returned to the user.

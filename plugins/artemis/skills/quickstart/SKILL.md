@@ -117,7 +117,7 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 |---|---|---|---|
 | CLI installed and signed in | `cli-setup` | Creates an API key and enters it in their own terminal | |
 | Git access | `project-import` | Connects a Git provider if the account has none | |
-| Runner on this machine | `runner-setup` | Nothing: announce it, start it, give the stop command | Settings, then **Runners**: their machine, online |
+| Runner on this machine | `runner-setup` | Runs the download and configure commands from **Add new Artemis runner** (the configure command carries a single-use token); the agent then starts it and gives the stop command | `<deployment-base-url>/projects/<project-id>/settings/execution` (**Runner and Scripts**): their machine, online |
 | Project imported or reused | `project-import` | Nothing | `<deployment-base-url>/projects/<project-id>`: the project's overview page |
 
 Whichever runner `runner-setup` reuses or starts is the one every later step uses; pass it on rather than asking.
