@@ -106,7 +106,7 @@ Then move the pointer to the thing that appeared and click into it. Do not narra
 5. Say in the chat, in one or two sentences, what is on screen and why it matters.
 6. Stay on the page until the next step is ready. Do not close the tab.
 
-Never browse Platform Settings (`/settings`): on admin accounts its **Users** page lists every user's name and email, and its **Runners** list has an **Owner** column with names. Show a project's runner on its Runner and Scripts page instead. The Projects list is fine, and is where you stand before an import so the user watches the project appear.
+Open only the exact Platform Settings page you need; never **Users** or the **Runners** list, which show people's names and emails. Show a project's runner on its Runner and Scripts page instead, and don't click its **Add new Artemis runner** link: it opens the Runners list. To add a runner, go to `<deployment-base-url>/settings/runners/new`. The Projects list is fine, and is where you stand before an import so the user watches the project appear.
 
 ### Make it watchable, first-run demo only
 
