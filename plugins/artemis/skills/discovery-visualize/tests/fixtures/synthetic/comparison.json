@@ -1,0 +1,237 @@
+{
+  "baselineSha": "abc123def456",
+  "metrics": [
+    {
+      "id": "m-latency",
+      "name": "latency_ms",
+      "unit": "ms",
+      "higherIsBetter": false
+    },
+    {
+      "id": "m-quality",
+      "name": "quality_score",
+      "higherIsBetter": true
+    },
+    {
+      "id": "m-compile",
+      "name": "compile_runtime",
+      "unit": "s",
+      "higherIsBetter": false
+    }
+  ],
+  "versions": [
+    {
+      "sha": "abc123def456",
+      "isBaseline": true,
+      "runnerNames": [
+        "runner-a"
+      ],
+      "metrics": [
+        {
+          "metricId": "m-latency",
+          "name": "latency_ms",
+          "value": 10.0,
+          "readings": 1,
+          "improvementPct": null,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": null,
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        },
+        {
+          "metricId": "m-quality",
+          "name": "quality_score",
+          "value": 0.5,
+          "readings": 1,
+          "improvementPct": null,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": null,
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        },
+        {
+          "metricId": "m-compile",
+          "name": "compile_runtime",
+          "value": 2.0,
+          "readings": 1,
+          "improvementPct": null,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": null,
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        }
+      ]
+    },
+    {
+      "sha": "sha-1",
+      "isBaseline": false,
+      "runnerNames": [
+        "runner-a"
+      ],
+      "metrics": [
+        {
+          "metricId": "m-latency",
+          "name": "latency_ms",
+          "value": 8.0,
+          "readings": 1,
+          "improvementPct": 20.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        },
+        {
+          "metricId": "m-quality",
+          "name": "quality_score",
+          "value": 0.6,
+          "readings": 1,
+          "improvementPct": 20.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        },
+        {
+          "metricId": "m-compile",
+          "name": "compile_runtime",
+          "value": 2.1,
+          "readings": 1,
+          "improvementPct": -5.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        }
+      ],
+      "versionNumber": 1,
+      "overallVerdict": {
+        "verdict": "pending",
+        "improvementLowPct": null,
+        "improvementHighPct": null,
+        "provisional": true
+      }
+    },
+    {
+      "sha": "sha-2",
+      "isBaseline": false,
+      "runnerNames": [
+        "runner-a"
+      ],
+      "metrics": [
+        {
+          "metricId": "m-latency",
+          "name": "latency_ms",
+          "value": 6.0,
+          "readings": 1,
+          "improvementPct": 40.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        },
+        {
+          "metricId": "m-quality",
+          "name": "quality_score",
+          "value": 0.4,
+          "readings": 1,
+          "improvementPct": -20.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        },
+        {
+          "metricId": "m-compile",
+          "name": "compile_runtime",
+          "value": 2.2,
+          "readings": 1,
+          "improvementPct": -10.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        }
+      ],
+      "versionNumber": 2,
+      "overallVerdict": {
+        "verdict": "pending",
+        "improvementLowPct": null,
+        "improvementHighPct": null,
+        "provisional": true
+      }
+    },
+    {
+      "sha": "sha-4",
+      "isBaseline": false,
+      "runnerNames": [
+        "runner-a"
+      ],
+      "metrics": [
+        {
+          "metricId": "m-latency",
+          "name": "latency_ms",
+          "value": 7.0,
+          "readings": 1,
+          "improvementPct": 30.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        },
+        {
+          "metricId": "m-quality",
+          "name": "quality_score",
+          "value": 0.7,
+          "readings": 1,
+          "improvementPct": 40.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        },
+        {
+          "metricId": "m-compile",
+          "name": "compile_runtime",
+          "value": 2.0,
+          "readings": 1,
+          "improvementPct": 0.0,
+          "improvementLowPct": null,
+          "improvementHighPct": null,
+          "verdict": "pending",
+          "recommendedReadings": null,
+          "recommendedReadingsReason": "no_data",
+          "spreadPct": null
+        }
+      ],
+      "versionNumber": 4,
+      "overallVerdict": {
+        "verdict": "pending",
+        "improvementLowPct": null,
+        "improvementHighPct": null,
+        "provisional": true
+      }
+    }
+  ]
+}

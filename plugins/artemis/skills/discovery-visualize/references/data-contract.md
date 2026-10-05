@@ -1,6 +1,6 @@
 # Discovery snapshot contract
 
-`schemaVersion` is `1`. The collector is the only writer. Renderers must not recompute winners, percentages, statistics, or fitness ranks.
+`schemaVersion` is `2`. The collector is the only writer, and it computes no statistics: changes, intervals and verdicts are falcon's, from `artemis discovery compare` (CLI 1.1.14 or newer). Renderers must not recompute winners, percentages, statistics, or fitness ranks.
 
 ## Top-level fields
 
@@ -9,9 +9,10 @@
 | `collectedAt` | UTC timestamp of the collect |
 | `provenance.commands` | CLI commands used |
 | `run` | Status, task, counts, baseline SHA/observation, `projectName` (from `project list`; `null` if unavailable), `runner` (the runner's name, else its id), `projectUrl` (stable), `webUrl` (the run on newer deployments; if it 404s, link the project and name the Discover page) |
-| `metrics[]` | `key`, `source`, `unit` (from the platform, else from the name, e.g. `fps`), `role: "reference"` on a control metric and `reference` on the target it controls, `higherIsBetter`, `higherIsBetterInferred` (`true` only when neither the run's schema nor the platform's measurements gave a direction, so it was guessed from the name), `kind` (`target` / `quality` / `harness`) |
-| `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them, `runs`: each individual measurement in order, `q1`/`median`/`q3` from those runs, and `vsReference`) |
-| `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), per-metric stats + `runs`, `pctBetter`, `timesBetter`, `vsBaseline` (target metrics), `eligible` |
+| `metrics[]` | `key`, `source`, `unit` (from the platform, else from the name, e.g. `fps`), `role: "reference"` on a control metric and `reference` on the target it controls, `higherIsBetter` (from the platform; `null` when it stores no direction, and then the metric gets no ranking or winner), `kind` (`target` / `quality` / `harness`) |
+| `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them, `runs`: each individual measurement in order, `q1`/`median`/`q3` from those runs for box plots, and `vsReference`) |
+| `baseline.readings` | Readings per metric that falcon compared against |
+| `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), `overallVerdict` (falcon's, across the version's metrics), per-metric stats + `runs`, `pctBetter`, `timesBetter`, `vsBaseline`, `eligible` |
 | `experiments[]` | Title, status, confidence, parents, linked version |
 | `rankings[metric]` | Best-first rows with `eligible` and experiment status |
 | `runningBest[metric]` | Generation order; `mean` is `null` on gaps; `bestVersion`/`bestMean` carry forward |
@@ -21,32 +22,29 @@
 | `pareto` | `null` unless `--pareto` was passed |
 | `references` | Target and reference metric pairs, such as a Triton kernel and cuBLAS measured in the same benchmark |
 
-`pctBetter` is oriented so positive means better given `higherIsBetter`:
-
-- minimize: `(baseline - value) / |baseline| * 100`
-- maximize: `(value - baseline) / |baseline| * 100`
+`pctBetter` is falcon's `improvementPct`, oriented so positive means better whichever way the metric points. `null` when falcon has no comparison for that version and metric.
 
 `vsReference.ratio` compares a target with its reference in the same measurement group, oriented like `timesBetter`: above 1 means better than the reference. Because both come from the same benchmark process, it cancels machine drift between runs.
 
 With `--project`, the output is `{kind: "project", projectId, runs: [snapshot, ...], skipped: [...]}`, one snapshot per run in creation order.
 
-## Stats
+## Verdicts
 
-Each version's target metric carries `vsBaseline`, Welch's two-sided t-test of its `runs` against the baseline's `runs`:
+Each version's metric carries `vsBaseline`, falcon's comparison against the run's baseline as `discovery compare` returns it:
 
 | Field | Meaning |
 |---|---|
-| `test` | `"welch"` |
-| `n`, `nBaseline` | Runs on each side |
-| `t` | Oriented like `pctBetter`: positive means better |
-| `df` | Welch-Satterthwaite degrees of freedom, fractional, never rounded |
-| `p` | Two-sided p-value |
-| `ciLowPct`, `ciHighPct` | 95% interval of the difference in means as % of the baseline mean, oriented like `pctBetter` |
-| `significant` | `ciLowPct > 0`: the interval excludes 0 on the better side |
+| `source` | `"falcon"` |
+| `verdict` | `better`, `worse`, `noise` (the interval crosses 0) or `pending` (too few runs to tell) |
+| `improvementPct` | Same as `pctBetter` |
+| `ciLowPct`, `ciHighPct` | falcon's 95% interval, oriented like `pctBetter`; `null` when there are too few runs |
+| `readings` | Readings on this version |
+| `recommendedReadings`, `recommendedReadingsReason` | Total readings per side that would settle the verdict, or why there is no count (`settled`, `too_small`, `no_effect`, `no_data`) |
+| `spreadPct` | falcon's spread of the readings; `null` with readings on both sides means the repeats were identical |
 
-`vsBaseline` is `null` when either side has fewer than 2 runs, or when neither side varies. An interval wholly below 0 is a real loss; one that crosses 0 is "not significant". The Student-t distribution is computed with the stdlib (regularized incomplete beta), so the collector still needs no packages. Adding it kept `schemaVersion` at 1: the field is additive.
+`vsBaseline` is `null` when falcon has no comparison for that metric. Say "within the noise" for `noise`, never "worse".
 
-`timesBetter` is the same comparison as a ratio, so `2.0` reads as "2x faster" either way: `value / baseline` when maximizing, `baseline / value` when minimizing. `null` when either is zero or negative.
+`timesBetter` is `pctBetter` as a ratio, so `2.0` reads as "2x faster" either way. `null` when there is no `pctBetter` or no direction.
 
 `eligible` is `lifecycle=completed` and `executionStatus=success` and `experimentStatus != refuted`.
 
@@ -55,7 +53,7 @@ Each version's target metric carries `vsBaseline`, Welch's two-sided t-test of i
 ## Kinds
 
 - **target** — worker metrics that are not compile/test/benchmark harness timings. These are the default plots.
-- **quality** — AI-assessed metrics (`source=agent`): the run's model scores them from the code. A judgement, not a measurement; never a significance claim.
+- **quality**: AI-assessed metrics (`source=agent`): the run's model scores them from the code. A judgement, not a measurement; never given a verdict in a report.
 - **harness** — `compile_*`, `unit_test_*`, `benchmark_*`. Show on request or in the audit table, not as headline KPIs.
 
 ## Do not add

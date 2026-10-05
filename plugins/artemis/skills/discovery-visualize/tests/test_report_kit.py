@@ -24,7 +24,7 @@ f.finding('It went up.', 'By ten percent.');
 """
 
 DEFAULT_PAGE = """const R = ArtemisReport;
-R.header(document.getElementById('header'), { title: 'v2 is 10% faster', chips: [{ text: 'Statistically significant', strong: true }, { text: '3 runs each' }] });
+R.header(document.getElementById('header'), { title: 'v2 is 10% faster', chips: [{ text: 'Better (falcon)', strong: true }, { text: '3 runs each' }] });
 const page = document.getElementById('page');
 const f1 = R.figure(page, { question: 'Every run' });
 R.headline(f1.top, { left: { k: 'Original', v: '2.71' }, mid: { big: '+10%' }, right: { k: 'Best', v: '3.01' } });
@@ -32,13 +32,13 @@ R.compareRuns(f1.chart, { label: 'Original', runs: [2.70, 2.71, 2.72], mean: 2.7
 f1.bullets(['<b>No overlap:</b> all 3 runs', 'a <script> stays text']);
 const f2 = R.figure(page, { question: 'Which changes were real?' });
 R.forest(f2.chart, [
-  { label: 'v2', pct: 10, lo: 7, hi: 14, p: 0.005, significant: true, hero: true },
-  { label: 'v1', pct: 1, lo: -7, hi: 9, p: 0.7, significant: false, color: '#dc2626' },
-  { label: 'v3', pct: -9, lo: -12, hi: -6, p: 0.01, significant: false },
+  { label: 'v2', pct: 10, lo: 7, hi: 14, verdict: 'better', n: 5, hero: true },
+  { label: 'v1', pct: 1, lo: -7, hi: 9, verdict: 'noise', n: 5, color: '#dc2626' },
+  { label: 'v3', pct: -9, lo: -12, hi: -6, verdict: 'worse', n: 5 },
   { label: 'v4', pct: 2, lo: null, hi: null, note: 'n = 1, no interval' },
 ]);
-f2.bullets(['<b>Significantly faster:</b> v2']);
-R.bullets(page, ['Welch two-sided'], { quiet: true });
+f2.bullets(['<b>Really faster:</b> v2']);
+R.bullets(page, ['Verdicts from Artemis'], { quiet: true });
 R.footer(page, { prov: ['run r'], link: { href: '#' } });
 """
 

@@ -27,7 +27,6 @@
     times: (x, d = 2) => (x == null ? '' : Number(x).toFixed(d) + '×'),
     share: (x, d = 1) => (x == null ? '' : (x * 100).toFixed(d) + '%'),
     short: (text, max = 36) => (!text || text.length <= max ? text || '' : text.slice(0, max - 2).replace(/\s+\S*$/, '') + '…'),
-    p: p => (p == null ? '' : p < 0.001 ? 'p < 0.001' : 'p = ' + p.toFixed(p < 0.01 ? 3 : 2)),
   };
   // Text with <b> kept and everything else escaped, for findings written from snapshot titles.
   function boldOnly(el, text) {
@@ -35,12 +34,12 @@
     return el;
   }
 
-  // Quartiles by linear interpolation between order statistics (the usual "type 7").
+  // Box-plot geometry by linear interpolation between order statistics (the usual "type 7"). No mean: that comes from falcon.
   function stats(values) {
     const x = (values || []).filter(v => v != null && isFinite(v)).slice().sort((a, b) => a - b);
     if (!x.length) return null;
     const q = p => { const i = (x.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return x[lo] + (x[hi] - x[lo]) * (i - lo); };
-    return { n: x.length, min: x[0], q1: q(0.25), med: q(0.5), q3: q(0.75), max: x[x.length - 1], mean: x.reduce((a, b) => a + b, 0) / x.length };
+    return { n: x.length, min: x[0], q1: q(0.25), med: q(0.5), q3: q(0.75), max: x[x.length - 1] };
   }
 
   // Text width in px, so label gutters fit the labels instead of a guess.
@@ -248,15 +247,14 @@
       s(svg, 'text', { x: L - 12, y: y + (g.sub ? -1 : 4), 'text-anchor': 'end', class: 'ar-lab' + (g.strong ? ' strong' : '') }, g.label);
       if (g.sub) s(svg, 'text', { x: L - 12, y: y + 13, 'text-anchor': 'end', class: 'ar-sub' }, g.sub);
       if (!g.values || !g.values.length) { s(svg, 'text', { x: L + 4, y: y + 4, class: 'ar-note' }, g.note || 'not measured'); return; }
-      const mean = g.mean != null ? g.mean : stats(g.values).mean;
-      s(svg, 'line', { x1: x(mean), x2: x(mean), y1: y - 10, y2: y + 10, style: `stroke:${c};stroke-width:2.5` });
+      if (g.mean != null) s(svg, 'line', { x1: x(g.mean), x2: x(g.mean), y1: y - 10, y2: y + 10, style: `stroke:${c};stroke-width:2.5` });
       g.values.forEach((v, j) => tip(s(svg, 'circle', { cx: x(v), cy: y, r: 5, style: `fill:${c};fill-opacity:.8;stroke:var(--ar-paper);stroke-width:1.5` }), [g.label + ', measurement ' + (j + 1), fmt.num(v, o.decimals != null ? o.decimals : 3)]));
     });
     return svg;
   }
 
   /* boxes(el, groups, opts): box plots with every measurement overlaid.
-     groups: [{ label, sub, values: [], color, fill, strong }]
+     groups: [{ label, sub, values: [], mean (from the snapshot, optional), color, fill, strong }]
      opts: { refs, axisLabel, valueDecimals, aria } */
   function boxes(el, groups, o = {}) {
     const rh = 50, T = 30, R = 70, W = 880;
@@ -282,7 +280,7 @@
       s(svg, 'line', { x1: x(b.med), x2: x(b.med), y1: yc - 13, y2: yc + 13, style: `stroke:${c};stroke-width:3` });
       r.values.forEach((v, j) => s(svg, 'circle', { cx: x(v), cy: yc + ((j * 7) % 15) - 7, r: 2.8, style: `fill:${c};fill-opacity:.55` }));
       s(svg, 'text', { x: x(b.max) + 8, y: yc + 4, class: 'ar-val' }, fmt.num(b.med, dp));
-      tip(box, [r.label, 'median ' + fmt.num(b.med, dp) + ', mean ' + fmt.num(b.mean, dp), 'middle half ' + fmt.num(b.q1, dp) + ' to ' + fmt.num(b.q3, dp), 'range ' + fmt.num(b.min, dp) + ' to ' + fmt.num(b.max, dp)]);
+      tip(box, [r.label, 'median ' + fmt.num(b.med, dp) + (r.mean != null ? ', mean ' + fmt.num(r.mean, dp) : ''), 'middle half ' + fmt.num(b.q1, dp) + ' to ' + fmt.num(b.q3, dp), 'range ' + fmt.num(b.min, dp) + ' to ' + fmt.num(b.max, dp)]);
     });
     return svg;
   }
@@ -359,7 +357,7 @@
 
   /* compareRuns(el, base, best, opts): every run of the original and the best version, with the gap between the means.
      base, best: { label, sub, runs: [], mean, color }
-     opts: { pctText (the bracket label, e.g. "+10.9%  (p = 0.005)"), axisLabel, aria, colors: {base, best}, decimals } */
+     opts: { pctText (the bracket label, e.g. "+10.9%  (better)"), axisLabel, aria, colors: {base, best}, decimals } */
   function compareRuns(el, base, best, o = {}) {
     const W = 880, H = 250, R = 30, T = 40, yb = 115;
     const cols = o.colors || {};
@@ -396,8 +394,8 @@
   }
 
   /* forest(el, rows, opts): each version's % change against the original with its 95% interval.
-     rows: [{ label, sub, pct, lo, hi, p, n, significant, hero, color }] in the order to draw
-     opts: { aria, header }. Filled dot: the interval excludes 0 (significant, or hi < 0, a real loss); hollow: not significant. */
+     rows: [{ label, sub, pct, lo, hi, verdict, n, hero, color, note }] in the order to draw; pct, lo, hi and verdict are falcon's
+     opts: { aria, header }. Filled dot: falcon's verdict is better or worse; hollow: noise or pending. */
   function forest(el, rows, o = {}) {
     const W = 880, rowH = 46, T = 30, R = 150, H = T + rows.length * rowH + 44;
     const L = gutter(rows) + 20;
@@ -408,20 +406,20 @@
     drawXAxis(svg, x, T - 10, H - 40, { tickFormat: t => (Math.abs(t) < 1e-9 ? '0%' : fmt.pct(t, 0)) });
     s(svg, 'line', { x1: x(0), x2: x(0), y1: T - 10, y2: H - 40, class: 'ar-zero' });
     s(svg, 'text', { x: x(0) + 6, y: T - 14, class: 'ar-ax' }, 'original');
-    s(svg, 'text', { x: W - 8, y: T - 14, 'text-anchor': 'end', class: 'ar-ax' }, o.header || 'change · p-value');
+    s(svg, 'text', { x: W - 8, y: T - 14, 'text-anchor': 'end', class: 'ar-ax' }, o.header || 'change · verdict');
     rows.forEach((r, i) => {
       const y = T + i * rowH + 16;
-      const c = r.color || (r.hero ? 'var(--ar-accent)' : r.significant ? 'var(--ar-mark)' : 'var(--ar-quiet)');
+      const real = r.verdict === 'better' || r.verdict === 'worse';
+      const c = r.color || (r.hero ? 'var(--ar-accent)' : real ? 'var(--ar-mark)' : 'var(--ar-quiet)');
       s(svg, 'text', { x: L - 16, y: y - 2, 'text-anchor': 'end', class: 'ar-lab' + (r.hero ? ' strong' : '') }, r.label);
       if (r.sub) s(svg, 'text', { x: L - 16, y: y + 13, 'text-anchor': 'end', class: 'ar-sub' }, r.sub);
       if (r.pct == null) { s(svg, 'text', { x: L + 4, y: y + 4, class: 'ar-note' }, r.note || 'not measured'); return; }
       if (r.lo != null && r.hi != null) s(svg, 'line', { x1: x(r.lo), x2: x(r.hi), y1: y, y2: y, style: `stroke:${c};stroke-width:${r.hero ? 4 : 3};stroke-linecap:round` });
-      const real = r.significant || (r.hi != null && r.hi < 0);
       const dot = s(svg, 'circle', { cx: x(r.pct), cy: y, r: r.hero ? 8 : 6.5, style: `fill:${real ? c : 'var(--ar-paper)'};stroke:${c};stroke-width:2.5` });
-      tip(dot, [r.label + ': ' + fmt.pct(r.pct), r.lo != null ? '95% interval ' + fmt.pct(r.lo) + ' to ' + fmt.pct(r.hi) : 'no interval', fmt.p(r.p)].filter(Boolean));
+      tip(dot, [r.label + ': ' + fmt.pct(r.pct), r.lo != null ? '95% interval ' + fmt.pct(r.lo) + ' to ' + fmt.pct(r.hi) : 'no interval', r.verdict ? 'falcon: ' + r.verdict : ''].filter(Boolean));
       const strong = real ? (r.color || (r.hero ? 'var(--ar-accent)' : 'var(--ar-ink)')) : 'var(--ar-faint)';
       s(svg, 'text', { x: W - 8, y: y - 1, 'text-anchor': 'end', class: 'ar-val', style: `fill:${strong};font-size:13px` }, fmt.pct(r.pct));
-      s(svg, 'text', { x: W - 8, y: y + 14, 'text-anchor': 'end', class: 'ar-sub' }, (r.lo == null ? (r.note || 'no interval') : real ? fmt.p(r.p) : 'not significant') + (r.n ? ' · n = ' + r.n : ''));
+      s(svg, 'text', { x: W - 8, y: y + 14, 'text-anchor': 'end', class: 'ar-sub' }, (r.verdict || r.note || 'no verdict') + (r.n ? ' · n = ' + r.n : ''));
     });
     return svg;
   }
