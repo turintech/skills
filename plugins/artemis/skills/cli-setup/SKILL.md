@@ -80,10 +80,12 @@ Then fetch that version for the platform, check it against the release's `checks
 VER=<the newest version in the listing above>
 PLATFORM="linux-amd64"   # from the table above
 BASE="https://files.artemis.turintech.ai/public/artemis-cli/$VER"
-TMP="$(mktemp -d)" && cd "$TMP" \
+TMP="$(mktemp -d)"
+( cd "$TMP" \
   && curl -fLO "$BASE/artemis-cli-$PLATFORM" && curl -fLO "$BASE/checksums.txt" \
   && grep " artemis-cli-$PLATFORM\$" checksums.txt | sha256sum -c - \
-  && mkdir -p ~/.local/bin && install -m 755 "artemis-cli-$PLATFORM" ~/.local/bin/artemis
+  && mkdir -p ~/.local/bin && install -m 755 "artemis-cli-$PLATFORM" ~/.local/bin/artemis )
+rm -rf "$TMP"
 artemis --version
 ```
 
