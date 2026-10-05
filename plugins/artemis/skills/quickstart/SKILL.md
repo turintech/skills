@@ -225,7 +225,9 @@ Show the plan again with everything ticked, then a short readiness report, wheth
 - **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the original and best measured values.
 - **Still yours to do:** anything left for the user, or "nothing".
 
-Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. When they later make a change of their own, `change-validate` checks whether it is really faster. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.
+Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.
+
+When they later make a change of their own, `change-validate` checks whether it is really faster.
 
 Say once, while the run is going, that it continues on the platform if the terminal is closed; and at the end, that the runner is still running, with its stop command.
 
