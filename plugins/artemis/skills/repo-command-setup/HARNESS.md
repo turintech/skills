@@ -1,6 +1,6 @@
 # Author a Discovery-ready benchmark harness
 
-Use this companion when the repository lacks a suitable correctness-gated microbenchmark that writes Artemis metrics. After the harness exists and has been verified locally, return to [SKILL.md](SKILL.md) to wire and verify the three commands.
+Use this companion when the repository lacks a suitable correctness-gated benchmark that writes Artemis metrics, or needs tiers for a staged Discovery. After the harness exists and has been verified locally, return to [SKILL.md](SKILL.md) to wire and verify the three commands.
 
 ## What Artemis needs
 
@@ -35,6 +35,16 @@ test -f artemis_results.json || test -f artemis_results.csv
 ```
 
 Confirm the results file contains the ranking metric as a number. Then return to SKILL.md §2–§6 to record the three commands and complete runner verification when available.
+
+## Long benchmarks: small, medium and full tiers
+
+Prepare tiers when a staged Discovery has been chosen under `discovery-start`. Reuse existing workload-selection options where possible; a custom harness could accept `--tier small`, `--tier medium` and `--tier full`. These are harness options, not Artemis CLI flags.
+
+- Use fixed, representative inputs nested small ⊆ medium ⊆ full. Preserve the behavior being optimized; fewer tasks or samples must still exercise the target path.
+- Keep metric names, units, definitions and directions identical across tiers. Keep the correctness gate at every tier with the same acceptance criteria; reducing benchmark coverage must not disable tests or relax quality tolerances.
+- Save one project validation script per tier with its workload fixed in the benchmark command and the build/test gate included. Record each script ID, workload and measured duration, and verify each through [SKILL.md](SKILL.md). Keep harness, workload selection and gates outside the candidate agent's edit scope.
+
+Treat the smaller tiers as screening evidence. Nested inputs do not guarantee the same ranking; `discovery-start` owns promotion and the final full-benchmark comparison.
 
 ## Minimal JSON example
 

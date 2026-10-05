@@ -24,7 +24,9 @@ A local checkout with the runner's toolchain, or an online runner and a project 
 
 If the repository lacks a suitable benchmark and correctness gate, follow [HARNESS.md](HARNESS.md) to author one, verify it locally, then continue here.
 
-Otherwise use the path supported by the available environment:
+When a staged Discovery has been chosen, follow [benchmark tiers](HARNESS.md#long-benchmarks-small-medium-and-full-tiers) even if a harness already exists, then verify and save each tier's commands through the steps below.
+
+Use the path supported by the available environment:
 
 - **No project or runner yet:** derive and verify locally in a disposable clean checkout, then use `project-import`.
 - **Project and runner available:** derive the commands and verify them through `changeset validate` on the selected runner.

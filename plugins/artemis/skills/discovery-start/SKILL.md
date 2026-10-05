@@ -93,7 +93,7 @@ artemis --output-format json discovery create \
   [--target-files <path> --target-files <path>]
 ```
 
-Pass `--source-changeset` when a calling skill measured a branch: the run's baseline then starts from that branch's code and the numbers the user already saw. Without it the run starts from the project's imported code.
+Pass `--source-changeset` when starting from an existing branch, including a previous Discovery candidate. It copies that branch's head into the new baseline; it does not carry over measurements. Confirm the head is the intended version before creating the run. Without it the run starts from the project's imported code.
 
 `--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `quickstart`, passes them here.
 
@@ -112,7 +112,29 @@ The server default is one measurement per version, recorded on the run as `evalu
 
 Repetitions multiply **runner** time, not agent time: a 10-version run at three repeats performs 33 measurements instead of 11. On a benchmark measured in seconds that is a couple of extra minutes and well worth it. On one measured in tens of minutes it dominates the run.
 
-Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Ask how long one benchmark takes, multiply by versions plus one for the baseline, and say the result out loud before creating the run.
+Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Use verified timings when available; otherwise ask. Estimate benchmark time as duration × (versions + one baseline) × repetitions; use the cap for `until_stable`. Add build/test time per version and queue delays separately, and give the estimate before creating the run.
+
+### When the benchmark is slow: a staged Discovery
+
+Offer staging when the planned run would spend hours benchmarking and a representative smaller workload could materially reduce that cost. Keep a single run for an already cheap benchmark or when reducing the workload would stop measuring the target behavior. Slow builds alone call for `workspace-setup`, not benchmark tiers. Honor a plan already chosen by the user or calling skill.
+
+Before launching, offer the single-run and staged estimates, including per-stage version budgets, repetitions, baseline measurements and finalist validation. Let the user choose if they have not already. Prepare and verify the [nested benchmark tiers](../repo-command-setup/HARNESS.md#long-benchmarks-small-medium-and-full-tiers) through `repo-command-setup`, with one saved validation script per tier. The agent driving the workflow selects each script explicitly with `--script`; the agent writing candidate versions must not choose the tier or change its workload or correctness gate. Keep the selected script fixed within each run.
+
+1. **Small.** Search broadly with the small script and the agreed version budget. Use `discovery-inspect` to shortlist passing candidates by measured metrics and trade-offs, retaining alternatives when results are close or noisy.
+2. **Medium.** Start a new Discovery from the best passing candidate's `changesetId` using `--source-changeset`, the medium `--script`, and a smaller version budget. Get `changesetId` and `versionSha` from `artemis discovery versions get <version-id>`; a Discovery version ID is not a changeset ID. In `--task`, carry forward the goal and constraints, the prior run ID, other top candidates' IDs/SHAs, changes and tier-labelled results, and failed or inconclusive directions with their evidence. Only the seed's code is copied; this prompt supplies the search history.
+3. **Full.** Validate the best few candidates with the full script, or run a small final Discovery if further search is worthwhile. Measure the original starting code with the full script too, on the same runner and settings, and choose and report gains from those full-benchmark results.
+
+Carrying alternatives in the prompt does not measure them. Remeasure the shortlisted alternatives on the next tier before discarding them on a smaller tier's ranking:
+
+```bash
+artemis changeset validate "<candidate-changeset-id>" \
+  --project "<project-uuid>" --version "<candidate-version-sha>" \
+  --script "<next-tier-script-id>" --runner "<runner-name>" --wait
+```
+
+This validates one version without generating candidates. For repeats, invoke validation again on the same SHA and script; `--eval-mode` and `--eval-runs` belong on `discovery create`. Follow `repo-command-setup` §5b to read metrics and handle a wait timeout without submitting duplicate work.
+
+Every new Discovery measures its seed as a fresh baseline; verify `baselineVersionSha` matches the selected code. Compare candidates only on the same tier, runner and settings. Identical metric names do not make small and full measurements interchangeable. If larger-tier results overturn the ranking, revisit the shortlist rather than treating the small-tier winner as settled.
 
 Capture `run_id` from the JSON; every later command needs it.
 
