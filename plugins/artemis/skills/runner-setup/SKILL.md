@@ -98,7 +98,7 @@ Ask separately before creating an operating-system service, even if the user alr
 
 ### Shared names add capacity
 
-Several runner processes on different machines can serve the same Discovery when registered with the same exact name (Mike confirmed 22 Sep and 5 Oct 2026). Public docs still say names must be unique; interpret this as **unique per runner group**, intentionally shared only to add capacity. Verify `artemis runner list` and the run's actual executions through `discovery-inspect` before relying on multiple instances; an online name alone does not prove they are taking work.
+Several runner processes on different machines can serve the same Discovery when registered with the same exact name. Public docs still say names must be unique; interpret this as **unique per runner group**, intentionally shared only to add capacity. Verify `artemis runner list` and the run's actual executions through `discovery-inspect` before relying on multiple instances; an online name alone does not prove they are taking work.
 
 For speed or memory comparisons, require identical hardware, OS, toolchain and load, or compare each version with a baseline measured on its own machine. Accuracy-only benchmarks can use any machine with the required environment. Follow [Fast-track Discovery](../discovery-start/SKILL.md#fast-track-discovery-time-to-trustworthy-results) for measurement checks.
 
