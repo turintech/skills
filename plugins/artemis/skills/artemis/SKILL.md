@@ -145,6 +145,7 @@ Before launching discovery, validation, or Maintain:
 - Discovery launch, including `discovery create --script` and guided `--setup`: `discovery-start`
 - Discovery continuation, budget expansion, steering, or redirection: `discovery-steer`
 - Discovery interpretation: `discovery-inspect`
+- "Is my change faster?", a before/after benchmark of a local change on a runner: `change-validate`
 - Discovery charts, canvases, artifacts, or visual reports: `discovery-visualize`
 - Runner task diagnostics without host access: `execution-log-inspect`
 - Maintain: `maintain`, which ships alongside this skill
