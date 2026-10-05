@@ -14,9 +14,9 @@
 | `baseline.readings` | Readings per metric that falcon compared against |
 | `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), `overallVerdict` (falcon's, across the version's metrics), per-metric stats + `runs`, `pctBetter`, `timesBetter`, `vsBaseline`, `eligible` |
 | `experiments[]` | Title, status, confidence, parents, linked version |
-| `rankings[metric]` | Best-first rows with `eligible` and experiment status |
-| `runningBest[metric]` | Generation order; `mean` is `null` on gaps; `bestVersion`/`bestMean` carry forward |
-| `perMetricWinners[metric]` | `{raw, eligible}` — each may be `null` |
+| `rankings[metric]` | Best-first rows with `eligible` and experiment status, ordered by falcon's `pctBetter` (computed from the metric's own aggregator, as the Web UI does); rows falcon has no number for follow, by `mean` |
+| `runningBest[metric]` | Generation order, by `mean` (a plot of means); `mean` is `null` on gaps; `bestVersion`/`bestMean` carry forward |
+| `perMetricWinners[metric]` | `{raw, eligible}`, the first rows of `rankings`; each may be `null`. With no direction stored, `raw` is `null` and `reason` says why |
 | `executionSummary` | Completed / generation_failed / scoring_failed / execution_* / `missingTargetMetrics` |
 | `experimentSummary` | validated / refuted / inconclusive counts |
 | `pareto` | `null` unless `--pareto` was passed |

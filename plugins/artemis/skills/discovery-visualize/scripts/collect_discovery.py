@@ -208,6 +208,14 @@ def project_names(cli: str = "artemis", config: str | None = None) -> dict[str, 
         return {}
 
 
+def fetch_comparison(run_id: str, cli: str = "artemis", config: str | None = None) -> Any:
+    """Falcon's verdicts. `discovery compare` ships in CLI 1.1.14; older CLIs fail or print help instead of JSON."""
+    try:
+        return extract_json(run_artemis(["discovery", "compare", run_id], cli, config))
+    except (RuntimeError, ValueError) as error:
+        raise RuntimeError(f"artemis discovery compare failed: it needs artemis CLI 1.1.14 or newer, so follow cli-setup if yours is older ({error})") from error
+
+
 def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, names: dict[str, str] | None = None) -> dict[str, Any]:
     call = lambda *args: extract_json(run_artemis(list(args), cli, config))
     run = call("discovery", "get", run_id)
@@ -220,7 +228,7 @@ def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, name
         "metrics": call("discovery", "metrics", run_id, "--all", "--stats"),
         "observations": call("discovery", "metrics", run_id, "--all"),
         "experiments": call("discovery", "experiments", "list", run_id, "--all"),
-        "comparison": call("discovery", "compare", run_id),
+        "comparison": fetch_comparison(run_id, cli, config),
         "status": call("status"),
         "projectName": names.get(project_id or ""),
     }
@@ -543,7 +551,8 @@ def build_snapshot(
                     "experimentStatus": version.get("experimentStatus"),
                 }
             )
-        ranked.sort(key=lambda row: row["mean"], reverse=higher)
+        # Falcon's change first (it uses the metric's own aggregator, as the Web UI does); the mean only where falcon has no number.
+        ranked.sort(key=lambda row: (0, -row["pctBetter"]) if row["pctBetter"] is not None else (1, -row["mean"] if higher else row["mean"]))
         rankings[name] = ranked
         raw = ranked[0] if ranked else None
         eligible_rows = [row for row in ranked if row["eligible"]]
@@ -736,7 +745,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.from_dir:
         payloads = load_from_dir(args.from_dir)
     else:
-        payloads = fetch_cli(args.run_id, args.cli, args.config)
+        try:
+            payloads = fetch_cli(args.run_id, args.cli, args.config)
+        except RuntimeError as error:
+            print(f"collect_discovery.py: {error}", file=sys.stderr)
+            return 1
     snapshot = build_snapshot(
         payloads,
         collected_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),

@@ -311,6 +311,54 @@ class FalconComparisonTests(unittest.TestCase):
         self.assertTrue(verdicts)
         self.assertTrue(set(verdicts.values()) <= set(collector.VERDICTS))
 
+    def two_versions(self, first: dict, second: dict, baseline: bool = True) -> dict:
+        """Two versions of a higher-is-better metric with the given falcon rows; v1 has the higher mean."""
+        payloads = self.payloads()
+        payloads["versions"].append({"id": "v-2", "versionNumber": 2, "versionSha": "sha-2", "observationGroupId": "g-2", "lifecycle": "completed", "executionStatus": "success"})
+        payloads["metrics"].append({"observationGroupId": "g-2", "metricId": "m-fps", "metricName": "simulation_fps", "mean": 110.0, "min": 105.0, "max": 115.0, "count": 5})
+        base_row = payloads["comparison"]["versions"][0]
+        rows = [{"sha": "sha-1", "isBaseline": False, "versionNumber": 1, "metrics": [first]},
+                {"sha": "sha-2", "isBaseline": False, "versionNumber": 2, "metrics": [second]}]
+        payloads["comparison"]["versions"] = ([base_row] if baseline else []) + rows
+        return payloads
+
+    def falcon_row(self, pct, verdict):
+        return {"metricId": "m-fps", "name": "simulation_fps", "readings": 5, "improvementPct": pct,
+                "improvementLowPct": None if pct is None else pct - 4, "improvementHighPct": None if pct is None else pct + 4,
+                "verdict": verdict, "recommendedReadings": None, "recommendedReadingsReason": None, "spreadPct": 2.0}
+
+    def test_worse_and_noise_verdicts_are_falcons(self) -> None:
+        snap = collector.build_snapshot(self.two_versions(self.falcon_row(-8.0, "worse"), self.falcon_row(1.0, "noise")), collected_at="2026-01-01T00:00:00Z")
+        verdicts = [v["metrics"]["simulation_fps"]["vsBaseline"]["verdict"] for v in snap["versions"]]
+        self.assertEqual(verdicts, ["worse", "noise"])
+
+    def test_ranking_follows_falcons_change_not_the_mean(self) -> None:
+        # v1 has the higher mean, but falcon (median aggregator, say) puts v2 ahead.
+        snap = collector.build_snapshot(self.two_versions(self.falcon_row(-8.0, "worse"), self.falcon_row(1.0, "noise")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [2, 1])
+        self.assertEqual(snap["perMetricWinners"]["simulation_fps"]["raw"]["version"], 2)
+
+    def test_without_a_baseline_row_no_change_is_claimed(self) -> None:
+        empty = self.falcon_row(None, None)
+        snap = collector.build_snapshot(self.two_versions(empty, dict(empty), baseline=False), collected_at="2026-01-01T00:00:00Z")
+        for version in snap["versions"]:
+            metric = version["metrics"]["simulation_fps"]
+            self.assertIsNone(metric["pctBetter"])
+            self.assertIsNone(metric["vsBaseline"])
+        # With no falcon number, the order falls back to the mean.
+        self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [1, 2])
+
+    def test_an_old_cli_gets_an_upgrade_hint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp) / "artemis"
+            # CLI 1.0.11 prints the parent's help and exits 0 for an unknown subcommand.
+            fake.write_text("#!/bin/sh\necho 'Usage: artemis discovery [command]'\n", encoding="utf-8")
+            fake.chmod(0o755)
+            with self.assertRaises(RuntimeError) as caught:
+                collector.fetch_comparison("run-1", cli=str(fake))
+            self.assertIn("1.1.14", str(caught.exception))
+            self.assertIn("cli-setup", str(caught.exception))
+
     def test_no_statistics_are_computed_here(self) -> None:
         source = (SCRIPTS / "collect_discovery.py").read_text(encoding="utf-8")
         for name in ("betainc", "t_quantile", "welch", "t_two_sided_p", "pct_better"):
