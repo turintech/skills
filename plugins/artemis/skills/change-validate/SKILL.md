@@ -1,6 +1,6 @@
 ---
 name: change-validate
-description: Check whether a local code change really makes a project faster (or better on any metric), measured on an Artemis runner. Puts the uncommitted change on a new Artemis branch, measures the original code and the change the same number of times on the same runner and script, and reports the platform's verdict per metric with its interval and the Validations link. Use when the user asks whether their change or their agent's change is faster, wants a before/after benchmark, or wants to validate a local change on a runner.
+description: Check whether a local code change really makes a project faster (or better on any metric), measured on an Artemis runner. Puts the uncommitted change on a new Artemis branch, measures the original code and the change the same number of times on the same runner and script, and reports the platform's verdict per metric with its interval and a link to the branch's Scripts tab. Use when the user asks whether their change or their agent's change is faster, wants a before/after benchmark, or wants to validate a local change on a runner.
 compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.14"
@@ -62,16 +62,21 @@ Report per metric: the original's value, the change's value, the improvement and
 | `noise` | No difference could be measured. If `recommendedReadings` is set, it is the total readings per side that would settle it, counting those already taken; offer to run the extra pairs |
 | `pending` | Too few runs to tell. Run pairs until both sides reach `recommendedReadings`, then compare again |
 
-When `recommendedReadingsReason` is `settled`, the verdict stands. When it is `too_small`, no reasonable number of runs would separate them: say the change makes no practical difference.
+When `recommendedReadings` is null, `recommendedReadingsReason` says why:
+
+- `settled`: the verdict stands.
+- `too_small`: no reasonable number of runs would separate them; say the change makes no practical difference.
+- `no_effect`: both sides average the same; say so.
+- `no_data`: not enough readings to size it yet; run more pairs, then compare again.
 
 ## 4. Repeats that are not independent
 
-If a side has at least two readings but its `spreadPct` is null, every run gave exactly the same number. The runs are not independent measurements (a cached build or result, a benchmark that reports a fixed value, a timer too coarse to see a difference), so the interval means nothing. Say this plainly, do not report the verdict as a finding, and hand over to `repo-command-setup` to fix the benchmark.
+`spreadPct` is pooled over both sides. If both sides have at least two readings but `spreadPct` is null, every run gave exactly the same number. The runs are not independent measurements (a cached build or result, a benchmark that reports a fixed value, a timer too coarse to see a difference), so the interval means nothing. Say this plainly, do not report the verdict as a finding, and hand over to `repo-command-setup` to fix the benchmark.
 
 ## 5. Hand back
 
 - The verdict per metric, from section 3.
-- The branch's Validations page: `<deployment>/projects/<project-id>/branches/<changeset-id>/validations`, with every run and the same verdict.
+- The branch's Scripts tab in the Web UI: `<deployment>/projects/<project-id>/branches/<changeset-id>/validations`, with every run and the same verdict.
 - For a `better` result, offer to open a pull request: `artemis changeset pr <changeset-id> --project <p>`.
 
 ## Checklist
@@ -81,4 +86,4 @@ If a side has at least two readings but its `spreadPct` is null, every run gave 
 - [ ] Failed runs read from their logs, not counted
 - [ ] Verdict, improvement and interval quoted from `changeset compare`, nothing computed
 - [ ] Identical repeats flagged instead of reported
-- [ ] Validations link given
+- [ ] Scripts tab link given
