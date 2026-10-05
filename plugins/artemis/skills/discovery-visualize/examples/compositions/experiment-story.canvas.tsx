@@ -48,7 +48,7 @@ const nodes: StoryNode[] = [
     parentIds: ["experiment-grid"],
     summary: "Implements the first grid-based candidate search.",
     webUrl:
-      "https://artemis.example/projects/project/discovery/run/versions/v1",
+      "https://artemis.example/projects/project/discover/run/versions/v1",
   },
   {
     id: "experiment-stream",
@@ -67,7 +67,7 @@ const nodes: StoryNode[] = [
     parentIds: ["experiment-stream"],
     summary: "Keeps the grid and removes candidate allocation and traversal.",
     webUrl:
-      "https://artemis.example/projects/project/discovery/run/versions/v2",
+      "https://artemis.example/projects/project/discover/run/versions/v2",
   },
   {
     id: "experiment-cache",
@@ -86,7 +86,7 @@ const nodes: StoryNode[] = [
     parentIds: ["experiment-cache"],
     summary: "Caches coordinates without adopting the spatial grid.",
     webUrl:
-      "https://artemis.example/projects/project/discovery/run/versions/v3",
+      "https://artemis.example/projects/project/discover/run/versions/v3",
   },
 ];
 

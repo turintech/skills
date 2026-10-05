@@ -16,7 +16,7 @@ import {
 // improve the target metric?" Replace with best-first rankings and experiment
 // rationale from the normalized snapshot.
 const discoveryUrl =
-  "https://artemis.example/projects/project/discovery/run";
+  "https://artemis.example/projects/project/discover/run";
 const versions = [
   {
     label: "v3",

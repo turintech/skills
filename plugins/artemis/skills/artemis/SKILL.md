@@ -120,7 +120,7 @@ External changes requiring approval:
 
 Omit fields that do not apply. A missing prerequisite is not a user choice. The **seed** is the exact imported commit later checked against a discovery's `baselineVersionSha`.
 
-For discovery or validation, settle the correctness gate, metric and direction, runner, and stopping boundary; for discovery also settle the task, model, and version budget. For Maintain, settle scan/fix scope, model when overriding the default, and whether fixes stop at changesets, branches, or pull requests.
+For discovery or validation, settle the correctness gate, metric and direction, runner, and stopping boundary; for discovery also settle the task, model, and version budget. For Maintain, settle scan/fix scope, model when overriding the default, and whether fixes stop at a Branch in Artemis, a pushed git branch, or a pull request.
 
 ## 5. Make long-running work deliberate
 

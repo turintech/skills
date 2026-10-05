@@ -229,7 +229,7 @@ When something fails, distinguish command-string issues from repository code or 
 - **Command-string failure:** update the project defaults, create a replacement validation script with the same corrected commands, and re-run `changeset validate --script` on the same empty changeset (`--version original` still resolves that original code).
 - **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
 
-`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis discovery setup trial-run "<run-id>" --wait`. There is no `project scripts update`; on a command-string failure, create a replacement script. Do not invent compatibility flags.
+`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis discovery setup trial-run "<run-id>" --wait`. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
 
 ## 6. Configure Artemis
 

@@ -62,10 +62,10 @@ metadata:
 
 ## 2. Find the page, then show it
 
-Deployments differ. On newer ones a Discovery run sits under `/discover` and has no separate page per version; on older ones it sits under `/discovery` and each version has its own page. **Do not build URLs from memory.**
+Deployments differ. On newer ones a Discovery run sits under `/discover`; on older ones it sits under `/discovery`. **Do not build URLs from memory.**
 
 1. Open `<deployment-base-url>/projects/<project-id>` and let it settle.
-2. Read the page's own navigation and use those links: the project sections (Discover, Branches, Changesets, Files, Settings) and, inside a run, its tabs (Experiments, Versions, Metrics).
+2. Read the page's own navigation and use those links: the project tabs (on newer deployments Overview, AI Agents, Maintain, Discover, Plan, Branches, Files, Settings) and, inside a run, its tabs (Experiments, Versions, Metrics).
 3. Follow the link for what you want to show instead of typing a path.
 4. Reuse the paths you resolved for the rest of the session; they do not change while you work.
 
@@ -76,7 +76,8 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 | Project | `/projects/<project-id>/overview` | `/projects/<project-id>/overview` |
 | Discovery list | `/projects/<project-id>/discover` | `/projects/<project-id>/discovery` |
 | Discovery run | `/projects/<project-id>/discover/<run-id>/overview` | `/projects/<project-id>/discovery/<run-id>` |
-| Versions of a run | `/projects/<project-id>/discover/<run-id>/versions` | `/projects/<project-id>/discovery/<run-id>/versions/<version-id>` |
+| Versions of a run | `/projects/<project-id>/discover/<run-id>/versions` | the run's Versions tab |
+| One version | `/projects/<project-id>/discover/<run-id>/versions/<version-id>` | `/projects/<project-id>/discovery/<run-id>/versions/<version-id>` |
 | The code of a version | `/projects/<project-id>/branches/<branch-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
 | API keys, Git, Runners | `/settings/api-keys`, `/settings/git`, `/settings/runners` | same |
 
