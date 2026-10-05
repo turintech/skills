@@ -78,7 +78,8 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 | Discovery run | `/projects/<project-id>/discover/<run-id>/overview` | `/projects/<project-id>/discovery/<run-id>` |
 | Versions of a run | `/projects/<project-id>/discover/<run-id>/versions` | the run's Versions tab |
 | One version | `/projects/<project-id>/discover/<run-id>/versions/<version-id>` | `/projects/<project-id>/discovery/<run-id>/versions/<version-id>` |
-| The code of a version | `/projects/<project-id>/branches/<branch-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
+| The code of a version | `/projects/<project-id>/branches/<changeset-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
+| A branch's script runs | `/projects/<project-id>/branches/<changeset-id>/validations` (the Scripts tab) | the changeset's Validations tab |
 | API keys, Git, Runners | `/settings/api-keys`, `/settings/git`, `/settings/runners` | same |
 
 ### Arrive before the change, never after
@@ -89,7 +90,7 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 |---|---|---|
 | `project import` | Projects | The new project appears in the list |
 | `changeset create` | The project's Branches | The branch appears |
-| `changeset validate` | The branch's Script runs | The run appears, then passes with its number |
+| `changeset validate` | The branch's Scripts tab | The run appears under Script runs, then passes with its number |
 | `discovery create` | The project's Discover list | The run appears in the list |
 | Anything else that adds a version | The tab that lists them | The row arrives while they watch |
 

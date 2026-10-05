@@ -56,7 +56,7 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 |---|---|---|
 | Read a run's results | Section 3b | No |
 | Compare two versions | Section 3b, then a version's **Compare** control above its diff, or the Versions **Graphs** | No |
-| Find why a build failed | **Branches**, the branch, its **Validations** tab. The **Script runs** list is on the left: open the failed run, then the failing command under **Commands** to read its log. Hover status icons: some reasons only show as a tooltip | No |
+| Find why a build failed | **Branches**, the branch, its **Scripts** tab. The **Script runs** list is on the left: open the failed run, then the failing command under **Commands** to read its log. Hover status icons: some reasons only show as a tooltip | No |
 | Connect a machine | **Runner and Scripts**, then **Set up a new runner**: choose the operating system and architecture and follow the steps. Never reach it through **Platform Settings**: that opens a page listing every user on admin accounts | No, unless they run the steps |
 | Import a repository | **Projects**, **New**, **Connect Git Repository**, pick the repository, then **Create Project**. It needs a Git connection Artemis can read; the page offers one if there is none | Yes |
 | Try a sample project | **Projects**, **New**, **Open a sample project**. Featured: Particle Life (C++), Julia Set (Java) and Smoke (Python), each with **Import project**; the project opens when the import finishes | Yes |
