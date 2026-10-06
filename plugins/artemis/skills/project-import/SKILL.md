@@ -106,7 +106,16 @@ artemis --output-format json project list --all | jq -r '.docs[]? | select(.id==
 artemis --output-format json project list --all | python3 -c 'import json,sys; print(next((p.get("importedStatus") for p in json.load(sys.stdin).get("docs") or [] if p.get("id")=="<project-uuid>"), ""))'
 ```
 
-Wait for `success` before running anything against the project. Check every 10 s for up to 8 minutes, each check its own short command rather than one long-running loop. If it is still `importing` after that, give the user the project link, say the import is still running, and stop. On `failed`, check the key can read the repo and the branch exists, then import once more; don't loop.
+Wait for `success` before running anything against the project, with one bounded check that fits a 10-minute tool timeout (48 checks, 10 s apart):
+
+```bash
+for i in $(seq 48); do
+  s=$(artemis --output-format json project list --all | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus')
+  [ "$s" != importing ] && break; sleep 10
+done; echo "$s"
+```
+
+If it is still `importing` after that, give the user the project link, say the import is still running, and stop. On `failed`, check the key can read the repo and the branch exists, then import once more; don't loop.
 
 ## 5. Verify and hand off
 

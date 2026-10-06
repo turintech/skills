@@ -83,13 +83,14 @@ BASE="https://files.artemis.turintech.ai/public/artemis-cli/$VER"
 TMP="$(mktemp -d)"
 ( cd "$TMP" \
   && curl -fLO "$BASE/artemis-cli-$PLATFORM" && curl -fLO "$BASE/checksums.txt" \
-  && grep " artemis-cli-$PLATFORM\$" checksums.txt | sha256sum -c - \
-  && mkdir -p ~/.local/bin && install -m 755 "artemis-cli-$PLATFORM" ~/.local/bin/artemis )
+  && grep " artemis-cli-$PLATFORM\$" checksums.txt > sum.txt && [ -s sum.txt ] \
+  && { sha256sum -c sum.txt 2>/dev/null || shasum -a 256 -c sum.txt; } \
+  && mkdir -p ~/.local/bin && install -m 755 "artemis-cli-$PLATFORM" ~/.local/bin/artemis \
+  && ~/.local/bin/artemis --version ) || echo "INSTALL FAILED: checksum or download"
 rm -rf "$TMP"
-artemis --version
 ```
 
-On macOS use `shasum -a 256 -c -` in place of `sha256sum -c -`. If the check fails, stop and tell the user: never run a binary that doesn't match its checksum.
+The same lines work on Linux (`sha256sum`) and macOS (`shasum`). On `INSTALL FAILED`, stop and tell the user: never run a binary that doesn't match its checksum, and don't trust an older `artemis` already on `PATH`.
 
 A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`. Check that the user's own shell finds it with `bash -lc 'command -v artemis'`; if not, use the absolute path in the login box and offer, asking first, to add `~/.local/bin` to PATH in their shell startup file. On Windows, download the `.exe` and ask the user where to put it on PATH.
 
