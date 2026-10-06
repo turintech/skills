@@ -94,7 +94,7 @@ R.bullets(page, [
   perVersion + ' benchmark runs per version, ' + base.count + ' for the baseline, on the same runner',
   'Verdicts, % changes and 95% intervals are Artemis’s own (artemis discovery compare), as the Web UI shows them',
   t && t.recommendedReadings ? 'Artemis suggests ' + t.recommendedReadings + ' runs per side to settle ' + winV.label : '',
-  t && agent && (agent === 'validated') !== (t.verdict === 'better') ? 'Artemis’s agent labelled ' + winV.label + ' “' + agent + '”; the verdict uses only the measured runs' : '',
+  t && agent && (agent === 'validated') !== (t.verdict === 'better') ? 'The Experiment behind ' + winV.label + ' concluded “' + agent + '”; the verdict uses only the measured runs' : '',
 ].filter(Boolean), { quiet: true });
 
 R.footer(page, {

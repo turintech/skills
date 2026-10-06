@@ -27,8 +27,8 @@ DEFAULT_PAGE = """const R = ArtemisReport;
 R.header(document.getElementById('header'), { title: 'v2 is 10% faster', chips: [{ text: 'Better (falcon)', strong: true }, { text: '3 runs each' }] });
 const page = document.getElementById('page');
 const f1 = R.figure(page, { question: 'Every run' });
-R.headline(f1.top, { left: { k: 'Original', v: '2.71' }, mid: { big: '+10%' }, right: { k: 'Best', v: '3.01' } });
-R.compareRuns(f1.chart, { label: 'Original', runs: [2.70, 2.71, 2.72], mean: 2.71 }, { label: 'v2', runs: [2.96, 3.03, 3.04], mean: 3.01, color: '#16a34a' }, { pctText: 'Artemis: +10%  (better)', axisLabel: 'fps' });
+R.headline(f1.top, { left: { k: 'Baseline', v: '2.71' }, mid: { big: '+10%' }, right: { k: 'Best', v: '3.01' } });
+R.compareRuns(f1.chart, { label: 'Baseline', runs: [2.70, 2.71, 2.72], mean: 2.71 }, { label: 'v2', runs: [2.96, 3.03, 3.04], mean: 3.01, color: '#16a34a' }, { pctText: 'Artemis: +10%  (better)', axisLabel: 'fps' });
 f1.bullets(['<b>No overlap:</b> all 3 runs', 'a <script> stays text']);
 const f2 = R.figure(page, { question: 'Which changes were real?' });
 R.forest(f2.chart, [

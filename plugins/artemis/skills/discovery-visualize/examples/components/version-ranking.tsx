@@ -4,7 +4,7 @@ import { H2, Link, Row, Stack, Text, useHostTheme } from "cursor/canvas";
  * Answers: "Which versions improved or regressed most?"
  * Snapshot input: rankings[metric], enriched with each version's web URL.
  * Pass collector order unchanged. Color communicates pctBetter direction only;
- * it is not an experiment verdict or eligibility judgment.
+ * it is not an Experiment's conclusion or eligibility judgment.
  */
 export type RankedVersion = {
   label: string;
@@ -87,7 +87,7 @@ export function VersionRanking({
       </Stack>
       <Text size="small" tone="tertiary">
         Best first by {metric} mean. Percent is mean vs baseline {baselineSha},
-        not an experiment verdict. Source: {source}.
+        not an Experiment's conclusion. Source: {source}.
       </Text>
     </Stack>
   );

@@ -9,7 +9,7 @@ import {
 } from "cursor/canvas";
 
 /**
- * Answers: "Which ideas or versions build on earlier work?"
+ * Answers: "Which Experiments or versions build on earlier work?"
  * Snapshot inputs: experiments, experiment parent IDs, and linked versions.
  * Build explicit nodes for the baseline, experiments, and versions. Edges mean
  * "was derived from"; do not infer lineage from generation order.

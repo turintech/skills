@@ -41,7 +41,7 @@ SEED_SHA="$(GIT_TERMINAL_PROMPT=0 git ls-remote --exit-code --heads \
 printf '%s\n' "$SEED_SHA"
 ```
 
-If it is empty, take the imported commit from the project's `gitHash` and say so.
+If it is empty, set `SEED_SHA` to the imported project's `gitHash` and say so.
 
 Always pass `--branch`. Import may accept a typo and fail only when Artemis later attempts checkout. Carry `SEED_SHA` through verification and handoff.
 
