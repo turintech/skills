@@ -78,6 +78,8 @@ Compile and test are unmeasured setup commands. Use `--measure none` when the be
 
 Capture `script_id` from the create or list response. Prefer passing `--script` explicitly even when a default exists.
 
+Before `discovery create`, tell the user the model, the number of versions, and that each version is agent work that spends credits. Create the run only on their yes.
+
 ```bash
 artemis --output-format json discovery create \
   --project "<project-uuid>" \
@@ -112,15 +114,15 @@ Repetitions multiply **runner** time, not agent time: a 10-version run at three 
 
 Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Ask how long one benchmark takes, multiply by versions plus one for the baseline, and say the result out loud before creating the run.
 
-Capture `run_id` from the JSON — every later command needs it.
+Capture `run_id` from the JSON; every later command needs it.
 
 Immediately give the user a clickable link:
 
 ```text
-[Open project](<deployment-base-url>/projects/<project-uuid>)
+[Open run](<deployment-base-url>/projects/<project-uuid>/discover/<run-id>)
 ```
 
-From there, Discover lists the run. Run paths differ between deployments, so follow the app's navigation rather than building the URL.
+If that link doesn't open the run (older deployments), give the project link instead, `<deployment-base-url>/projects/<project-uuid>`, where Discover lists the run.
 
 Use the authenticated deployment base URL and repeat the link in later progress or failure reports.
 
@@ -135,16 +137,18 @@ artemis discovery update "<run-id>" \
   --model "<catalogue-uuid-or-model-type>" --versions <n> \
   --runner "<runner-name>" --script "<script-id>" \
   --llm-metrics=false --setup-step script
-artemis discovery setup trial-run "<run-id>" --wait
+artemis discovery setup trial-run "<run-id>" --wait --timeout 9m
 artemis discovery metrics-schema regenerate "<run-id>"
 artemis discovery setup complete "<run-id>"
 ```
+
+`--timeout 9m` keeps the wait inside a shell call's limit. On exit code 6 the trial run is still going: check it with `discovery get` instead of starting another.
 
 `--setup` does not copy project command defaults. Script selection is `--script` plus, optionally, `setup trial-run --script`. Use `metrics-schema propose`, `regenerate`, or `set` on the objective step.
 
 ## 2. Baseline / metrics schema
 
-During baseline finalization, Artemis derives and stores `metricsSchema` using the selected model. Poll:
+During baseline finalization, Artemis derives and stores `metricsSchema` using the selected model. Check every 30 to 60 seconds, one short command each time:
 
 ```bash
 artemis --output-format json discovery get "<run_id>"
@@ -162,14 +166,14 @@ artemis discovery baseline set "<run_id>" --metrics-schema "<path-to-schema.json
 
 ## 3. Verify exploration started
 
-A finalized baseline does not prove that the run explored a version. Poll until at least one version appears or the run becomes terminal:
+A finalized baseline does not prove that the run explored a version. Check every 30 to 60 seconds until at least one version appears or the run becomes terminal:
 
 ```bash
 artemis --output-format json discovery get "<run_id>" \
   | jq '{status, versionCount, experimentCount, agentRunId}'
 ```
 
-A running run with zero versions may not have started exploration yet. If it becomes terminal without a version, hand off to `discovery-inspect` to confirm the runner is idle and diagnose the failure.
+A running run with zero versions may not have started exploration yet. If it becomes terminal without a version, or nothing changes for about 15 minutes in either step, stop checking and hand off to `discovery-inspect`.
 
 ## 4. If the project looks corrupt after a failed baseline
 
@@ -180,6 +184,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Project UUID confirmed; runner either supplied by the calling skill, or confirmed **with the user** rather than picked because it showed online
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
+- [ ] User said yes to the model, version count and credit spend before `discovery create`
 - [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
 - [ ] `--llm-metrics=false` unless LLM-judged metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it

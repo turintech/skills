@@ -187,11 +187,6 @@ Runs the commands through the platform on the real runner. Needs an imported pro
 
 ```bash
 artemis changeset validate --help
-artemis project commands set --project "<project-uuid>" \
-  --compile "<compile-command>" \
-  --test "<test-command>" \
-  --benchmark "<benchmark-command>"
-artemis --output-format json project commands get --project "<project-uuid>"
 
 artemis --output-format json project scripts create \
   --project "<project-uuid>" --name "Command verification" \
@@ -208,10 +203,10 @@ artemis --output-format json changeset create \
 artemis --output-format json changeset validate "<changeset-id>" \
   --project "<project-uuid>" --version original \
   --script "<script-id>" \
-  --runner "<runner-name>" --wait
+  --runner "<runner-name>" --wait --timeout 9m
 ```
 
-The script uses the same literal commands as the project defaults. `--measure none` keeps command-runtime metrics out unless runtime is the target; `--version original` resolves the changeset's original code. `--wait` returns each command's `exitCode`, runtime and resources, and exits with code 6 when its `--timeout` (20 minutes by default) runs out: the CLI stopped waiting, not the validation, so check the branch's Script runs before running it again. Re-check later with:
+The script holds the commands; validation runs it with `--script`. `--measure none` keeps command-runtime metrics out unless runtime is the target; `--version original` resolves the changeset's original code. `--wait` returns each command's `exitCode`, runtime and resources. `--timeout 9m` keeps the wait inside a shell call's limit; exit code 6 means the CLI stopped waiting, not the validation. The validation id is only printed after the wait, so on exit 6 check the branch's **Scripts** tab, under **Script runs**, instead of running it again. Re-check later with:
 
 ```bash
 artemis changeset validation get "<validation-id>" --project "<project-uuid>"
@@ -226,10 +221,10 @@ For a discovery run the equivalent is `artemis discovery metrics "<run-id>" --al
 
 When something fails, distinguish command-string issues from repository code or script issues:
 
-- **Command-string failure:** update the project defaults, create a replacement validation script with the same corrected commands, and re-run `changeset validate --script` on the same empty changeset (`--version original` still resolves that original code).
+- **Command-string failure:** fix the script's commands (see below), and re-run `changeset validate --script` on the same empty changeset (`--version original` still resolves that original code).
 - **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
 
-`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis discovery setup trial-run "<run-id>" --wait`. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
+`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis discovery setup trial-run "<run-id>" --wait --timeout 9m`. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
 
 ## 6. Configure Artemis
 
