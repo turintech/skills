@@ -29,7 +29,7 @@ const nodes: StoryNode[] = [
     title: "All-pairs traversal",
     kind: "baseline",
     parentIds: [],
-    summary: "The original implementation measured before generated changes.",
+    summary: "The unchanged implementation measured before generated changes.",
   },
   {
     id: "experiment-grid",

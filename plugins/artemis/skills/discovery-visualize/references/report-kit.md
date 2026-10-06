@@ -37,35 +37,35 @@ const perVersion = Math.min(...counts) === Math.max(...counts) ? String(counts[0
 
 R.header(document.getElementById('header'), {
   eyebrow: 'Artemis Discovery · ' + (project ? project + ' · ' : '') + key,
-  title: project ? ['Artemis made ' + project + ' ', gain, verdict] : [winV.label + ' is ', gain, ' than the original', verdict],
+  title: project ? ['Artemis made ' + project + ' ', gain, verdict] : [winV.label + ' is ', gain, ' than the baseline', verdict],
   chips: t ? [
     { text: 'Verdict: ' + t.verdict, strong: t.verdict === 'better' },
     t.ciLowPct != null ? { text: '95% interval ' + F.pct(t.ciLowPct) + ' to ' + F.pct(t.ciHighPct) } : null,
-    { text: (t.readings != null ? t.readings : winM.count) + ' runs vs ' + (S.baseline.readings[key] || base.count) + ' for the original' },
+    { text: (t.readings != null ? t.readings : winM.count) + ' runs vs ' + (S.baseline.readings[key] || base.count) + ' for the baseline' },
   ].filter(Boolean) : [{ text: 'No verdict from Artemis for this metric' }],
 });
 
 const page = document.getElementById('page');
 
-// Figure 1: every run, the original against the best version.
-const f1 = R.figure(page, { question: 'Every benchmark run: the original against the best version' });
+// Figure 1: every run, the baseline against the best version.
+const f1 = R.figure(page, { question: 'Every benchmark run: the baseline against the best version' });
 R.headline(f1.top, {
-  left: { k: 'Original', v: F.num(base.mean, 2), unit },
-  mid: { big: F.pct(win.pctBetter), small: F.times(win.timesBetter) + ' the original, as Artemis measures it' },
+  left: { k: 'Baseline', v: F.num(base.mean, 2), unit },
+  mid: { big: F.pct(win.pctBetter), small: F.times(win.timesBetter) + ' the baseline, as Artemis measures it' },
   right: { k: 'Best version · ' + winV.label, v: F.num(winM.mean, 2), unit },
 });
 R.compareRuns(f1.chart,
-  { label: 'Original', sub: 'baseline ' + sha, runs: base.runs, mean: base.mean },
+  { label: 'Baseline', sub: sha, runs: base.runs, mean: base.mean },
   { label: winV.label, sub: 'best version', runs: winM.runs, mean: winM.mean },
   { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + unit + ', ' + (up ? 'higher' : 'lower') + ' is better)',
-    aria: key + ', every run: original mean ' + F.num(base.mean, 2) + ' against ' + winV.label + ' mean ' + F.num(winM.mean, 2) });
+    aria: key + ', every run: baseline mean ' + F.num(base.mean, 2) + ' against ' + winV.label + ' mean ' + F.num(winM.mean, 2) });
 f1.caption('The % is Artemis’s change, on the metric’s own aggregator, as in the Web UI. The values either side are means.');
 const worstWin = up ? Math.min(...winM.runs) : Math.max(...winM.runs), bestBase = up ? Math.max(...base.runs) : Math.min(...base.runs);
 const clear = up ? worstWin > bestBase : worstWin < bestBase;
 f1.bullets([
-  clear ? '<b>No overlap:</b> all ' + winM.runs.length + ' ' + winV.label + ' runs beat every original run'
-        : '<b>Overlap:</b> some ' + winV.label + ' runs sit inside the original’s range',
-  'Weakest ' + winV.label + ' run ' + F.num(worstWin, 2) + ' ' + unit + ' against the original’s best ' + F.num(bestBase, 2) + ' ' + unit,
+  clear ? '<b>No overlap:</b> all ' + winM.runs.length + ' ' + winV.label + ' runs beat every baseline run'
+        : '<b>Overlap:</b> some ' + winV.label + ' runs sit inside the baseline’s range',
+  'Weakest ' + winV.label + ' run ' + F.num(worstWin, 2) + ' ' + unit + ' against the baseline’s best ' + F.num(bestBase, 2) + ' ' + unit,
   'What changed: ' + winV.experimentTitle.charAt(0).toLowerCase() + winV.experimentTitle.slice(1),
 ]);
 
@@ -77,7 +77,7 @@ R.forest(f2.chart, measured.map(v => {
   const m = v.metrics[key], vb = m.vsBaseline;
   return { label: v.label, sub: F.short(v.experimentTitle, 52), pct: m.pctBetter, lo: vb && vb.ciLowPct, hi: vb && vb.ciHighPct,
     verdict: vb && vb.verdict, n: vb ? vb.readings : m.count, hero: v.version === win.version, note: vb ? null : 'no verdict' };
-}), { aria: 'Change in ' + key + ' per version against the original, with 95% intervals' });
+}), { aria: 'Change in ' + key + ' per version against the baseline, with 95% intervals' });
 const byVerdict = w => measured.filter(v => (v.metrics[key].vsBaseline || {}).verdict === w).map(v => v.label).sort();
 const better = byVerdict('better'), worse = byVerdict('worse'), pending = byVerdict('pending');
 f2.bullets([
@@ -91,7 +91,7 @@ f2.bullets([
 // Method note.
 const agent = winV.experimentStatus;
 R.bullets(page, [
-  perVersion + ' benchmark runs per version, ' + base.count + ' for the original, on the same runner',
+  perVersion + ' benchmark runs per version, ' + base.count + ' for the baseline, on the same runner',
   'Verdicts, % changes and 95% intervals are Artemis’s own (artemis discovery compare), as the Web UI shows them',
   t && t.recommendedReadings ? 'Artemis suggests ' + t.recommendedReadings + ' runs per side to settle ' + winV.label : '',
   t && agent && (agent === 'validated') !== (t.verdict === 'better') ? 'Artemis’s agent labelled ' + winV.label + ' “' + agent + '”; the verdict uses only the measured runs' : '',
@@ -113,7 +113,7 @@ R.footer(page, {
 | `headline(el, {left, mid, right})` | Baseline, change, best: `{k, v, unit, n}` on each side, `{big, small}` in the middle |
 | `figure(parent, {n, question})` | A figure card; returns `{top, chart, key(items), finding(bold, rest), bullets(items), caption(text)}`; `top` holds a headline inside the card |
 | `bullets(el, items, {quiet})` | A full-width list; items may contain `<b>`, everything else is escaped; `quiet` for the method note |
-| `compareRuns(el, base, best, {pctText, axisLabel, aria, colors})` | Every run of the original and the best version, means, ranges and the bracket between the means; `base`/`best` are `{label, sub, runs, mean, color}` |
+| `compareRuns(el, base, best, {pctText, axisLabel, aria, colors})` | Every run of the baseline and the best version, means, ranges and the bracket between the means; `base`/`best` are `{label, sub, runs, mean, color}` |
 | `forest(el, rows, {aria, header})` | Each version's % change and 95% interval; rows `{label, sub, pct, lo, hi, verdict, n, hero, color, note}`, all from the snapshot; `n` prints beside the verdict |
 | `rankedBars(el, rows, {base, min, max, refs, tickFormat, note})` | Horizontal bars from `base`; rows `{label, sub, value, text, color, faded, strong, tip}` |
 | `strip(el, groups, {band, refs, domains, axisLabel})` | Every measurement as a dot per group; two `domains` break the axis |
@@ -125,7 +125,7 @@ R.footer(page, {
 | `fmt.num / pct / times / share / short` | Number formats; `short` trims a title with an ellipsis |
 | `series(i)` | The i-th categorical colour, for runs or groups |
 
-Colour tokens: `--ar-accent` (the story's hero), `--ar-mark` (the original, versions falcon calls better or worse), `--ar-quiet` (noise or pending), `--ar-neutral`, `--ar-band`, `--ar-c1` to `--ar-c6` (validated categorical order).
+Colour tokens: `--ar-accent` (the story's hero), `--ar-mark` (the baseline, versions falcon calls better or worse), `--ar-quiet` (noise or pending), `--ar-neutral`, `--ar-band`, `--ar-c1` to `--ar-c6` (validated categorical order).
 
 Every figure takes a per-item `color` (`rows[].color`, `groups[].color`, `points[].color`, `base.color` / `best.color`) that overrides the default, so a user's colours are drawn exactly. Any CSS colour works: `'#16a34a'` or `'var(--ar-c3)'`.
 

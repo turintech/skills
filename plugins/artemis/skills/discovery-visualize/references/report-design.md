@@ -28,10 +28,10 @@ When the prompt names no story, build the default. Do not ask first.
 
 In this order, with the kit calls from [report-kit.md](report-kit.md):
 
-1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the original, a real gain".
+1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain".
 2. **Chips:** falcon's verdict (the strong chip only for `better`), the 95% interval, and the runs per side.
 3. **Headline:** baseline mean, then the %, then the best version's mean.
-4. **Figure 1, `compareRuns`:** every run of the original and the best version, the gap between the means labelled with the % and p.
+4. **Figure 1, `compareRuns`:** every run of the baseline and the best version, the gap between the means labelled with the % and p.
 5. **Figure 2, `forest`:** every measured version's % change with its 95% interval, best first.
 6. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Artemis agent's experiment verdict disagrees with falcon's, one bullet that says so.
 
@@ -57,7 +57,7 @@ An unattended run (scheduled, nobody to ask) builds the default too. Three figur
 ## 2. Page anatomy
 
 1. **Eyebrow:** project or repository and the metric key. Small, neutral.
-2. **Title: the main finding, as a sentence.** It must be true of the raw measurements on the page, for example "v5 is 10.9% faster than the original, a real gain" or "No version beat the baseline". Numbers are welcome in the title; adjectives need evidence on the page.
+2. **Title: the main finding, as a sentence.** It must be true of the raw measurements on the page, for example "v5 is 10.9% faster than the baseline, a real gain" or "No version beat the baseline". Numbers are welcome in the title; adjectives need evidence on the page.
 3. **Chips** under the title: falcon's verdict, the interval and the runs per side. A one-line lede only when the task needs explaining.
 4. **Headline comparison:** baseline mean, then the change (`pctBetter`, with `timesBetter` under it), then the best measured version's mean and name. It sits at the top of Figure 1's card.
 5. **Figures**, each as: the **question as its heading**, the chart, then **findings as bullets** directly under it. A caption line only when a mark needs explaining.
@@ -69,8 +69,8 @@ An unattended run (scheduled, nobody to ask) builds the default too. Three figur
 
 A finding is what a reader should remember from its figure. Few words, bullets not paragraphs, one idea per bullet.
 
-- **Lead with the answer, in bold:** "**No overlap:** all 3 v5 runs beat every original run".
-- Then one fact per bullet, with numbers from the snapshot: "Weakest v5 run 2.96 fps against the original's best 2.72 fps".
+- **Lead with the answer, in bold:** "**No overlap:** all 3 v5 runs beat every baseline run".
+- Then one fact per bullet, with numbers from the snapshot: "Weakest v5 run 2.96 fps against the baseline's best 2.72 fps".
 - Answer the heading's question, not a description of the chart.
 - Name versions by label and change: "v4, merged neighbour cell lists".
 - Say when the answer is "no" or "within the noise". A report that finds nothing is still a finding.
@@ -81,9 +81,9 @@ Optional. One line when a mark needs explaining: what a mark is (mean of `n`, or
 
 ## 3. The figures
 
-**Best vs baseline (`compareRuns`).** Two rows, the original and the best version. Every run is a large dot, a tick marks the mean, a band spans slowest to fastest run (accent-soft for the best, neutral for the original). Mean labels sit above the original's row and below the best's, so they never meet the bracket between the means, which carries the % and p.
+**Best vs baseline (`compareRuns`).** Two rows, the baseline and the best version. Every run is a large dot, a tick marks the mean, a band spans slowest to fastest run (accent-soft for the best, neutral for the baseline). Mean labels sit above the baseline's row and below the best's, so they never meet the bracket between the means, which carries the % and p.
 
-**Every version's change (`forest`).** One row per measured version, best first: the % change as a dot, its 95% interval (`vsBaseline.ciLowPct` to `ciHighPct`) as a bar, a zero line labelled "original". Filled dot: falcon says `better` or `worse`. Hollow: `noise` or `pending`. The best version in the accent; better or worse ones in ink; the rest muted grey. The right column gives the % and falcon's verdict.
+**Every version's change (`forest`).** One row per measured version, best first: the % change as a dot, its 95% interval (`vsBaseline.ciLowPct` to `ciHighPct`) as a bar, a zero line labelled "baseline". Filled dot: falcon says `better` or `worse`. Hollow: `noise` or `pending`. The best version in the accent; better or worse ones in ink; the rest muted grey. The right column gives the % and falcon's verdict.
 
 **Change per version (ranked bars).** Horizontal bars of `pctBetter` (or `timesBetter`), sorted best first, from a zero line that is the baseline. Value label at each bar's end, version label on the left. The best version in the accent colour, the rest neutral. Versions with no measurement listed at the bottom as text, not as zero-length bars.
 

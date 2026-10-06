@@ -224,7 +224,7 @@ Show the plan again with everything ticked, then a short readiness report, wheth
 - **Agent and skills:** the host, and that the Artemis skills are installed.
 - **CLI:** version, deployment, the account when the CLI shows it, and whether it was already there, updated or new.
 - **Runner:** name and machine, and whether it was reused, started, or skipped and why.
-- **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the original and best measured values.
+- **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the baseline and best measured values.
 - **Still yours to do:** anything left for the user, or "nothing".
 
 Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.

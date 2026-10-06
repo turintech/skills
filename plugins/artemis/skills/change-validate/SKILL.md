@@ -1,6 +1,6 @@
 ---
 name: change-validate
-description: Check whether a local code change really makes a project faster (or better on any metric), measured on an Artemis runner. Puts the uncommitted change on a new Artemis branch, measures the original code and the change the same number of times on the same runner and script, and reports the platform's verdict per metric with its interval and a link to the branch's Scripts tab. Use when the user asks whether their change or their agent's change is faster, wants a before/after benchmark, or wants to validate a local change on a runner.
+description: Check whether a local code change really makes a project faster (or better on any metric), measured on an Artemis runner. Puts the uncommitted change on a new Artemis branch, measures the starting commit and the change the same number of times on the same runner and script, and reports the platform's verdict per metric with its interval and a link to the branch's Scripts tab. Use when the user asks whether their change or their agent's change is faster, wants a before/after benchmark, or wants to validate a local change on a runner.
 compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.14"
@@ -11,7 +11,7 @@ metadata:
 
 ## At a glance
 
-- **Problem:** Answers "is this change really faster?" with measurements, not a single run: the original code and the change are measured the same number of times on the same runner, and the platform says per metric whether the difference is real.
+- **Problem:** Answers "is this change really faster?" with measurements, not a single run: the starting commit and the change are measured the same number of times on the same runner, and the platform says per metric whether the difference is real.
 - **Must be available:** An authenticated CLI, an online runner, an imported project whose validation script produces metrics, and a local git checkout of that project with the change in it, uncommitted, on top of the project's commit.
 - **Use / don't use:** Use for one change the user or their agent has already made. To have Artemis search for improvements, use `discovery-start`. To judge a Discovery run's versions, use `discovery-inspect`.
 - **Next skill:** `changeset pr` ships a change that came out better. `repo-command-setup` fixes a script whose repeats are not independent (section 4).
@@ -39,11 +39,11 @@ Run it from the repository root (or pass `--root <repo>`). `--from-git` saves ev
 artemis changeset save <changeset-id> --project <p> -m "<what the change does>" <path> <path> --delete <removed-path>
 ```
 
-The changeset then has two versions: **original** (the project's code) and **latest** (with the change). Tell the user the branch exists and link it (section 5).
+The changeset then has two versions: the starting commit (`--version original`, the project's code) and **latest** (with the change). Tell the user the branch exists and link it (section 5).
 
 ## 2. Measure both sides the same way
 
-Alternate the sides, so anything that drifts on the machine during the session hits both equally. One run per call, original then latest, five times each:
+Alternate the sides, so anything that drifts on the machine during the session hits both equally. One run per call, starting commit then latest, five times each:
 
 ```bash
 artemis changeset validate <changeset-id> --project <p> --version original --script <s> --runner <r> --wait
@@ -60,7 +60,7 @@ artemis --output-format json changeset compare <changeset-id> --project <p> --sc
 
 Before any verdict, check each metric's `spreadPct` (section 4). With readings on both sides and no spread, the runs are not independent: falcon then reports `better` or `worse` with reason `settled`, from an interval with no width. Do not report that verdict; go to section 4.
 
-Report per metric: the original's value (on the `versions[]` row with `isBaseline: true`, whose `verdict` is null), the change's value, the improvement and its interval, and the verdict. **Every number comes from this output. Never compute an average, a percentage, an interval or a verdict yourself**, and never call a result better or worse on your own reading of the values.
+Report per metric: the starting commit's value (on the `versions[]` row with `isBaseline: true`, whose `verdict` is null), the change's value, the improvement and its interval, and the verdict. **Every number comes from this output. Never compute an average, a percentage, an interval or a verdict yourself**, and never call a result better or worse on your own reading of the values.
 
 | Verdict | Say |
 |---|---|
