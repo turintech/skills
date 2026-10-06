@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import re
 import subprocess
@@ -17,7 +16,7 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 HARNESS_METRICS = frozenset(
     {
@@ -39,8 +38,12 @@ COMMANDS = (
     "artemis --output-format json discovery metrics <run-id> --all --stats",
     "artemis --output-format json discovery metrics <run-id> --all",
     "artemis --output-format json discovery experiments list <run-id> --all",
+    "artemis --output-format json discovery compare <run-id>",
     "artemis --output-format json project list --all",
 )
+
+# Verdict words falcon returns for a metric and for a version overall.
+VERDICTS = ("better", "worse", "noise", "pending")
 
 
 def extract_json(text: str) -> Any:
@@ -85,29 +88,16 @@ def infer_base_url(status: Any | None = None, explicit: str | None = None) -> st
     return None
 
 
-def pct_better(baseline: float | None, value: float | None, higher_is_better: bool) -> float | None:
-    if baseline is None or value is None:
-        return None
-    if baseline == 0:
+def times_better(improvement_pct: float | None, higher_is_better: bool | None) -> float | None:
+    """falcon's improvement as a ratio, so 2.0 reads as "2x faster" in either direction."""
+    if improvement_pct is None or higher_is_better is None:
         return None
     if higher_is_better:
-        return ((value - baseline) / abs(baseline)) * 100.0
-    return ((baseline - value) / abs(baseline)) * 100.0
-
-
-def times_better(baseline: float | None, value: float | None, higher_is_better: bool) -> float | None:
-    """How many times better than baseline, so 2.0 reads as "2x faster" in either direction."""
-    if baseline is None or value is None or baseline <= 0 or value <= 0:
-        return None
-    return value / baseline if higher_is_better else baseline / value
-
-
-def infer_higher_is_better(name: str) -> bool:
-    lowered = name.lower()
-    for token in ("_ms", "runtime", "latency", "memory", "cpu", "error", "loss"):
-        if token in lowered:
-            return False
-    return True
+        ratio = 1.0 + improvement_pct / 100.0
+    else:
+        remaining = 1.0 - improvement_pct / 100.0
+        ratio = 1.0 / remaining if remaining > 0 else None
+    return ratio if ratio and ratio > 0 else None
 
 
 # The runner's own timings of each command: "compile_runtime", "Benchmark_cpu", "command 2_memory".
@@ -181,12 +171,20 @@ def load_from_dir(directory: str) -> dict[str, Any]:
     experiments = extract_json(load_text(os.path.join(directory, "experiments.json")))
     observations_path = os.path.join(directory, "observations.json")
     observations = extract_json(load_text(observations_path)) if os.path.isfile(observations_path) else None
+    comparison_path = os.path.join(directory, "comparison.json")
+    if not os.path.isfile(comparison_path):
+        raise FileNotFoundError(
+            f"no comparison.json in {directory}: save `artemis --output-format json discovery compare <run-id>` there, "
+            "since the verdicts and changes come from it"
+        )
+    comparison = extract_json(load_text(comparison_path))
     return {
         "run": run,
         "versions": versions,
         "metrics": metrics,
         "observations": observations,
         "experiments": experiments,
+        "comparison": comparison,
     }
 
 
@@ -215,6 +213,30 @@ def project_names(cli: str = "artemis", config: str | None = None) -> dict[str, 
         return {}
 
 
+UPGRADE_HINT = "artemis discovery compare needs artemis CLI 1.1.14 or newer: follow cli-setup to upgrade"
+
+
+def compare_available(cli: str = "artemis", config: str | None = None) -> bool:
+    """Whether this CLI has `discovery compare`. CLIs before 1.1.14 print the parent's help (and exit 0) instead."""
+    completed = subprocess.run(
+        [cli, *(["--config", config] if config else []), "discovery", "compare", "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return "artemis discovery compare" in (completed.stdout or "")
+
+
+def fetch_comparison(run_id: str, cli: str = "artemis", config: str | None = None) -> Any:
+    """Falcon's verdicts from `discovery compare`. A CLI too old to have it gets the upgrade hint; other errors pass through."""
+    try:
+        return extract_json(run_artemis(["discovery", "compare", run_id], cli, config))
+    except (RuntimeError, ValueError) as error:
+        if not compare_available(cli, config):
+            raise RuntimeError(UPGRADE_HINT) from error
+        raise RuntimeError(f"artemis discovery compare failed: {error}") from error
+
+
 def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, names: dict[str, str] | None = None) -> dict[str, Any]:
     call = lambda *args: extract_json(run_artemis(list(args), cli, config))
     run = call("discovery", "get", run_id)
@@ -227,6 +249,7 @@ def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, name
         "metrics": call("discovery", "metrics", run_id, "--all", "--stats"),
         "observations": call("discovery", "metrics", run_id, "--all"),
         "experiments": call("discovery", "experiments", "list", run_id, "--all"),
+        "comparison": fetch_comparison(run_id, cli, config),
         "status": call("status"),
         "projectName": names.get(project_id or ""),
     }
@@ -257,104 +280,43 @@ def quartiles(values: list[float]) -> dict[str, float]:
     return {"q1": at(0.25), "median": at(0.5), "q3": at(0.75)}
 
 
-def _betacf(a: float, b: float, x: float) -> float:
-    """Continued fraction for the regularized incomplete beta (modified Lentz)."""
-    tiny, qab, qap, qam = 1e-300, a + b, a + 1.0, a - 1.0
-    c, d = 1.0, 1.0 - qab * x / qap
-    d = 1.0 / (d if abs(d) > tiny else tiny)
-    result = d
-    for m in range(1, 300):
-        m2 = 2 * m
-        for aa in (m * (b - m) * x / ((qam + m2) * (a + m2)), -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))):
-            d = 1.0 + aa * d
-            d = 1.0 / (d if abs(d) > tiny else tiny)
-            c = 1.0 + aa / c
-            c = c if abs(c) > tiny else tiny
-            result *= d * c
-        if abs(d * c - 1.0) < 1e-15:
-            break
-    return result
-
-
-def betainc(a: float, b: float, x: float) -> float:
-    """Regularized incomplete beta I_x(a, b)."""
-    if x <= 0.0:
-        return 0.0
-    if x >= 1.0:
-        return 1.0
-    front = math.exp(math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b) + a * math.log(x) + b * math.log1p(-x))
-    if x < (a + 1.0) / (a + b + 2.0):
-        return front * _betacf(a, b, x) / a
-    return 1.0 - front * _betacf(b, a, 1.0 - x) / b
-
-
-def t_two_sided_p(t: float, df: float) -> float:
-    """Two-sided p-value of Student's t with a fractional df."""
-    return betainc(df / 2.0, 0.5, df / (df + t * t))
-
-
-def t_quantile_975(df: float) -> float:
-    """The t value with 2.5% in the upper tail, by bisection on the p-value."""
-    low, high = 0.0, 1.0
-    while t_two_sided_p(high, df) > 0.05:
-        high *= 2.0
-    for _ in range(200):
-        mid = (low + high) / 2.0
-        if t_two_sided_p(mid, df) > 0.05:
-            low = mid
-        else:
-            high = mid
-    return (low + high) / 2.0
-
-
-def welch_vs_baseline(baseline: list[float], values: list[float], higher_is_better: bool) -> dict[str, Any] | None:
-    """Welch's two-sided t-test of a version's runs against the baseline's runs.
-
-    t and the interval are oriented like pctBetter: positive means better. df stays fractional.
-    """
-    nb, n = len(baseline), len(values)
-    if nb < 2 or n < 2:
+def falcon_vs_baseline(compared: dict[str, Any] | None) -> dict[str, Any] | None:
+    """falcon's comparison of one metric on one version against the run's baseline, as `discovery compare` returns it."""
+    if not compared or compared.get("verdict") is None:
         return None
-    mb, mv = sum(baseline) / nb, sum(values) / n
-    if mb == 0:
-        return None
-    vb = sum((x - mb) ** 2 for x in baseline) / (nb - 1) / nb
-    vv = sum((x - mv) ** 2 for x in values) / (n - 1) / n
-    se = math.sqrt(vb + vv)
-    if se == 0:
-        return None
-    df = (vb + vv) ** 2 / (vb ** 2 / (nb - 1) + vv ** 2 / (n - 1))
-    sign = 1.0 if higher_is_better else -1.0
-    diff = sign * (mv - mb)
-    half = t_quantile_975(df) * se
-    t = diff / se
-    low, high = (diff - half) / abs(mb) * 100.0, (diff + half) / abs(mb) * 100.0
     return {
-        "test": "welch",
-        "n": n,
-        "nBaseline": nb,
-        "t": t,
-        "df": df,
-        "p": t_two_sided_p(t, df),
-        "ciLowPct": low,
-        "ciHighPct": high,
-        "significant": low > 0,
+        "source": "falcon",
+        "verdict": compared.get("verdict"),
+        "improvementPct": compared.get("improvementPct"),
+        "ciLowPct": compared.get("improvementLowPct"),
+        "ciHighPct": compared.get("improvementHighPct"),
+        "readings": compared.get("readings"),
+        "recommendedReadings": compared.get("recommendedReadings"),
+        "recommendedReadingsReason": compared.get("recommendedReadingsReason"),
+        "spreadPct": compared.get("spreadPct"),
     }
 
 
-def add_vs_baseline(snapshot: dict[str, Any]) -> dict[str, Any]:
-    """Give each version's target metrics a `vsBaseline` Welch test; null when either side has fewer than 2 runs."""
-    baseline = (snapshot.get("baseline") or {}).get("metrics") or {}
-    for definition in snapshot.get("metrics") or []:
-        if definition.get("kind") != "target":
+def index_comparison(comparison: Any) -> tuple[dict[str, dict[str, Any]], dict[Any, dict[str, Any]], dict[str, Any] | None]:
+    """Metric definitions by name, compared rows by version number or sha, and the baseline row."""
+    if isinstance(comparison, dict) and isinstance(comparison.get("docs"), list) and comparison["docs"]:
+        comparison = comparison["docs"][0]
+    if not isinstance(comparison, dict):
+        return {}, {}, None
+    metrics = {m["name"]: m for m in comparison.get("metrics") or [] if isinstance(m, dict) and m.get("name")}
+    rows: dict[Any, dict[str, Any]] = {}
+    baseline = None
+    for row in comparison.get("versions") or []:
+        if not isinstance(row, dict):
             continue
-        name = definition["key"]
-        base_runs = (baseline.get(name) or {}).get("runs") or []
-        for version in snapshot.get("versions") or []:
-            stat = (version.get("metrics") or {}).get(name)
-            if stat is not None:
-                stat["vsBaseline"] = welch_vs_baseline(base_runs, stat.get("runs") or [], bool(definition["higherIsBetter"]))
-    return snapshot
+        if row.get("isBaseline"):
+            baseline = row
+            continue
+        if row.get("versionNumber") is not None:
+            rows[row["versionNumber"]] = row
+        if row.get("sha"):
+            rows[row["sha"]] = row
+    return metrics, rows, baseline
 
 
 def _is_better(value: float, incumbent: float, higher_is_better: bool) -> bool:
@@ -452,6 +414,7 @@ def build_snapshot(
     web_url = f"{project_url}/discover/{run_id}" if project_url else None
 
     experiments_by_id = {item["id"]: item for item in experiments_raw if item.get("id")}
+    compared_metrics, compared_rows, compared_baseline = index_comparison(payloads.get("comparison"))
 
     # Individual measurements, and the direction the platform stores with each one.
     runs_by_group: dict[str, dict[str, list[dict[str, Any]]]] = {}
@@ -494,32 +457,33 @@ def build_snapshot(
     for metric_id, name in names_by_id.items():
         schema = schema_by_id.get(metric_id) or {}
         source = schema.get("source")
-        if "higherIsBetter" in schema:
+        compared = compared_metrics.get(name) or {}
+        # Direction only from the platform: falcon's comparison, the run's schema, then the stored measurements.
+        if "higherIsBetter" in compared:
+            higher: bool | None = bool(compared["higherIsBetter"])
+        elif "higherIsBetter" in schema:
             higher = bool(schema["higherIsBetter"])
-            inferred = False
         elif name in direction_by_name:
             higher = direction_by_name[name]
-            inferred = False
         else:
-            higher = infer_higher_is_better(name)
-            inferred = True
+            higher = None
         metric_defs[name] = {
             "key": name,
             "metricId": metric_id,
             "label": metric_label(name),
             "source": source,
             "higherIsBetter": higher,
-            "higherIsBetterInferred": inferred,
             "importance": schema.get("importance"),
             "kind": classify_kind(name, source),
-            "unit": unit_by_name.get(name) or infer_unit(name),
+            "unit": compared.get("unit") or unit_by_name.get(name) or infer_unit(name),
             "description": schema.get("description"),
         }
 
     # Controls measured beside a target: both worker metrics, same direction.
     reference_pairs = [
         pair for pair in find_references([n for n, d in metric_defs.items() if d["kind"] == "target"])
-        if metric_defs[pair["target"]]["higherIsBetter"] == metric_defs[pair["reference"]]["higherIsBetter"]
+        if metric_defs[pair["target"]]["higherIsBetter"] is not None
+        and metric_defs[pair["target"]]["higherIsBetter"] == metric_defs[pair["reference"]]["higherIsBetter"]
     ]
     for pair in reference_pairs:
         metric_defs[pair["reference"]]["role"] = "reference"
@@ -536,7 +500,6 @@ def build_snapshot(
 
     baseline_group = run.get("baselineGroupId")
     baseline_stats = stats_by_group.get(baseline_group or "", {})
-    baseline_means = {key: (stat or {}).get("mean") for key, stat in baseline_stats.items()}
     add_reference_ratios(baseline_stats)
 
     versions: list[dict[str, Any]] = []
@@ -545,23 +508,15 @@ def build_snapshot(
         group_id = item.get("observationGroupId")
         experiment = experiments_by_id.get(item.get("experimentId") or "") or {}
         raw_metrics = stats_by_group.get(group_id or "", {})
+        compared_row = compared_rows.get(number) or compared_rows.get(item.get("versionSha")) or {}
+        compared_by_name = {m.get("name"): m for m in compared_row.get("metrics") or [] if isinstance(m, dict)}
         joined: dict[str, Any] = {}
         for name, stat in raw_metrics.items():
-            definition = metric_defs.get(name) or {
-                "higherIsBetter": infer_higher_is_better(name),
-                "kind": classify_kind(name, None),
-            }
+            compared = compared_by_name.get(name) or {}
             payload = dict(stat)
-            payload["pctBetter"] = pct_better(
-                baseline_means.get(name),
-                stat.get("mean"),
-                bool(definition["higherIsBetter"]),
-            )
-            payload["timesBetter"] = times_better(
-                baseline_means.get(name),
-                stat.get("mean"),
-                bool(definition["higherIsBetter"]),
-            )
+            payload["pctBetter"] = compared.get("improvementPct")
+            payload["timesBetter"] = times_better(compared.get("improvementPct"), (metric_defs.get(name) or {}).get("higherIsBetter"))
+            payload["vsBaseline"] = falcon_vs_baseline(compared)
             joined[name] = payload
         add_reference_ratios(joined)
         record = {
@@ -583,6 +538,7 @@ def build_snapshot(
             "parentExperimentIds": experiment.get("parentExperimentIds") or [],
             "llmRationale": item.get("llmRationale"),
             "createdAt": item.get("createdAt"),
+            "overallVerdict": compared_row.get("overallVerdict"),
             "metrics": joined,
         }
         record["eligible"] = _eligible(record)
@@ -592,11 +548,21 @@ def build_snapshot(
     running_best: dict[str, list[dict[str, Any]]] = {}
     winners: dict[str, dict[str, Any]] = {}
     for name, definition in metric_defs.items():
+        if definition["higherIsBetter"] is None:
+            # No direction from the platform: nothing is "best" until someone says which way is better.
+            rankings[name], running_best[name] = [], []
+            winners[name] = {"raw": None, "eligible": None, "reason": "the platform stores no direction for this metric"}
+            continue
         higher = bool(definition["higherIsBetter"])
         ranked: list[dict[str, Any]] = []
+        unranked: list[str] = []
         for version in versions:
             stat = (version.get("metrics") or {}).get(name)
             if not stat or stat.get("mean") is None:
+                continue
+            if stat.get("pctBetter") is None:
+                # Falcon has no change for this version (no baseline readings, or not compared yet): no rank.
+                unranked.append(version["label"])
                 continue
             ranked.append(
                 {
@@ -611,14 +577,18 @@ def build_snapshot(
                     "experimentStatus": version.get("experimentStatus"),
                 }
             )
-        ranked.sort(key=lambda row: row["mean"], reverse=higher)
+        # Falcon's change, on the metric's own aggregator, as the Web UI ranks.
+        ranked.sort(key=lambda row: -row["pctBetter"])
         rankings[name] = ranked
         raw = ranked[0] if ranked else None
         eligible_rows = [row for row in ranked if row["eligible"]]
         winners[name] = {
             "raw": raw,
             "eligible": eligible_rows[0] if eligible_rows else None,
+            "unranked": unranked,
         }
+        if raw is None:
+            winners[name]["reason"] = "Artemis has no change against the original for any version yet"
 
         best_version = None
         best_mean = None
@@ -681,6 +651,9 @@ def build_snapshot(
         unknown = [axis for axis in pareto_axes if axis not in metric_defs]
         if unknown:
             raise ValueError(f"unknown Pareto axes: {', '.join(unknown)}")
+        undirected = [axis for axis in pareto_axes if metric_defs[axis]["higherIsBetter"] is None]
+        if undirected:
+            raise ValueError(f"no direction stored for Pareto axes: {', '.join(undirected)}")
         pareto = {
             "axes": [
                 {
@@ -694,12 +667,13 @@ def build_snapshot(
             "note": "Analytical view over the named axes, not an Artemis verdict.",
         }
 
-    return add_vs_baseline({
+    return {
         "schemaVersion": SCHEMA_VERSION,
         "collectedAt": collected_at,
         "provenance": {
             "source": "artemis discovery metrics --all --stats",
             "runsSource": "artemis discovery metrics --all" if runs_by_group else None,
+            "verdictsSource": "artemis discovery compare (falcon)" if compared_metrics or compared_rows else None,
             "commands": list(COMMANDS),
             "cli": "artemis",
         },
@@ -729,6 +703,7 @@ def build_snapshot(
             "sha": run.get("baselineVersionSha"),
             "observationGroupId": baseline_group,
             "metrics": baseline_stats,
+            "readings": {m.get("name"): m.get("readings") for m in (compared_baseline or {}).get("metrics") or [] if isinstance(m, dict)},
         },
         "versions": versions,
         "experiments": experiment_records,
@@ -743,7 +718,7 @@ def build_snapshot(
         "experimentSummary": status_counts,
         "pareto": pareto,
         "references": reference_pairs,
-    })
+    }
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -781,6 +756,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     collected_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     if args.project:
+        if not compare_available(args.cli, args.config):
+            print(f"collect_discovery.py: {UPGRADE_HINT}", file=sys.stderr)
+            return 1
         runs, skipped = [], []
         names = project_names(args.cli, args.config)
         for item in sorted(list_project_runs(args.project, args.cli, args.config), key=lambda r: r.get("createdAt") or ""):
@@ -797,15 +775,27 @@ def main(argv: list[str] | None = None) -> int:
             print(encoded)
         return 0
     if args.from_dir:
-        payloads = load_from_dir(args.from_dir)
+        try:
+            payloads = load_from_dir(args.from_dir)
+        except FileNotFoundError as error:
+            print(f"collect_discovery.py: {error}", file=sys.stderr)
+            return 1
     else:
-        payloads = fetch_cli(args.run_id, args.cli, args.config)
-    snapshot = build_snapshot(
-        payloads,
-        collected_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-        base_url=args.base_url,
-        pareto_axes=parse_pareto_axes(args.pareto),
-    )
+        try:
+            payloads = fetch_cli(args.run_id, args.cli, args.config)
+        except RuntimeError as error:
+            print(f"collect_discovery.py: {error}", file=sys.stderr)
+            return 1
+    try:
+        snapshot = build_snapshot(
+            payloads,
+            collected_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            base_url=args.base_url,
+            pareto_axes=parse_pareto_axes(args.pareto),
+        )
+    except ValueError as error:
+        print(f"collect_discovery.py: {error}", file=sys.stderr)
+        return 2
     encoded = json.dumps(snapshot, indent=2, sort_keys=False)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as handle:

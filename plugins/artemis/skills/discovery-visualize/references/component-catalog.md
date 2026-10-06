@@ -49,7 +49,7 @@ Keep those constraints when combining recipes:
 - Raw per-metric winners remain primary measurements.
 - Eligibility is a warning/filter, not a performance verdict.
 - Missing observations remain gaps.
-- `pctBetter` comes from the collector and stays oriented so positive is better.
+- `pctBetter` is falcon's improvement, from the collector, oriented so positive is better.
 - Quality, harness, worker, and experiment-status signals remain distinct.
 - Every chart retains metric name, units, source, baseline, and accessible text.
 

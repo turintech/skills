@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -51,26 +54,21 @@ class DocsAndUrlTests(unittest.TestCase):
 
 
 class MetricMathTests(unittest.TestCase):
-    def test_pct_better_both_directions(self) -> None:
-        self.assertAlmostEqual(collector.pct_better(10.0, 6.0, False), 40.0)
-        self.assertAlmostEqual(collector.pct_better(0.5, 0.7, True), 40.0)
-        self.assertIsNone(collector.pct_better(None, 1.0, False))
-        # A percentage of a zero baseline is undefined, and a report should show a gap, not 0%.
-        self.assertIsNone(collector.pct_better(0.0, 1.0, False))
-
-    def test_times_better_both_directions(self) -> None:
-        self.assertAlmostEqual(collector.times_better(10.0, 5.0, False), 2.0)
-        self.assertAlmostEqual(collector.times_better(32.0, 128.0, True), 4.0)
-        self.assertIsNone(collector.times_better(0.0, 1.0, True))
+    def test_times_better_reads_falcons_improvement(self) -> None:
+        # Lower is better: 50% better means half the time, so 2x.
+        self.assertAlmostEqual(collector.times_better(50.0, False), 2.0)
+        self.assertAlmostEqual(collector.times_better(300.0, True), 4.0)
+        self.assertIsNone(collector.times_better(None, True))
+        self.assertIsNone(collector.times_better(20.0, None))
+        self.assertIsNone(collector.times_better(100.0, False))
 
     def test_kind_classification(self) -> None:
         self.assertEqual(collector.classify_kind("compile_runtime", "worker"), "harness")
         self.assertEqual(collector.classify_kind("quality_score", "agent"), "quality")
         self.assertEqual(collector.classify_kind("latency_ms", "worker"), "target")
 
-    def test_higher_is_better_heuristic(self) -> None:
-        self.assertFalse(collector.infer_higher_is_better("decode_b8_ms"))
-        self.assertTrue(collector.infer_higher_is_better("quality_score"))
+    def test_direction_is_never_guessed_from_a_name(self) -> None:
+        self.assertFalse(hasattr(collector, "infer_higher_is_better"))
 
 
 class SnapshotFixtureTests(unittest.TestCase):
@@ -86,7 +84,7 @@ class SnapshotFixtureTests(unittest.TestCase):
 
     def test_schema_and_provenance(self) -> None:
         snap = self.snapshot
-        self.assertEqual(snap["schemaVersion"], 1)
+        self.assertEqual(snap["schemaVersion"], 2)
         self.assertEqual(snap["run"]["id"], "11111111-1111-1111-1111-111111111111")
         self.assertEqual(
             snap["run"]["webUrl"],
@@ -168,7 +166,7 @@ class SnapshotFixtureTests(unittest.TestCase):
             )
             self.assertEqual(code, 0)
             loaded = json.loads(Path(out).read_text(encoding="utf-8"))
-            self.assertEqual(loaded["schemaVersion"], 1)
+            self.assertEqual(loaded["schemaVersion"], 2)
             self.assertEqual(loaded["perMetricWinners"]["latency_ms"]["raw"]["version"], 2)
 
 
@@ -202,14 +200,17 @@ class ObservationTests(unittest.TestCase):
         metric = snap["metrics"][0]
         # The name says lower is better; the platform's stored direction wins.
         self.assertTrue(metric["higherIsBetter"])
-        self.assertFalse(metric["higherIsBetterInferred"])
         self.assertEqual(snap["baseline"]["metrics"]["frame_time"]["runs"], [9.0, 11.0])
         self.assertEqual(snap["versions"][0]["metrics"]["frame_time"]["runs"], [19.0, 21.0])
-        self.assertAlmostEqual(snap["versions"][0]["metrics"]["frame_time"]["pctBetter"], 100.0)
+        # No comparison from falcon, so no change is claimed.
+        self.assertIsNone(snap["versions"][0]["metrics"]["frame_time"]["pctBetter"])
+        self.assertIsNone(snap["versions"][0]["metrics"]["frame_time"]["vsBaseline"])
 
-    def test_without_observations_direction_is_inferred(self) -> None:
+    def test_without_a_platform_direction_nothing_is_ranked(self) -> None:
         snap = collector.build_snapshot(self.payloads(None), collected_at="2026-01-01T00:00:00Z")
-        self.assertTrue(snap["metrics"][0]["higherIsBetterInferred"])
+        self.assertIsNone(snap["metrics"][0]["higherIsBetter"])
+        self.assertEqual(snap["rankings"]["frame_time"], [])
+        self.assertIsNone(snap["perMetricWinners"]["frame_time"]["raw"])
         self.assertNotIn("runs", snap["baseline"]["metrics"]["frame_time"])
 
 
@@ -258,105 +259,163 @@ class ClassificationAndReferenceTests(unittest.TestCase):
         self.assertEqual(roles["k_cublas_ms"], "reference")
 
 
-class WelchTests(unittest.TestCase):
-    """Checked against scipy.stats.ttest_ind(equal_var=False) on a real run's measurements."""
+class FalconComparisonTests(unittest.TestCase):
+    """Verdicts and intervals come from `discovery compare` (falcon); the collector computes none."""
 
-    BASELINE = [2.72438907623291, 2.7017710208892822, 2.715749979019165]
-
-    def close(self, actual: float, expected: float, rel: float = 1e-6) -> None:
-        self.assertLessEqual(abs(actual - expected), rel * abs(expected), msg=f"{actual} vs {expected}")
-
-    def test_matches_scipy(self) -> None:
-        cases = [
-            ([3.041734457015991, 3.027451753616333, 2.961209774017334],
-             {"t": 11.53885502913434, "df": 2.280871517033882, "p": 0.004527460133295737, "ciLowPct": 7.287801505379235, "ciHighPct": 14.537197793295755}),
-            ([2.8946189880371094, 2.8803341388702393, 2.8693151473999023],
-             {"t": 16.995528343688573, "df": 3.956068689457447, "p": 7.595036146595095e-05, "ciLowPct": 5.157642993608562, "ciHighPct": 7.182414645641918}),
-            ([2.630793571472168, 2.7820160388946533, 2.794607639312744],
-             {"p": 0.7194349688192156, "ciLowPct": -7.364448637204417, "ciHighPct": 8.973583911988808}),
-        ]
-        for runs, expected in cases:
-            result = collector.welch_vs_baseline(self.BASELINE, runs, True)
-            self.assertEqual((result["test"], result["n"], result["nBaseline"]), ("welch", 3, 3))
-            for key, value in expected.items():
-                self.close(result[key], value, 1e-4 if key == "p" else 1e-6)
-            self.assertEqual(result["significant"], expected["ciLowPct"] > 0)
-
-    def test_df_stays_fractional(self) -> None:
-        result = collector.welch_vs_baseline(self.BASELINE, [3.04, 3.03, 2.96], True)
-        self.assertNotEqual(result["df"], int(result["df"]))
-
-    def test_lower_is_better_mirrors(self) -> None:
-        runs = [3.041734457015991, 3.027451753616333, 2.961209774017334]
-        up = collector.welch_vs_baseline(self.BASELINE, runs, True)
-        down = collector.welch_vs_baseline(self.BASELINE, runs, False)
-        self.close(down["ciLowPct"], -up["ciHighPct"])
-        self.close(down["ciHighPct"], -up["ciLowPct"])
-        self.close(down["t"], -up["t"])
-        self.close(down["p"], up["p"])
-        self.assertFalse(down["significant"])
-
-    def test_too_few_runs_is_null(self) -> None:
-        self.assertIsNone(collector.welch_vs_baseline(self.BASELINE, [3.0], True))
-        self.assertIsNone(collector.welch_vs_baseline([2.7], [3.0, 3.1], True))
-
-    def test_snapshot_carries_vs_baseline(self) -> None:
-        observations = [
-            {"observationGroupId": group, "metricName": "fps", "value": value, "higherIsBetter": True, "createdAt": "2026-01-01T00:00:00Z"}
-            for group, values in (("gb", self.BASELINE), ("g1", [3.0, 3.1, 3.05]), ("g2", [2.9]))
-            for value in values
-        ]
-        stat = lambda group, values: {"observationGroupId": group, "metricId": "m", "metricName": "fps", "mean": sum(values) / len(values), "min": min(values), "max": max(values), "count": len(values)}
-        payloads = {
-            "run": {"id": "r", "projectId": "p", "baselineGroupId": "gb"},
-            "versions": [
-                {"id": "a", "versionNumber": 1, "observationGroupId": "g1", "lifecycle": "completed", "executionStatus": "success"},
-                {"id": "b", "versionNumber": 2, "observationGroupId": "g2", "lifecycle": "completed", "executionStatus": "success"},
-            ],
-            "metrics": [stat("gb", self.BASELINE), stat("g1", [3.0, 3.1, 3.05]), stat("g2", [2.9])],
-            "observations": observations,
-            "experiments": [],
+    def payloads(self):
+        compared = {
+            "metricId": "m-fps", "name": "simulation_fps", "value": 120.0, "readings": 5,
+            "improvementPct": 20.0, "improvementLowPct": 12.5, "improvementHighPct": 27.5, "verdict": "better",
+            "recommendedReadings": None, "recommendedReadingsReason": "settled", "spreadPct": 3.1,
         }
+        return {
+            "run": {"id": "run-1", "projectId": "p-1", "baselineGroupId": "g-base"},
+            "versions": [{"id": "v-1", "versionNumber": 1, "versionSha": "sha-1", "observationGroupId": "g-1", "lifecycle": "completed", "executionStatus": "success"}],
+            "metrics": [
+                {"observationGroupId": "g-base", "metricId": "m-fps", "metricName": "simulation_fps", "mean": 100.0, "min": 98.0, "max": 102.0, "count": 5},
+                {"observationGroupId": "g-1", "metricId": "m-fps", "metricName": "simulation_fps", "mean": 120.0, "min": 117.0, "max": 123.0, "count": 5},
+            ],
+            "observations": None,
+            "experiments": [],
+            "comparison": {
+                "baselineSha": "sha-0",
+                "metrics": [{"id": "m-fps", "name": "simulation_fps", "unit": "fps", "higherIsBetter": True}],
+                "versions": [
+                    {"sha": "sha-0", "isBaseline": True, "metrics": [dict(compared, value=100.0, readings=5, improvementPct=None, improvementLowPct=None, improvementHighPct=None, verdict=None)]},
+                    {"sha": "sha-1", "isBaseline": False, "versionNumber": 1, "metrics": [compared],
+                     "overallVerdict": {"verdict": "better", "improvementLowPct": 12.5, "improvementHighPct": 27.5, "provisional": False}},
+                ],
+            },
+        }
+
+    def test_maps_falcons_verdict_and_interval(self) -> None:
+        snap = collector.build_snapshot(self.payloads(), collected_at="2026-01-01T00:00:00Z")
+        metric = snap["versions"][0]["metrics"]["simulation_fps"]
+        self.assertEqual(metric["pctBetter"], 20.0)
+        self.assertAlmostEqual(metric["timesBetter"], 1.2)
+        self.assertEqual(metric["vsBaseline"], {
+            "source": "falcon", "verdict": "better", "improvementPct": 20.0, "ciLowPct": 12.5, "ciHighPct": 27.5,
+            "readings": 5, "recommendedReadings": None, "recommendedReadingsReason": "settled", "spreadPct": 3.1,
+        })
+        self.assertEqual(snap["versions"][0]["overallVerdict"]["verdict"], "better")
+        self.assertEqual(snap["baseline"]["readings"], {"simulation_fps": 5})
+        definition = snap["metrics"][0]
+        self.assertTrue(definition["higherIsBetter"])
+        self.assertEqual(definition["unit"], "fps")
+        self.assertIn("discovery compare", snap["provenance"]["verdictsSource"])
+
+    def test_fixture_snapshot_carries_falcons_verdict_words(self) -> None:
+        payloads = collector.load_from_dir(str(FIXTURES))
         snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
-        self.assertTrue(snap["versions"][0]["metrics"]["fps"]["vsBaseline"]["significant"])
-        self.assertIsNone(snap["versions"][1]["metrics"]["fps"]["vsBaseline"])
+        verdicts = {
+            (v["label"], name): m["vsBaseline"]["verdict"]
+            for v in snap["versions"] for name, m in v["metrics"].items() if m.get("vsBaseline")
+        }
+        self.assertTrue(verdicts)
+        self.assertTrue(set(verdicts.values()) <= set(collector.VERDICTS))
 
+    def two_versions(self, first: dict, second: dict, baseline: bool = True) -> dict:
+        """Two versions of a higher-is-better metric with the given falcon rows; v1 has the higher mean."""
+        payloads = self.payloads()
+        payloads["versions"].append({"id": "v-2", "versionNumber": 2, "versionSha": "sha-2", "observationGroupId": "g-2", "lifecycle": "completed", "executionStatus": "success"})
+        payloads["metrics"].append({"observationGroupId": "g-2", "metricId": "m-fps", "metricName": "simulation_fps", "mean": 110.0, "min": 105.0, "max": 115.0, "count": 5})
+        base_row = payloads["comparison"]["versions"][0]
+        rows = [{"sha": "sha-1", "isBaseline": False, "versionNumber": 1, "metrics": [first]},
+                {"sha": "sha-2", "isBaseline": False, "versionNumber": 2, "metrics": [second]}]
+        payloads["comparison"]["versions"] = ([base_row] if baseline else []) + rows
+        return payloads
 
-class CliArgsTests(unittest.TestCase):
-    def test_cli_and_config_reach_every_call(self) -> None:
-        from unittest import mock
+    def falcon_row(self, pct, verdict):
+        return {"metricId": "m-fps", "name": "simulation_fps", "readings": 5, "improvementPct": pct,
+                "improvementLowPct": None if pct is None else pct - 4, "improvementHighPct": None if pct is None else pct + 4,
+                "verdict": verdict, "recommendedReadings": None, "recommendedReadingsReason": None, "spreadPct": 2.0}
 
-        calls = []
+    def test_worse_and_noise_verdicts_are_falcons(self) -> None:
+        snap = collector.build_snapshot(self.two_versions(self.falcon_row(-8.0, "worse"), self.falcon_row(1.0, "noise")), collected_at="2026-01-01T00:00:00Z")
+        verdicts = [v["metrics"]["simulation_fps"]["vsBaseline"]["verdict"] for v in snap["versions"]]
+        self.assertEqual(verdicts, ["worse", "noise"])
 
-        def fake_run(argv, **_kwargs):
-            calls.append(argv)
-            if argv[5:7] == ["project", "list"]:
-                out = json.dumps({"docs": [{"id": "p-1", "name": "Smoke"}]})
-            elif argv[5:7] == ["discovery", "get"]:
-                out = json.dumps({"id": "r-1", "projectId": "p-1", "runnerName": "box-1"})
-            else:
-                out = "[]"
-            return mock.Mock(returncode=0, stdout=out, stderr="")
+    def test_ranking_follows_falcons_change_not_the_mean(self) -> None:
+        # v1 has the higher mean, but falcon (median aggregator, say) puts v2 ahead.
+        snap = collector.build_snapshot(self.two_versions(self.falcon_row(-8.0, "worse"), self.falcon_row(1.0, "noise")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [2, 1])
+        self.assertEqual(snap["perMetricWinners"]["simulation_fps"]["raw"]["version"], 2)
 
-        with mock.patch.object(collector.subprocess, "run", side_effect=fake_run), tempfile.TemporaryDirectory() as tmp:
-            out = os.path.join(tmp, "snap.json")
-            code = collector.main(["--run-id", "r-1", "--cli", "/opt/artemis-cli", "--config", "/etc/a.env", "--output", out])
-            snap = json.loads(Path(out).read_text(encoding="utf-8"))
-        self.assertEqual(code, 0)
-        self.assertGreaterEqual(len(calls), 7)
-        for argv in calls:
-            self.assertEqual(argv[:5], ["/opt/artemis-cli", "--config", "/etc/a.env", "--output-format", "json"])
-        self.assertEqual(snap["run"]["projectName"], "Smoke")
-        self.assertEqual(snap["run"]["runner"], "box-1")
+    def test_without_a_baseline_row_no_change_is_claimed(self) -> None:
+        empty = self.falcon_row(None, None)
+        snap = collector.build_snapshot(self.two_versions(empty, dict(empty), baseline=False), collected_at="2026-01-01T00:00:00Z")
+        for version in snap["versions"]:
+            metric = version["metrics"]["simulation_fps"]
+            self.assertIsNone(metric["pctBetter"])
+            self.assertIsNone(metric["vsBaseline"])
+        # With no falcon number, nothing is ranked and the winner says why.
+        self.assertEqual(snap["rankings"]["simulation_fps"], [])
+        winner = snap["perMetricWinners"]["simulation_fps"]
+        self.assertIsNone(winner["raw"])
+        self.assertIn("no change", winner["reason"])
+        self.assertEqual(winner["unranked"], ["v1", "v2"])
 
-    def test_defaults_add_no_config(self) -> None:
-        from unittest import mock
+    def test_a_version_without_falcons_number_is_not_ranked(self) -> None:
+        # v1 has the higher mean but no falcon change; it must not outrank v2, which falcon says is worse.
+        snap = collector.build_snapshot(self.two_versions(self.falcon_row(None, None), self.falcon_row(-30.0, "worse")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [2])
+        winner = snap["perMetricWinners"]["simulation_fps"]
+        self.assertEqual(winner["raw"]["pctBetter"], -30.0)
+        self.assertEqual(winner["unranked"], ["v1"])
 
-        with mock.patch.object(collector.subprocess, "run", return_value=mock.Mock(returncode=0, stdout="{}", stderr="")) as run:
-            collector.run_artemis(["status"])
-        self.assertEqual(run.call_args.args[0], ["artemis", "--output-format", "json", "status"])
+    def test_an_old_cli_gets_an_upgrade_hint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp) / "artemis"
+            # CLI 1.0.11 prints the parent's help and exits 0 for an unknown subcommand.
+            fake.write_text("#!/bin/sh\necho 'Usage: artemis discovery [command]'\n", encoding="utf-8")
+            fake.chmod(0o755)
+            with self.assertRaises(RuntimeError) as caught:
+                collector.fetch_comparison("run-1", cli=str(fake))
+            self.assertIn("1.1.14", str(caught.exception))
+            self.assertIn("cli-setup", str(caught.exception))
 
-    def test_runner_falls_back_to_id(self) -> None:
-        snap = collector.build_snapshot({"run": {"id": "r", "runnerUserId": "u-9"}, "versions": [], "metrics": [], "experiments": []}, collected_at="t")
-        self.assertEqual(snap["run"]["runner"], "u-9")
-        self.assertIsNone(snap["run"]["projectName"])
+    def fake_cli(self, tmp: str, script: str) -> str:
+        fake = Path(tmp) / "artemis"
+        fake.write_text("#!/bin/sh\n" + script, encoding="utf-8")
+        fake.chmod(0o755)
+        return str(fake)
+
+    def test_other_compare_failures_pass_through(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            # A CLI that has compare, failing for another reason (auth).
+            cli = self.fake_cli(tmp, 'case "$*" in *--help*) printf "Usage:\\n  artemis discovery compare <run-id> [flags]\\n";; *) echo "401 Unauthorized" >&2; exit 3;; esac\n')
+            with self.assertRaises(RuntimeError) as caught:
+                collector.fetch_comparison("run-1", cli=cli)
+            self.assertIn("401 Unauthorized", str(caught.exception))
+            self.assertNotIn("1.1.14", str(caught.exception))
+
+    def test_project_mode_stops_on_an_old_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cli = self.fake_cli(tmp, "echo 'Usage: artemis discovery [command]'\n")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                code = collector.main(["--project", "p-1", "--cli", cli])
+            self.assertEqual(code, 1)
+            self.assertIn("1.1.14", err.getvalue())
+
+    def test_from_dir_needs_falcons_comparison(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("run.json", "versions.json", "metrics.json", "experiments.json"):
+                shutil.copy(FIXTURES / name, Path(tmp) / name)
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                code = collector.main(["--from-dir", tmp])
+            self.assertEqual(code, 1)
+            self.assertIn("comparison.json", err.getvalue())
+
+    def test_a_bad_pareto_axis_is_a_message_not_a_traceback(self) -> None:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = collector.main(["--from-dir", str(FIXTURES), "--pareto", "nosuch,other"])
+        self.assertEqual(code, 2)
+        self.assertIn("Pareto", err.getvalue())
+
+    def test_no_statistics_are_computed_here(self) -> None:
+        source = (SCRIPTS / "collect_discovery.py").read_text(encoding="utf-8")
+        for name in ("betainc", "t_quantile", "welch", "t_two_sided_p", "pct_better"):
+            self.assertNotIn(name, source)

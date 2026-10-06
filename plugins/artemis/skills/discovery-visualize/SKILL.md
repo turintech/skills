@@ -1,9 +1,9 @@
 ---
 name: discovery-visualize
 description: Collect a normalized Artemis discovery snapshot and render it as a host-native chart or report. Use when the user wants to graph, chart, plot, compare, visualize, or build a discovery report, canvas, or artifact from a discovery run, or chart a project's Maintain issues by severity and triage.
-compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.8"
+  artemis-cli-min: "1.1.14"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -19,6 +19,7 @@ metadata:
 ## Requirements
 
 - `artemis status` succeeds on the run's deployment.
+- `artemis --version` is at least `artemis-cli-min` (1.1.14, which has `discovery compare`); if it is older, load the skill and follow `cli-setup` first.
 - A `run_id`, or a project id to compare its runs. If unknown, ask for the Web UI URL and extract IDs using the router: load the skill and follow `artemis` §2.
 - Python 3, stdlib only, to run [scripts/collect_discovery.py](scripts/collect_discovery.py).
 
@@ -36,7 +37,7 @@ python3 "<skill-dir>/scripts/collect_discovery.py" \
 
 Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / trade-off view and named the axes, or when one target metric and one quality metric are the obvious pair and you label it as analysis.
 
-4. Read the snapshot. Trust `perMetricWinners`, `rankings`, raw `metrics` means, `runs`, `timesBetter` and `vsBaseline`. Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner.
+4. Read the snapshot. Trust `perMetricWinners`, `rankings`, raw `metrics` means, `runs`, `timesBetter` and `vsBaseline` (falcon's verdict and interval). Default to the raw per-metric winner; if it differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent a single overall winner. If `perMetricWinners[metric].raw` is `null`, say its `reason` (no stored direction, or no change from Artemis yet) and draw no winner for it. Collect with `--from-dir` only from a folder that holds `comparison.json` from `discovery compare`.
 5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. The figures are kit functions ([references/report-kit.md](references/report-kit.md)); [references/component-catalog.md](references/component-catalog.md) is only for a Cursor canvas.
 6. Build the page with the kit in [references/report-kit.md](references/report-kit.md), on every host: write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. The result is one HTML file that looks the same whichever agent built it. Then read the adapter for how to hand it over:
    - Claude Code: [references/claude-code.md](references/claude-code.md) (publish as an Artifact)
@@ -84,12 +85,12 @@ These override any host chart default:
 - Rank by the raw target metric, not the composite score (`fitness`). Show the composite score only as a separate platform score.
 - Use the **raw** per-metric winner in the default headline comparison. A per-metric **eligible** winner requires `lifecycle=completed`, `executionStatus=success`, and `experimentStatus != refuted`; when the raw winner fails that gate, warn clearly and show the eligible alternative secondarily.
 - Never claim one overall winner for multiple objectives unless the user supplied the aggregation rule.
-- The collector reads each metric's direction from the platform. If `higherIsBetterInferred` is still true, it was guessed from the name: confirm it from the run's task or with the user before naming a winner.
+- The collector reads each metric's direction from the platform only. When `higherIsBetter` is `null`, the metric has no ranking or winner: ask the user which way is better before naming one.
 - Missing observations are gaps, not zeroes. `generation_failed` versions never reached the runner.
 - Plot `mean` / `min` / `max` / `count`, and individual `runs` when present.
-- Significance comes only from the collector's `vsBaseline` (Welch, two-sided, fractional df); never compute statistics in the page. Show `n` beside any "significant". Say "not significant", not "worse", when the interval crosses 0. With 3 runs, say the intervals are wide.
+- Verdicts and intervals are falcon's, in `vsBaseline` (`better`, `worse`, `noise`, `pending`), the same ones the Web UI shows; never compute statistics in the page or the conversation. Show the runs beside any verdict. Say "within the noise", not "worse", for `noise`, and "too few runs to tell" for `pending`.
 - Colour by better and worse only when the user asks for it.
-- Keep measured metrics, AI-assessed metrics (`kind: quality`) and experiment verdicts visually distinct: AI-assessed metrics get their own figure, never the headline, the forest or a significance claim.
+- Keep measured metrics, AI-assessed metrics (`kind: quality`) and experiment verdicts visually distinct: AI-assessed metrics get their own figure, never the headline, the forest or a verdict.
 - Versions are numbered in the order they were made, so version order is generation order. The trajectory marks the raw winner only; plot running-best only when the user is judging search speed.
 - A Pareto front is an analytical view over named axes, not an Artemis verdict.
 
@@ -110,10 +111,10 @@ The collector already strips logger noise before JSON and joins `observationGrou
 
 ## Checklist
 
-- [ ] Snapshot written; `schemaVersion` is 1.
+- [ ] Snapshot written; `schemaVersion` is 2.
 - [ ] The user's own chart, colours and versions were drawn exactly as asked; otherwise the default, best vs baseline.
-- [ ] The title states the main finding and whether it is significant, and every figure has a question heading and bullet findings, with numbers from the snapshot.
+- [ ] The title states the main finding and falcon's verdict for it, and every figure has a question heading and bullet findings, with numbers from the snapshot.
 - [ ] Each target metric has a baseline, change and raw winner view; any raw/eligible difference is explained without making eligibility the headline.
 - [ ] Failed and missing versions are accounted for.
-- [ ] The method note or a caption names the test, `n` and the CLI source, and that % is mean vs baseline.
+- [ ] The method note or a caption says the verdicts are Artemis's own (`discovery compare`) and gives the runs per side.
 - [ ] Handed over with at most four lines of summary and the report link in the box, then the Discovery Web UI link.

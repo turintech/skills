@@ -1,9 +1,9 @@
 ---
 name: discovery-inspect
 description: Inspect and interpret the results of an Artemis discovery run — is it done, did versions actually pass, what are the real numbers, and what code changed. Use when the user wants to check on a discovery run, read its results, see which versions won, or understand why a run produced nothing.
-compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.8"
+  artemis-cli-min: "1.1.14"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -21,6 +21,7 @@ The central rule is **completed does not mean passed**. Terminal status means th
 ## Requirements
 
 - CLI authenticated (`artemis status`) on the run's deployment.
+- `artemis --version` is at least `artemis-cli-min` (1.1.14, which has `discovery compare`); if it is older, load the skill and follow `cli-setup` first.
 - The `run_id` (from `discovery create`'s output, or `artemis discovery list --project <uuid>`).
 - If the run or version ID is unknown, ask for its Web UI URL and extract the project, discovery, and optional version UUIDs using the router: load the skill and follow `artemis` §2.
 - For a runner-executed failure, use the version's `processId` with `execution-log-inspect`, or use `artemis discovery versions logs <version-id>`.
@@ -123,7 +124,13 @@ Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`),
 
 ### 4. What are the real numbers? (metrics — the source of truth)
 
-`artemis discovery metrics <run-id> --all --stats` gives the mean, spread and sample count per version and baseline. Compare means against the baseline and treat any difference smaller than the spread as noise. Without `--stats` you get one row per repetition, each carrying its version and baseline keys. **This is what you trust**, not fitness (see *Common misreads*).
+```bash
+artemis --output-format json discovery compare <run-id>
+```
+
+This is Artemis's own verdict, the one the Web UI shows: per version and metric, the % change against the baseline, its 95% interval and a verdict (`better`, `worse`, `noise`, or `pending` when there are too few runs), plus an overall verdict per version and the runs that would settle a `pending` one. **This is what you trust**, not fitness (see *Common misreads*). Report the verdicts as given; never judge noise from the spread yourself.
+
+`artemis discovery metrics <run-id> --all --stats` adds the mean, spread and sample count per version and baseline as context, and without `--stats` one row per repetition.
 
 To see the winning change, read its `llmRationale` (`discovery versions get <version-id>`) and then read the diff itself — confirm it actually does what you asked (e.g. registers/calls the C++ op) rather than a shortcut that happens to score well. A rationale describing an optimisation is not evidence the diff implements one.
 
@@ -165,7 +172,7 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 ## Checklist
 
 - [ ] `discovery get`: baseline finalized (`baselineGroupId` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit.
-- [ ] `discovery metrics --all`: each version's target metric compared to `baseline:` — the numbers, not `fitness`, decide the winner.
+- [ ] `discovery compare`: each version's verdict on the target metric, as Artemis gives it; the verdicts, not `fitness`, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
 - [ ] Project link returned, naming the page to open (Discover, the run, its Versions tab, the winning version).
