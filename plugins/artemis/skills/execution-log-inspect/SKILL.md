@@ -26,7 +26,7 @@ For a Discovery candidate:
 artemis --output-format json discovery versions get "<version-id>"
 ```
 
-Read `failureReason` first: it states why the version ended without a result, and may make the log unnecessary. Then record `processId` and `validationId`. If the process ID is absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
+Read `failureReason` first when it is there: a version that failed to generate or score states why, which may make the log unnecessary. A version whose commands failed (`executionStatus` `failed`) has no `failureReason`; its log is the reason. Then record `processId` and `validationId`. If the process ID is absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
 
 Prefer the version-native shortcut:
 
