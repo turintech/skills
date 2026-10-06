@@ -37,7 +37,7 @@ artemis runner list
 
 ## Install the CLI
 
-Start here when there is no CLI, or it needs replacing. The deployment's own page at `<deployment-base-url>/settings/cli` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
+Start here when there is no CLI, or it needs replacing. The deployment's **Connect Your Agent** page at `<deployment-base-url>/settings/connect-agent` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
 
 Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always read `artemis --version` after downloading, and fall back to the newest versioned release when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
 
@@ -74,16 +74,23 @@ curl -s "https://files.artemis.turintech.ai/public/artemis-cli/" \
   | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV | tail -5
 ```
 
-Then fetch that version for the platform, verify it, and put it on `PATH`:
+Then fetch that version for the platform, check it against the release's `checksums.txt`, and only then put it on `PATH`:
 
 ```bash
 VER=<the newest version in the listing above>
 PLATFORM="linux-amd64"   # from the table above
-mkdir -p ~/.local/bin && curl -fL \
-  "https://files.artemis.turintech.ai/public/artemis-cli/$VER/artemis-cli-$PLATFORM" \
-  -o ~/.local/bin/artemis && chmod +x ~/.local/bin/artemis
-artemis --version
+BASE="https://files.artemis.turintech.ai/public/artemis-cli/$VER"
+TMP="$(mktemp -d)"
+( cd "$TMP" \
+  && curl -fLO "$BASE/artemis-cli-$PLATFORM" && curl -fLO "$BASE/checksums.txt" \
+  && grep " artemis-cli-$PLATFORM\$" checksums.txt > sum.txt && [ -s sum.txt ] \
+  && { sha256sum -c sum.txt 2>/dev/null || shasum -a 256 -c sum.txt; } \
+  && mkdir -p ~/.local/bin && install -m 755 "artemis-cli-$PLATFORM" ~/.local/bin/artemis \
+  && ~/.local/bin/artemis --version ) || echo "INSTALL FAILED: checksum or download"
+rm -rf "$TMP"
 ```
+
+The same lines work on Linux (`sha256sum`) and macOS (`shasum`). On `INSTALL FAILED`, stop and tell the user: never run a binary that doesn't match its checksum, and don't trust an older `artemis` already on `PATH`.
 
 A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`. Check that the user's own shell finds it with `bash -lc 'command -v artemis'`; if not, use the absolute path in the login box and offer, asking first, to add `~/.local/bin` to PATH in their shell startup file. On Windows, download the `.exe` and ask the user where to put it on PATH.
 
