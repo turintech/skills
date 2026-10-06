@@ -11,7 +11,7 @@ metadata:
 
 ## At a glance
 
-- **Problem:** Derives, verifies, and records a project script's self-contained root-level commands: the build and test that gate Discovery, and the benchmark that reports numbers.
+- **Problem:** Derives, verifies, and records a project Script's self-contained root-level commands: the build and test that gate Discovery, and the benchmark that reports numbers.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
 - **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
 - **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then continue to `discovery-start` or validation.
