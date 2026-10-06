@@ -34,7 +34,7 @@ Prefer the version-native shortcut:
 artemis discovery versions logs "<version-id>"
 ```
 
-For changeset validation, capture the validation `id` and `processId` from the `changeset validate` response. A Discovery version's `validationId` works the same way with `changeset validation logs`. Do not substitute a per-command `logId`.
+For changeset validation, capture the validation `id` and `processId` from the `changeset validate` response. A Discovery version's `validationId` works the same way: `changeset validation logs "<validationId>" --project "<project-uuid>"`. Versions run before Discovery moved onto validations have no `validationId`; use their `processId` with `process logs` instead. Do not substitute a per-command `logId`.
 
 If a runner-executed failure has neither identifier, report that logs are unavailable instead of claiming they were checked.
 

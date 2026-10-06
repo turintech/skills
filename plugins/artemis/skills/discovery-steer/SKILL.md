@@ -1,9 +1,9 @@
 ---
 name: discovery-steer
 description: Continue, expand, or redirect an Artemis discovery run, verify its child agent run was attached, and check whether later experiments follow new guidance. Use when the user wants to add budget, steer, redirect, or change the focus of an existing discovery run.
-compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.8"
+  artemis-cli-min: "1.1.14"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -13,6 +13,7 @@ metadata:
 
 - **Problem:** Adds budget or changes an existing discovery agent's direction without creating a new run.
 - **Must be available:** An authenticated CLI and the discovery run ID.
+- **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.14, where a failed `continue` dispatch exits non-zero); if it is older, load the skill and follow `cli-setup` first.
 - **Use / don't use:** Use to add budget or give new guidance to an existing run; use `discovery-start` for a new run.
 - **Next skill:** Use `discovery-inspect` to evaluate the resulting experiments, versions, metrics, and diffs.
 
@@ -28,17 +29,17 @@ Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions
 
 ### Budget gate
 
-- Active with budget remaining: steer directly.
-- Completed: ask how many versions to add unless the user said (each version spends credits), then `continue --versions <n>`. If an active run has exhausted its budget, wait for it to complete first.
-- Failed or cancelled with budget left: ask first (the agent spends credits again), then `continue --versions 0`, which puts the run back to work on the budget it already has.
+`continue` sets the budget to the versions the run already has plus `--versions <n>`; budget it never used is not carried over. So `n` is the number of new versions, and each one spends credits.
+
+- Active with budget remaining: steer directly. If an active run has exhausted its budget, wait for it to complete first.
+- Completed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
+- Failed: the Web UI's **Retry** asks the run's agent to retry the action that failed rather than adding budget. Do the same with the user's yes: `discovery steer "<run-id>" --message "Please retry the last action that failed."` (section 2), then check `discovery get`.
 
 ```bash
-artemis discovery continue "<run-id>" --versions <n>   # 0 = no new budget
+artemis --output-format json discovery continue "<run-id>" --versions <n>
 ```
 
-A dispatch that fails leaves the run failed and exits non-zero: report that and stop, don't retry in a loop.
-
-Refetch every 30 s for up to 5 minutes until the run is active with an `agentRunId`, then steer. If it isn't active by then, report its status and stop. `continue` expands and restarts the run but cannot carry new guidance; do not reverse this order when both are needed.
+Read the response: the run should be `running` with a new `agentRunId`. If the dispatch fails, the run stays failed and the command exits non-zero: report that and stop, don't retry in a loop. `continue` adds budget and restarts the run but cannot carry new guidance; when both are needed, continue first, then steer.
 
 ## 2. Send the instruction
 

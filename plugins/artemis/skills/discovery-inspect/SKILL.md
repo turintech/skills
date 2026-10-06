@@ -160,12 +160,12 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 - Versions already recorded are real. Their measurements happened on the runner and stand on their own.
 - Do not re-run setup, reinstall the runner, or re-import the project. None of them caused it.
 - `experimentCount` above `versionCount` means planned experiments never became versions, which is the expected shape here rather than a second fault.
-- Report it as a platform-side failure and name the remaining budget. If a calling skill has a retry rule, follow it. Otherwise, with the user's yes, put the run back to work on its remaining budget with `artemis discovery continue <run-id> --versions 0` (see `discovery-steer`); a dispatch that fails exits non-zero, so report it and stop.
+- Report it as a platform-side failure and name the remaining budget. If a calling skill has a retry rule, follow it. Otherwise follow `discovery-steer`: a failed run is retried through its agent (`discovery steer` with "Please retry the last action that failed."), and a cancelled run gets `discovery continue <run-id> --versions <n>` with the unused budget offered as `n`; both only with the user's yes, since they spend credits.
 
 ## Common misreads
 
 - **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and available execution logs; exploration may not have started. If it becomes terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
-- **The Composite score (`fitnessScore`) is the agent's weighted score, not a measurement.** It can be near zero or negative for a version that improved your target, so decide with `discovery compare`'s verdicts. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. LLM-judged metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
+- **The Composite score (`fitnessScore`) is an importance-weighted roll-up of the metrics against the baseline, not a verdict.** It can be near zero or negative for a version that improved your target, so decide with `discovery compare`'s verdicts. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. LLM-judged metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
 - **Task logs cover only versions that reached a runner.** Use `execution-log-inspect` for compile, test, benchmark, and ingestion evidence. Cross-check `discovery versions list` because `generation_failed` versions were never dispatched.
 - **Names drift.** A project's platform-side name can diverge from whatever you called it at import time; always reference the **project UUID**.
 
