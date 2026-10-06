@@ -66,7 +66,7 @@ For a user with nothing yet, as the first part of section 3. Four short lines:
 3. Next comes a quick setup, then a demo, their own project, or nothing more until they are ready.
 4. Setup takes a few minutes. The Particle Life demo then runs 5 versions, about 15 minutes, most of it watching results arrive.
 
-Say once, before the first run, that runs use account credits and the balance is in the Web UI header. Nothing more, and do not repeat it.
+Say once, before the first run, that runs use account credits and the balance is at the bottom of the Web UI's left sidebar. Nothing more, and do not repeat it.
 
 ## 3. Two questions, asked together
 
@@ -125,7 +125,7 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 ## 6. Rules for this flow
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of measurements, the target files, or the task wording. They are fixed in step 7 and 7a; pass them to the owning skills.
-- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting a run.
+- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run (choosing the demo was the yes; §2 named the credits). A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
@@ -139,13 +139,13 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
 | 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | No probe | |
 | 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
-| 5. A measured run on the branch | this skill | `changeset validate --wait` on the runner (`repo-command-setup` §5b) | About a minute | The branch's **Script runs**: one run, passed |
+| 5. A measured run on the branch | this skill | `changeset validate` on the runner, then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
 | 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
-| 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later its **Metrics** tab and the winning version |
+| 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Metrics** and the winning version |
 
 A step is not finished until its "Tell them" line has been said.
 
-**Step 2.** Reuse the newest changeset named `artemis/measure` (`changeset list --project <id>`) unless the project's code has moved on since (its `baseVersionSha` differs from the project's `gitHash`). Otherwise:
+**Step 2.** Reuse the newest changeset named `artemis/measure` (`changeset list --project <id> --all`) unless the project's code has moved on since (its `baseVersionSha` differs from the project's `gitHash`). Otherwise:
 
 ```bash
 artemis --output-format json changeset create --project "<project-id>" --name "artemis/measure"
@@ -153,7 +153,7 @@ artemis --output-format json changeset create --project "<project-id>" --name "a
 
 Capture its id. Read the commit it holds with `artemis changeset versions <changeset-id> --project <id>` and report that one, not the project's `gitHash`.
 
-**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take.
+**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` so its id is printed at once, then wait with the loop in `repo-command-setup` §5b. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
 
@@ -163,6 +163,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
 - model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
 - `--target-files` only when the repository made them obvious
+- for the demo, the user's go-ahead: choosing the demo was the yes and §2 named the credits, so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
 
 Then follow the run with `discovery-inspect`.
 
@@ -178,9 +179,9 @@ The user chose the demo; that was the decision. Go through section 7 in one pass
 
 The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. LLM-judged metrics are off so only the measured `simulation_fps` is on show.
 
-Do not check or ask about credits first: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance in the Web UI header.
+Do not check or ask about credits first: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar.
 
-End on the code, not a number: the run's **Metrics** tab to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the AI score beside it is not a measurement.
+End on the code, not a number: the run's **Metrics** to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a weighted roll-up, not a measurement.
 
 ## 7b. Before section 7 on their own code
 
@@ -192,7 +193,7 @@ End on the code, not a number: the run's **Metrics** tab to show which version w
 
 The user should always know where the thing that just happened is. The "Tell them" columns in sections 5 and 7 say when and where; say it in one or two plain sentences: what happened, the link, and what they will see there.
 
-For example: "Your project is in Artemis: [Open project](<link>). You'll see the Particle Life overview; nothing has run yet." Link the project and name the page for anything deeper, because paths differ between deployments. In the browser route the page is already open: say what to look at, and follow `cli-follow-along`'s *Arrive before the change* table.
+For example: "Your project is in Artemis: [Open project](<link>). You'll see the Particle Life overview; nothing has run yet." Link the page directly where you can (a run is `<deployment-base-url>/projects/<project-uuid>/discover/<run-id>`), and the project link if that one returns not found. In the browser route the page is already open: say what to look at, and follow `cli-follow-along`'s *Arrive before the change* table.
 
 ## 9. Human-only steps
 
@@ -205,7 +206,7 @@ For example: "Your project is in Artemis: [Open project](<link>). You'll see the
 
 | Situation | Do |
 |---|---|
-| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Start one fresh run from the same branch with a model from the top tier in `artemis model groups` (name it in one line), or the step 7 model if another was used, and say which model failed. Once only, and never for a build, test or benchmark failure |
+| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Say which model failed and offer one fresh run from the same branch with a model from the top tier in `artemis model groups` (or the step 7 model if another was used); it spends credits again, so start it only on the user's yes. Once only, and never for a build, test or benchmark failure |
 | The project URL's deployment is not the one the CLI is signed in to | Say both, and settle it before creating anything |
 | No runner can run here, or the user does not want one | Say that nothing can be measured without a machine, and stop |
 | The runner lacks the toolchain | Name the tool and the machine; installing it is the user's call |

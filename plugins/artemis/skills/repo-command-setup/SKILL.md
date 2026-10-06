@@ -44,12 +44,12 @@ For Discovery, setup needs both a build and a test: the build rejects a candidat
 
 Each command runs in its own shell, so nothing carries over between commands except files in the checkout. Each command must therefore be:
 
-- **root-relative** — change directory within the command only when necessary;
-- **self-contained** — perform its own required activation or setup;
-- **headless and non-interactive** — no GUI, prompts, or terminal input;
-- **repeatable** — do not depend on an IDE, shell alias, uncommitted file, or previous task;
-- **truthful** — return non-zero when its phase fails;
-- **runner-compatible** — use tools and paths that exist on the selected runner, in POSIX shell.
+- **root-relative**: change directory within the command only when necessary;
+- **self-contained**: perform its own required activation or setup;
+- **headless and non-interactive**: no GUI, prompts, or terminal input;
+- **repeatable**: do not depend on an IDE, shell alias, uncommitted file, or previous task;
+- **truthful**: return non-zero when its phase fails;
+- **runner-compatible**: use tools and paths that exist on the selected runner, in POSIX shell.
 
 The benchmark reports its metrics in a results file (section 4), not on stdout, and a passing benchmark does not mean anything was measured: confirm the values in `changeset validation logs` (§5b).
 
@@ -187,11 +187,6 @@ Runs the commands through the platform on the real runner. Needs an imported pro
 
 ```bash
 artemis changeset validate --help
-artemis project commands set --project "<project-uuid>" \
-  --compile "<compile-command>" \
-  --test "<test-command>" \
-  --benchmark "<benchmark-command>"
-artemis --output-format json project commands get --project "<project-uuid>"
 
 artemis --output-format json project scripts create \
   --project "<project-uuid>" --name "Command verification" \
@@ -208,10 +203,19 @@ artemis --output-format json changeset create \
 artemis --output-format json changeset validate "<changeset-id>" \
   --project "<project-uuid>" --version original \
   --script "<script-id>" \
-  --runner "<runner-name>" --wait
+  --runner "<runner-name>"
+# no --wait: the response carries the validation's "id" straight away
+
+for i in $(seq 16); do
+  out=$(artemis --output-format json changeset validation get "<validation-id>" \
+        --project "<project-uuid>") || { echo "validation get failed"; break; }
+  s=$(printf '%s' "$out" | jq -r .status)
+  case "$s" in success|failed|cancelled) break ;; esac
+  sleep 30
+done; echo "$s"
 ```
 
-The script uses the same literal commands as the project defaults. `--measure none` keeps command-runtime metrics out unless runtime is the target; `--version original` resolves the changeset's original code. `--wait` returns each command's `exitCode`, runtime and resources, and exits with code 6 when its `--timeout` (20 minutes by default) runs out: the CLI stopped waiting, not the validation, so check the branch's Script runs before running it again. Re-check later with:
+The script holds the commands; validation runs it with `--script`. `--measure none` keeps command-runtime metrics out unless runtime is the target; `--version original` resolves the changeset's original code. Start the validation without `--wait` so its id is printed at once, then run the loop above. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If the CLI call fails, the loop stops and says so instead of waiting out the 8 minutes. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation. Then read the result:
 
 ```bash
 artemis changeset validation get "<validation-id>" --project "<project-uuid>"
@@ -226,17 +230,17 @@ For a discovery run the equivalent is `artemis discovery metrics "<run-id>" --al
 
 When something fails, distinguish command-string issues from repository code or script issues:
 
-- **Command-string failure:** update the project defaults, create a replacement validation script with the same corrected commands, and re-run `changeset validate --script` on the same empty changeset (`--version original` still resolves that original code).
-- **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit, create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original` — it stays on the old SHA.
+- **Command-string failure:** fix the script's commands (see below), and re-run `changeset validate --script` on the same empty changeset (`--version original` still resolves that original code).
+- **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit (one shell call: 30 seconds between checks, at most 8 minutes, with a 10-minute shell timeout; after a second loop, stop and report), create a **new** empty changeset, and validate again. Do not reuse the pre-pull changeset's `original`: it stays on the old SHA.
 
-`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis discovery setup trial-run "<run-id>" --wait`. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
+`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis --output-format json discovery setup trial-run "<run-id>"`: without `--wait` it returns at once with the check's id in `.validation.id`; wait for it with the loop above. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
 
 ## 6. Configure Artemis
 
 Use the verified commands unchanged:
 
-- `artemis project scripts create` stores the validation script that Discovery and `changeset validate --script` execute. Execution-enabled Discovery requires this script (or a project default). Pass `--default` only when this script should become the project's default.
-- `artemis project commands set` stores optional compile, test, and benchmark defaults for the Web UI. Those fields are legacy on Discovery create and do **not** replace a validation script.
+- The verified script is the validation script that Discovery and `changeset validate --script` execute: reuse the one §5b created rather than creating another. After local verification only (§5a), create it once from the verified commands with the `project scripts create` call in §5b. Execution-enabled Discovery requires it (or a project default). Make it the default with `project scripts default` only when the user wants that.
+- Don't set `project commands`: they are legacy, Discovery doesn't read them, and they would be a second copy of the commands. Only if the user asks.
 - `discovery-start` passes the same script to `discovery create --script`. Never keep a second command set for Discovery.
 
 ## Advanced cases
