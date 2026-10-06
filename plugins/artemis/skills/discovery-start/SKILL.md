@@ -78,7 +78,7 @@ Compile and test are unmeasured setup commands. Use `--measure none` when the be
 
 Capture `script_id` from the create or list response. Prefer passing `--script` explicitly even when a default exists.
 
-Before `discovery create`, tell the user the model, the number of versions, and that each version is agent work that spends credits. Create the run only on their yes.
+Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its §2.
 
 ```bash
 artemis --output-format json discovery create \
@@ -122,7 +122,7 @@ Immediately give the user a clickable link:
 [Open run](<deployment-base-url>/projects/<project-uuid>/discover/<run-id>)
 ```
 
-If that link doesn't open the run (older deployments), give the project link instead, `<deployment-base-url>/projects/<project-uuid>`, where Discover lists the run.
+A `--setup` run lives at `<deployment-base-url>/projects/<project-uuid>/discover/setup/<run-id>` until `setup complete`, then at the link above. If neither opens the run (older deployments), give the project link, `<deployment-base-url>/projects/<project-uuid>`, where Discover lists the run.
 
 Use the authenticated deployment base URL and repeat the link in later progress or failure reports.
 
@@ -137,18 +137,18 @@ artemis discovery update "<run-id>" \
   --model "<catalogue-uuid-or-model-type>" --versions <n> \
   --runner "<runner-name>" --script "<script-id>" \
   --llm-metrics=false --setup-step script
-artemis discovery setup trial-run "<run-id>" --wait --timeout 9m
+artemis discovery setup trial-run "<run-id>" --wait --timeout 9m   # set the shell tool's timeout to 10 minutes, or run it in the background
 artemis discovery metrics-schema regenerate "<run-id>"
 artemis discovery setup complete "<run-id>"
 ```
 
-`--timeout 9m` keeps the wait inside a shell call's limit. On exit code 6 the trial run is still going: check it with `discovery get` instead of starting another.
+`trial-run` can only wait with `--wait`, so give the shell call a 10-minute timeout (the default is often 2 minutes) or run it in the background. On exit code 6 the trial run is still going: read `baselineValidationId` from `discovery get`, then `changeset validation get <baselineValidationId> --project <project-uuid>`, instead of starting another. Ask the user before `setup complete`, as above.
 
 `--setup` does not copy project command defaults. Script selection is `--script` plus, optionally, `setup trial-run --script`. Use `metrics-schema propose`, `regenerate`, or `set` on the objective step.
 
 ## 2. Baseline / metrics schema
 
-During baseline finalization, Artemis derives and stores `metricsSchema` using the selected model. Check every 30 to 60 seconds, one short command each time:
+During baseline finalization, Artemis derives and stores `metricsSchema` using the selected model. Wait with one bounded loop inside a single shell command (checks 30 to 60 seconds apart, under 9 minutes in total); never a foreground `sleep` between tool calls. Run the loop again if the baseline is still pending:
 
 ```bash
 artemis --output-format json discovery get "<run_id>"
@@ -166,14 +166,14 @@ artemis discovery baseline set "<run_id>" --metrics-schema "<path-to-schema.json
 
 ## 3. Verify exploration started
 
-A finalized baseline does not prove that the run explored a version. Check every 30 to 60 seconds until at least one version appears or the run becomes terminal:
+A finalized baseline does not prove that the run explored a version. Check the same way, in one bounded loop per shell call, until at least one version appears or the run becomes terminal:
 
 ```bash
 artemis --output-format json discovery get "<run_id>" \
   | jq '{status, versionCount, experimentCount, agentRunId}'
 ```
 
-A running run with zero versions may not have started exploration yet. If it becomes terminal without a version, or nothing changes for about 15 minutes in either step, stop checking and hand off to `discovery-inspect`.
+A running run with zero versions may not have started exploration yet. If it becomes terminal without a version, or nothing changes for the longer of 15 minutes and twice the duration estimated in §1 (versions plus one, times one benchmark), stop checking and hand off to `discovery-inspect`.
 
 ## 4. If the project looks corrupt after a failed baseline
 
@@ -184,7 +184,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Project UUID confirmed; runner either supplied by the calling skill, or confirmed **with the user** rather than picked because it showed online
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
-- [ ] User said yes to the model, version count and credit spend before `discovery create`
+- [ ] User said yes to the model, version count and credit spend before the run was dispatched (`discovery create`, or `setup complete` for a setup run), unless a calling skill passed their go-ahead
 - [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
 - [ ] `--llm-metrics=false` unless LLM-judged metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
