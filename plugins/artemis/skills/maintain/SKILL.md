@@ -109,13 +109,13 @@ The Scan runs in the background; capture its `id`. Check on it with `scans get <
 
 ```bash
 artemis maintain issues list --project <p> --severity high                       # open, high severity
-artemis maintain issues list --project <p> --lane triaged                        # waiting for a fix
+artemis maintain issues list --project <p> --validity true_positive --fix-status not_set   # waiting for a fix
 artemis maintain issues list --project <p> \
   --validity true_positive --fix-status not_set --sort size_of_fix --order desc
 artemis maintain issues get ISS-143 -p <p>
 ```
 
-`issues list` shows open Issues by default; `--status closed` is the Archive and `--status all` both. It also filters on `--rule`, `--lane`, `--severity`, `--validity`, `--fix-status`, `--sync-status`, `--complexity` and `--path-prefix`, sorts with `--sort`/`--order`, and pages with `--all`.
+`issues list` shows open Issues by default; `--status closed` is the Archive and `--status all` both. It also filters on `--rule`, `--severity`, `--validity`, `--fix-status`, `--sync-status`, `--complexity` and `--path-prefix`, sorts with `--sort`/`--order`, and pages with `--all`. A `--lane` filter comes with the next CLI release.
 
 ## 5. Triage before you fix
 
