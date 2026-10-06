@@ -24,7 +24,7 @@ metadata:
 
 ## Operating rule: inspect, resume, delegate
 
-Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not re-import a project that exists, start a second runner on a machine that has one, replace commands that already produce a number, create a second `artemis/measure` branch, or start another Discovery when one is queued, running, or has already completed for the same request. The one exception is the demo, when the user chooses a fresh start (section 4).
+Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not start a second runner on a machine that has one, replace commands that already produce a number, create a second `artemis/measure` branch, or start another Discovery when one is queued, running, or has already completed for the same request. A project is the user's choice: reuse it when they are continuing that work, and import a fresh one when they want to start afresh (section 4).
 
 Carry these between skills so nothing is asked twice: deployment and whether the CLI is authenticated to it; the CLI download directory, when the prompt gave one, for `cli-setup`; repository URL and branch; project id; changeset id and the commit it holds; script id; runner name and what its machine has installed; validation id; run id.
 
@@ -38,7 +38,7 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Skills up to date | Load `cli-setup` and run its *Check versions* step 1 once, after the host is known and before the other checks, even when the CLI already works, unless the setup prompt says to use the installed skills as they are. The one check that may speak: one line before it runs, and a reload request only if it updated something |
 | Browser control | Load the browser tools before looking; deferred tools report none until loaded. Load the skill and follow `cli-follow-along` section 1 for the exact call |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
-| CLI | `artemis --version` meets the skills' minimum (`metadata.artemis-cli-min`), `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
+| CLI | `artemis --version` meets the highest `metadata.artemis-cli-min` of the Artemis skills, not only this one's: the Discovery and Maintain skills need a newer CLI than setup does. If it is lower, `cli-setup` updates it now, before anything else, so no later step stops for it. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
@@ -106,7 +106,7 @@ Then the starting point decides what comes before section 7:
 - **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the newest such project, when it was created, and how many there are:
   - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in step 7, about 15 minutes, using credits.
   - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch.
-- **Their own code:** where it lives (repository URL and branch, and can Artemis reach it), `project-import` if it is not a project yet, then 7b and section 7.
+- **Their own code:** where it lives (repository URL and branch, and can Artemis reach it), then 7b and section 7. If it is not a project yet, `project-import` imports it. If it already is one and the user hasn't said whether they are continuing, ask the same one question as the demo, naming the newest such project: **start fresh** (a new project, so the new work stays separate) or **continue with it** (pass its id to `project-import`).
 - **A project URL:** 7b, then section 7.
 - **Just set me up:** the plan is steps 1 to 4 only. Do section 5's CLI and runner items, skip Git access and the project, then go straight to section 11.
 
@@ -118,7 +118,7 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 |---|---|---|---|
 | CLI installed and signed in | `cli-setup` | Creates an API key and enters it in their own terminal | |
 | Git access | `project-import` | Connects a Git provider if the account has none | |
-| Runner on this machine | `runner-setup` | Nothing: the agent downloads it and starts it with the CLI's API key | `<deployment-base-url>/projects/<project-id>/settings/execution` (**Runner and Scripts**): their machine, online |
+| Runner on this machine | `runner-setup` | Nothing: the agent downloads it and starts it with the CLI's API key | Its name, online. Once the project exists: `<deployment-base-url>/projects/<project-id>/settings/execution` (**Runner and Scripts**) |
 | Project imported or reused | `project-import` | Nothing | `<deployment-base-url>/projects/<project-id>`: the project's overview page |
 
 Whichever runner `runner-setup` reuses or starts is the one every later step uses; pass it on rather than asking.
@@ -239,7 +239,7 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] New users: both opening questions asked together; returning users: only where the code lives
 - [ ] Welcome written as text before the question box
 - [ ] The plan in the host's task list before any other tool call, each item ticked with its link, and a numbered list at the close
-- [ ] Demo: an existing Particle Life project found before importing, and the user asked fresh or continue
+- [ ] An existing project for the repository found before importing, and the user asked fresh or continue unless they had already said
 - [ ] Just set me up: stopped after the runner, with no project imported and no run started
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
