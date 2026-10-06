@@ -36,13 +36,13 @@ mkdir -p <absolute-home>/artemis-runner && cd <absolute-home>/artemis-runner
 
 `<absolute-home>` is the expanded home path, such as `/home/alice`, never `~`.
 
-Download it yourself from `https://files.artemis.turintech.ai/public/artemis-runner/`. Read that directory and take the highest version made only of numbers (`X.Y.Z`): skip alphas (`a`), betas (`b`), release candidates (`rc`) and the `latest-*` files, which can point at a release candidate. Don't reuse a version from memory, because the published set moves. Download with `curl -fL -o <file> <url>`, so an error page is never saved as the runner.
+Download it yourself from `https://files.artemis.turintech.ai/public/artemis-runner/`. Read that directory and take the newest version the deployment accepts, the same rule `artemis-runner upgrade` follows: on `dev.artemis.turintech.ai` any build, including alphas (`a`), betas (`b`) and release candidates (`rc`); on `staging.artemis.turintech.ai` finals and release candidates; everywhere else finals only (`X.Y.Z`). Never take the `latest-*` files, which can point at a release candidate. Don't reuse a version from memory, because the published set moves. Download with `curl -fL -o <file> <url>`, so an error page is never saved as the runner.
 
 - **Linux or Windows on x64:** the standalone executable, `artemis-runner-<version>-linux` or `artemis-runner-<version>-windows.exe`. Save it as `artemis-runner` (Linux needs `chmod +x artemis-runner`).
 - **macOS (Intel or Apple silicon) and Linux on ARM64:** the Python package, `artemis-runner-<version>-wheels.tar.gz`. It needs Python 3.11: `tar -xzf` it, `cd artemis-runner-*-wheels`, run `python3.11 -m venv .venv` and `.venv/bin/pip install --find-links wheels/ artemis-runner`. Then `cd <absolute-home>/artemis-runner` again, so `runner.log` and `runner.pid` stay in one place. Call the runner by its full path rather than activating the environment, so build commands don't inherit the environment's Python on `PATH`.
 - **Windows on ARM64:** the `-wheels.zip`, installed as the deployment's **Add new Artemis runner** page shows.
 
-Check the download before going on: `"$RUNNER" --version` (see *Start the runner* for `RUNNER`) must print a version.
+Check the download before going on: `<absolute-home>/artemis-runner/artemis-runner --version` (for the Python package, `<absolute-home>/artemis-runner/artemis-runner-<version>-wheels/.venv/bin/artemis-runner --version`) must print a version.
 
 Match the runner to the deployment. A build that is too old fails its sign-in or task calls with `404`s, which looks like a network or credential fault and is not one. If the download fails or the deployment needs another build, its **Add new Artemis runner** page (`<deployment-base-url>/settings/runners/new`) offers the one it expects.
 
@@ -58,9 +58,9 @@ State before starting: the runner is a long-lived process that executes this rep
 
 On every start the runner signs in with an API key and appears in the fleet under the name it is given. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The config file is the one the CLI is using:
 
-- a `.env` in the directory you run `artemis` from, if there is one;
+- a `.env` in the folder where the user's `artemis` commands run (usually the repository, not this runner folder), if there is one;
 - otherwise, when `artemis env current` names an environment other than `default`, `envs/<name>.env` in the CLI's config folder;
-- otherwise `.env` in that folder: `<absolute-home>/.config/artemis/` on Linux (`$XDG_CONFIG_HOME/artemis/` when that is set), `<absolute-home>/Library/Application Support/artemis/` on macOS.
+- otherwise `.env` in that folder: `<absolute-home>/.config/artemis/` on Linux (`$XDG_CONFIG_HOME/artemis/` when that is set), `<absolute-home>/Library/Application Support/artemis/` on macOS, `%AppData%\artemis\` on Windows.
 
 Pass the deployment that key belongs to as `<deployment-base-url>`. If the file has no key, the CLI was logged in some other way: ask the user where its key lives rather than searching for one. The snippet stops rather than start without a key, because `start` would then fall back to a `settings.env` left by an earlier `artemis-runner configure` and run on that old key. Other values in such a `settings.env` (CA bundle, output folder, memory limit) still apply, so if one exists, say so before starting.
 
@@ -73,9 +73,11 @@ CLI_ENV="<the CLI's config file, from the list above>"
   [ -n "$ARTEMIS_API_KEY" ] || { echo "No ARTEMIS_API_KEY in $CLI_ENV" >&2; exit 1; }
   nohup "$RUNNER" start --runner-name <unique-name> --url <deployment-base-url> > runner.log 2>&1 &
   echo $! > runner.pid   # stop: kill "$(cat runner.pid)"
-)
-sleep 10
-if kill -0 "$(cat runner.pid)" 2>/dev/null && grep -q "Connected to Artemis" runner.log; then echo "runner connected"; else echo "runner did not start:"; tail -n 20 runner.log; fi
+) && {
+  i=0
+  while [ $i -lt 60 ] && kill -0 "$(cat runner.pid)" 2>/dev/null && ! grep -q "Connected to Artemis" runner.log; do sleep 1; i=$((i+1)); done
+  if kill -0 "$(cat runner.pid)" 2>/dev/null && grep -q "Connected to Artemis" runner.log; then echo "runner connected"; else echo "runner did not start:"; tail -n 20 runner.log; fi
+}
 ```
 
 If it did not start, report the log lines rather than success: a rejected key, a wrong URL or a build that does not match the deployment all end here.
