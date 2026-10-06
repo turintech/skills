@@ -14,7 +14,7 @@ Record the repository URL, seed commit, and toolchain in the cache so a later co
 
 ## Capture the task directory
 
-Artemis invokes commands from the candidate checkout. Preserve that directory before changing into the cache:
+Artemis invokes commands from the version's checkout. Preserve that directory before changing into the cache:
 
 ```bash
 ORIG="$PWD"

@@ -20,7 +20,7 @@ Platform task logs contain compile, test, benchmark, resource, and result-ingest
 
 ## 1. Find the task identifier
 
-For a Discovery candidate:
+For a Discovery version:
 
 ```bash
 artemis --output-format json discovery versions get "<version-id>"

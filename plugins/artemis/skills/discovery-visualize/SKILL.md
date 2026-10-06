@@ -90,7 +90,7 @@ These override any host chart default:
 - Plot `mean` / `min` / `max` / `count`, and individual `runs` when present.
 - Verdicts and intervals are falcon's, in `vsBaseline` (`better`, `worse`, `noise`, `pending`), the same ones the Web UI shows; never compute statistics in the page or the conversation. Show the runs beside any verdict. Say "within the noise", not "worse", for `noise`, and "too few runs to tell" for `pending`.
 - Colour by better and worse only when the user asks for it.
-- Keep measured metrics, AI Metrics (`kind: quality`) and experiment verdicts visually distinct: AI Metrics get their own figure, never the headline, the forest or a verdict.
+- Keep measured metrics, AI Metrics (`kind: quality`) and Experiment conclusions visually distinct: AI Metrics get their own figure, never the headline, the forest or a verdict.
 - Versions are numbered in the order they were made, so version order is generation order. The trajectory marks the raw winner only; plot running-best only when the user is judging search speed.
 - A Pareto front is an analytical view over named axes, not an Artemis verdict.
 

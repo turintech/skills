@@ -15,7 +15,7 @@ Work out what the reader wants to take away before choosing a chart. Most prompt
 | only "compare", "show", "chart", "visualise" the run (**the default**) | Best vs baseline: how much better, and is it real? | Title with the % and falcon's verdict, chips, headline, `compareRuns`, `forest`, method note |
 | "is it real", "is it noise", "significant", "reliable" | Is the gain bigger than run-to-run noise? | The default, or every run against the baseline's spread (`strip`) for one version |
 | "how did it go", "over time", "did steering help" | How did the search unfold? | Generation-order trajectory, annotated |
-| "what did it try", "what worked", "why did it fail" | What did the agent try, and what came of it? | Versions grouped by outcome, with the agent's verdicts |
+| "what did it try", "what worked", "why did it fail" | What did the agent try, and what came of it? | Versions grouped by outcome, with the Experiments' conclusions |
 | "AI-assessed", "code quality", "what did the model think" | How did the Orchestrator model score the code? | AI Metrics, in their own figure |
 | two metrics, "trade-off", "cost of" | What does one metric cost in the other? | Pareto scatter over the named axes |
 | a specific chart ("a bar chart of...", "just the table") | Theirs | Exactly what they asked for (section 0) |
@@ -33,7 +33,7 @@ In this order, with the kit calls from [report-kit.md](report-kit.md):
 3. **Headline:** baseline mean, then the %, then the best version's mean.
 4. **Figure 1, `compareRuns`:** every run of the baseline and the best version, the gap between the means labelled with the % and p.
 5. **Figure 2, `forest`:** every measured version's % change with its 95% interval, best first.
-6. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Artemis agent's experiment verdict disagrees with falcon's, one bullet that says so.
+6. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Experiment's conclusion disagrees with falcon's verdict, one bullet that says so.
 
 With one run per version there is no test: say "measured once" in a chip and skip Figure 2's intervals.
 
@@ -97,7 +97,7 @@ Steers: the CLI does not list a run's past steers, and versions do not record wh
 
 When the user asks for the Composite score over time, plot each version's `fitness` as its own trajectory, titled "Composite score (the platform's roll-up of the metrics by importance)", never on the same axis as a measured metric and without a zero line.
 
-**Versions by outcome.** Cards or a compact table grouped as measured improvement, no measurable change, slower, and failed or not measured. Each row: label, the experiment title, the measured change, and the agent's verdict, visibly separate from the measurement.
+**Versions by outcome.** Cards or a compact table grouped as measured improvement, no measurable change, slower, and failed or not measured. Each row: label, the experiment title, the measured change, and the Experiment's conclusion, visibly separate from the measurement.
 
 **AI Metrics.** Metrics with `kind: quality` are scored by the Orchestrator model from the code, not measured. Give them their own figure, after the measured ones: `rankedBars` of each version's score per metric, with the baseline as the reference line when it has a score. Caption it "Scored by the Orchestrator model from the code; a judgement, not a measurement." Never put them in the title, the headline, `forest` or a verdict, and never average them with measured metrics. When the user asks for "all metrics", show measured metrics and AI Metrics as two separate figures.
 
@@ -113,13 +113,13 @@ A professional data designer should be happy to put their name to it.
 - **Label directly:** value labels on the marks the finding talks about; no legend for a single series; a legend when colour carries a category.
 - **Type:** one family (IBM Plex Sans, with a system fallback) and tabular figures everywhere. No monospace anywhere in the report. Headings at least one step above body text; the title is the largest thing on the page. No `ch` width limits on report text: findings run the full width.
 - **Figures sized to read:** at least 520px of drawing width, horizontal scroll on phones rather than squashing.
-- **Hover** shows the exact values (mean, runs, % vs baseline, the agent's verdict). Nothing on the page depends on hover.
+- **Hover** shows the exact values (mean, runs, % vs baseline, the Experiment's conclusion). Nothing on the page depends on hover.
 - Light and dark themes both designed, and a background set on the page.
 
 ## 5. What the data can and cannot say
 
 - The best version is the raw per-metric winner (`perMetricWinners[metric].raw`). If it fails the eligibility gate, it stays the measured headline, and a note names the gate and the best eligible version.
-- A version with a strong measurement and a **refuted** verdict usually means it did not beat an earlier version. Say so in the finding, from `experimentConclusion`, so the table does not read as a failure.
+- A version with a strong measurement and a **refuted** conclusion usually means it did not beat an earlier version. Say so in the finding, from `experimentConclusion`, so the table does not read as a failure.
 - Missing measurements are gaps with a reason (`executionStatus`, `lifecycle`), never zeros.
 - "Real" means falcon's verdict in `vsBaseline` is `better` (or `worse` for a real loss). Never compute a p-value, interval or verdict in the page or by hand.
 - Always show the runs beside a verdict. Say "within the noise" for `noise`, never "worse", and "too few runs to tell" for `pending`.

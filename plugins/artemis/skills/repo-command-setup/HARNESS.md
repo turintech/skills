@@ -11,7 +11,7 @@ From the repository root, Artemis runs **compile → test → benchmark** on a f
 - use **deterministic, representative** inputs;
 - write numeric metrics to exactly `artemis_results.json` or `artemis_results.csv` in the command working directory;
 - return non-zero on failure;
-- leave metric names, units, and direction stable across baseline and candidates.
+- leave metric names, units, and direction stable across baseline and versions.
 
 Stdout is for diagnostics. Metrics come only from the results file. See SKILL.md §4 for accepted JSON/CSV shapes.
 

@@ -3,23 +3,23 @@
 Use these patterns only when the clean-checkout contract in `SKILL.md` is insufficient. Runner commands run under `/bin/sh`, so write POSIX shell: no `pipefail`, `[[ ]]`, arrays or `PIPESTATUS`. Start by identifying the specific problem being solved:
 
 - **Persistent build workspace solves expensive clean rebuilds.** Reinstalling dependencies, regenerating assets, or recompiling a large project for every version can dominate the optimization budget. A dedicated workspace preserves costly machine-local state while refreshing the source under test.
-- **Managed service lifecycle solves benchmarks that require a long-running process.** The command sequence must stop the old service, install the candidate version, start that exact version, wait for readiness, and prevent stale processes from serving the benchmark.
+- **Managed service lifecycle solves benchmarks that require a long-running process.** The command sequence must stop the old service, install the new version, start that exact version, wait for readiness, and prevent stale processes from serving the benchmark.
 - **ML/GPU workspace solves large assets and scarce hardware state.** Models, datasets, compiled extensions, and environments may be too large to recreate per task, while leaked GPU processes or caches can corrupt later measurements.
 - **Metric stabilization solves environment-driven ranking errors.** Thread placement, warm-up state, shared-machine load, and an unsuitable statistic can move measurements more than the code change does.
 - **Log control solves upload-bound evaluation latency.** Artemis uploads command output before finalizing an observation; multi-megabyte compile logs can make a successful baseline appear hung.
 - **Runner-specific troubleshooting solves differences between a developer checkout and the runner's extracted source.** Missing Git metadata, shell initialization, tools, permissions, or environment activation often explain commands that work locally but fail remotely.
 
-These are escape hatches, not defaults. They introduce machine-specific state and must preserve the identity of the candidate source, correctness gates, metric location, and reproducibility.
+These are escape hatches, not defaults. They introduce machine-specific state and must preserve the identity of the version's source, correctness gates, metric location, and reproducibility.
 
 ## Persistent build workspace
 
-Use the `workspace-setup` skill when a clean build is prohibitively slow because the project needs expensive dependency installation, generated assets, compilation caches, or a large incremental build tree. It keeps a runner-owned built tree, syncs each candidate into it, rebuilds incrementally, and copies results back to `$PWD`. The sections below extend that workspace.
+Use the `workspace-setup` skill when a clean build is prohibitively slow because the project needs expensive dependency installation, generated assets, compilation caches, or a large incremental build tree. It keeps a runner-owned built tree, syncs each version into it, rebuilds incrementally, and copies results back to `$PWD`. The sections below extend that workspace.
 
 ## Managed service lifecycle
 
 ### Problem
 
-Use this when tests or benchmarks require a server, model endpoint, database, or other long-running process. Rebuilding without lifecycle management can leave the previous candidate serving requests or begin measurement before the new service is ready.
+Use this when tests or benchmarks require a server, model endpoint, database, or other long-running process. Rebuilding without lifecycle management can leave the previous version serving requests or begin measurement before the new service is ready.
 
 ### Pattern
 
@@ -63,7 +63,7 @@ exit 1
 ### Safeguards
 
 - Bind to a task-specific or reserved port so concurrent runs cannot collide.
-- Verify the running process or endpoint identifies the candidate commit when possible.
+- Verify the running process or endpoint identifies the version's commit when possible.
 - Use a real readiness check rather than a fixed sleep.
 - Capture startup logs on failure without streaming unbounded logs on success.
 - Stop the service after the run when persistence is unnecessary.
@@ -94,7 +94,7 @@ DATA_DIR="$DATA_DIR" \
 "$VENV/bin/python" benchmarks/run.py
 ```
 
-Keep candidate source and generated binaries in a dedicated workspace, while treating models and datasets as read-only inputs.
+Keep each version's source and generated binaries in a dedicated workspace, while treating models and datasets as read-only inputs.
 
 ### Safeguards
 
@@ -111,7 +111,7 @@ Keep candidate source and generated binaries in a dedicated workspace, while tre
 
 ### Problem
 
-Thread placement, runtime warm-up, shared-machine state, and unstable statistics can move benchmark results more than the candidate code does. Artemis then ranks environmental noise as an optimization.
+Thread placement, runtime warm-up, shared-machine state, and unstable statistics can move benchmark results more than the version's code does. Artemis then ranks environmental noise as an optimization.
 
 Statistic selection and noise-floor measurement belong to the benchmark harness's own methodology. This section covers the runner-side execution state that must remain consistent after the harness methodology is chosen:
 
@@ -120,7 +120,7 @@ Statistic selection and noise-floor measurement belong to the benchmark harness'
 - Discard warm-up iterations affected by JIT compilation, kernel selection, page-in, or cache population.
 - Keep runner load and resource limits consistent across baseline and generated versions.
 
-Run the complete benchmark repeatedly in fresh processes after changing runner controls. Do not tune the environment or statistic after seeing which candidate wins.
+Run the complete benchmark repeatedly in fresh processes after changing runner controls. Do not tune the environment or statistic after seeing which version wins.
 
 ## Control log volume
 

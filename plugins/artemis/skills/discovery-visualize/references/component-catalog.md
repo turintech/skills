@@ -15,7 +15,7 @@ snapshot. These files are examples, not an importable runtime package.
 | Is the gain bigger than run-to-run noise? | Strip plot, described in [report-design.md](report-design.md) section 3 | `baseline.metrics[metric].runs`, each version's `runs` |
 | How did the metric evolve through the run? | [Metric trajectory](../examples/components/metric-trajectory.tsx) | `runningBest[metric]`, baseline metric, `perMetricWinners[metric].raw` |
 | What was each version trying to do? | [Version cards](../examples/components/version-cards.tsx) | `versions`, experiment titles or rationales, version URLs |
-| Which ideas or versions build on earlier work? | [Experiment lineage](../examples/components/experiment-lineage.tsx) | `experiments`, parent IDs, linked versions |
+| Which Experiments or versions build on earlier work? | [Experiment lineage](../examples/components/experiment-lineage.tsx) | `experiments`, parent IDs, linked versions |
 | Did failures or eligibility gates affect the result? | [Failure summary](../examples/components/failure-summary.tsx) | `executionSummary`, raw and eligible winners |
 | What are the trade-offs between two metrics? | [Pareto scatter](../examples/components/pareto-scatter.tsx) | opt-in `pareto` snapshot field |
 
@@ -29,7 +29,7 @@ snapshot. These files are examples, not an importable runtime package.
   user asks what versions attempted or whether they worked.
 - [Experiment story](../examples/compositions/experiment-story.canvas.tsx):
   experiment/version lineage plus focused detail. Use when the user asks how
-  ideas accumulated or branched.
+  Experiments accumulated or branched.
 
 Compositions are complete single-file canvases. They intentionally duplicate
 small component implementations because generated canvases cannot import local

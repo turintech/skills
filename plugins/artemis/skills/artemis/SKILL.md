@@ -29,7 +29,7 @@ When the user names a downstream task and supplies its inputs, route directly to
 
 Artemis evaluates repository code on a user-supplied runner with root-level `compile`, `test`, and `benchmark` commands stored as a project validation script. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
 
-A **project** imports a repository branch at a specific commit; a **changeset** (shown as a **branch** in the Web UI) holds versions of that code; a **version** is the baseline or an AI-generated candidate; a **validation** is one measured execution of a script on a version (a script run in the Web UI); a **Discovery run** generates and evaluates versions against a metric.
+A **project** imports a repository branch at a specific commit; a **changeset** (shown as a **branch** in the Web UI) holds versions of that code, each a commit; a **validation** is one measured execution of a script on a version (a script run in the Web UI); a **Discovery run** generates and evaluates versions against a metric, and its **versions** are the code variants its **Experiments** produce, each a real commit with its own metric values.
 
 ### Official docs
 
