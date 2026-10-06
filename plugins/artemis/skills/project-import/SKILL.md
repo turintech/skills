@@ -110,12 +110,14 @@ Wait for `success` before running anything against the project, with one bounded
 
 ```bash
 for i in $(seq 48); do
-  s=$(artemis --output-format json project list --all | python3 -c 'import json,sys; print(next((p.get("importedStatus") or "" for p in json.load(sys.stdin).get("docs") or [] if p.get("id")=="<project-uuid>"), ""))')
-  [ "$s" != importing ] && break; sleep 10
+  out=$(artemis --output-format json project list --all) || { echo "project list failed"; break; }
+  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(next((p.get("importedStatus") or "" for p in json.load(sys.stdin).get("docs") or [] if p.get("id")=="<project-uuid>"), ""))')
+  case "$s" in success|failed) break;; esac
+  sleep 10
 done; echo "$s"
 ```
 
-If it is still `importing` after that, give the user the project link, say the import is still running, and stop. On `failed`, check the key can read the repo and the branch exists, then import once more; don't loop.
+If it is still `importing`, or empty because the project isn't listed yet, after that, give the user the project link, say the import is still running, and stop. On `failed`, check the key can read the repo and the branch exists, then import once more; don't loop.
 
 ## 5. Verify and hand off
 
