@@ -12,7 +12,7 @@ metadata:
 ## At a glance
 
 - **Problem:** Downloads, registers, starts, updates and verifies an Artemis runner on this machine, and checks it has the toolchain a project needs.
-- **Must be available:** A safe machine with the repository's toolchains and adequate resources, a unique runner name, Web UI access, and an authenticated CLI for verification.
+- **Must be available:** A safe machine with the repository's toolchains and adequate resources, a unique runner name, and an authenticated CLI, whose API key registers the runner.
 - **Use / don't use:** Use when a runner is missing, offline, outdated, or unverified; skip it when a suitable runner is already online and confirmed to be polling.
 - **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
@@ -24,8 +24,7 @@ A runner executes project-supplied compile, test, and benchmark commands on the 
 - The toolchains required by the projects assigned to this runner installed on that machine — Artemis runs their commands as-is from the repository root.
 - Enough disk, memory, and network access for builds.
 - A meaningful, unique runner name that identifies its owner or host.
-- A single-use registration token from the deployment's **Add new Artemis runner** page, `<deployment-base-url>/settings/runners/new`. The user copies it there and runs the configure command themselves; it never enters chat.
-- An authenticated `artemis` CLI on the target deployment for verification.
+- An authenticated `artemis` CLI on the target deployment. The runner uses the same API key, read from the CLI's config file.
 
 ## Get the runner
 
@@ -37,14 +36,17 @@ mkdir -p <absolute-home>/artemis-runner && cd <absolute-home>/artemis-runner
 
 `<absolute-home>` is the expanded home path, such as `/home/alice`, never `~`.
 
-The deployment's **Add new Artemis runner** page (`<deployment-base-url>/settings/runners/new`, or **Runners**, then **New Artemis runner**) is the source of truth for the download, the platform choice and the commands. Ask the user to open it, pick the operating system and architecture, and follow its **Download** step in this directory:
+Download it yourself from `https://files.artemis.turintech.ai/public/artemis-runner/`. Read that directory and take the newest version the deployment accepts, the same rule `artemis-runner upgrade` follows: on `dev.artemis.turintech.ai` any build, including alphas (`a`), betas (`b`) and release candidates (`rc`); on `staging.artemis.turintech.ai` finals and release candidates; everywhere else finals only (`X.Y.Z`). Never take the `latest-*` files, which can point at a release candidate. Don't reuse a version from memory, because the published set moves. Download with `curl -fL -o <file> <url>`, so an error page is never saved as the runner.
 
-- **Linux or Windows on x64:** a standalone executable, `artemis-runner` (Linux needs `chmod +x artemis-runner`).
-- **macOS (Intel or Apple silicon) and any ARM64 machine:** a Python package. It needs Python 3.11 and pip; the page gives the commands to extract the wheels archive, `cd artemis-runner-*-wheels`, create `.venv` there and `pip install` it. Then `cd <absolute-home>/artemis-runner` again, so `runner.log` and `runner.pid` stay in one place. Call the runner by its full path rather than activating the environment, so build commands don't inherit the environment's Python on `PATH`.
+- **Linux or Windows on x64:** the standalone executable, `artemis-runner-<version>-linux` or `artemis-runner-<version>-windows.exe`. Save it as `artemis-runner` (Linux needs `chmod +x artemis-runner`).
+- **macOS (Intel or Apple silicon) and Linux on ARM64:** the Python package, `artemis-runner-<version>-wheels.tar.gz`. It needs Python 3.11: `tar -xzf` it, `cd artemis-runner-*-wheels`, run `python3.11 -m venv .venv` and `.venv/bin/pip install --find-links wheels/ artemis-runner`. Then `cd <absolute-home>/artemis-runner` again, so `runner.log` and `runner.pid` stay in one place. Call the runner by its full path rather than activating the environment, so build commands don't inherit the environment's Python on `PATH`.
+- **Windows on ARM64:** the `-wheels.zip`, installed as the deployment's **Add new Artemis runner** page shows.
 
-Match the runner to the deployment: take it from that deployment's page. A build that is too old fails its registration or task calls with `404`s, which looks like a network or credential fault and is not one.
+Check the download before going on: `<absolute-home>/artemis-runner/artemis-runner --version` (for the Python package, `<absolute-home>/artemis-runner/artemis-runner-<version>-wheels/.venv/bin/artemis-runner --version`) must print a version.
 
-For an on-prem deployment, use the page on that deployment rather than inventing service URLs.
+Match the runner to the deployment. A build that is too old fails its sign-in or task calls with `404`s, which looks like a network or credential fault and is not one. If the download fails or the deployment needs another build, its **Add new Artemis runner** page (`<deployment-base-url>/settings/runners/new`) offers the one it expects.
+
+For an on-prem deployment, use that deployment's page rather than inventing service URLs.
 
 ## Start the runner
 
@@ -52,27 +54,37 @@ Before starting anything, check `artemis runner list` and local processes so an 
 
 **Do not offer a menu of ways to start it.** Say in one line what you are about to do, start it as a background process, and report the result. A first-time user has no basis to choose between a background process, a visible terminal and a tmux session, and asking turns setup into an interview. Use `tmux` only when the user has already asked for it.
 
-State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Then start it and report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
+State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Start it, and only once the check below passes, report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
 
-**Register it with the page's token, typed by the user.** The page's **Configure** step shows `artemis-runner configure --url <deployment-base-url> --token <token>` with a single-use token, valid for 60 minutes (**Regenerate** makes a new one). Ask the user to run it themselves in this directory, adding `--runner-name <unique-name>`, with `"$RUNNER"` in place of `artemis-runner` (see below). It saves the runner's settings in `settings.env` in the runner's per-user config folder (`~/.config/artemis-runner/` on Linux, `~/Library/Application Support/artemis-runner/` on macOS), so the user's personal API key never reaches the runner. Build commands still see the runner's own registered key (`THANOS_API_KEY`), which is how the runner works. The settings are per user, not per folder: a second `configure` on the same account replaces the first runner's after a **Regenerate?** prompt. Having the token on a command line is low risk: it's consumed on first use and expires within 60 minutes.
+On every start the runner signs in with an API key and appears in the fleet under the name it is given. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The config file is the one the CLI is using:
 
-Then start it from the same directory. With the settings saved, `start` needs no flags. Clear the CLI's variables first: `start` reads `ARTEMIS_API_KEY`, `ARTEMIS_URL`, `ARTEMIS_BASE_URL` and `ARTEMIS_RUNNER_NAME` ahead of `settings.env`, so an exported `ARTEMIS_API_KEY` would run the runner, and every build, as the user:
+- a `.env` in the folder where the user's `artemis` commands run (usually the repository, not this runner folder), if there is one;
+- otherwise, when `artemis env current` names an environment other than `default`, `envs/<name>.env` in the CLI's config folder;
+- otherwise `.env` in that folder: `<absolute-home>/.config/artemis/` on Linux (`$XDG_CONFIG_HOME/artemis/` when that is set), `<absolute-home>/Library/Application Support/artemis/` on macOS, `%AppData%\artemis\` on Windows.
+
+Pass the deployment that key belongs to as `<deployment-base-url>`. If the file has no key, the CLI was logged in some other way: ask the user where its key lives rather than searching for one. The snippet stops rather than start without a key, because `start` would then fall back to a `settings.env` left by an earlier `artemis-runner configure` and run on that old key. Other values in such a `settings.env` (CA bundle, output folder, memory limit) still apply, so if one exists, say so before starting.
 
 ```bash
 cd <absolute-home>/artemis-runner
 RUNNER=<absolute-home>/artemis-runner/artemis-runner   # Python package: <absolute-home>/artemis-runner/artemis-runner-<version>-wheels/.venv/bin/artemis-runner
-nohup env -u ARTEMIS_API_KEY -u ARTEMIS_URL -u ARTEMIS_BASE_URL -u ARTEMIS_RUNNER_NAME \
-  "$RUNNER" start > runner.log 2>&1 &
-echo $! > runner.pid   # stop: kill "$(cat runner.pid)"
+CLI_ENV="<the CLI's config file, from the list above>"
+(
+  export ARTEMIS_API_KEY="$(sed -n 's/^\(export \)\{0,1\}ARTEMIS_API_KEY=//p' "$CLI_ENV" | tail -n 1 | tr -d "\r\"'" | sed 's/[[:space:]].*$//')"
+  [ -n "$ARTEMIS_API_KEY" ] || { echo "No ARTEMIS_API_KEY in $CLI_ENV" >&2; exit 1; }
+  nohup "$RUNNER" start --runner-name <unique-name> --url <deployment-base-url> > runner.log 2>&1 &
+  echo $! > runner.pid   # stop: kill "$(cat runner.pid)"
+) && {
+  i=0
+  while [ $i -lt 60 ] && kill -0 "$(cat runner.pid)" 2>/dev/null && ! grep -q "Connected to Artemis" runner.log; do sleep 1; i=$((i+1)); done
+  if kill -0 "$(cat runner.pid)" 2>/dev/null && grep -q "Connected to Artemis" runner.log; then echo "runner connected"; else echo "runner did not start:"; tail -n 20 runner.log; fi
+}
 ```
 
-On a deployment whose certificate this machine does not trust, and only when TLS actually fails, start it the same way with the CA bundle added:
+If it did not start, report the log lines rather than success: a rejected key, a wrong URL or a build that does not match the deployment all end here.
 
-```bash
-nohup env -u ARTEMIS_API_KEY -u ARTEMIS_URL -u ARTEMIS_BASE_URL -u ARTEMIS_RUNNER_NAME \
-  "$RUNNER" start --ssl-verify /absolute/path/to/ca-bundle.pem > runner.log 2>&1 &
-echo $! > runner.pid
-```
+Build commands the runner starts can read this key (`THANOS_API_KEY`) and act as the user, as they could with any runner key. To cut a runner off remotely, revoke the key at `<deployment-base-url>/settings/api-keys`; that signs the CLI out too, so log in again with a new key.
+
+On a deployment whose certificate this machine does not trust, and only when TLS actually fails, add `--ssl-verify /absolute/path/to/ca-bundle.pem` to the `start` line above.
 
 `--ssl-verify` applies the bundle to the runner's own connection only. Do not use environment variables such as `REQUESTS_CA_BUNDLE` instead: they replace the trust store for the runner and every build it starts, and a runner restarted from another shell comes up without them. Use the absolute path the user gave you, never `~` or `$HOME`, because the runner's `HOME` need not be the one you are reading. See `cli-setup` for the CLI side.
 
@@ -121,4 +133,4 @@ Report the runner name, host, and verification result. Do not claim success from
 
 ## Update or restart
 
-Stop the running process cleanly, run `"$RUNNER" upgrade` (or download the build from the deployment's page as in *Get the runner*). The standalone executable upgrades to the latest without a prompt. On the Python package, `upgrade` asks **Proceed?** and has no flag to skip it, so the user runs it themselves. Then start it again from the same directory, with the same `env -u`, and repeat *Verify*. Report the version before and after. A human at a browser can use the Web UI's updater instead.
+Stop the running process cleanly, run `"$RUNNER" upgrade` (or download the newest build as in *Get the runner*). The standalone executable upgrades to the latest without a prompt. On the Python package, `upgrade` asks **Proceed?** and has no flag to skip it, so the user runs it themselves. Then start it again from the same directory with the same command, and repeat *Verify*. Report the version before and after. A human at a browser can use the Web UI's updater instead.
