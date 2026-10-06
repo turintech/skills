@@ -13,7 +13,7 @@ metadata:
 
 - **Problem:** Finds code-health Issues against a project's Rules, then triages them, fixes them and ships each fix as a branch or pull request.
 - **Must be available:** An authenticated CLI and an imported project. No runner, except for Fix in Discovery.
-- **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.14, which has `scans get`, `scans cancel` and display ids); if it is older, load the skill and follow `cli-setup` first.
+- **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.14, which has `scans get`, `scans cancel` and display ids); if it is older, load `cli-setup` first.
 - **Use / don't use:** Use to scan for Issues, manage Rules, or triage, fix and ship Issues. Don't use it to measure or optimise performance; that is Discovery.
 - **Next skill:** None required. Return to `artemis` routing for other work.
 
@@ -33,16 +33,18 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 - For **publish / pr** only: the project's git connection must have push access. Maintain's `publish` and `pr` push to GitHub.
 - Optionally `jq`; the snippets use it, but any JSON filter works.
 
-**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). `issues get`, `confirm`, `dismiss`, `archive`, `unarchive`, `transition` and `fix-runs` accept a display id with `-p <project>`; `fix`, `publish`, `pr`, `prompt` and `submit-local-fix` take the UUID. In scripts, lift `.id`.
+**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix` without `--discovery`, which takes the UUID. In scripts, lift `.id`.
 
-**Credits.** Every step but triage is an agent run: a Scan, a fix, Fix in Discovery and `maintain chat` all spend credits. Before `scans run`, `issues fix` or `issues fix --discovery`, tell the user what it will do and that it spends credits, and run it only on their yes.
+**Credits.** Every step but triage is an agent run: a Scan, a fix, Fix in Discovery, a Re-sync and `maintain chat` all spend credits. Before `scans run`, `issues fix` (with or without `--discovery`), `syncs run` or `maintain chat`, tell the user what it will do and that it spends credits, and run it only on their yes. Approving a question card that starts a Scan, a fix or a Discovery run spends credits too: approve a card only after the user's yes.
+
+**Question cards.** When an agent run stops on a question, read it with `artemis chat messages <chat-id>` and answer with `artemis chat answer <chat-id> --answer "..."` or `--approve`. Never reply to a card with `chat send`: the card stays unanswered and the agent asks again.
 
 **`--model`** is optional on `scans run`, `issues fix` and `maintain chat`; omit it and the backend chooses. It takes a catalogue UUID or a model-type code (`artemis model list`).
 
-**Waiting.** Never loop without a limit, and don't sleep between tool calls. Check in one shell command with the sleep inside and a cap under 9 minutes; if it is still running, run the same command again. The pattern, for a fix:
+**Waiting.** Never loop without a limit, and don't sleep between tool calls. Check in one shell command with the sleep inside, run with a 10-minute tool timeout (or in the background); if it is still running, run the same command again. The pattern, for a fix:
 
 ```bash
-for i in $(seq 16); do
+for i in $(seq 16); do   # about 8 minutes
   s=$(artemis --output-format json maintain issues get <issue-id> -p <p> | jq -r '.fixStatus')
   case "$s" in done|failed|cancelled) break;; esac
   sleep 30
@@ -65,10 +67,10 @@ artemis maintain rules import-defaults --project <p> --rule <default-id-1> --rul
 **Author one from a prompt.** The maintain agent reads the code, writes the Rule and puts it on the board:
 
 ```bash
-artemis maintain chat --project <p> -m "create a rule that flags SQL queries built with string concatenation"
+artemis maintain chat --project <p> --timeout 8m -m "create a rule that flags SQL queries built with string concatenation"
 ```
 
-Piped or with `--output-format json`, `maintain chat` takes one turn and prints the chat id. If the agent asks something instead of creating the Rule, reply with `artemis chat send <chat-id> -m "..."`, or answer its question card with `artemis chat answer <chat-id>`.
+Piped or with `--output-format json`, `maintain chat` takes one turn and prints the chat id. If the agent stops on a question card, answer it as above (`chat answer`); use `artemis chat send <chat-id> -m "..."` only to carry on the conversation.
 
 **Author one from markdown:** `artemis maintain rules create --project <p> --markdown-file rule.md`.
 
@@ -90,10 +92,10 @@ artemis maintain scans run --project <p> --rule <rule-id> --count 10
 ```
 
 - `--rule` is required and repeatable, up to 20 Rules per Scan.
-- `--count` is about how many Issues to surface (1-100, default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. `--no-limit` drops the limit, as in the Web UI, and uses more tokens.
+- `--count` is about how many Issues to surface (1-100, default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. `--no-limit` drops the limit, as in the Web UI, and uses more tokens; it can't be combined with `--count`.
 - `--focus "<text>"` points the Scan at part of the code, like the Web UI's "What to focus on". `--commit <sha>` scans that commit instead of the project head. There is no `--path`.
 
-The Scan runs in the background; capture its `id`. Check on it with `scans get <scan-id> --project <p>` in the waiting pattern above, breaking on `.status` `done`, `failed` or `cancelled`. Stop a Scan with `scans cancel <scan-id> --project <p>`; it keeps what it already found. (`--wait --timeout` also exists, but its 20-minute default outlasts an agent's shell.)
+The Scan runs in the background; capture its `id`. Check on it with `scans get <scan-id> --project <p>` in the waiting pattern above, breaking on `.status` `done`, `failed` or `cancelled`. Stop a Scan, after the user's yes, with `scans cancel <scan-id> --project <p> --force` (without `--force` it asks, and fails with no terminal); it keeps what it already found. (`--wait --timeout` also exists, but its 20-minute default outlasts an agent's shell.)
 
 ## 3. Check it found something
 
@@ -149,11 +151,11 @@ For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands
 
 ```bash
 artemis maintain issues fix <issue-uuid> --discovery --project <p> \
-  --runner <runner> --script <script> --versions 5 --repeats 3
+  --runner <runner> --script <script> --versions 5 --repeats 3 --timeout 8m
 ```
 
-- It needs a runner (or `--execution-mode skip` for no runner) and spends credits per version; say both before the yes.
-- It goes through the maintain agent, which settles the run's settings; flags you pass are handed over so it doesn't ask. Piped, it takes one turn; continue with `artemis chat send <chat-id>`.
+- It needs a runner and a script (or `--execution-mode skip` for no runner) and spends credits per version; say both before the yes.
+- It goes through the maintain agent, which settles the run's settings; flags you pass are handed over so it doesn't ask. Piped, it takes one turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only after the user's yes.
 - Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 
 ### Your own coding agent
@@ -161,17 +163,17 @@ artemis maintain issues fix <issue-uuid> --discovery --project <p> \
 The Web UI's **Copy for local agent**:
 
 ```bash
-artemis maintain issues prompt <issue-uuid>... --project <p> | my-coding-agent
+artemis maintain issues prompt <id>... --project <p> | my-coding-agent
 ```
 
 In text mode only the prompt goes to stdout. While that agent works in the user's checkout, put its progress on the board and bring the fix back as a Branch:
 
 ```bash
 artemis maintain issues transition <id> --to in_progress --source local_agent -p <p>
-artemis maintain issues submit-local-fix <issue-uuid> --project <p>     # uploads the changed files, moves it to done
+artemis maintain issues submit-local-fix <id> --project <p>     # uploads the changed files, moves it to done
 ```
 
-- The checkout must be on the commit the fix is based on, or it refuses.
+- Leave the fix uncommitted, on the project's current head: it uploads what differs from `HEAD`, so committed work shows no changes, and it refuses if the checkout has moved past the commit the fix is based on.
 - It sends modified tracked files only. Add new files with `--include-untracked`, or name exact files with `--path`.
 - `--keep-open` attaches the Branch without moving the Issue to done.
 - Don't move an Issue to `done` by hand when you have a fix to attach: once it is done, no Branch can be attached.
@@ -181,15 +183,15 @@ artemis maintain issues submit-local-fix <issue-uuid> --project <p>     # upload
 Both need the Issue to have a fix Branch, and both are idempotent: a published Branch keeps its git branch, and an Issue that already has a PR reports it rather than opening another.
 
 ```bash
-artemis maintain issues publish <issue-uuid> --project <p>   # git branch, no PR
-artemis maintain issues pr <issue-uuid> --project <p>        # publish if needed, then open a PR
+artemis maintain issues publish <id> --project <p>   # git branch, no PR
+artemis maintain issues pr <id> --project <p>        # publish if needed, then open a PR
 ```
 
 `pr` takes its title and description from the Issue and targets the project's default branch; override with `--title`, `--description` and `--base`. The git branch is named `artemis/<issue-slug>-<n>`.
 
 ## 8. Re-sync outdated Issues
 
-The code moves on: an Issue may already be fixed, have moved, or no longer apply. A **Re-sync** re-checks Issues against the current code:
+The code moves on: an Issue may already be fixed, have moved, or no longer apply. A **Re-sync** re-checks Issues against the current code. It is an agent run, so run it after the user's yes:
 
 ```bash
 artemis maintain syncs run --project <p>                     # every outdated Issue
@@ -203,7 +205,7 @@ Syncs run in the background like Scans. There is no `syncs get`: match the sync 
 
 - [ ] CLI at least 1.1.14; project UUID confirmed.
 - [ ] Rules in place and none still drafts.
-- [ ] The user said yes before each Scan and each fix (agent, Discovery).
+- [ ] The user said yes before each Scan, fix (agent, Discovery), Re-sync, `maintain chat` and card approval.
 - [ ] The Scan reached `done`, and `issuesFound` is checked, not assumed.
 - [ ] Issues triaged before any fix; unrelated Issues in separate `fix` calls.
 - [ ] Waited on `fixStatus` with a bounded check, not an endless loop.
