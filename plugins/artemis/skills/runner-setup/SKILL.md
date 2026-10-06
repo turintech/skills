@@ -36,12 +36,15 @@ mkdir -p <absolute-home>/artemis-runner && cd <absolute-home>/artemis-runner
 
 `<absolute-home>` is the expanded home path, such as `/home/alice`, never `~`.
 
-Download it yourself from `https://files.artemis.turintech.ai/public/artemis-runner/`. Read that directory and take the newest stable build for this machine: skip release candidates (`rc` in the name), and don't reuse a version from memory, because the published set moves.
+Download it yourself from `https://files.artemis.turintech.ai/public/artemis-runner/`. Read that directory and take the highest version made only of numbers (`X.Y.Z`): skip alphas (`a`), betas (`b`), release candidates (`rc`) and the `latest-*` files, which can point at a release candidate. Don't reuse a version from memory, because the published set moves. Download with `curl -fL -o <file> <url>`, so an error page is never saved as the runner.
 
 - **Linux or Windows on x64:** the standalone executable, `artemis-runner-<version>-linux` or `artemis-runner-<version>-windows.exe`. Save it as `artemis-runner` (Linux needs `chmod +x artemis-runner`).
-- **macOS (Intel or Apple silicon) and any ARM64 machine:** the Python package, `artemis-runner-<version>-wheels.tar.gz`. It needs Python 3.11: `tar -xzf` it, `cd artemis-runner-*-wheels`, run `python3.11 -m venv .venv` and `.venv/bin/pip install --find-links wheels/ artemis-runner`. Then `cd <absolute-home>/artemis-runner` again, so `runner.log` and `runner.pid` stay in one place. Call the runner by its full path rather than activating the environment, so build commands don't inherit the environment's Python on `PATH`.
+- **macOS (Intel or Apple silicon) and Linux on ARM64:** the Python package, `artemis-runner-<version>-wheels.tar.gz`. It needs Python 3.11: `tar -xzf` it, `cd artemis-runner-*-wheels`, run `python3.11 -m venv .venv` and `.venv/bin/pip install --find-links wheels/ artemis-runner`. Then `cd <absolute-home>/artemis-runner` again, so `runner.log` and `runner.pid` stay in one place. Call the runner by its full path rather than activating the environment, so build commands don't inherit the environment's Python on `PATH`.
+- **Windows on ARM64:** the `-wheels.zip`, installed as the deployment's **Add new Artemis runner** page shows.
 
-Match the runner to the deployment. A build that is too old fails its registration or task calls with `404`s, which looks like a network or credential fault and is not one. If the download fails or the deployment needs another build, its **Add new Artemis runner** page (`<deployment-base-url>/settings/runners/new`) offers the one it expects.
+Check the download before going on: `"$RUNNER" --version` (see *Start the runner* for `RUNNER`) must print a version.
+
+Match the runner to the deployment. A build that is too old fails its sign-in or task calls with `404`s, which looks like a network or credential fault and is not one. If the download fails or the deployment needs another build, its **Add new Artemis runner** page (`<deployment-base-url>/settings/runners/new`) offers the one it expects.
 
 For an on-prem deployment, use that deployment's page rather than inventing service URLs.
 
@@ -51,38 +54,35 @@ Before starting anything, check `artemis runner list` and local processes so an 
 
 **Do not offer a menu of ways to start it.** Say in one line what you are about to do, start it as a background process, and report the result. A first-time user has no basis to choose between a background process, a visible terminal and a tmux session, and asking turns setup into an interview. Use `tmux` only when the user has already asked for it.
 
-State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Then start it and report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
+State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Start it, and only once the check below passes, report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
 
-The runner registers itself on first start with a new, unique name, the deployment URL and the CLI's API key. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The file is `<absolute-home>/.config/artemis/.env` on Linux (`$XDG_CONFIG_HOME/artemis/.env` when that is set) and `<absolute-home>/Library/Application Support/artemis/.env` on macOS; when `artemis env current` names an environment other than `default`, it is `envs/<name>.env` in that same `artemis` folder. If the file has no key, the CLI was logged in some other way: ask the user where its key lives rather than searching for one. The snippet stops rather than start without a key, because `start` would then fall back to a `settings.env` left by an earlier `configure` and run on that old key.
+On every start the runner signs in with an API key and appears in the fleet under the name it is given. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The config file is the one the CLI is using:
+
+- a `.env` in the directory you run `artemis` from, if there is one;
+- otherwise, when `artemis env current` names an environment other than `default`, `envs/<name>.env` in the CLI's config folder;
+- otherwise `.env` in that folder: `<absolute-home>/.config/artemis/` on Linux (`$XDG_CONFIG_HOME/artemis/` when that is set), `<absolute-home>/Library/Application Support/artemis/` on macOS.
+
+Pass the deployment that key belongs to as `<deployment-base-url>`. If the file has no key, the CLI was logged in some other way: ask the user where its key lives rather than searching for one. The snippet stops rather than start without a key, because `start` would then fall back to a `settings.env` left by an earlier `artemis-runner configure` and run on that old key. Other values in such a `settings.env` (CA bundle, output folder, memory limit) still apply, so if one exists, say so before starting.
 
 ```bash
 cd <absolute-home>/artemis-runner
 RUNNER=<absolute-home>/artemis-runner/artemis-runner   # Python package: <absolute-home>/artemis-runner/artemis-runner-<version>-wheels/.venv/bin/artemis-runner
-CLI_ENV="<absolute-home>/.config/artemis/.env"          # macOS: <absolute-home>/Library/Application Support/artemis/.env
+CLI_ENV="<the CLI's config file, from the list above>"
 (
-  export ARTEMIS_API_KEY="$(sed -n 's/^\(export \)\{0,1\}ARTEMIS_API_KEY=//p' "$CLI_ENV" | tr -d "\"'")"
+  export ARTEMIS_API_KEY="$(sed -n 's/^\(export \)\{0,1\}ARTEMIS_API_KEY=//p' "$CLI_ENV" | tail -n 1 | tr -d "\r\"'" | sed 's/[[:space:]].*$//')"
   [ -n "$ARTEMIS_API_KEY" ] || { echo "No ARTEMIS_API_KEY in $CLI_ENV" >&2; exit 1; }
   nohup "$RUNNER" start --runner-name <unique-name> --url <deployment-base-url> > runner.log 2>&1 &
   echo $! > runner.pid   # stop: kill "$(cat runner.pid)"
 )
+sleep 10
+if kill -0 "$(cat runner.pid)" 2>/dev/null && grep -q "Connected to Artemis" runner.log; then echo "runner connected"; else echo "runner did not start:"; tail -n 20 runner.log; fi
 ```
+
+If it did not start, report the log lines rather than success: a rejected key, a wrong URL or a build that does not match the deployment all end here.
 
 Build commands the runner starts can read this key (`THANOS_API_KEY`) and act as the user, as they could with any runner key. To cut a runner off remotely, revoke the key at `<deployment-base-url>/settings/api-keys`; that signs the CLI out too, so log in again with a new key.
 
-On a deployment whose certificate this machine does not trust, and only when TLS actually fails, start it the same way with the CA bundle added:
-
-```bash
-cd <absolute-home>/artemis-runner
-RUNNER=<absolute-home>/artemis-runner/artemis-runner   # Python package: <absolute-home>/artemis-runner/artemis-runner-<version>-wheels/.venv/bin/artemis-runner
-CLI_ENV="<absolute-home>/.config/artemis/.env"          # macOS: <absolute-home>/Library/Application Support/artemis/.env
-(
-  export ARTEMIS_API_KEY="$(sed -n 's/^\(export \)\{0,1\}ARTEMIS_API_KEY=//p' "$CLI_ENV" | tr -d "\"'")"
-  [ -n "$ARTEMIS_API_KEY" ] || { echo "No ARTEMIS_API_KEY in $CLI_ENV" >&2; exit 1; }
-  nohup "$RUNNER" start --runner-name <unique-name> --url <deployment-base-url> \
-    --ssl-verify /absolute/path/to/ca-bundle.pem > runner.log 2>&1 &
-  echo $! > runner.pid
-)
-```
+On a deployment whose certificate this machine does not trust, and only when TLS actually fails, add `--ssl-verify /absolute/path/to/ca-bundle.pem` to the `start` line above.
 
 `--ssl-verify` applies the bundle to the runner's own connection only. Do not use environment variables such as `REQUESTS_CA_BUNDLE` instead: they replace the trust store for the runner and every build it starts, and a runner restarted from another shell comes up without them. Use the absolute path the user gave you, never `~` or `$HOME`, because the runner's `HOME` need not be the one you are reading. See `cli-setup` for the CLI side.
 
