@@ -174,6 +174,23 @@ Verify in a fresh login shell rather than the one where you just exported it:
 bash -lc 'artemis status'
 ```
 
+## Check versions
+
+The skills, the CLI and the platform are released separately, so a returning user can have any mix of them. Check once per session, before the first task, in this order.
+
+**1. The skills.** Update them with the host's own installer, then read what it printed:
+
+| Host | Command | Already current | Updated |
+|---|---|---|---|
+| Claude Code | `claude plugin marketplace update skills`, then `claude plugin update artemis@skills` | "already at the latest version" | "updated from ... to ..." |
+| Cursor, Codex, GitHub Copilot | `npx skills update -g -y` | "All global skills are up to date" | "Updated N skill(s)" |
+
+If nothing changed, say nothing and carry on. If the skills were updated, this session still has the old ones loaded: ask the user once to reload (Claude Code: type `/reload-plugins`; other hosts: whatever that host needs to load new skills, usually a new chat), and wait. If the command fails, or the skills were not installed through a marketplace or `npx skills` (for example loaded with `--plugin-dir`), do not install anything: say the skills could not be checked and continue.
+
+**2. The CLI.** It must meet the highest `metadata.artemis-cli-min` among the skills in use (*Verify*). If it is older, update it (*Update*).
+
+**3. The platform.** Skills declare `metadata.artemis-platform-min`, but the CLI cannot report the platform's version, so do not guess it. If a command the skill relies on fails with a 404 or an unknown route, say the deployment may be older than these skills need, rather than retrying.
+
 ## Verify
 
 Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.8`; a development build reports `dev-<timestamp>-<sha>` and counts as newer than every release. If the installed release is lower than the highest minimum required, update the CLI before continuing.

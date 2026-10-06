@@ -94,7 +94,7 @@ Raise only rows required by the selected workflow:
 
 | What | Resolve before proceeding | Skill |
 |---|---|---|
-| CLI | Target deployment and authenticated `artemis status` | `cli-setup` |
+| CLI | Skills, CLI and platform versions checked once per session (*Check versions*), target deployment and authenticated `artemis status` | `cli-setup` |
 | Runner | Approved machine, required toolchain and resources, and availability | `runner-setup` |
 | Repository | A remote that one of the user's Git keys can read | `project-import` |
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
