@@ -26,7 +26,7 @@ For a Discovery candidate:
 artemis --output-format json discovery versions get "<version-id>"
 ```
 
-Record `processId`. If it is absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
+Read `failureReason` first: it states why the version ended without a result, and may make the log unnecessary. Then record `processId` and `validationId`. If the process ID is absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
 
 Prefer the version-native shortcut:
 
@@ -34,7 +34,7 @@ Prefer the version-native shortcut:
 artemis discovery versions logs "<version-id>"
 ```
 
-For changeset validation, capture the validation `id` and `processId` from the `changeset validate` response. Do not substitute a per-command `logId`.
+For changeset validation, capture the validation `id` and `processId` from the `changeset validate` response. A Discovery version's `validationId` works the same way with `changeset validation logs`. Do not substitute a per-command `logId`.
 
 If a runner-executed failure has neither identifier, report that logs are unavailable instead of claiming they were checked.
 

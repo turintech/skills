@@ -36,7 +36,7 @@ artemis discovery list --project <uuid> --all  # all runs for a project
 artemis discovery get <run-id>                 # the run record
 artemis discovery experiments list <run-id> --all  # hypotheses + verdicts
 artemis discovery experiments get <experiment-id> # one hypothesis + conclusion
-artemis discovery versions list <run-id> --all     # candidates + lifecycle/fitness
+artemis discovery versions list <run-id> --all     # candidates + lifecycle/composite score
 artemis discovery versions get <version-id>    # one version (rationale, status)
 artemis discovery versions logs <version-id>   # runner output for one version
 artemis discovery metrics <run-id> [--all]     # measured numbers per version
@@ -120,7 +120,7 @@ Each experiment is a hypothesis with `status` = `validated` / `refuted` / `incon
 artemis discovery versions list <run-id> --all
 ```
 
-Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`), `executionStatus` (`success` / `failed`), and `fitnessScore`. A `✓` with `executionStatus=success` means it compiled, passed the test, and benchmarked. Failure modes seen in practice: `generation_failed` (agent produced nothing runnable), `executionStatus=failed` (compile or test failed — e.g. a `NameError` from an undefined capability probe), `scoring_failed`. **`generation_failed` versions never reach the runner**, so they leave no trace in its log — this list is the only authoritative source for per-version outcome.
+Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`), `executionStatus` (`success` / `failed`), and `fitnessScore` (the Composite score). A `✓` with `executionStatus=success` means it compiled, passed the test, and benchmarked. Failure modes seen in practice: `generation_failed` (agent produced nothing runnable), `executionStatus=failed` (compile or test failed, e.g. a `NameError` from an undefined capability probe), `scoring_failed`. **`generation_failed` versions never reach the runner**, so they leave no trace in its log; this list is the only authoritative source for per-version outcome.
 
 ### 4. What are the real numbers? (metrics — the source of truth)
 
@@ -128,7 +128,7 @@ Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`),
 artemis --output-format json discovery compare <run-id>
 ```
 
-This is Artemis's own verdict, the one the Web UI shows: per version and metric, the % change against the baseline, its 95% interval and a verdict (`better`, `worse`, `noise`, or `pending` when there are too few runs), plus an overall verdict per version and the runs that would settle a `pending` one. **This is what you trust**, not fitness (see *Common misreads*). Report the verdicts as given; never judge noise from the spread yourself.
+This is Artemis's own verdict, the one the Web UI shows: per version and metric, the % change against the baseline, its 95% interval and a verdict (`better`, `worse`, `noise`, or `pending` when there are too few runs), plus an overall verdict per version and the runs that would settle a `pending` one. **This is what you trust**, not the Composite score (see *Common misreads*). Report the verdicts as given; never judge noise from the spread yourself.
 
 `artemis discovery metrics <run-id> --all --stats` adds the mean, spread and sample count per version and baseline as context, and without `--stats` one row per repetition.
 
@@ -155,24 +155,24 @@ echo "$run" | jq '{status, versionCount, numVersions, experimentCount, agentRunI
 artemis chat messages "$(echo "$run" | jq -r .agentRunId)" | tail -20
 ```
 
-The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`, or a bare `session.end  Internal error` immediately after a normal assistant turn. The run record itself carries no error field, so the chat is the only place the reason exists. Read it before blaming the project:
+The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`, or a bare `session.end  Internal error` immediately after a normal assistant turn. A failed version carries its own `failureReason` (`discovery versions list` or `versions get`), so read that first. The CLI's run record doesn't show the run's own reason, so for the run the chat is where to read it. Read it before blaming the project:
 
 - Versions already recorded are real. Their measurements happened on the runner and stand on their own.
 - Do not re-run setup, reinstall the runner, or re-import the project. None of them caused it.
 - `experimentCount` above `versionCount` means planned experiments never became versions, which is the expected shape here rather than a second fault.
-- Report it as a platform-side failure and name the remaining budget. If a calling skill has a retry rule, follow it. Otherwise recommend a fresh run from the same starting point: `discovery-steer`'s `continue` depends on the same agent session that just ended.
+- Report it as a platform-side failure and name the remaining budget. If a calling skill has a retry rule, follow it. Otherwise, with the user's yes, put the run back to work on its remaining budget with `artemis discovery continue <run-id> --versions 0` (see `discovery-steer`); a dispatch that fails exits non-zero, so report it and stop.
 
 ## Common misreads
 
 - **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and available execution logs; exploration may not have started. If it becomes terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
-- **Fitness is an AI score, not a measurement.** It can be near zero or negative for a version that improved your target, so rank by the raw metric. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. LLM-judged metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
+- **The Composite score (`fitnessScore`) is the agent's weighted score, not a measurement.** It can be near zero or negative for a version that improved your target, so decide with `discovery compare`'s verdicts. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. LLM-judged metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
 - **Task logs cover only versions that reached a runner.** Use `execution-log-inspect` for compile, test, benchmark, and ingestion evidence. Cross-check `discovery versions list` because `generation_failed` versions were never dispatched.
 - **Names drift.** A project's platform-side name can diverge from whatever you called it at import time; always reference the **project UUID**.
 
 ## Checklist
 
 - [ ] `discovery get`: baseline finalized (`baselineGroupId` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit.
-- [ ] `discovery compare`: each version's verdict on the target metric, as Artemis gives it; the verdicts, not `fitness`, decide the winner.
+- [ ] `discovery compare`: each version's verdict on the target metric, as Artemis gives it; the verdicts, not the Composite score, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
 - [ ] Project link returned, naming the page to open (Discover, the run, its Versions tab, the winning version).

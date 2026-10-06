@@ -29,14 +29,16 @@ Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions
 ### Budget gate
 
 - Active with budget remaining: steer directly.
-- Completed: ask how many versions to add unless the user said (each version spends credits), then `continue`. If an active run has exhausted its budget, wait for it to complete first.
-- Failed or cancelled: don't continue. Start a fresh run with `discovery-start` (see `discovery-inspect`, *When the agent stops, not the runner*).
+- Completed: ask how many versions to add unless the user said (each version spends credits), then `continue --versions <n>`. If an active run has exhausted its budget, wait for it to complete first.
+- Failed or cancelled with budget left: ask first (the agent spends credits again), then `continue --versions 0`, which puts the run back to work on the budget it already has.
 
 ```bash
-artemis discovery continue "<run-id>" --versions <n>
+artemis discovery continue "<run-id>" --versions <n>   # 0 = no new budget
 ```
 
-Refetch until the run is active with an `agentRunId`, then steer. `continue` expands and restarts the run but cannot carry new guidance; do not reverse this order when both are needed.
+A dispatch that fails leaves the run failed and exits non-zero: report that and stop, don't retry in a loop.
+
+Refetch every 30 s for up to 5 minutes until the run is active with an `agentRunId`, then steer. If it isn't active by then, report its status and stop. `continue` expands and restarts the run but cannot carry new guidance; do not reverse this order when both are needed.
 
 ## 2. Send the instruction
 
