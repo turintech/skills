@@ -194,5 +194,5 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] `--llm-metrics=false` unless LLM-judged metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
 - [ ] Clickable Discovery link returned to the user
-- [ ] Baseline finalized (`baselineGroupId` + schema non-null) before walking away
+- [ ] Baseline finalized (`baselineVersionSha` + schema non-null) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`

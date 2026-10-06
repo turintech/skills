@@ -81,7 +81,7 @@ A **Draft Rule** scans nothing. Check before you spend a Scan:
 
 ```bash
 artemis --output-format json maintain rules list --project <p> --all \
-  | jq -r '.docs[] | "\(.displayId // .id)\t\(.isDraft // false)\t\(.name)"'
+  | jq -r '.docs[]? | "\(.displayId // .id)\t\(.isDraft // false)\t\(.name)"'
 ```
 
 `rules delete` also deletes the Rule's Issues and Scans and cannot be undone. Name the Rule and how many Issues go with it, get the user's yes, then run `rules delete <rule-id> --project <p> --force` (with no terminal, or in JSON mode, it refuses without `--force` and exits 7: that means not confirmed, so ask rather than retry). Never delete a Rule someone else wrote.

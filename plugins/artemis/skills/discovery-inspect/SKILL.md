@@ -65,7 +65,7 @@ Segment tool calls by `complete_version` (the call that closes a version) and co
 ```bash
 artemis --output-format json chat messages <agent-run-id> \
   | jq -r '.[] | select(.type=="tool.start")
-           | "\(.timestamp) \(.payload.name)"'
+           | "\(.timestamp) \(.payload.internalToolName)"'
 ```
 
 Repeated status text or repeated `propose`/`conclude` calls can be normal while the agent drafts and revises experiments. Evidence of a stall is stronger when the run record stops updating, a version remains pending, narration emits no new calls, and the runner is idle. Check `discovery versions get <version-id>`, chat events, and runner activity together before concluding that work has stopped.
@@ -104,7 +104,7 @@ The next gap — evaluation finished to the next version being dispatched — is
 artemis --output-format json discovery get <run-id>
 ```
 
-Look at `status`, `versionCount`, `experimentCount`, `baselineGroupId`, `baselineVersionSha`, `metricsSchema`. A healthy run has a non-null `baselineGroupId` + `metricsSchema`. **`baselineVersionSha` must match the commit you intended to run** — this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code).
+Look at `status`, `versionCount`, `experimentCount`, `baselineVersionSha`, `metricsSchema`. A run past its baseline has a non-null `baselineVersionSha` + `metricsSchema` (a run still in `setup` can too, before any version); `baselineGroupId` is set as soon as a baseline is dispatched or adopted, before it finishes, so it proves nothing. **`baselineVersionSha` must match the commit you intended to run** — this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code).
 
 ### 2. What did the agent try? (experiments)
 
@@ -147,7 +147,7 @@ A run can fail while the machine, the runner, and the project are all healthy. T
 
 Symptoms, together: the run goes terminal with far fewer versions than its budget, the last version completed normally seconds earlier, the runner is still online with a live process, and the platform may return intermittent `502`s while you read the run.
 
-It can also happen **before the baseline exists**, a minute into a new run: `versionCount` and `experimentCount` both zero, `baselineGroupId` null, and the narration ending mid-analysis. That looks like a broken setup and is not one. The giveaway is that the narration shows the agent reading the repository successfully and reasoning about it right up to the last message, and that the Web UI may still show the run spinning after the record says `failed`.
+It can also happen **before the baseline exists**, a minute into a new run: `versionCount` and `experimentCount` both zero, `baselineVersionSha` and `metricsSchema` null, and the narration ending mid-analysis. That looks like a broken setup and is not one. The giveaway is that the narration shows the agent reading the repository successfully and reasoning about it right up to the last message, and that the Web UI may still show the run spinning after the record says `failed`.
 
 ```bash
 run=$(artemis --output-format json discovery get <run-id>)
@@ -155,7 +155,7 @@ echo "$run" | jq '{status, versionCount, numVersions, experimentCount, agentRunI
 artemis chat messages "$(echo "$run" | jq -r .agentRunId)" | tail -20
 ```
 
-The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`, or a bare `session.end  Internal error` immediately after a normal assistant turn. A failed version carries its own `failureReason` (`discovery versions list` or `versions get`), so read that first. The CLI's run record doesn't show the run's own reason, so for the run the chat is where to read it. Read it before blaming the project:
+The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`, or a bare `session.end  Internal error` immediately after a normal assistant turn. The CLI's run record doesn't include the run's own reason; read it in the run's chat. A version's `failureReason` (`discovery versions list` or `versions get`) is set when the agent set the version aside, its edits never landed, or the run stopped under it. It is empty when the version's commands failed (`executionStatus` `failed`) or the user cancelled it; read `versions logs` for those. Read it before blaming the project:
 
 - Versions already recorded are real. Their measurements happened on the runner and stand on their own.
 - Do not re-run setup, reinstall the runner, or re-import the project. None of them caused it.
@@ -171,7 +171,7 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 
 ## Checklist
 
-- [ ] `discovery get`: baseline finalized (`baselineGroupId` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit.
+- [ ] `discovery get`: baseline finalized (`baselineVersionSha` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit.
 - [ ] `discovery compare`: each version's verdict on the target metric, as Artemis gives it; the verdicts, not the Composite score, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).

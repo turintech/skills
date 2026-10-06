@@ -8,7 +8,7 @@ For "chart", "graph" or "visualise" the issues of a project's Maintain scans. Sa
 artemis --output-format json maintain issues list --project "<project-id>" --status all --all > /tmp/maintain-issues.json
 python3 - <<'PY'
 import json
-issues = json.load(open("/tmp/maintain-issues.json"))["docs"]
+issues = json.load(open("/tmp/maintain-issues.json")).get("docs") or []
 json.dump({"projectId": "<project-id>", "projectName": "<project name>",
            "webUrl": "<deployment-base-url>/projects/<project-id>/maintain", "issues": issues},
           open("/tmp/maintain-snapshot.json", "w"))
