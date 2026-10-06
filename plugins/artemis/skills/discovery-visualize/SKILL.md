@@ -82,7 +82,7 @@ On a host without Artifacts the box says **OPEN YOUR REPORT** and the line under
 
 These override any host chart default:
 
-- Rank by the raw target metric, not the composite score (`fitness`). Show the composite score only as a separate platform score.
+- Rank by Artemis's change against the baseline from `discovery compare` (the collector's `rankings`), not the Composite score (`fitnessScore`), which is an importance-weighted roll-up of the metrics. Show the Composite score only as a separate platform score.
 - Use the **raw** per-metric winner in the default headline comparison. A per-metric **eligible** winner requires `lifecycle=completed`, `executionStatus=success`, and `experimentStatus != refuted`; when the raw winner fails that gate, warn clearly and show the eligible alternative secondarily.
 - Never claim one overall winner for multiple objectives unless the user supplied the aggregation rule.
 - The collector reads each metric's direction from the platform only. When `higherIsBetter` is `null`, the metric has no ranking or winner: ask the user which way is better before naming one.
