@@ -36,7 +36,7 @@ artemis discovery list --project <uuid> --all  # all runs for a project
 artemis discovery get <run-id>                 # the run record
 artemis discovery experiments list <run-id> --all  # hypotheses + verdicts
 artemis discovery experiments get <experiment-id> # one hypothesis + conclusion
-artemis discovery versions list <run-id> --all     # candidates + lifecycle/composite score
+artemis discovery versions list <run-id> --all     # candidates + lifecycle/Composite score
 artemis discovery versions get <version-id>    # one version (rationale, status)
 artemis discovery versions logs <version-id>   # runner output for one version
 artemis discovery metrics <run-id> [--all]     # measured numbers per version
@@ -165,7 +165,7 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 ## Common misreads
 
 - **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and available execution logs; exploration may not have started. If it becomes terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
-- **The Composite score (`fitnessScore`) is an importance-weighted roll-up of the metrics against the baseline, not a verdict.** It can be near zero or negative for a version that improved your target, so decide with `discovery compare`'s verdicts. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. LLM-judged metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
+- **The Composite score (`fitnessScore`) is a roll-up of the metrics by importance tier against the baseline, not a verdict.** It can be near zero or negative for a version that improved your target, so decide with `discovery compare`'s verdicts. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. AI Metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
 - **Task logs cover only versions that reached a runner.** Use `execution-log-inspect` for compile, test, benchmark, and ingestion evidence. Cross-check `discovery versions list` because `generation_failed` versions were never dispatched.
 - **Names drift.** A project's platform-side name can diverge from whatever you called it at import time; always reference the **project UUID**.
 

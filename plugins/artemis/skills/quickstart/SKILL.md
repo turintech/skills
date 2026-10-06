@@ -178,11 +178,11 @@ The user chose the demo; that was the decision. Go through section 7 in one pass
 - target files: `src/simulation.cpp`, `src/simulation.hpp`
 - task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests. The tests compare floating-point results exactly, so keep the order in which forces are added.`
 
-The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. LLM-judged metrics are off so only the measured `simulation_fps` is on show.
+The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. AI Metrics are off (`--llm-metrics=false`) so only the measured `simulation_fps` is on show.
 
 Do not check or ask about credits first: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar.
 
-End on the code, not a number: the run's **Metrics** to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a weighted roll-up, not a measurement.
+End on the code, not a number: the run's **Metrics** to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a roll-up of the metrics by importance, not a measurement.
 
 ## 7b. Before section 7 on their own code
 
