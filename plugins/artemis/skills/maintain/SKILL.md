@@ -185,7 +185,7 @@ artemis maintain issues submit-local-fix <id> --project <p>     # uploads the ch
 
 ## 7. Ship: branch and/or PR
 
-A Fix in Discovery leaves no Branch on the Issue; its versions are in the Discovery run. Find the run with `artemis --output-format json maintain issues fix-runs <id> -p <p> | jq -r '[.runs[] | select(.discoveryRunId)] | last | .discoveryRunId'`, pick a version with `discovery-inspect`, and open a PR from that version's `changesetId` with `artemis changeset pr <changeset-id> --project <p>`. `issues publish` and `issues pr` cover the other fixes.
+A Fix in Discovery leaves no Branch on the Issue; its versions are in the Discovery run. Find the run with `artemis --output-format json maintain issues fix-runs <id> -p <p> | jq -r '[.runs[] | select(.discoveryRunId)] | last | .discoveryRunId // empty'`, pick a version with `discovery-inspect`, and open a PR from that version's `changesetId` with `artemis changeset pr <changeset-id> --project <p>`. `issues publish` and `issues pr` cover the other fixes.
 
 Both need the Issue to have a fix Branch, and both are idempotent: a published Branch keeps its git branch, and an Issue that already has a PR reports it rather than opening another.
 
