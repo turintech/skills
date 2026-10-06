@@ -5,7 +5,7 @@ For "chart", "graph" or "visualise" the issues of a project's Maintain scans. Sa
 ## Collect
 
 ```bash
-artemis --output-format json maintain issues list --project "<project-id>" --all > /tmp/maintain-issues.json
+artemis --output-format json maintain issues list --project "<project-id>" --status all --all > /tmp/maintain-issues.json
 python3 - <<'PY'
 import json
 issues = json.load(open("/tmp/maintain-issues.json"))["docs"]
