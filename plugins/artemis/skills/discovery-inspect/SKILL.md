@@ -151,11 +151,11 @@ It can also happen **before the baseline exists**, a minute into a new run: `ver
 
 ```bash
 run=$(artemis --output-format json discovery get <run-id>)
-echo "$run" | jq '{status, failureReason, versionCount, numVersions, experimentCount, agentRunId}'
+echo "$run" | jq '{status, versionCount, numVersions, experimentCount, agentRunId}'
 artemis chat messages "$(echo "$run" | jq -r .agentRunId)" | tail -20
 ```
 
-The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`, or a bare `session.end  Internal error` immediately after a normal assistant turn. Read the run's `failureReason` first; when it is null, the chat has the reason. A version's `failureReason` (`discovery versions list` or `versions get`) is set when the agent set the version aside, its edits never landed, or the run stopped under it. It is empty when the version's commands failed (`executionStatus` `failed`) or the user cancelled it; read `versions logs` for those. Read it before blaming the project:
+The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`, or a bare `session.end  Internal error` immediately after a normal assistant turn. The CLI's run record doesn't include the run's own reason; read it in the run's chat. A version's `failureReason` (`discovery versions list` or `versions get`) is set when the agent set the version aside, its edits never landed, or the run stopped under it. It is empty when the version's commands failed (`executionStatus` `failed`) or the user cancelled it; read `versions logs` for those. Read it before blaming the project:
 
 - Versions already recorded are real. Their measurements happened on the runner and stand on their own.
 - Do not re-run setup, reinstall the runner, or re-import the project. None of them caused it.
