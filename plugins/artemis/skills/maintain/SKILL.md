@@ -84,7 +84,7 @@ artemis --output-format json maintain rules list --project <p> --all \
   | jq -r '.docs[] | "\(.displayId // .id)\t\(.isDraft // false)\t\(.name)"'
 ```
 
-`rules delete` also deletes the Rule's Issues and Scans and cannot be undone. Name the Rule and how many Issues go with it, get the user's yes, then run `rules delete <rule-id> --project <p> --force` (with no terminal it refuses without `--force` and exits 7: that means not confirmed, so ask rather than retry). Never delete a Rule someone else wrote.
+`rules delete` also deletes the Rule's Issues and Scans and cannot be undone. Name the Rule and how many Issues go with it, get the user's yes, then run `rules delete <rule-id> --project <p> --force` (with no terminal, or in JSON mode, it refuses without `--force` and exits 7: that means not confirmed, so ask rather than retry). Never delete a Rule someone else wrote.
 
 ## 2. Run the Scan
 
@@ -98,7 +98,7 @@ artemis maintain scans run --project <p> --rule <rule-id> --count 10
 - `--count` is about how many Issues to surface (1-1000, default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. A no-limit option, as in the Web UI, comes with the next CLI release.
 - `--focus "<text>"` points the Scan at part of the code, like the Web UI's "What to focus on". `--commit <sha>` scans that commit instead of the project head. There is no `--path`.
 
-The Scan runs in the background; capture its `id`. Check on it with `scans get <scan-id> --project <p>` in the waiting pattern above, breaking on `.status` `done`, `failed` or `cancelled`. Stop a Scan, after the user's yes, with `scans cancel <scan-id> --project <p> --force` (without `--force` it asks, and with no terminal exits 7); it keeps what it already found. (`--wait --timeout` also exists, but its 20-minute default outlasts an agent's shell.)
+The Scan runs in the background; capture its `id`. Check on it with `scans get <scan-id> --project <p>` in the waiting pattern above, breaking on `.status` `done`, `failed` or `cancelled`. Stop a Scan, after the user's yes, with `scans cancel <scan-id> --project <p> --force` (without `--force` it asks, and with no terminal or in JSON mode exits 7); it keeps what it already found. (`--wait --timeout` also exists, but its 20-minute default outlasts an agent's shell.)
 
 ## 3. Check it found something
 
@@ -185,7 +185,7 @@ artemis maintain issues submit-local-fix <id> --project <p>     # uploads the ch
 
 ## 7. Ship: branch and/or PR
 
-A Fix in Discovery leaves no Branch on the Issue; its versions are in the Discovery run. Find the run with `artemis --output-format json maintain issues fix-runs <id> -p <p> | jq -r '.runs[] | select(.isActive) | .discoveryRunId'`, pick a version with `discovery-inspect`, and open a PR from that version's `changesetId` with `artemis changeset pr <changeset-id> --project <p>`. `issues publish` and `issues pr` cover the other fixes.
+A Fix in Discovery leaves no Branch on the Issue; its versions are in the Discovery run. Find the run with `artemis --output-format json maintain issues fix-runs <id> -p <p> | jq -r '[.runs[] | select(.discoveryRunId)] | last | .discoveryRunId'`, pick a version with `discovery-inspect`, and open a PR from that version's `changesetId` with `artemis changeset pr <changeset-id> --project <p>`. `issues publish` and `issues pr` cover the other fixes.
 
 Both need the Issue to have a fix Branch, and both are idempotent: a published Branch keeps its git branch, and an Issue that already has a PR reports it rather than opening another.
 
