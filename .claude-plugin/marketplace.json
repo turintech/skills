@@ -12,8 +12,7 @@
     {
       "name": "artemis",
       "source": "./plugins/artemis",
-      "description": "TurinTech AI Artemis - code optimization, analysis, and validation at scale",
-      "version": "1.0.1"
+      "description": "TurinTech AI Artemis - code optimization, analysis, and validation at scale"
     }
   ]
 }
