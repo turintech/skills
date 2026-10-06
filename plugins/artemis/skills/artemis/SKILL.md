@@ -59,7 +59,7 @@ If the user is onboarding, route to `quickstart` instead of classifying further.
 | Quickstart | Take a user from any starting point to a first measured result | None yet; may begin with a repository or a project id |
 | Discovery | Generate and benchmark alternatives to improve a metric | Runner, repository commands, model, version budget |
 | Validation | Build, test, and benchmark known code without searching | Runner and repository commands |
-| Maintain | Scan, triage, fix, or publish code-health issues | Rules, scope, and push access when publishing |
+| Maintain | Scan, triage, fix (including Fix in Discovery), or publish code-health issues | Rules, scope, and push access when publishing; a runner and a script for Fix in Discovery |
 | Setup | Install or repair a CLI, runner, repository, credential, or harness | Depends on the component |
 | Inspection | Resume, monitor, diagnose, or summarize existing work | Existing project or run identifiers |
 | Visualization | Chart or report an existing discovery run | Authenticated CLI and run ID |
@@ -100,7 +100,7 @@ Raise only rows required by the selected workflow:
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
 | Commands | Exact verified commands, stored as a validation script, and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
 
-Maintain needs no runner or benchmark. Inspection normally needs only the authenticated CLI and identifiers.
+Maintain needs no runner or benchmark, except Fix in Discovery, which needs a runner and a script. Inspection normally needs only the authenticated CLI and identifiers.
 
 ## 4. Present the readiness brief
 

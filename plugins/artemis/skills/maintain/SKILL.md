@@ -14,7 +14,7 @@ metadata:
 - **Problem:** Finds code-health Issues against a project's Rules, then triages them, fixes them and ships each fix as a branch or pull request.
 - **Must be available:** An authenticated CLI and an imported project. No runner, except for Fix in Discovery.
 - **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.14, which has `scans get`, `scans cancel` and display ids); if it is older, load `cli-setup` first.
-- **Use / don't use:** Use to scan for Issues, manage Rules, or triage, fix and ship Issues. Don't use it to measure or optimise performance; that is Discovery.
+- **Use / don't use:** Use to scan for Issues, manage Rules, or triage, fix and ship Issues. Not for Discovery runs (load `discovery-start`) or browser walkthroughs (load `platform-tour`).
 - **Next skill:** None required. Return to `artemis` routing for other work.
 
 Maintain audits a project against its **Rules**, records each violation as an **Issue** on a board, and helps you triage and fix them:
@@ -33,23 +33,26 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 - For **publish / pr** only: the project's git connection must have push access. Maintain's `publish` and `pr` push to GitHub.
 - Optionally `jq`; the snippets use it, but any JSON filter works.
 
-**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix` without `--discovery`, which takes the UUID. In scripts, lift `.id`.
+**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix`: without `--discovery` it takes the UUID, and with `--discovery` it passes the ids to the maintain agent as plain text, so give it UUIDs too. In scripts, lift `.id`.
 
-**Credits.** Every step but triage is an agent run: a Scan, a fix, Fix in Discovery, a Re-sync and `maintain chat` all spend credits. Before `scans run`, `issues fix` (with or without `--discovery`), `syncs run` or `maintain chat`, tell the user what it will do and that it spends credits, and run it only on their yes. Approving a question card that starts a Scan, a fix or a Discovery run spends credits too: approve a card only after the user's yes.
+**Credits.** Every step but triage is an agent run: a Scan, a fix (including **Fix again**), Fix in Discovery, a Re-sync and every `maintain chat` turn spend credits. Before `scans run`, `issues fix` (with or without `--discovery`), `syncs run`, `maintain chat`, a `chat send` or a `chat answer` that sets an agent going again, tell the user what it will do and that it spends credits, and run it only on their yes. Approving a question card that starts a Scan, a fix or a Discovery run spends credits too: approve a card only after the user's yes.
 
-**Question cards.** When an agent run stops on a question, read it with `artemis chat messages <chat-id>` and answer with `artemis chat answer <chat-id> --answer "..."` or `--approve`. Never reply to a card with `chat send`: the card stays unanswered and the agent asks again.
+**Question cards.** When an agent run stops on a question, read it with `artemis chat messages <chat-id>` and answer with `artemis chat answer <chat-id> --answer "..."` or `--approve`. If the user says no, answer with `--reject` so the card doesn't sit waiting. Never reply to a card with `chat send`: the card stays unanswered and the agent asks again.
 
 **`--model`** is optional on `scans run`, `issues fix` and `maintain chat`; omit it and the backend chooses. It takes a catalogue UUID or a model-type code (`artemis model list`).
 
-**Waiting.** Never loop without a limit, and don't sleep between tool calls. Check in one shell command with the sleep inside, run with a 10-minute tool timeout (or in the background); if it is still running, run the same command again. The pattern, for a fix:
+**Waiting.** Never loop without a limit, and don't sleep between tool calls. Check in one shell command with the sleep inside, run with a 10-minute tool timeout (or in the background; lower the loop count if your shell limit is shorter). If it is still running, run the same command again, at most three times in all. The pattern, for a fix:
 
 ```bash
 for i in $(seq 16); do   # about 8 minutes
-  s=$(artemis --output-format json maintain issues get <issue-id> -p <p> | jq -r '.fixStatus')
+  out=$(artemis --output-format json maintain issues get <issue-id> -p <p>) || { echo "issues get failed"; break; }
+  s=$(printf '%s' "$out" | jq -r '.fixStatus')
   case "$s" in done|failed|cancelled) break;; esac
   sleep 30
 done; echo "fixStatus=$s"
 ```
+
+After three runs with no change, stop waiting and look at why. For a fix, `artemis --output-format json maintain issues fix-runs <id> -p <p>` lists `.runs[]` with `isActive` and `agentRunStatus`: a failed fix run is not written back, so `fixStatus` can sit at `in_progress` for good. If `agentRunStatus` is `failed` or `cancelled`, or the run's chat (`artemis chat messages <chat-id>`) is waiting on a question card, stop and tell the user. Scans and Re-syncs get the same three-run limit.
 
 ---
 
@@ -57,20 +60,20 @@ done; echo "fixStatus=$s"
 
 Every Rule belongs to one project.
 
-**Import from the default catalogue.** Pick Rules rather than importing all of them: the catalogue has 22, a Scan takes at most 20, and three (GitHub, JIRA and Sentry issue import) bring in issues from those tools rather than scan the code.
+**Import from the default catalogue.** Pick Rules rather than importing all of them: a Scan takes at most 20, and the issue-import Rules (GitHub, JIRA, Sentry) bring in issues from those tools rather than scan the code.
 
 ```bash
 artemis maintain rules defaults --all
 artemis maintain rules import-defaults --project <p> --rule <default-id-1> --rule <default-id-2>
 ```
 
-**Author one from a prompt.** The maintain agent reads the code, writes the Rule and puts it on the board:
+**Author one from a prompt.** After the user's yes (each turn spends credits), the maintain agent reads the code, writes the Rule and puts it on the board:
 
 ```bash
 artemis maintain chat --project <p> --timeout 8m -m "create a rule that flags SQL queries built with string concatenation"
 ```
 
-Piped or with `--output-format json`, `maintain chat` takes one turn and prints the chat id. If the agent stops on a question card, answer it as above (`chat answer`); use `artemis chat send <chat-id> -m "..."` only to carry on the conversation.
+Piped or with `--output-format json`, `maintain chat` takes one turn and prints the chat id. If the agent stops on a question card, answer it as above (`chat answer`); use `artemis chat send <chat-id> -m "..."` only to carry on the conversation, after the user's yes. If a turn hits `--timeout` the CLI exits 6 but the agent keeps working: follow it with `artemis chat get <chat-id>` rather than starting another turn.
 
 **Author one from markdown:** `artemis maintain rules create --project <p> --markdown-file rule.md`.
 
@@ -81,7 +84,7 @@ artemis --output-format json maintain rules list --project <p> --all \
   | jq -r '.docs[] | "\(.displayId // .id)\t\(.isDraft // false)\t\(.name)"'
 ```
 
-`rules delete` also deletes the Rule's Issues and Scans and cannot be undone. It asks unless you pass `--force`; never `--force` a Rule someone else wrote.
+`rules delete` also deletes the Rule's Issues and Scans and cannot be undone. Name the Rule and how many Issues go with it, get the user's yes, then run `rules delete <rule-id> --project <p> --force` (with no terminal it fails without `--force`). Never delete a Rule someone else wrote.
 
 ## 2. Run the Scan
 
@@ -92,7 +95,7 @@ artemis maintain scans run --project <p> --rule <rule-id> --count 10
 ```
 
 - `--rule` is required and repeatable, up to 20 Rules per Scan.
-- `--count` is about how many Issues to surface (1-100, default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. `--no-limit` drops the limit, as in the Web UI, and uses more tokens; it can't be combined with `--count`.
+- `--count` is about how many Issues to surface (1-1000, default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. A no-limit option, as in the Web UI, comes with the next CLI release.
 - `--focus "<text>"` points the Scan at part of the code, like the Web UI's "What to focus on". `--commit <sha>` scans that commit instead of the project head. There is no `--path`.
 
 The Scan runs in the background; capture its `id`. Check on it with `scans get <scan-id> --project <p>` in the waiting pattern above, breaking on `.status` `done`, `failed` or `cancelled`. Stop a Scan, after the user's yes, with `scans cancel <scan-id> --project <p> --force` (without `--force` it asks, and fails with no terminal); it keeps what it already found. (`--wait --timeout` also exists, but its 20-minute default outlasts an agent's shell.)
@@ -106,6 +109,8 @@ The Scan runs in the background; capture its `id`. Check on it with `scans get <
 - a broader or differently worded Rule may do better; the wording drives recall.
 
 ## 4. Read the board
+
+The board in the Web UI: `<deployment-base-url>/projects/<project-id>/maintain/issues`. Give the user that link with your summary.
 
 ```bash
 artemis maintain issues list --project <p> --severity high                       # open, high severity
@@ -154,8 +159,8 @@ artemis maintain issues fix <issue-uuid> --discovery --project <p> \
   --runner <runner> --script <script> --versions 5 --repeats 3 --timeout 8m
 ```
 
-- It needs a runner and a script (or `--execution-mode skip` for no runner) and spends credits per version; say both before the yes.
-- It goes through the maintain agent, which settles the run's settings; flags you pass are handed over so it doesn't ask. Piped, it takes one turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only after the user's yes.
+- It needs a runner and a script (or `--execution-mode skip` for no runner) and spends credits; say both before the yes.
+- It goes through the maintain agent, which settles the run's settings; flags you pass are handed over so it doesn't ask. Piped, it takes one turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only after the user's yes. If the turn hits `--timeout` (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`.
 - Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 
 ### Your own coding agent
@@ -187,7 +192,7 @@ artemis maintain issues publish <id> --project <p>   # git branch, no PR
 artemis maintain issues pr <id> --project <p>        # publish if needed, then open a PR
 ```
 
-`pr` takes its title and description from the Issue and targets the project's default branch; override with `--title`, `--description` and `--base`. The git branch is named `artemis/<issue-slug>-<n>`.
+`pr` takes its title and description from the Issue and targets the branch the project was imported on, falling back to `main`; override with `--title`, `--description` and `--base`. The git branch is named after the Issue's display id plus a random number, like `artemis/iss-143-04217`.
 
 ## 8. Re-sync outdated Issues
 
@@ -205,9 +210,9 @@ Syncs run in the background like Scans. There is no `syncs get`: match the sync 
 
 - [ ] CLI at least 1.1.14; project UUID confirmed.
 - [ ] Rules in place and none still drafts.
-- [ ] The user said yes before each Scan, fix (agent, Discovery), Re-sync, `maintain chat` and card approval.
+- [ ] The user said yes before each Scan, fix (agent, Fix again, Discovery), Re-sync, `maintain chat` turn, `chat send` or resuming `chat answer`, card approval and `rules delete`.
 - [ ] The Scan reached `done`, and `issuesFound` is checked, not assumed.
 - [ ] Issues triaged before any fix; unrelated Issues in separate `fix` calls.
-- [ ] Waited on `fixStatus` with a bounded check, not an endless loop.
+- [ ] Waited on `fixStatus` with a bounded check, at most three runs, then checked `fix-runs` and the chat.
 - [ ] The Branch is non-empty (`changeset diff`) before `publish`/`pr`; git connection can push.
 - [ ] Outdated Issues re-synced before trusting old ones.
