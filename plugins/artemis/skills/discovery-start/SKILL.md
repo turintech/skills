@@ -105,14 +105,14 @@ Pass `--source-changeset` when starting from an existing branch, including a ver
 
 ### Benchmark runs per version
 
-The server default is one Benchmark run per version, recorded on the run as `evaluationMode` and `evaluationRepetitions`. One Benchmark run yields a point estimate and no interval, so a difference between two versions cannot be separated from ordinary noise.
+Here Benchmark runs means `--eval-runs`, not the execution mode the CLI help also calls Benchmark runs. The server default is one Benchmark run per version, recorded on the run as `evaluationMode` and `evaluationRepetitions`. One Benchmark run yields a point estimate and no interval, so a difference between two versions cannot be separated from ordinary noise.
 
 ```bash
 --eval-mode fixed --eval-runs 3        # measure every version three times
 --eval-mode until_stable --max-runs 20 # repeat until results settle, capped
 ```
 
-Benchmark runs multiply **runner** time, not agent time: a 10-version run with 3 Benchmark runs per version performs 33 instead of 11. On a benchmark measured in seconds that is a couple of extra minutes and well worth it. On one measured in tens of minutes it dominates the run.
+Benchmark runs multiply **runner** time, not agent time: a 10-version run with 3 Benchmark runs per version performs 33 Benchmark runs instead of 11. On a benchmark measured in seconds that is a couple of extra minutes and well worth it. On one measured in tens of minutes it dominates the run.
 
 Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Use verified timings when available; otherwise ask. Estimate benchmark time as duration × (versions + one baseline) × repetitions; use the cap for `until_stable`. Add build/test time per version and queue delays separately, and give the estimate before creating the run.
 
