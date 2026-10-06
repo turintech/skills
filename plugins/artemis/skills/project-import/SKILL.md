@@ -110,7 +110,7 @@ Wait for `success` before running anything against the project, with one bounded
 
 ```bash
 for i in $(seq 48); do
-  s=$(artemis --output-format json project list --all | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus')
+  s=$(artemis --output-format json project list --all | python3 -c 'import json,sys; print(next((p.get("importedStatus") or "" for p in json.load(sys.stdin).get("docs") or [] if p.get("id")=="<project-uuid>"), ""))')
   [ "$s" != importing ] && break; sleep 10
 done; echo "$s"
 ```

@@ -153,9 +153,9 @@ During baseline finalization, Artemis derives and stores `metricsSchema` using t
 ```bash
 for i in $(seq 16); do
   out=$(artemis --output-format json discovery get "<run_id>") || { echo "discovery get failed"; break; }
-  printf '%s' "$out" | jq -e '((.baselineVersionSha != null) and (.metricsSchema != null)) or (.status == "failed")' >/dev/null && break
+  printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); sys.exit(0 if (r.get("baselineVersionSha") is not None and r.get("metricsSchema") is not None) or r.get("status") == "failed" else 1)' && break
   sleep 30
-done; printf '%s' "$out" | jq '{status, baselineVersionSha, hasSchema: (.metricsSchema != null)}'
+done; printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(json.dumps({"status": r.get("status"), "baselineVersionSha": r.get("baselineVersionSha"), "hasSchema": r.get("metricsSchema") is not None}))'
 ```
 
 If baseline finalization is delayed, use `discovery-inspect` to compare the run record with runner activity. Large task logs can delay ingestion; see [advanced log control](../repo-command-setup/ADVANCED.md#control-log-volume).
@@ -173,9 +173,9 @@ A finalized baseline does not prove that the run explored a version. Check the s
 ```bash
 for i in $(seq 16); do
   out=$(artemis --output-format json discovery get "<run_id>") || { echo "discovery get failed"; break; }
-  printf '%s' "$out" | jq -e '(.versionCount > 0) or (.status == "completed" or .status == "failed" or .status == "cancelled")' >/dev/null && break
+  printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); sys.exit(0 if (r.get("versionCount") or 0) > 0 or r.get("status") in ("completed", "failed", "cancelled") else 1)' && break
   sleep 30
-done; printf '%s' "$out" | jq '{status, versionCount, experimentCount, agentRunId}'
+done; printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(json.dumps({k: r.get(k) for k in ("status", "versionCount", "experimentCount", "agentRunId")}))'
 ```
 
 A running run with zero versions may not have started exploration yet. If it becomes terminal without a version, or still has none after two loops (16 minutes), stop checking and hand off to `discovery-inspect`. When the user's benchmark is long (a version takes more than about 5 minutes with its repetitions), say so and allow one more loop before handing off.
