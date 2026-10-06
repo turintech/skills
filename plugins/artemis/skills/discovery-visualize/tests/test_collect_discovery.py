@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -345,8 +348,20 @@ class FalconComparisonTests(unittest.TestCase):
             metric = version["metrics"]["simulation_fps"]
             self.assertIsNone(metric["pctBetter"])
             self.assertIsNone(metric["vsBaseline"])
-        # With no falcon number, the order falls back to the mean.
-        self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [1, 2])
+        # With no falcon number, nothing is ranked and the winner says why.
+        self.assertEqual(snap["rankings"]["simulation_fps"], [])
+        winner = snap["perMetricWinners"]["simulation_fps"]
+        self.assertIsNone(winner["raw"])
+        self.assertIn("no change", winner["reason"])
+        self.assertEqual(winner["unranked"], ["v1", "v2"])
+
+    def test_a_version_without_falcons_number_is_not_ranked(self) -> None:
+        # v1 has the higher mean but no falcon change; it must not outrank v2, which falcon says is worse.
+        snap = collector.build_snapshot(self.two_versions(self.falcon_row(None, None), self.falcon_row(-30.0, "worse")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [2])
+        winner = snap["perMetricWinners"]["simulation_fps"]
+        self.assertEqual(winner["raw"]["pctBetter"], -30.0)
+        self.assertEqual(winner["unranked"], ["v1"])
 
     def test_an_old_cli_gets_an_upgrade_hint(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -358,6 +373,47 @@ class FalconComparisonTests(unittest.TestCase):
                 collector.fetch_comparison("run-1", cli=str(fake))
             self.assertIn("1.1.14", str(caught.exception))
             self.assertIn("cli-setup", str(caught.exception))
+
+    def fake_cli(self, tmp: str, script: str) -> str:
+        fake = Path(tmp) / "artemis"
+        fake.write_text("#!/bin/sh\n" + script, encoding="utf-8")
+        fake.chmod(0o755)
+        return str(fake)
+
+    def test_other_compare_failures_pass_through(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            # A CLI that has compare, failing for another reason (auth).
+            cli = self.fake_cli(tmp, 'case "$*" in *--help*) printf "Usage:\\n  artemis discovery compare <run-id> [flags]\\n";; *) echo "401 Unauthorized" >&2; exit 3;; esac\n')
+            with self.assertRaises(RuntimeError) as caught:
+                collector.fetch_comparison("run-1", cli=cli)
+            self.assertIn("401 Unauthorized", str(caught.exception))
+            self.assertNotIn("1.1.14", str(caught.exception))
+
+    def test_project_mode_stops_on_an_old_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cli = self.fake_cli(tmp, "echo 'Usage: artemis discovery [command]'\n")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                code = collector.main(["--project", "p-1", "--cli", cli])
+            self.assertEqual(code, 1)
+            self.assertIn("1.1.14", err.getvalue())
+
+    def test_from_dir_needs_falcons_comparison(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("run.json", "versions.json", "metrics.json", "experiments.json"):
+                shutil.copy(FIXTURES / name, Path(tmp) / name)
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                code = collector.main(["--from-dir", tmp])
+            self.assertEqual(code, 1)
+            self.assertIn("comparison.json", err.getvalue())
+
+    def test_a_bad_pareto_axis_is_a_message_not_a_traceback(self) -> None:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = collector.main(["--from-dir", str(FIXTURES), "--pareto", "nosuch,other"])
+        self.assertEqual(code, 2)
+        self.assertIn("Pareto", err.getvalue())
 
     def test_no_statistics_are_computed_here(self) -> None:
         source = (SCRIPTS / "collect_discovery.py").read_text(encoding="utf-8")

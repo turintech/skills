@@ -172,7 +172,12 @@ def load_from_dir(directory: str) -> dict[str, Any]:
     observations_path = os.path.join(directory, "observations.json")
     observations = extract_json(load_text(observations_path)) if os.path.isfile(observations_path) else None
     comparison_path = os.path.join(directory, "comparison.json")
-    comparison = extract_json(load_text(comparison_path)) if os.path.isfile(comparison_path) else None
+    if not os.path.isfile(comparison_path):
+        raise FileNotFoundError(
+            f"no comparison.json in {directory}: save `artemis --output-format json discovery compare <run-id>` there, "
+            "since the verdicts and changes come from it"
+        )
+    comparison = extract_json(load_text(comparison_path))
     return {
         "run": run,
         "versions": versions,
@@ -208,12 +213,28 @@ def project_names(cli: str = "artemis", config: str | None = None) -> dict[str, 
         return {}
 
 
+UPGRADE_HINT = "artemis discovery compare needs artemis CLI 1.1.14 or newer: follow cli-setup to upgrade"
+
+
+def compare_available(cli: str = "artemis", config: str | None = None) -> bool:
+    """Whether this CLI has `discovery compare`. CLIs before 1.1.14 print the parent's help (and exit 0) instead."""
+    completed = subprocess.run(
+        [cli, *(["--config", config] if config else []), "discovery", "compare", "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return "artemis discovery compare" in (completed.stdout or "")
+
+
 def fetch_comparison(run_id: str, cli: str = "artemis", config: str | None = None) -> Any:
-    """Falcon's verdicts. `discovery compare` ships in CLI 1.1.14; older CLIs fail or print help instead of JSON."""
+    """Falcon's verdicts from `discovery compare`. A CLI too old to have it gets the upgrade hint; other errors pass through."""
     try:
         return extract_json(run_artemis(["discovery", "compare", run_id], cli, config))
     except (RuntimeError, ValueError) as error:
-        raise RuntimeError(f"artemis discovery compare failed: it needs artemis CLI 1.1.14 or newer, so follow cli-setup if yours is older ({error})") from error
+        if not compare_available(cli, config):
+            raise RuntimeError(UPGRADE_HINT) from error
+        raise RuntimeError(f"artemis discovery compare failed: {error}") from error
 
 
 def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, names: dict[str, str] | None = None) -> dict[str, Any]:
@@ -534,9 +555,14 @@ def build_snapshot(
             continue
         higher = bool(definition["higherIsBetter"])
         ranked: list[dict[str, Any]] = []
+        unranked: list[str] = []
         for version in versions:
             stat = (version.get("metrics") or {}).get(name)
             if not stat or stat.get("mean") is None:
+                continue
+            if stat.get("pctBetter") is None:
+                # Falcon has no change for this version (no baseline readings, or not compared yet): no rank.
+                unranked.append(version["label"])
                 continue
             ranked.append(
                 {
@@ -551,15 +577,18 @@ def build_snapshot(
                     "experimentStatus": version.get("experimentStatus"),
                 }
             )
-        # Falcon's change first (it uses the metric's own aggregator, as the Web UI does); the mean only where falcon has no number.
-        ranked.sort(key=lambda row: (0, -row["pctBetter"]) if row["pctBetter"] is not None else (1, -row["mean"] if higher else row["mean"]))
+        # Falcon's change, on the metric's own aggregator, as the Web UI ranks.
+        ranked.sort(key=lambda row: -row["pctBetter"])
         rankings[name] = ranked
         raw = ranked[0] if ranked else None
         eligible_rows = [row for row in ranked if row["eligible"]]
         winners[name] = {
             "raw": raw,
             "eligible": eligible_rows[0] if eligible_rows else None,
+            "unranked": unranked,
         }
+        if raw is None:
+            winners[name]["reason"] = "Artemis has no change against the original for any version yet"
 
         best_version = None
         best_mean = None
@@ -727,6 +756,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     collected_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     if args.project:
+        if not compare_available(args.cli, args.config):
+            print(f"collect_discovery.py: {UPGRADE_HINT}", file=sys.stderr)
+            return 1
         runs, skipped = [], []
         names = project_names(args.cli, args.config)
         for item in sorted(list_project_runs(args.project, args.cli, args.config), key=lambda r: r.get("createdAt") or ""):
@@ -743,19 +775,27 @@ def main(argv: list[str] | None = None) -> int:
             print(encoded)
         return 0
     if args.from_dir:
-        payloads = load_from_dir(args.from_dir)
+        try:
+            payloads = load_from_dir(args.from_dir)
+        except FileNotFoundError as error:
+            print(f"collect_discovery.py: {error}", file=sys.stderr)
+            return 1
     else:
         try:
             payloads = fetch_cli(args.run_id, args.cli, args.config)
         except RuntimeError as error:
             print(f"collect_discovery.py: {error}", file=sys.stderr)
             return 1
-    snapshot = build_snapshot(
-        payloads,
-        collected_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-        base_url=args.base_url,
-        pareto_axes=parse_pareto_axes(args.pareto),
-    )
+    try:
+        snapshot = build_snapshot(
+            payloads,
+            collected_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            base_url=args.base_url,
+            pareto_axes=parse_pareto_axes(args.pareto),
+        )
+    except ValueError as error:
+        print(f"collect_discovery.py: {error}", file=sys.stderr)
+        return 2
     encoded = json.dumps(snapshot, indent=2, sort_keys=False)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as handle:

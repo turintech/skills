@@ -99,9 +99,14 @@ class RecipeTests(unittest.TestCase):
             [", a real gain", ", a real loss", ", within the noise", ", too few runs to tell yet", ""],
         )
 
-    def test_recipe_stops_when_a_metric_has_no_direction(self) -> None:
+    def test_recipe_stops_when_there_is_no_best_version(self) -> None:
         recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
-        self.assertIn("if (!win) throw new Error('No direction stored", recipe)
+        self.assertIn("if (!win) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason", recipe)
+
+    def test_recipe_never_prints_null_runs(self) -> None:
+        recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
+        self.assertNotIn("{ text: t.readings + ' runs vs '", recipe)
+        self.assertNotIn("fmt.p", recipe.replace("fmt.pct", ""))
 
 
 if __name__ == "__main__":

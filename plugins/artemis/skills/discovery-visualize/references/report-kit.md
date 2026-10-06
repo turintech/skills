@@ -19,7 +19,7 @@ Fix everything `check_report.py` reports before sharing. Without Chrome it runs 
 
 It runs after the kit, with two globals: `ArtemisReport` and `SNAPSHOT`. Never declare a top-level `top`, `name`, `parent`, `status`, `length` or `origin`.
 
-This is the default report, best vs baseline ([report-design.md](report-design.md) section 1). The verdict, the % change and its interval are falcon's, carried in the collector's `vsBaseline`; the page never computes them. The best version and its % are falcon's change, which uses the metric's own aggregator, so the bracket between the two means in figure 1 is labelled as Artemis's change, not the gap between means. If the metric has no stored direction, the script stops: tell the user instead. For a chart the user names, keep the header and footer and swap the figures, passing their colours as each item's `color`.
+This is the default report, best vs baseline ([report-design.md](report-design.md) section 1). The verdict, the % change and its interval are falcon's, carried in the collector's `vsBaseline`; the page never computes them. The best version and its % are falcon's change, which uses the metric's own aggregator, so the bracket between the two means in figure 1 is labelled as Artemis's change, not the gap between means. If there is no best version (no stored direction, or no change from Artemis yet), the script stops with the reason: tell the user instead. For a chart the user names, keep the header and footer and swap the figures, passing their colours as each item's `color`.
 
 ```js
 const R = ArtemisReport, S = SNAPSHOT, F = R.fmt;
@@ -27,7 +27,7 @@ const key = S.metrics.find(m => m.kind === 'target' && m.role !== 'reference').k
 const def = S.metrics.find(m => m.key === key), unit = def.unit || '', up = def.higherIsBetter;
 const word = up ? 'faster' : 'lower';  // the metric's own word: faster, smaller, more accurate
 const base = S.baseline.metrics[key], win = S.perMetricWinners[key].raw;
-if (!win) throw new Error('No direction stored for ' + key + ': there is no best version to show. Say so to the user instead of drawing this page.');
+if (!win) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason + '. Say so to the user instead of drawing this page.');
 const winV = S.versions.find(v => v.version === win.version), winM = winV.metrics[key], t = winM.vsBaseline;
 const sha = S.run.baselineVersionSha.slice(0, 7), project = S.run.projectName;
 const gain = { em: F.pct(win.pctBetter).replace('+', '') + ' ' + word };
@@ -41,7 +41,7 @@ R.header(document.getElementById('header'), {
   chips: t ? [
     { text: 'Verdict: ' + t.verdict, strong: t.verdict === 'better' },
     t.ciLowPct != null ? { text: '95% interval ' + F.pct(t.ciLowPct) + ' to ' + F.pct(t.ciHighPct) } : null,
-    { text: t.readings + ' runs vs ' + (S.baseline.readings[key] || base.count) + ' for the original' },
+    { text: (t.readings != null ? t.readings : winM.count) + ' runs vs ' + (S.baseline.readings[key] || base.count) + ' for the original' },
   ].filter(Boolean) : [{ text: 'No verdict from Artemis for this metric' }],
 });
 
@@ -59,6 +59,7 @@ R.compareRuns(f1.chart,
   { label: winV.label, sub: 'best version', runs: winM.runs, mean: winM.mean },
   { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + unit + ', ' + (up ? 'higher' : 'lower') + ' is better)',
     aria: key + ', every run: original mean ' + F.num(base.mean, 2) + ' against ' + winV.label + ' mean ' + F.num(winM.mean, 2) });
+f1.caption('The % is Artemis’s change, on the metric’s own aggregator, as in the Web UI. The values either side are means.');
 const worstWin = up ? Math.min(...winM.runs) : Math.max(...winM.runs), bestBase = up ? Math.max(...base.runs) : Math.min(...base.runs);
 const clear = up ? worstWin > bestBase : worstWin < bestBase;
 f1.bullets([
@@ -121,7 +122,7 @@ R.footer(page, {
 | `trajectory(el, points, {zero, annotations, yLabel, yFormat})` | Values in version order; `y: null` is a gap; `annotations: [{after, text}]` marks a steer |
 | `table(el, headers, rows, numericColumns)` | A plain table; put it in `<details class="ar-details">` for the full version list |
 | `stats(values)` | `{n, min, q1, med, q3, max, mean}` |
-| `fmt.num / pct / times / share / short / p` | Number formats; `short` trims a title with an ellipsis; `p` writes "p = 0.005" or "p < 0.001" |
+| `fmt.num / pct / times / share / short` | Number formats; `short` trims a title with an ellipsis |
 | `series(i)` | The i-th categorical colour, for runs or groups |
 
 Colour tokens: `--ar-accent` (the story's hero), `--ar-mark` (the original, versions falcon calls better or worse), `--ar-quiet` (noise or pending), `--ar-neutral`, `--ar-band`, `--ar-c1` to `--ar-c6` (validated categorical order).
