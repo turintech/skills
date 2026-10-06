@@ -76,7 +76,7 @@ artemis --output-format json project scripts create \
 
 Compile and test are unmeasured setup commands. Use `--measure none` when the benchmark publishes custom `artemis_results` metrics and command runtime must not become an extra worker metric. Use `--measure runtime` (or `cpu`/`memory`) only when those measurements are part of the optimization target. Pass `--default` only when this script should become the project default.
 
-Capture `script_id` from the create or list response. Prefer passing `--script` explicitly even when a default exists.
+Capture the script's `id` from the create or list response. Prefer passing `--script` explicitly even when a default exists.
 
 Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its §2.
 
@@ -114,7 +114,7 @@ Repetitions multiply **runner** time, not agent time: a 10-version run at three 
 
 Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Ask how long one benchmark takes, multiply by versions plus one for the baseline, and say the result out loud before creating the run.
 
-Capture `run_id` from the JSON; every later command needs it.
+Capture the run's `id` from the JSON (there is no `run_id` key); every later command needs it.
 
 Immediately give the user a clickable link:
 
