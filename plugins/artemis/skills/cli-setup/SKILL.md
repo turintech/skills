@@ -1,6 +1,6 @@
 ---
 name: cli-setup
-description: Install, update, and authenticate the Artemis CLI by direct download from the Artemis file server, then log in with an API key the user creates. Use when the CLI is missing, older than the skills' minimum, or not signed in to the target deployment.
+description: Install, update, and authenticate the Artemis CLI by direct download from the Artemis file server, then log in with an API key the user creates. Use when the CLI is missing, older than the skills' minimum, or not signed in to the target deployment, and once per session to check that the Artemis skills and CLI are current.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -13,7 +13,7 @@ metadata:
 
 - **Problem:** Installs, updates, and authenticates the Artemis CLI from the public file server, with no GitHub or source access needed.
 - **Must be available:** Network access to the file server and Artemis deployment, plus an API key created in the Web UI and entered by the user in their own terminal.
-- **Use / don't use:** Use when the CLI is missing, outdated, or unauthenticated; skip it when a working authenticated CLI is already available.
+- **Use / don't use:** Use when the CLI is missing, outdated, or unauthenticated, and once per session for *Check versions*; when a working authenticated CLI is already available, run *Check versions* and skip the rest.
 - **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
 Use the supported distribution. This path requires no GitHub account and does not assume access to the CLI source repository.
@@ -22,6 +22,25 @@ Use the supported distribution. This path requires no GitHub account and does no
 
 - Network access to `files.artemis.turintech.ai` and the deployment's base URL.
 - An API key for the target deployment, created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
+
+## Check versions
+
+The skills, the CLI and the platform are released separately, so a returning user can have any mix of them. Check once per session, before the first task, even when the CLI already works.
+
+**1. The skills.** Skip this step if the skills were installed earlier in this session, if this session has already run an Artemis command that changes something (import, branch, validation, Discovery), or if the setup prompt says to use the installed skills as they are. Otherwise tell the user in one line ("Checking for Artemis skills updates.") and update only the Artemis skills:
+
+- **Claude Code:** run `claude plugin marketplace update skills`, then `claude plugin update artemis@skills --json`. An `outcome` of `up_to_date` means current and `updated` means the skills changed; any other outcome means the check could not run (below).
+- **Cursor, Codex, GitHub Copilot:** run `npx skills list -g`. If it lists the Artemis skills (the setup prompt installs them with `npx skills add --global`), run `npx skills update -g -y <names>`, naming only those, because with no names it updates every skill on the machine. "All global skills are up to date" means current; "Updated N skill(s)" means they changed. If it does not list them, they came from the host's own installer (`agent plugin marketplace add`, `codex plugin marketplace add` or `gh skill install`, usually pinned to a release) or were copied into the host's skills directory: run nothing, and tell the user in one line to update them the way they installed them.
+
+Then:
+
+- **Nothing changed:** say nothing more and carry on.
+- **Something changed:** ask the user once to reload, wait, then invoke the skill you were following again, because the copy already read is the old one. Claude Code: `/reload-plugins` (if it warns about the cache, `/reload-plugins --force`, or restart Claude Code). Other hosts: usually a new chat, where they paste their request again. Do not repeat this step in the same chat; in a new chat it reports current.
+- **The check could not run:** if a command fails, Claude Code finds no Artemis plugin, or this skill was not loaded from the installed plugin (in Claude Code its base directory is not under the plugins directory, `~/.claude/plugins/` by default, as with `--plugin-dir`), install nothing, say in one line that the skills could not be checked, and continue.
+
+**2. The CLI.** It must meet the skills' minimum: see *Verify*, and *Update* if it is older.
+
+**3. The platform.** Skills declare `metadata.artemis-platform-min`, but the CLI cannot report the platform's version, so do not guess it. If a command that `--help` lists fails with an unknown route, or with a 404 for an id you have just seen in a list on this deployment, say the deployment may be older than these skills need or the id may not be visible to this login, rather than retrying.
 
 ## Check what is already there
 
@@ -33,7 +52,7 @@ artemis status
 artemis runner list
 ```
 
-`status` can report authentication as ok with a revoked key, so the key is only proven when `runner list` succeeds; a `401` there means log in again. If the version meets the skills' minimum (see *Verify*), `status` names the target deployment and `runner list` succeeds, there is nothing to do here. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
+`status` can report authentication as ok with a revoked key, so the key is only proven when `runner list` succeeds; a `401` there means log in again. If the version meets the skills' minimum (see *Verify*), `status` names the target deployment and `runner list` succeeds, there is nothing to install or log in. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
 
 ## Install the CLI
 
@@ -173,23 +192,6 @@ Verify in a fresh login shell rather than the one where you just exported it:
 ```bash
 bash -lc 'artemis status'
 ```
-
-## Check versions
-
-The skills, the CLI and the platform are released separately, so a returning user can have any mix of them. Check once per session, before the first task, in this order.
-
-**1. The skills.** Skip this step if the skills were installed earlier in this session, if any Artemis work has already started, or if the setup prompt says to use the installed skills as they are. Otherwise update only the Artemis skills with the host's installer and read what it printed:
-
-| Host | Command | Already current | Updated |
-|---|---|---|---|
-| Claude Code | `claude plugin marketplace update skills`, then `claude plugin update artemis@skills` | "already at the latest version" | "updated from ... to ..." |
-| Cursor, Codex, GitHub Copilot | `npx skills update -g -y <names>`, naming only the Artemis skills that `npx skills list -g` shows; with no names it updates every skill on the machine | "All global skills are up to date" | "Updated N skill(s)" |
-
-If nothing changed, say nothing and carry on. If something changed, ask the user once to reload (Claude Code: type `/reload-plugins`; other hosts: usually a new chat, where they paste their request again), wait, then load the skill you were following again before continuing, because the copy already read is the old one. Do not repeat this step after the reload. If the command fails, reports no tracked skills, or this skill was not loaded from the installed plugin (in Claude Code its base directory is not under the plugins directory, `~/.claude/plugins/` by default, as with `--plugin-dir`), install nothing: say in one line that the skills could not be checked and continue.
-
-**2. The CLI.** It must meet the highest `metadata.artemis-cli-min` among the skills in use (*Verify*). If it is older, update it (*Update*).
-
-**3. The platform.** Skills declare `metadata.artemis-platform-min`, but the CLI cannot report the platform's version, so do not guess it. If a command that `--help` lists fails with an unknown route, or with a 404 for an id you have just seen in a list on this deployment, say the deployment may be older than these skills need, rather than retrying.
 
 ## Verify
 
