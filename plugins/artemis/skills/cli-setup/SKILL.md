@@ -178,18 +178,18 @@ bash -lc 'artemis status'
 
 The skills, the CLI and the platform are released separately, so a returning user can have any mix of them. Check once per session, before the first task, in this order.
 
-**1. The skills.** Update them with the host's own installer, then read what it printed:
+**1. The skills.** Skip this step if the skills were installed earlier in this session, if any Artemis work has already started, or if the setup prompt says to use the installed skills as they are. Otherwise update only the Artemis skills with the host's installer and read what it printed:
 
 | Host | Command | Already current | Updated |
 |---|---|---|---|
 | Claude Code | `claude plugin marketplace update skills`, then `claude plugin update artemis@skills` | "already at the latest version" | "updated from ... to ..." |
-| Cursor, Codex, GitHub Copilot | `npx skills update -g -y` | "All global skills are up to date" | "Updated N skill(s)" |
+| Cursor, Codex, GitHub Copilot | `npx skills update -g -y <names>`, naming only the Artemis skills that `npx skills list -g` shows; with no names it updates every skill on the machine | "All global skills are up to date" | "Updated N skill(s)" |
 
-If nothing changed, say nothing and carry on. If the skills were updated, this session still has the old ones loaded: ask the user once to reload (Claude Code: type `/reload-plugins`; other hosts: whatever that host needs to load new skills, usually a new chat), and wait. If the command fails, or the skills were not installed through a marketplace or `npx skills` (for example loaded with `--plugin-dir`), do not install anything: say the skills could not be checked and continue.
+If nothing changed, say nothing and carry on. If something changed, ask the user once to reload (Claude Code: type `/reload-plugins`; other hosts: usually a new chat, where they paste their request again), wait, then load the skill you were following again before continuing, because the copy already read is the old one. Do not repeat this step after the reload. If the command fails, reports no tracked skills, or this skill was not loaded from the installed plugin (in Claude Code its base directory is not under the plugins directory, `~/.claude/plugins/` by default, as with `--plugin-dir`), install nothing: say in one line that the skills could not be checked and continue.
 
 **2. The CLI.** It must meet the highest `metadata.artemis-cli-min` among the skills in use (*Verify*). If it is older, update it (*Update*).
 
-**3. The platform.** Skills declare `metadata.artemis-platform-min`, but the CLI cannot report the platform's version, so do not guess it. If a command the skill relies on fails with a 404 or an unknown route, say the deployment may be older than these skills need, rather than retrying.
+**3. The platform.** Skills declare `metadata.artemis-platform-min`, but the CLI cannot report the platform's version, so do not guess it. If a command that `--help` lists fails with an unknown route, or with a 404 for an id you have just seen in a list on this deployment, say the deployment may be older than these skills need, rather than retrying.
 
 ## Verify
 
