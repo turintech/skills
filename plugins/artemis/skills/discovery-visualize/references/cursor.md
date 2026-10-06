@@ -52,7 +52,7 @@ When there is no measured version, show only provenance, progress, and the basel
 | Winner diff (only if you also fetched it) | `DiffView` / `DiffStats` |
 | Pareto | custom SVG: canvas has no scatter-with-labels primitive |
 
-Do not colour bars by statistical verdict. Use fitness only when the user asked to rank by AI score.
+Do not colour bars by statistical verdict. Use the Composite score (the snapshot's `fitness`) only when the user asked to rank by it.
 
 The mapping above is a default, not a fixed dashboard. For focused questions,
 prefer the matching component or composition recipe and omit unrelated panels.
