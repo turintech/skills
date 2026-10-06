@@ -40,7 +40,7 @@ For each step:
 
 1. **Arrive first.** Navigate with the page's own links and tabs, never a typed path from memory. The one exception is `<deployment-base-url>/settings/runners/new`, which both runner steps use. Stand on the page that is about to change before changing it. If a click by element reference does nothing, take a fresh screenshot and click the centre of the control.
 2. **Point, then explain.** Move the pointer to the control and say in one sentence what it does and why this step matters.
-3. **Keep going.** The user asked to be shown, and the yes to the plan covers its steps: do not stop to ask before each click. Stop only before a click that starts agent work or spends credits (**Start Discovery**, **Start now**, **Ask agent**, **Continue**, **Generate more versions**, **Retry**), deletes something, changes a setting that already existed, or is not in the plan. When you stop, say what the click does and recommend an answer.
+3. **Keep going.** The user asked to be shown, and the yes to the plan covers its steps: do not stop to ask before each click. Stop only before a click that starts agent work or spends credits (**Start Discovery**, **Ask agent**, **Continue**, **Generate more versions**, **Retry**), deletes something, changes a setting that already existed, or is not in the plan. When you stop, say what the click does and recommend an answer.
 4. **Show the result.** Stay on the page while the change appears, then point at it. A screenshot straight after a click can show the page before it updates: wait a second and look again before deciding a click failed.
 5. **Inside a dialog, close a dropdown by choosing an option, never with Escape:** Escape closes the whole dialog.
 
@@ -70,12 +70,12 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 | Step | Page heading | What to do | Purple button |
 |---|---|---|---|
 | 0 | Discover | Arriving from **Optimise in Discover**, the goal and the measured branch are already filled in: keep them. Otherwise click an example prompt under the box (**Make it faster** suits a first run) or type the goal. Pick the model from the picker under the box; it becomes the run's **Orchestrator model** | the round arrow (send) |
-| 1 Evaluation | How should versions be scored? | Keep **Measure and assess** (Recommended); the others are **Measure only** and **Assess only**, which measures nothing. **Runner**: pick the user's own (the list shows other people's too). None online: go to `<deployment-base-url>/settings/runners/new` in the same tab (see 2.1; not either **Add new Artemis runner** link). Come back through **Discover** and the run marked **Setup pending**, which resumes at its saved step. **Script**: the project's default is chosen; read its commands aloud in a line. **Benchmark runs**: 3 gives a spread to compare. Under **Validate baseline**, click **Run** and wait for it to pass; Next stays greyed until it does | **Next: Success criteria** |
-| 2 Success criteria | What counts as an improvement? | The baseline's numbers appear under **Measured metrics**. Check each metric's direction (higher or lower is better) and importance. Leave **AI-assessed metrics** as drafted unless asked; the orchestrator model scores them as part of the run's cost | **Next: Preferences** |
-| 3 Preferences | How should Artemis explore this? | **Orchestrator model** (the model from step 0; keep it unless asked), **Approval mode** (Automatic lets the agent's judges approve experiments) and **Number of versions**: say that each version costs credits | **Next: Summary** |
+| 1 Evaluation | How should we evaluate code? | Two switches; at least one stays on. Keep **Benchmark Metrics** on: it runs every change on a runner, so results are measurements. Inside it, **Runner**: pick the user's own (the list shows other people's too). None online: go to `<deployment-base-url>/settings/runners/new` in the same tab (see 2.1; not either **Add new Artemis runner** link). Come back through **Discover** and the run marked **Setup pending**, which resumes at its saved step. **Script**: the project's default is chosen; read its commands aloud in a line. **Benchmark runs**: 3 gives a spread to compare. Under **Validate baseline**, click **Run** and wait for it to pass; Next stays greyed until it does. Leave **AI Metrics** as it is unless asked: the Orchestrator model scores each version's code, as part of the run's cost | **Next: Objective** |
+| 2 Objective | Set an objective | Under **Benchmark Metrics**, the baseline's numbers appear. Check each metric's direction (higher or lower is better) and importance. Leave the **AI Metrics** drafted from the goal as they are unless asked (**Regenerate metrics** redrafts them) | **Next: Preferences** |
+| 3 Preferences | How should Artemis explore this? | **Orchestrator model** (the model from step 0; keep it unless asked), **LLM council** (reviews proposed experiments; defaults to the Orchestrator model), **Approval mode** (Automatic lets the LLM council queue experiments) and **Number of versions**: say that each version costs credits | **Next: Summary** |
 | 4 Summary | Ready to start? | Read the summary back. This is the click that spends credits: ask first | **Start Discovery** |
 
-Steps 1 to 3 also offer an outline **Start now**, which starts the run at once with the current choices and spends credits. On a tour, follow Next instead.
+Steps 1 and 2 may also offer an outline **Skip to Summary**. It starts nothing, but it skips the steps the tour explains: on a tour, follow Next instead.
 
 The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, **Setup**, and the **Discovery agent** chat, where the agent explains what it is trying. It may start collapsed: open it with **Expand panel** at the top right. Stay on Overview while the first experiments arrive.
 
@@ -97,7 +97,7 @@ Then click a version. **Code** is its diff, **Details** has the approach, the co
 
 Three things to say while on Versions:
 
-- **Read the measured metric, not the AI score.** The **Best** badge follows the AI score, which often ties across versions; the measured column (fps, runtime) is what changed. In Graphs, switch the dropdown to that metric.
+- **Read the measured metric, not the Composite score.** The **Best** badge follows the Composite score, which often ties across versions; the measured column (fps, runtime) is what changed. In Graphs, switch the dropdown to that metric.
 - **"Needs more runs"** means too few measurements to form an interval, so the platform gives no verdict yet. Hovering a value shows how many samples it is a mean of; a baseline measured once is the usual cause.
 - **Each version is also a branch.** **Branches** lists it as "Discovery <run> - v<N>", unpublished; open it and use **Create PR** to take it out of Artemis.
 
@@ -126,5 +126,5 @@ Three things to say while on Versions:
 - [ ] The plan said in at most four lines, naming what will change
 - [ ] Each step: arrived first, pointer on the control, one sentence of why
 - [ ] One yes to the plan, then no stops except before credits, deletes, changed settings or anything outside the plan, each with a recommendation
-- [ ] On the Discovery tour, the purple button followed on every step (never **Start now**), the user's own runner picked, and the baseline validated before Next
+- [ ] On the Discovery tour, the purple button followed on every step (never **Skip to Summary**), the user's own runner picked, and the baseline validated before Next
 - [ ] Ended with a recap of page and button names and a link to where they finished
