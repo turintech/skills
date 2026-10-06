@@ -128,9 +128,9 @@ Per version: `lifecycle` (`completed` / `generation_failed` / `scoring_failed`),
 artemis --output-format json discovery compare <run-id>
 ```
 
-This is Artemis's own verdict, the one the Web UI shows: per version and metric, the % change against the baseline, its 95% interval and a verdict (`better`, `worse`, `noise`, or `pending` when there are too few runs), plus an overall verdict per version and the runs that would settle a `pending` one. **This is what you trust**, not the Composite score (see *Common misreads*). Report the verdicts as given; never judge noise from the spread yourself.
+This is Artemis's own verdict, the one the Web UI shows: per version and metric, the % change against the baseline, its 95% interval and a verdict (`better`, `worse`, `noise`, or `pending` when there are too few Benchmark runs), plus an overall verdict per version and the Benchmark runs that would settle a `pending` one. **This is what you trust**, not the Composite score (see *Common misreads*). Report the verdicts as given; never judge noise from the spread yourself.
 
-`artemis discovery metrics <run-id> --all --stats` adds the mean, spread and sample count per version and baseline as context, and without `--stats` one row per repetition.
+`artemis discovery metrics <run-id> --all --stats` adds the mean, spread and sample count per version and baseline as context, and without `--stats` one row per Benchmark run.
 
 To see the winning change, read its `llmRationale` (`discovery versions get <version-id>`) and then read the diff itself — confirm it actually does what you asked (e.g. registers/calls the C++ op) rather than a shortcut that happens to score well. A rationale describing an optimisation is not evidence the diff implements one.
 

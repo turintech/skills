@@ -241,7 +241,7 @@ When something fails, distinguish command-string issues from repository code or 
 
 Use the verified commands unchanged:
 
-- The verified script is the validation script that Discovery and `changeset validate --script` execute: reuse the one §5b created rather than creating another. After local verification only (§5a), create it once from the verified commands with the `project scripts create` call in §5b. Execution-enabled Discovery requires it (or a project default). Make it the default with `project scripts default` only when the user wants that.
+- The verified script is the project's Script that Discovery and `changeset validate --script` execute: reuse the one §5b created rather than creating another. After local verification only (§5a), create it once from the verified commands with the `project scripts create` call in §5b. Discovery that executes the Script (`benchmark` or `test` mode) requires it (or a project default). Make it the default with `project scripts default` only when the user wants that.
 - Don't set `project commands`: they are legacy, Discovery doesn't read them, and they would be a second copy of the commands. Only if the user asks.
 - `discovery-start` passes the same script to `discovery create --script`. Never keep a second command set for Discovery.
 
@@ -259,4 +259,4 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Test catches a representative semantic fault.
 - [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
-- [ ] Validation and discovery use the same verified commands, stored as a validation script.
+- [ ] Validation and discovery use the same verified commands, stored as a Script.

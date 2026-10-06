@@ -40,7 +40,7 @@ Each version's metric carries `vsBaseline`, falcon's comparison against the run'
 | `ciLowPct`, `ciHighPct` | falcon's 95% interval, oriented like `pctBetter`; `null` when there are too few runs |
 | `readings` | Readings on this version |
 | `recommendedReadings`, `recommendedReadingsReason` | Total readings per side that would settle the verdict, or why there is no count (`settled`, `too_small`, `no_effect`, `no_data`) |
-| `spreadPct` | falcon's spread of the readings; `null` with readings on both sides means the repeats were identical |
+| `spreadPct` | falcon's spread of the readings; `null` with readings on both sides means the Benchmark runs were identical |
 
 `vsBaseline` is `null` when falcon has no comparison for that metric. Say "within the noise" for `noise`, never "worse".
 

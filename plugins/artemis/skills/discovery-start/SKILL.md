@@ -1,6 +1,6 @@
 ---
 name: discovery-start
-description: Start an Artemis discovery run: create a validation script, pass it to discovery create, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
+description: Start an Artemis discovery run: create a Script, pass it to discovery create, wait for the baseline to finalize, and verify it actually explored. Use when the user wants to start discovery, launch a discovery run, or create a discovery experiment.
 compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.14"
@@ -11,8 +11,8 @@ metadata:
 
 ## At a glance
 
-- **Problem:** Creates a discovery run from a project validation script, waits for baseline finalization, and confirms that the run actually explored versions.
-- **Must be available:** An authenticated CLI, an online runner (confirmed by the user or supplied by the calling skill), an imported project UUID, a validation script built from verified commands, and the required benchmark metrics.
+- **Problem:** Creates a discovery run from the project's Script, waits for baseline finalization, and confirms that the run actually explored versions.
+- **Must be available:** An authenticated CLI, an online runner (confirmed by the user or supplied by the calling skill), an imported project UUID, a Script built from verified commands, and the required benchmark metrics.
 - **Use / don't use:** Use only after runner, project, command, and metric readiness are resolved; use `discovery-inspect` rather than this skill for post-launch interpretation. When the user only asked how to start a run, explain the steps and end with one line saying you can also show them in their browser (it needs the Claude browser extension).
 - **Next skill:** Use `discovery-inspect` after baseline finalization and the exploration sanity check, or return to `project-import` if a baseline failure leaves the project unusable.
 
@@ -20,7 +20,7 @@ metadata:
 
 - `artemis status` succeeds on the target deployment.
 - An imported project UUID from `project-import`.
-- Verified, self-contained root-level commands from `repo-command-setup`, stored as a project validation script.
+- Verified, self-contained root-level commands from `repo-command-setup`, stored as a project Script.
 - A benchmark that writes numeric `artemis_results.json` or `.csv` as defined in `repo-command-setup` §4, unless qualitative-only optimization is deliberate.
 - An online runner compatible with those commands, confirmed by the user or supplied by the calling skill.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option; any JSON filter works (e.g. `python3 -c`).
@@ -58,7 +58,7 @@ artemis --output-format json discovery list --project "<project-uuid>" --all \
 
 Choose whether to accept serialization, use another runner, or provision one. Before starting or reusing another runner, ask the user and name the machines: it runs their code on their hardware. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
 
-Execution runs require a validation script. Creating without `--script` or a project default fails with `NoDefaultValidationScriptError`.
+A run that executes the Script (`--execution-mode benchmark`, the default, or `test`) needs one. Creating without `--script` or a project default fails with `NoDefaultValidationScriptError`.
 
 List existing scripts, or create one from the verified commands:
 
@@ -103,16 +103,16 @@ Pass `--source-changeset` when starting from an existing branch, including a ver
 
 `--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for AI Metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
 
-### How many times each version is measured
+### Benchmark runs per version
 
-The server default is one measurement per version, recorded on the run as `evaluationMode` and `evaluationRepetitions`. One measurement yields a point estimate and no interval, so a difference between two versions cannot be separated from ordinary noise.
+The server default is one Benchmark run per version, recorded on the run as `evaluationMode` and `evaluationRepetitions`. One Benchmark run yields a point estimate and no interval, so a difference between two versions cannot be separated from ordinary noise.
 
 ```bash
 --eval-mode fixed --eval-runs 3        # measure every version three times
 --eval-mode until_stable --max-runs 20 # repeat until results settle, capped
 ```
 
-Repetitions multiply **runner** time, not agent time: a 10-version run at three repeats performs 33 measurements instead of 11. On a benchmark measured in seconds that is a couple of extra minutes and well worth it. On one measured in tens of minutes it dominates the run.
+Benchmark runs multiply **runner** time, not agent time: a 10-version run with 3 Benchmark runs per version performs 33 instead of 11. On a benchmark measured in seconds that is a couple of extra minutes and well worth it. On one measured in tens of minutes it dominates the run.
 
 Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Use verified timings when available; otherwise ask. Estimate benchmark time as duration × (versions + one baseline) × repetitions; use the cap for `until_stable`. Add build/test time per version and queue delays separately, and give the estimate before creating the run.
 
@@ -184,7 +184,7 @@ for i in $(seq 16); do
 done; printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(json.dumps({k: r.get(k) for k in ("status", "versionCount", "experimentCount", "agentRunId")}))'
 ```
 
-A running run with zero versions may not have started exploration yet. If it becomes terminal without a version, or still has none after two loops (16 minutes), stop checking and hand off to `discovery-inspect`. When the user's benchmark is long (a version takes more than about 5 minutes with its repetitions), say so and allow one more loop before handing off.
+A running run with zero versions may not have started exploration yet. If it becomes terminal without a version, or still has none after two loops (16 minutes), stop checking and hand off to `discovery-inspect`. When the user's benchmark is long (a version takes more than about 5 minutes with its Benchmark runs), say so and allow one more loop before handing off.
 
 ## 4. If the project looks corrupt after a failed baseline
 
@@ -196,9 +196,9 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
 - [ ] User said yes to the model, version count and credit spend before the run was dispatched (`discovery create`, or `setup complete` for a setup run), unless a calling skill passed their go-ahead and the user was told earlier this session that the run uses account credits
-- [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
+- [ ] Script created or reused; `--script` passed (or a project default confirmed)
 - [ ] `--llm-metrics=false` unless AI Metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
-- [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
+- [ ] Benchmark runs per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
 - [ ] Fast-track offered when the estimate was longer than the user wanted to wait; if used, its [checklist](FAST_TRACK.md#checklist) completed
 - [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (`baselineVersionSha` + schema non-null) before walking away
