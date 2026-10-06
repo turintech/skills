@@ -27,9 +27,9 @@ metadata:
 1. Connect the browser: load the skill and follow `cli-follow-along` section 1. If it does not connect, say in one line that the tour needs the Claude browser extension and answer in the terminal instead.
 2. Find the deployment address: the CLI config if there is one, then an address already in the conversation, otherwise `https://artemis.turintech.ai`. Do not install the CLI for this.
 3. Open `<deployment-base-url>/projects` and read the account in the page header. Ask for the address only if the page does not show the user signed in, or shows someone else's account.
-4. Keep other people's details off screen. **Platform Settings** opens on a page that lists every user on admin accounts, and **Users**, the **Runners** owner column, the project list's owner filter and a project's owner row show names or emails. Go around them; when a tour must pass one, say so first.
+4. Keep other people's details off screen. Never open **Users** or the **Runners** list in **Platform Settings**: **Users** lists every user on admin accounts and **Runners** has an **Owner** column. **Platform Settings** itself opens on **Skills**, so passing through it is fine. The project list's owner filter and a project's owner row show names or emails too: go around them, and say so first if a tour must pass one.
 5. Pick the tour from section 3 by the user's question. If none fits, say which tours exist and ask which is closest.
-6. Check what the tour needs before starting. For a Discovery run or a benchmark: one of the user's own runners online (**Runner and Scripts**) and a script on the project. If one is missing, the plan starts with setting it up, and say so with one recommendation ("No runner of yours is online. I'd connect one first, about 5 minutes."), not a list of options.
+6. Check what the tour needs before starting. For a Discovery run or a benchmark: one of the user's own runners online (**Project Settings**, **Runner and Scripts**) and a script on the project. If one is missing, the plan starts with setting it up, and say so with one recommendation ("No runner of yours is online. I'd connect one first, about 5 minutes."), not a list of options.
 7. Say the plan in at most four lines: the steps, what will change, on which project, and any step you will stop at (none for a read-only tour). Then ask once: "Go ahead?" That yes covers every step in the plan.
 
 ## 2. Run the tour
@@ -38,9 +38,9 @@ metadata:
 
 For each step:
 
-1. **Arrive first.** Navigate with the page's own links and tabs, never a typed path from memory. Stand on the page that is about to change before changing it. If a click by element reference does nothing, take a fresh screenshot and click the centre of the control.
+1. **Arrive first.** Navigate with the page's own links and tabs, never a typed path from memory. The one exception is `<deployment-base-url>/settings/runners/new`, which both runner steps use. Stand on the page that is about to change before changing it. If a click by element reference does nothing, take a fresh screenshot and click the centre of the control.
 2. **Point, then explain.** Move the pointer to the control and say in one sentence what it does and why this step matters.
-3. **Keep going.** The user asked to be shown, and the yes to the plan covers its steps: do not stop to ask before each click. Stop only before a click that spends credits (**Start Discovery**), deletes something, changes a setting that already existed, or is not in the plan. When you stop, say what the click does and recommend an answer.
+3. **Keep going.** The user asked to be shown, and the yes to the plan covers its steps: do not stop to ask before each click. Stop only before a click that starts agent work or spends credits (**Start Discovery**, **Start now**, **Ask agent**, **Continue**, **Generate more versions**, **Retry**), deletes something, changes a setting that already existed, or is not in the plan. When you stop, say what the click does and recommend an answer.
 4. **Show the result.** Stay on the page while the change appears, then point at it. A screenshot straight after a click can show the page before it updates: wait a second and look again before deciding a click failed.
 5. **Inside a dialog, close a dropdown by choosing an option, never with Escape:** Escape closes the whole dialog.
 
@@ -50,17 +50,17 @@ End with a recap the user can follow alone: the path as a short list of page and
 
 Button names are the Web UI's. Steps are goals: find each control on the page you are looking at.
 
-**Where things are.** A project's left bar has **Overview** and **AI Agents**, then *Workflows* (**Plan**, **Maintain**, **Discover**), *Code* (**Branches**, **Files**) and *Project settings* (**General**, **Runner and Scripts**, **Metrics**). A dot on a settings link means "Setup incomplete". The **Get Started** card at the bottom of the bar lists what setup is left. Every page has a chat panel on the right with example prompts for that page.
+**Where things are.** A project's left bar has **Overview** and **Agents**, then *Workflows* (**Maintain**, **Discover**, **Plan**), *Code* (**Branches**, **Files**) and **Project Settings**, which opens its own sections: **General**, **Runner and Scripts**, **Metrics**. A dot on a settings link means "Setup incomplete". The **Get Started** card at the bottom of the bar lists what setup is left. Every page has a chat panel on the right with example prompts for that page.
 
 | Tour | Steps | Changes anything |
 |---|---|---|
 | Read a run's results | Section 3b | No |
 | Compare two versions | Section 3b, then a version's **Compare** control above its diff, or the Versions **Graphs** | No |
 | Find why a build failed | **Branches**, the branch, its **Scripts** tab. The **Script runs** list is on the left: open the failed run, then the failing command under **Commands** to read its log. Hover status icons: some reasons only show as a tooltip | No |
-| Connect a machine | **Runner and Scripts**, then **Set up a new runner**: choose the operating system and architecture and follow the steps. Never reach it through **Platform Settings**: that opens a page listing every user on admin accounts | No, unless they run the steps |
+| Connect a machine | Go to `<deployment-base-url>/settings/runners/new` in the same tab: choose the operating system and architecture and follow the steps. When it says **New runner detected**, return through the project or **Discover**: its **View runners** and **Back to Runners** links open the **Runners** list. Both **Add new Artemis runner** links lead elsewhere: the Runner dropdown's opens a new tab, and the one on **Runner and Scripts** opens the **Runners** list, whose **Owner** column shows people's names | No, unless they run the steps |
 | Import a repository | **Projects**, **New**, **Connect Git Repository**, pick the repository, then **Create Project**. It needs a Git connection Artemis can read; the page offers one if there is none | Yes |
-| Try a sample project | **Projects**, **New**, **Open a sample project**. Featured: Particle Life (C++), Julia Set (Java) and Smoke (Python), each with **Import project**; the project opens when the import finishes | Yes |
-| Set up a benchmark | Overview, the **Run and measure your code** card, **Setup**, **Create branch** (default name `artemis/measure`). That opens the branch's **Scripts** tab: **Ask agent** has the in-app agent write the script (it spends credits, a few dollars; say so first), **Add manually** is free. Then **Run script**: pick the runner (the first run makes it the project's default), set **Benchmark runs**, **Run**, and read **Measurements**. A passing run becomes the branch's baseline and offers **Optimise in Discover**. Commands live in **Runner and Scripts** under **Scripts** | Yes |
+| Try a sample project | **Projects**, **New**, **Open a sample Project**. Featured: Particle Life (C++), Julia Set (Java) and Smoke (Python), each with **Import project**; the project opens when the import finishes | Yes |
+| Set up a benchmark | Overview, the **Run and measure your code** card, **Setup**, **Create branch** (default name `artemis/measure`). That opens the branch's **Scripts** tab: **Ask agent** has the in-app agent write the script (it spends credits, a few dollars; say so first), **Add manually** is free. Then **Run script**: pick the runner (the first run makes it the project's default), set **Benchmark runs**, **Run**, and read **Measurements**. A passing run becomes the branch's baseline and offers **Optimise in Discover**. Commands live in **Project Settings**, **Runner and Scripts**, under **Scripts** | Yes |
 | Start a Discovery run | Section 3a | Yes |
 
 ### 3a. Start a Discovery run
@@ -69,12 +69,13 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 
 | Step | Page heading | What to do | Purple button |
 |---|---|---|---|
-| 0 | Discover | Arriving from **Optimise in Discover**, the goal and the measured branch are already filled in: keep them. Otherwise click an example prompt under the box (**Optimise performance** suits a first run) or type the goal. Pick the model from the picker under the box | the round arrow (send) |
-| 1 | Candidate preferences | **Approval mode**: Automatic lets the agent's judges approve experiments. **Number of candidates**: default 10; say that each one costs credits | **Next: Select a runner** |
-| 2 | Where should we run your code? | Pick from **Runner**. The list shows every online runner on the deployment, other people's included: pick the user's own. None of theirs online: **Set up a new runner** | **Next: Select a script** |
-| 3 | How should we test and measure your code? | The project's default script is already chosen; read its setup and benchmark commands aloud in a line. **Benchmark runs** defaults to 1; 3 gives a spread to compare. Click **Run** and wait for every command to pass; Next stays greyed until it finishes | **Next: Configure metrics** |
-| 4 | Configure your metrics | The baseline number from that run appears here. Check **Direction** (higher or lower is better) and **Importance**. **Artemis Score** adds AI-judged metrics; leave it off unless asked | **Next: Review setup** |
-| 5 | Review Setup | Read the summary back. This is the click that spends credits: ask first | **Start Discovery** |
+| 0 | Discover | Arriving from **Optimise in Discover**, the goal and the measured branch are already filled in: keep them. Otherwise click an example prompt under the box (**Make it faster** suits a first run) or type the goal. Pick the model from the picker under the box; it becomes the run's **Orchestrator model** | the round arrow (send) |
+| 1 Evaluation | How should versions be scored? | Keep **Measure and assess** (Recommended); the others are **Measure only** and **Assess only**, which measures nothing. **Runner**: pick the user's own (the list shows other people's too). None online: go to `<deployment-base-url>/settings/runners/new` in the same tab (see 2.1; not either **Add new Artemis runner** link). Come back through **Discover** and the run marked **Setup pending**, which resumes at its saved step. **Script**: the project's default is chosen; read its commands aloud in a line. **Benchmark runs**: 3 gives a spread to compare. Under **Validate baseline**, click **Run** and wait for it to pass; Next stays greyed until it does | **Next: Success criteria** |
+| 2 Success criteria | What counts as an improvement? | The baseline's numbers appear under **Measured metrics**. Check each metric's direction (higher or lower is better) and importance. Leave **AI-assessed metrics** as drafted unless asked; the orchestrator model scores them as part of the run's cost | **Next: Preferences** |
+| 3 Preferences | How should Artemis explore this? | **Orchestrator model** (the model from step 0; keep it unless asked), **Approval mode** (Automatic lets the agent's judges approve experiments) and **Number of versions**: say that each version costs credits | **Next: Summary** |
+| 4 Summary | Ready to start? | Read the summary back. This is the click that spends credits: ask first | **Start Discovery** |
+
+Steps 1 to 3 also offer an outline **Start now**, which starts the run at once with the current choices and spends credits. On a tour, follow Next instead.
 
 The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, **Setup**, and the **Discovery agent** chat, where the agent explains what it is trying. It may start collapsed: open it with **Expand panel** at the top right. Stay on Overview while the first experiments arrive.
 
@@ -105,7 +106,7 @@ Three things to say while on Versions:
 | Question | Answer on the page |
 |---|---|
 | How many credits do I have? | The number under the user's name at the bottom of the left bar |
-| Why is my runner not in the list? | It is offline. **Runner and Scripts** shows the project's runner and an offline alert with **Configure Runner** |
+| Why is my runner not in the list? | It is offline. The project's **Overview** shows an offline alert whose **Configure Runner** opens the project's **Runner and Scripts**, which shows the runner it uses |
 | How do I get the code out? | The version's branch, **Create PR**; or on Versions, a row's menu: **Create PR**, **Download zip**, **Download Git patch** |
 | Can I rerun a version or the baseline? | Versions, a row's menu, **Run this version**; or **Run baseline** |
 | The run stopped; can it continue? | The run's header: **Continue** after a cancel, **Retry** after a failure, **Generate more versions** after it completes |
@@ -125,5 +126,5 @@ Three things to say while on Versions:
 - [ ] The plan said in at most four lines, naming what will change
 - [ ] Each step: arrived first, pointer on the control, one sentence of why
 - [ ] One yes to the plan, then no stops except before credits, deletes, changed settings or anything outside the plan, each with a recommendation
-- [ ] On the Discovery tour, the purple button followed on every step, the user's own runner picked, and the script run passing before Next
+- [ ] On the Discovery tour, the purple button followed on every step (never **Start now**), the user's own runner picked, and the baseline validated before Next
 - [ ] Ended with a recap of page and button names and a link to where they finished

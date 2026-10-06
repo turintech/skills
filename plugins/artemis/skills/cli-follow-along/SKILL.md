@@ -65,7 +65,7 @@ metadata:
 Deployments differ. On newer ones a Discovery run sits under `/discover`; on older ones it sits under `/discovery`. **Do not build URLs from memory.**
 
 1. Open `<deployment-base-url>/projects/<project-id>` and let it settle.
-2. Read the page's own navigation and use those links: the project tabs (on newer deployments Overview, AI Agents, Maintain, Discover, Plan, Branches, Files, Settings) and, inside a run, its tabs (Experiments, Versions, Metrics).
+2. Read the page's own navigation and use those links: the project's left bar (on newer deployments Overview, Agents, Maintain, Discover, Plan, Branches, Files, and Project Settings with General, Runner and Scripts, Metrics) and, inside a run, its tabs (Experiments, Versions, Metrics).
 3. Follow the link for what you want to show instead of typing a path.
 4. Reuse the paths you resolved for the rest of the session; they do not change while you work.
 
@@ -80,7 +80,8 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 | One version | `/projects/<project-id>/discover/<run-id>/versions/<version-id>` | `/projects/<project-id>/discovery/<run-id>/versions/<version-id>` |
 | The code of a version | `/projects/<project-id>/branches/<changeset-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
 | A branch's script runs | `/projects/<project-id>/branches/<changeset-id>/validations` (the Scripts tab) | the changeset's Validations tab |
-| API keys, Git, Runners | `/settings/api-keys`, `/settings/git`, `/settings/runners` | same |
+| The project's runner | `/projects/<project-id>/settings/execution` (Project Settings, Runner and Scripts) | the project's Settings |
+| API keys, Git | `/settings/api-keys`, `/settings/git` | same |
 
 ### Arrive before the change, never after
 
@@ -105,7 +106,7 @@ Then move the pointer to the thing that appeared and click into it. Do not narra
 5. Say in the chat, in one or two sentences, what is on screen and why it matters.
 6. Stay on the page until the next step is ready. Do not close the tab.
 
-Never open `/settings` on its own: on admin accounts it lists every user's name and email. The Projects list is fine, and is where you stand before an import so the user watches the project appear.
+Open only the exact Platform Settings page you need (**Platform Settings** itself opens on **Skills**); never **Users** or the **Runners** list, which show people's names and emails. Show a project's runner on its Runner and Scripts page instead, and don't click its **Add new Artemis runner** link: it opens the Runners list. To add a runner, go to `<deployment-base-url>/settings/runners/new`. The Projects list is fine, and is where you stand before an import so the user watches the project appear.
 
 ### Make it watchable, first-run demo only
 
@@ -123,7 +124,7 @@ Each of these is a separate tool call: worth it during a demo, waste afterwards.
 ## 3. Clicking
 
 - Navigation needs no approval: tabs, sidebar links, and version names.
-- Anything that changes state needs the user's explicit yes first: Start, Generate more versions, Save, Create key, Revoke, Delete, Run, Cancel, and sending a message in a run's chat.
+- Anything that changes state needs the user's explicit yes first: Start Discovery, Start now, Generate more versions, Save, Create key, Revoke, Delete, Run, Cancel, and sending a message in a run's chat.
 - Credentials are the user's. Open the page, point at the control, and wait while they act. Never read, copy, or type a key.
 - Click by element reference from a fresh page read, never by coordinates from an earlier screenshot. References change when the page updates, so read the page again before each click.
 - While a run is working, the button beside its chat box is Stop and Enter sends a message. Do not send a message while a version is being checked: it cancels that check.
