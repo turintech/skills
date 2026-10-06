@@ -1,9 +1,9 @@
 ---
 name: quickstart
 description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and recommends the Particle Life example to anyone who has not run Artemis before, or stops once the CLI and a runner are ready when the user only wants setup. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
-compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
+compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
-  artemis-cli-min: "1.1.8"
+  artemis-cli-min: "1.1.14"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -38,7 +38,7 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Skills up to date | Load `cli-setup` and run its *Check versions* step 1 once, after the host is known and before the other checks, even when the CLI already works, unless the setup prompt says to use the installed skills as they are. The one check that may speak: one line before it runs, and a reload request only if it updated something |
 | Browser control | Load the browser tools before looking; deferred tools report none until loaded. Load the skill and follow `cli-follow-along` section 1 for the exact call |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
-| CLI | `artemis --version` meets the highest `metadata.artemis-cli-min` of the Artemis skills, not only this one's: the Discovery and Maintain skills need a newer CLI than setup does. If it is lower, `cli-setup` updates it now, before anything else, so no later step stops for it. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
+| CLI | `artemis --version` is at least this skill's `artemis-cli-min` (1.1.14, the highest of the Artemis skills, because later steps hand on to `discovery-inspect`, `discovery-steer` and `change-validate`). If it is older, `cli-setup` updates it now, before the runner and project checks, so no later step stops for it. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
@@ -106,7 +106,7 @@ Then the starting point decides what comes before section 7:
 - **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the newest such project, when it was created, and how many there are:
   - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in step 7, about 15 minutes, using credits.
   - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch.
-- **Their own code:** where it lives (repository URL and branch, and can Artemis reach it), then 7b and section 7. If it is not a project yet, `project-import` imports it. If it already is one and the user hasn't said whether they are continuing, ask the same one question as the demo, naming the newest such project: **start fresh** (a new project, so the new work stays separate) or **continue with it** (pass its id to `project-import`).
+- **Their own code:** where it lives (repository URL and branch, and can Artemis reach it). `project-import` imports it as a new project, then 7b and section 7. If projects for it already exist and the user hasn't said to continue one, don't ask: import fresh and say in one line which one exists, for example "Importing a new project; `<name>` from `<date>` already exists, say 'continue' to use it instead." If they say so, pass that project's id to `project-import` instead.
 - **A project URL:** 7b, then section 7.
 - **Just set me up:** the plan is steps 1 to 4 only. Do section 5's CLI and runner items, skip Git access and the project, then go straight to section 11.
 
@@ -239,7 +239,8 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] New users: both opening questions asked together; returning users: only where the code lives
 - [ ] Welcome written as text before the question box
 - [ ] The plan in the host's task list before any other tool call, each item ticked with its link, and a numbered list at the close
-- [ ] An existing project for the repository found before importing, and the user asked fresh or continue unless they had already said
+- [ ] Demo: an existing Particle Life project found before importing, and the user asked fresh or continue
+- [ ] Own code: an existing project for the repository named in one line, without a question, before importing fresh
 - [ ] Just set me up: stopped after the runner, with no project imported and no run started
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
