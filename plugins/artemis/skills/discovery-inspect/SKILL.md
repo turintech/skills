@@ -104,7 +104,7 @@ The next gap — evaluation finished to the next version being dispatched — is
 artemis --output-format json discovery get <run-id>
 ```
 
-Look at `status`, `versionCount`, `experimentCount`, `baselineVersionSha`, `metricsSchema`. A healthy run has a non-null `baselineVersionSha` + `metricsSchema`; `baselineGroupId` is set when the run is created, so it proves nothing. **`baselineVersionSha` must match the commit you intended to run** — this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code).
+Look at `status`, `versionCount`, `experimentCount`, `baselineVersionSha`, `metricsSchema`. A run past its baseline has a non-null `baselineVersionSha` + `metricsSchema` (a run still in `setup` can too, before any version); `baselineGroupId` is set when the run is created, so it proves nothing. **`baselineVersionSha` must match the commit you intended to run** — this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code).
 
 ### 2. What did the agent try? (experiments)
 
