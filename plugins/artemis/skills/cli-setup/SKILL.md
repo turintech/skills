@@ -40,8 +40,8 @@ For hosted (SaaS) Artemis:
   set -e
   TMP="$(mktemp -d)"
   trap 'rm -rf "$TMP"' EXIT
-  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/artemis-cli/latest/artemis-cli-installer.sh" \
+  curl -fL \
+    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
     -o "$TMP/installer.sh"
   chmod +x "$TMP/installer.sh"
   if ! "$TMP/installer.sh" --version 1.0.8; then
@@ -60,8 +60,8 @@ For on-prem Artemis, add the deployment's base URL:
   set -e
   TMP="$(mktemp -d)"
   trap 'rm -rf "$TMP"' EXIT
-  curl -fL --anyauth -u "Artemis_User:Artemis_Custom_Runner_2025" \
-    "https://files.artemis.turintech.ai/artemis-cli/latest/artemis-cli-installer.sh" \
+  curl -fL \
+    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
     -o "$TMP/installer.sh"
   chmod +x "$TMP/installer.sh"
   if ! "$TMP/installer.sh" --version 1.0.8 \
