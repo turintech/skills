@@ -34,7 +34,7 @@ artemis model list --help
 artemis model list
 ```
 
-Only listed models can be used by agents. When the user has not named one, recommend the high-effort preset, `artemis --output-format json model list | python3 -c 'import json,sys; print(next((m["modelId"] for m in json.load(sys.stdin) if m.get("effort") == "high"), ""))'` (if that prints nothing, the model in the **High Effort** group of `artemis model groups`), rather than offering a list; record the chosen UUID or model-type code.
+Only listed models can be used by agents. When the user has not named one, recommend the high-effort preset, `artemis --output-format json model list | python3 -c 'import json,sys; print(next((m["modelId"] for m in json.load(sys.stdin) if "high" in (m.get("effort") or "").split(", ")), ""))'` (if that prints nothing, the model in the **High Effort** group of `artemis model groups`), rather than offering a list; record the chosen UUID or model-type code.
 
 **When a calling skill supplies the model, version budget or measurement count, use them and do not re-ask.** `quickstart` fixes all of these for its demo so a first-time user is never asked to choose between things they have not seen yet. When the user is driving the run themselves and has not said what they want, recommend the high-effort model and 5 versions instead of asking, and let them change either in their reply to the go-ahead below.
 
