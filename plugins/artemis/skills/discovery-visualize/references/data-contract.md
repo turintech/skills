@@ -12,7 +12,7 @@
 | `metrics[]` | `key`, `source`, `unit` (from the platform, else from the name, e.g. `fps`), `role: "reference"` on a control metric and `reference` on the target it controls, `higherIsBetter` (from the platform; `null` when it stores no direction, and then the metric gets no ranking or winner), `kind` (`target` / `quality` / `harness`) |
 | `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them, `runs`: each individual measurement in order, `q1`/`median`/`q3` from those runs for box plots, and `vsReference`) |
 | `baseline.readings` | Readings per metric that falcon compared against |
-| `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), `overallVerdict` (falcon's, across the version's metrics), per-metric stats + `runs`, `pctBetter`, `timesBetter`, `vsBaseline`, `eligible` |
+| `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), `overallVerdict` (falcon's, across the version's metrics), per-metric stats + `runs` (only when the collector had each reading, as for the baseline), `pctBetter`, `timesBetter`, `vsBaseline`, `eligible` |
 | `experiments[]` | Title, status, confidence, parents, linked version |
 | `rankings[metric]` | Best-first rows with `eligible` and experiment status, ordered by falcon's `pctBetter` (computed from the metric's own aggregator, as the Web UI does). Versions falcon has no change for are left out |
 | `runningBest[metric]` | Generation order, by `mean` (a plot of means); `mean` is `null` on gaps; `bestVersion`/`bestMean` carry forward |

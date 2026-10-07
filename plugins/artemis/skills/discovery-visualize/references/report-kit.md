@@ -47,27 +47,34 @@ R.header(document.getElementById('header'), {
 
 const page = document.getElementById('page');
 
-// Figure 1: every run, the baseline against the best version.
-const f1 = R.figure(page, { question: 'Every benchmark run: the baseline against the best version' });
+// Figure 1: every run, the baseline against the best version. The runs are there only when the collector
+// had each reading; without them the figure keeps the two means.
+const runsKnown = Array.isArray(base.runs) && Array.isArray(winM.runs);
+const changed = 'What changed: ' + winV.experimentTitle.charAt(0).toLowerCase() + winV.experimentTitle.slice(1);
+const f1 = R.figure(page, { question: runsKnown ? 'Every benchmark run: the baseline against the best version' : 'The baseline against the best version' });
 R.headline(f1.top, {
   left: { k: 'Baseline', v: F.num(base.mean, 2), unit },
   mid: { big: F.pct(win.pctBetter), small: F.times(win.timesBetter) + ' the baseline, as Artemis measures it' },
   right: { k: 'Best version · ' + winV.label, v: F.num(winM.mean, 2), unit },
 });
-R.compareRuns(f1.chart,
-  { label: 'Baseline', sub: sha, runs: base.runs, mean: base.mean },
-  { label: winV.label, sub: 'best version', runs: winM.runs, mean: winM.mean },
-  { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + unit + ', ' + (up ? 'higher' : 'lower') + ' is better)',
-    aria: key + ', every run: baseline mean ' + F.num(base.mean, 2) + ' against ' + winV.label + ' mean ' + F.num(winM.mean, 2) });
 f1.caption('The % is Artemis’s change, on the metric’s own aggregator, as in the Web UI. The values either side are means.');
-const worstWin = up ? Math.min(...winM.runs) : Math.max(...winM.runs), bestBase = up ? Math.max(...base.runs) : Math.min(...base.runs);
-const clear = up ? worstWin > bestBase : worstWin < bestBase;
-f1.bullets([
-  clear ? '<b>No overlap:</b> all ' + winM.runs.length + ' ' + winV.label + ' runs beat every baseline run'
-        : '<b>Overlap:</b> some ' + winV.label + ' runs sit inside the baseline’s range',
-  'Weakest ' + winV.label + ' run ' + F.num(worstWin, 2) + ' ' + unit + ' against the baseline’s best ' + F.num(bestBase, 2) + ' ' + unit,
-  'What changed: ' + winV.experimentTitle.charAt(0).toLowerCase() + winV.experimentTitle.slice(1),
-]);
+if (runsKnown) {
+  R.compareRuns(f1.chart,
+    { label: 'Baseline', sub: sha, runs: base.runs, mean: base.mean },
+    { label: winV.label, sub: 'best version', runs: winM.runs, mean: winM.mean },
+    { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + unit + ', ' + (up ? 'higher' : 'lower') + ' is better)',
+      aria: key + ', every run: baseline mean ' + F.num(base.mean, 2) + ' against ' + winV.label + ' mean ' + F.num(winM.mean, 2) });
+  const worstWin = up ? Math.min(...winM.runs) : Math.max(...winM.runs), bestBase = up ? Math.max(...base.runs) : Math.min(...base.runs);
+  const clear = up ? worstWin > bestBase : worstWin < bestBase;
+  f1.bullets([
+    clear ? '<b>No overlap:</b> all ' + winM.runs.length + ' ' + winV.label + ' runs beat every baseline run'
+          : '<b>Overlap:</b> some ' + winV.label + ' runs sit inside the baseline’s range',
+    'Weakest ' + winV.label + ' run ' + F.num(worstWin, 2) + ' ' + unit + ' against the baseline’s best ' + F.num(bestBase, 2) + ' ' + unit,
+    changed,
+  ]);
+} else {
+  f1.bullets(['The individual runs were not collected, so this compares the means only', changed]);
+}
 
 // Figure 2: every version's change with its 95% interval.
 const measured = S.versions.filter(v => v.metrics[key] && v.metrics[key].pctBetter != null)

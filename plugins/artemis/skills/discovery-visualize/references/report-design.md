@@ -31,7 +31,7 @@ In this order, with the kit calls from [report-kit.md](report-kit.md):
 1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain".
 2. **Chips:** falcon's verdict (the strong chip only for `better`), the 95% interval, and the runs per side.
 3. **Headline:** baseline mean, then the %, then the best version's mean.
-4. **Figure 1, `compareRuns`:** every run of the baseline and the best version, the gap between the means labelled with the % and p.
+4. **Figure 1, `compareRuns`:** every run of the baseline and the best version, the gap between the means labelled with the % and p. Without each reading, the headline means and a bullet saying the runs were not collected.
 5. **Figure 2, `forest`:** every measured version's % change with its 95% interval, best first.
 6. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Experiment's conclusion disagrees with falcon's verdict, one bullet that says so.
 
