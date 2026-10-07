@@ -58,7 +58,7 @@ Before starting or reusing additional runners, ask the user: name the machines, 
 
 State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Start it, and only once the check below passes, report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
 
-On every start the runner signs in with an API key and appears in the fleet under the name it is given. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The config file is the one the CLI is using:
+On every start the runner signs in with an API key and appears in the fleet under the name it is given. When adding approved capacity to an existing group, pass its exact name as `<unique-name>`. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The config file is the one the CLI is using:
 
 - a `.env` in the folder where the user's `artemis` commands run (usually the repository, not this runner folder), if there is one;
 - otherwise, when `artemis env current` names an environment other than `default`, `envs/<name>.env` in the CLI's config folder;
