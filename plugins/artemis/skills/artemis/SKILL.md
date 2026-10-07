@@ -144,6 +144,7 @@ Before launching discovery, validation, or Maintain:
 - Project registration: `project-import`
 - Discovery launch, including `discovery create --script` and guided `--setup`: `discovery-start`
 - Ideas for what to optimise, or several Discovery runs prepared as drafts with their own benchmarks: `discovery-recommend`
+- A strong version that bundles several ideas, split into atomic changes that are each measured and turned into small pull requests: `discovery-split`
 - Discovery continuation, budget expansion, steering, or redirection: `discovery-steer`
 - Discovery interpretation: `discovery-inspect`
 - "Is my change faster?", a before/after benchmark of a local change on a runner: `change-validate`
