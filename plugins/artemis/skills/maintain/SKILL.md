@@ -95,7 +95,7 @@ artemis maintain scans run --project <p> --rule <rule-id> --count 10
 ```
 
 - `--rule` is required and repeatable, up to 20 Rules per Scan.
-- `--count` is about how many Issues to surface (1-1000, default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. A no-limit option, as in the Web UI, comes with the next CLI release.
+- `--count` is about how many Issues to surface (default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. From CLI 1.1.15 it takes 1-100 (1.1.14 took up to 1000), and `--no-limit` asks for no limit, as the Web UI does, using more tokens.
 - `--focus "<text>"` points the Scan at part of the code, like the Web UI's "What to focus on". `--commit <sha>` scans that commit instead of the project head. There is no `--path`.
 
 The Scan runs in the background; capture its `id`. Check on it with `scans get <scan-id> --project <p>` in the waiting pattern above, breaking on `.status` `done`, `failed` or `cancelled`. Stop a Scan, after the user's yes, with `scans cancel <scan-id> --project <p> --force` (without `--force` it asks, and with no terminal or in JSON mode exits 7); it keeps what it already found. (`--wait --timeout` also exists, but its 20-minute default outlasts an agent's shell.)
@@ -120,7 +120,7 @@ artemis maintain issues list --project <p> \
 artemis maintain issues get ISS-143 -p <p>
 ```
 
-`issues list` shows open Issues by default; `--status closed` is the Archive and `--status all` both. It also filters on `--rule`, `--severity`, `--validity`, `--fix-status`, `--sync-status`, `--complexity` and `--path-prefix`, sorts with `--sort`/`--order`, and pages with `--all`. A `--lane` filter comes with the next CLI release.
+`issues list` shows open Issues by default; `--status closed` is the Archive and `--status all` both. It also filters on `--rule`, `--severity`, `--validity`, `--fix-status`, `--sync-status`, `--complexity` and `--path-prefix`, sorts with `--sort`/`--order`, and pages with `--all`. From CLI 1.1.15 `--lane` filters by board lane.
 
 ## 5. Triage before you fix
 
