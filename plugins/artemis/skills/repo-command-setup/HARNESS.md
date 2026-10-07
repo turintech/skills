@@ -2,9 +2,9 @@
 
 Use this companion when the repository lacks a suitable correctness-gated microbenchmark that writes Artemis metrics. After the harness exists and has been verified locally, return to [SKILL.md](SKILL.md) to wire and verify the three commands.
 
-## What Artemis needs
+## What a Discovery-ready harness needs
 
-From the repository root, Artemis runs **compile → test → benchmark** on a fresh checkout. The benchmark must:
+From the repository root, a validation runs the setup commands (build, then test), then the benchmark, on a fresh checkout. The benchmark must:
 
 - be **headless** (no GUI, prompts, or display);
 - time only the optimization target (warmup and setup outside the timed region);

@@ -1,6 +1,6 @@
 ---
 name: repo-command-setup
-description: Derive, verify, and configure the compile, test, and benchmark commands Artemis needs to execute a repository, including numeric artemis_results metrics. Use when preparing a repository for validation or discovery, making a repo Discovery-ready, authoring a benchmark harness, fixing project commands, or checking that a repo can run on an Artemis runner.
+description: Derive, verify, and configure a project Script's commands: the build and test that gate Discovery, and a benchmark that writes numeric artemis_results metrics. Use when preparing a repository for validation or discovery, making a repo Discovery-ready, authoring a benchmark harness, fixing project commands, or checking that a repo can run on an Artemis runner.
 compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
@@ -11,7 +11,7 @@ metadata:
 
 ## At a glance
 
-- **Problem:** Derives, verifies, and records the self-contained root-level `compile`, `test`, and `benchmark` commands Artemis requires.
+- **Problem:** Derives, verifies, and records a project Script's self-contained root-level commands: the build and test that gate Discovery, and the benchmark that reports numbers.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
 - **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
 - **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then continue to `discovery-start` or validation.
@@ -40,7 +40,7 @@ A validation runs a script's commands on the selected runner, in a fresh checkou
 - **benchmark** (`--benchmark-cmd`): runs only when every setup command passed. It is the only phase that repeats and the only one measured.
 - **teardown** (`--teardown-cmd`, optional): runs once and always, even after a failure. Use it for cleanup; a failing teardown fails the validation.
 
-For Discovery, setup needs both a build and a test: the build rejects a candidate that does not compile and the test rejects one that is wrong. A validation outside Discovery runs whatever the user asked for.
+For Discovery, put both a build and a test in setup. The platform doesn't require them, but these skills gate Discovery on them: the build rejects a version that does not compile and the test rejects one that is wrong. A validation outside Discovery runs whatever the user asked for.
 
 Each command runs in its own shell, so nothing carries over between commands except files in the checkout. Each command must therefore be:
 
