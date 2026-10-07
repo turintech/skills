@@ -27,7 +27,7 @@ Use the supported distribution. This path requires no GitHub account and does no
 
 The skills, the CLI and the platform are released separately, so a returning user can have any mix of them. Check once per session, before the first task, even when the CLI already works.
 
-**1. The skills.** Skip this step if the skills were installed earlier in this session, if this session has already run an Artemis command that changes something (import, branch, validation, Discovery), or if the setup prompt says to use the installed skills as they are. Otherwise tell the user in one line ("Checking for Artemis skills updates.") and update only the Artemis skills:
+**1. The skills.** If the skills were installed earlier in this session, skip the update and do only *Asking for a reload*'s install check, below. Skip this step entirely if this session has already run an Artemis command that changes something (import, branch, validation, Discovery), or if the setup prompt says to use the installed skills as they are. Otherwise tell the user in one line ("Checking for Artemis skills updates.") and update only the Artemis skills:
 
 - **Claude Code:** run `claude plugin marketplace update skills`, then `claude plugin update artemis@skills --json`. An `outcome` of `up_to_date` means current and `updated` means the skills changed; any other outcome means the check could not run (below).
 - **Cursor, Codex, GitHub Copilot:** run `npx skills list -g`. If it lists the Artemis skills (the setup prompt installs them with `npx skills add --global`), run `npx skills update -g -y <names>`, naming only those, because with no names it updates every skill on the machine. "All global skills are up to date" means current; "Updated N skill(s)" means they changed. If it does not list them, they came from the host's own installer (`agent plugin marketplace add`, `codex plugin marketplace add` or `gh skill install`, usually pinned to a release) or were copied into the host's skills directory: run nothing, and tell the user in one line to update them the way they installed them.
@@ -35,8 +35,30 @@ The skills, the CLI and the platform are released separately, so a returning use
 Then:
 
 - **Nothing changed:** say nothing more and carry on.
-- **Something changed:** ask the user once to reload, wait, then invoke the skill you were following again, because the copy already read is the old one. Claude Code: `/reload-plugins` (if it warns about the cache, `/reload-plugins --force`, or restart Claude Code). Other hosts: usually a new chat, where they paste their request again. Do not repeat this step in the same chat; in a new chat it reports current.
+- **Something changed:** the copy already read is the old one, so ask the user once to reload (*Asking for a reload*, below), wait, then invoke the skill you were following again. Other hosts: usually a new chat, where they paste their request again. Do not repeat this step in the same chat; in a new chat it reports current.
 - **The check could not run:** if a command fails, Claude Code finds no Artemis plugin, or this skill was not loaded from the installed plugin (in Claude Code its base directory is not under the plugins directory, `~/.claude/plugins/` by default, as with `--plugin-dir`), install nothing, say in one line that the skills could not be checked, and continue.
+
+**Asking for a reload.** After an install, first check whether the Artemis skills are already usable in this session: if `artemis:quickstart` is among your available skills, or the Skill tool loads it, carry on without asking. After an update, or when they are not usable, send the request as its own message, two numbered boxes and nothing else (Claude Code shown):
+
+````text
+```
+┌──────────────────────────────────────────────────────────┐
+│  1  TYPE THIS HERE IN THIS CHAT                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+```
+/reload-plugins
+```
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  2  THEN SAY "DONE"                                      │
+└──────────────────────────────────────────────────────────┘
+```
+````
+
+If it warns about the cache, `/reload-plugins --force`, or restart Claude Code. If the user pastes a shell command or other text meant for step 1 instead, answer in one line that points back to step 1 and wait; don't explain the reload again.
 
 **2. The CLI.** It must meet the skills' minimum: see *Verify*, and *Update* if it is older.
 
@@ -58,18 +80,36 @@ artemis runner list
 
 Start here when there is no CLI, or it needs replacing. The deployment's **Connect Your Agent** page at `<deployment-base-url>/settings/connect-agent` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
 
-Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always read `artemis --version` after downloading, and fall back to the newest versioned release when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
+Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always check a downloaded build's version before it replaces anything, and fall back to the newest versioned release when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
 
 ### Where to download from
 
-**If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below. Check what it serves before keeping it: download, run `--version`, and compare with the minimum. When the directory's build is older than the minimum, use the newest release from the public listing instead, and say in one line which directory was out of date.
+**If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below, with a `checksums.txt`. Check what it serves before it replaces anything: this downloads into a temporary directory, checks the checksum and the version there, and installs only a build that passes both:
 
 ```bash
 DIR="<the CLI download directory from the prompt>"
 PLATFORM="linux-amd64"   # see the table below
-mkdir -p ~/.local/bin && curl -fL "$DIR/artemis-cli-$PLATFORM" -o ~/.local/bin/artemis && chmod +x ~/.local/bin/artemis
-artemis --version
+MIN="1.1.15"             # the highest artemis-cli-min of the skills in use
+TMP="$(mktemp -d)"; F="$TMP/artemis-cli-$PLATFORM"
+if ! curl -fsSL "$DIR/artemis-cli-$PLATFORM" -o "$F"; then
+  echo "NO BUILD: $DIR has no artemis-cli-$PLATFORM"
+elif ! ( cd "$TMP" && curl -fsSLO "$DIR/checksums.txt" \
+     && grep " artemis-cli-$PLATFORM\$" checksums.txt > sum.txt && [ -s sum.txt ] \
+     && { sha256sum -c sum.txt 2>/dev/null || shasum -a 256 -c sum.txt; } ); then
+  echo "INSTALL FAILED: checksum"
+elif ! V="$(chmod +x "$F" && "$F" --version)"; then
+  echo "WON'T RUN: the downloaded build did not start"
+elif VN="$(echo "$V" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"; [ -z "$VN" ] || [ -z "$MIN" ] \
+     || [ "$(printf '%s\n' "$MIN" "$VN" | sort -V | head -1)" != "$MIN" ]; then
+  echo "TOO OLD: the directory's build reports \"$V\", below $MIN"
+else
+  { mkdir -p ~/.local/bin && install -m 755 "$F" ~/.local/bin/artemis && ~/.local/bin/artemis --version; } \
+    || echo "INSTALL FAILED: could not write ~/.local/bin/artemis"
+fi
+rm -rf "$TMP"
 ```
+
+Nothing is replaced unless the last branch runs. On `TOO OLD` or `NO BUILD`, install the newest release from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
 
 The public download paths need no login, so send no credentials.
 
@@ -170,6 +210,8 @@ For on-prem, use the base URL accepted by `artemis login --help`. Do not set ind
 Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the home config: a project-local `.env` is easy to leak and shadows the home config.
 
 **This is the usual cause of a CLI that was working a minute ago.** When `artemis status` reports `USER_MGMT_URL: required but not set` and friends, look for a `.env` in the current directory before concluding the user is logged out: many repositories ship one for their own app, and working inside such a repository silently replaces the CLI's config. The fix is to run from elsewhere or pass `--config`, not to log in again.
+
+**A deployment URL in the environment needs its own key.** From CLI 1.1.15, if `ARTEMIS_BASE_URL` (or a service URL) is set in the shell to a different deployment from the one the config file's key belongs to, commands that reach the deployment are refused: "the stored key would be sent to a deployment it was not issued for". The user is not logged out. Unset the variable, set `ARTEMIS_API_KEY` beside it, or log in to that deployment with `artemis login` (a named `artemis env` keeps both).
 
 ### Deployments with a self-signed certificate
 
