@@ -83,7 +83,7 @@ artemis --output-format json changeset compare "<version-changeset-id>" --projec
 
 `<project-sha>` is the project's `gitHash`, which is also the small run's `baselineVersionSha`. Always pass `--baseline`. A branch created from `--source-changeset` has the seed as its starting commit, so without it the comparison is against the seed, not the project's code.
 
-Readings of the project's code taken for one version count for the next. Compare after each pair, and stop when the version's `readings` reaches `recommendedReadings`. Check with the user before going past about 10 Script runs per side. Report the verdict, improvement and interval as given.
+The output has a row only for the version: the project code's readings are on another branch, so `compare` uses them without listing them. If the version's `runnerNames` is not exactly your runner, do not report the verdict. Readings of the project's code taken for one version count for the next. Compare after each pair, and stop when the version's `readings` reaches `recommendedReadings`. Check with the user before going past about 10 Script runs per side. Report the verdict, improvement and interval as given.
 
 ## Parallel runners
 
