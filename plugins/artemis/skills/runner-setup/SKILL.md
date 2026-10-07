@@ -98,7 +98,7 @@ Ask separately before creating an operating-system service, even if the user alr
 
 ### Shared names add capacity
 
-Several machines can serve one Discovery when they register with the same runner name and the same user's API key; a different key makes a separate group. `artemis runner list` shows a group's online count, not its machines, so check the run's executions with `discovery-inspect` before relying on the extra capacity. For speed or memory benchmarks, share a name only as [Fast-track Discovery](../discovery-start/FAST_TRACK.md#parallel-runners) describes.
+Several machines can serve one Discovery when they register with the same runner name and the same user's API key; another user's key makes a separate group. `artemis runner list` shows a group's online count, not its machines, so check the run's executions with `discovery-inspect` before relying on the extra capacity. For speed or memory benchmarks, share a name only as [Fast-track Discovery](../discovery-start/FAST_TRACK.md#parallel-runners) describes.
 
 ## Whose runner is that?
 

@@ -61,40 +61,35 @@ Compare each finalist against the project's code on the full Script, with [Compa
 
 This follows `change-validate` §2–4, with two differences: the version is on a Discovery branch, and the baseline is the project's code, named by its commit.
 
-Create a branch whose starting commit is the project's code, once per project:
+`compare` takes the project code's readings by commit from every branch and runner that used the same Script, including the baselines of other Discovery runs. Measure on a copy of the tier Script made for one runner and used only there, so its readings all come from that machine. Create the branch once per project, and the copy once per tier and runner:
 
 ```bash
 artemis --output-format json changeset create --project "<project-uuid>" --name "Project code"
+artemis --output-format json project scripts create --project "<project-uuid>" \
+  --name "<tier> on <runner-name>" --from "<tier-script-id>"
 ```
 
-Then measure the two sides in turns, one run per call, on one runner and one Script, and read the verdict:
+Then measure the two sides in turns, one run per call, on that runner with that copy. Start each validation without `--wait`: the response carries its `id` at once. Wait for it with the loop in `repo-command-setup` §5b, and start the next only when it has finished, never while one is still running. Then read the verdict:
 
 ```bash
-artemis changeset validate "<project-code-changeset-id>" --project "<project-uuid>" \
-  --version original --script "<tier-script-id>" --runner "<runner-name>" --wait
-artemis changeset validate "<version-changeset-id>" --project "<project-uuid>" \
-  --version "<version-sha>" --script "<tier-script-id>" --runner "<runner-name>" --wait
+artemis --output-format json changeset validate "<project-code-changeset-id>" --project "<project-uuid>" \
+  --version original --script "<runner-script-id>" --runner "<runner-name>"
+artemis --output-format json changeset validate "<version-changeset-id>" --project "<project-uuid>" \
+  --version "<version-sha>" --script "<runner-script-id>" --runner "<runner-name>"
 
 artemis --output-format json changeset compare "<version-changeset-id>" --project "<project-uuid>" \
-  --script "<tier-script-id>" --baseline "<project-sha>"
+  --script "<runner-script-id>" --baseline "<project-sha>"
 ```
 
 `<project-sha>` is the project's `gitHash`, which is also the small run's `baselineVersionSha`. Always pass `--baseline`. A branch created from `--source-changeset` has the seed as its starting commit, so without it the comparison is against the seed, not the project's code.
 
-`compare` finds the project code's readings by commit, on any branch, so readings taken for one version count for the next. Compare after each pair, and stop when the version's `readings` reaches `recommendedReadings`. Check with the user before going past about 10 Script runs per side. Report the verdict, improvement and interval as given. On exit code 6, the CLI stopped waiting, not the validation: check the branch's Scripts tab before running it again.
-
-`compare` also takes readings from every runner and does not say which ran the baseline. Run every validation for a Script on one runner. To measure on a second runner, give it its own copy of the Script:
-
-```bash
-artemis --output-format json project scripts create --project "<project-uuid>" \
-  --name "<tier> on <runner-name>" --from "<tier-script-id>"
-```
+Readings of the project's code taken for one version count for the next. Compare after each pair, and stop when the version's `readings` reaches `recommendedReadings`. Check with the user before going past about 10 Script runs per side. Report the verdict, improvement and interval as given.
 
 ## Parallel runners
 
 Extra runners shorten the search, not the measurement. Run independent Discoveries or stages on separate runners, for example two small runs exploring different directions. Each run measures its baseline and versions on its own runner, so its verdicts hold, but verdicts from different runs are not comparable. When several small runs ran in parallel, take each run's seed and choose between them with [Compare outside a run](#compare-outside-a-run) on one runner.
 
-Several machines can serve one Discovery when they register with the same runner name and the same user's API key. The run's baseline and versions can then land on different machines, and `artemis runner list` does not show which. Share a name only for accuracy-only benchmarks, or for machines the user confirms are identical in hardware, OS, toolchain and load.
+Several machines can serve one Discovery when they register with the same runner name and the same user's API key; another user's key makes a separate group. The run's baseline and versions can then land on different machines, and `artemis runner list` does not show which. Share a name only for accuracy-only benchmarks, or for machines the user confirms are identical in hardware, OS, toolchain and load.
 
 Before starting or reusing another runner, get the user's approval as SKILL.md §1 describes, then follow `runner-setup`. A group showing online does not mean every machine takes work: check the run's executions with `discovery-inspect`.
 
@@ -104,6 +99,6 @@ Before starting or reusing another runner, get the user's approval as SKILL.md �
 - [ ] One verified Script per tier; each run's `--script` fixed for the run
 - [ ] Small run gave each version more than one Benchmark run; seed and shortlist taken from `discovery compare` verdicts on the agreed metric
 - [ ] Medium run pinned with `--source-sha`; `baselineVersionSha` checked
-- [ ] Shortlisted and final versions compared with `changeset compare --baseline <project-sha>`, both sides on one runner and one Script
+- [ ] Shortlisted and final versions compared with `changeset compare --baseline <project-sha>`, both sides on one runner with that runner's copy of the tier Script
 - [ ] Verdicts, improvements and intervals quoted from `compare`, nothing computed; identical readings flagged, not reported
 - [ ] Every extra runner approved by the user; same-name groups used only for accuracy-only benchmarks or confirmed-identical machines
