@@ -27,7 +27,7 @@ Use the supported distribution. This path requires no GitHub account and does no
 
 The skills, the CLI and the platform are released separately, so a returning user can have any mix of them. Check once per session, before the first task, even when the CLI already works.
 
-**1. The skills.** Skip this step if the skills were installed earlier in this session, if this session has already run an Artemis command that changes something (import, branch, validation, Discovery), or if the setup prompt says to use the installed skills as they are. Otherwise tell the user in one line ("Checking for Artemis skills updates.") and update only the Artemis skills:
+**1. The skills.** If the skills were installed earlier in this session, skip the update and do only *Asking for a reload*'s install check, below. Skip this step entirely if this session has already run an Artemis command that changes something (import, branch, validation, Discovery), or if the setup prompt says to use the installed skills as they are. Otherwise tell the user in one line ("Checking for Artemis skills updates.") and update only the Artemis skills:
 
 - **Claude Code:** run `claude plugin marketplace update skills`, then `claude plugin update artemis@skills --json`. An `outcome` of `up_to_date` means current and `updated` means the skills changed; any other outcome means the check could not run (below).
 - **Cursor, Codex, GitHub Copilot:** run `npx skills list -g`. If it lists the Artemis skills (the setup prompt installs them with `npx skills add --global`), run `npx skills update -g -y <names>`, naming only those, because with no names it updates every skill on the machine. "All global skills are up to date" means current; "Updated N skill(s)" means they changed. If it does not list them, they came from the host's own installer (`agent plugin marketplace add`, `codex plugin marketplace add` or `gh skill install`, usually pinned to a release) or were copied into the host's skills directory: run nothing, and tell the user in one line to update them the way they installed them.
@@ -58,7 +58,7 @@ Then:
 ```
 ````
 
-If it warns about the cache, `/reload-plugins --force`, or restart Claude Code. If the user sends anything else instead, such as a shell command pasted into the chat, answer in one line that points back to step 1 and wait; don't explain the reload again.
+If it warns about the cache, `/reload-plugins --force`, or restart Claude Code. If the user pastes a shell command or other text meant for step 1 instead, answer in one line that points back to step 1 and wait; don't explain the reload again.
 
 **2. The CLI.** It must meet the skills' minimum: see *Verify*, and *Update* if it is older.
 
