@@ -126,8 +126,8 @@ For discovery or validation, settle the correctness gate, metric and direction, 
 
 Before launching discovery, validation, or Maintain:
 
-1. Estimate runtime from command timings and scope, and confirm the runner or service can remain available. For long benchmarks, offer **Fast-track Discovery** to minimize time to trustworthy results: smaller benchmark stages and parallel runner capacity (see `discovery-start`). Keep fast benchmarks on a single Discovery.
-2. Check queued or running work: one runner process serializes work; different runners run concurrently. Independent Discoveries can use separate runners; a single Discovery can use several machines sharing one exact runner-group name. Ask before starting or reusing additional runners because they execute the user's code and use their hardware. Verify instances through `artemis runner list` and the run's executions. Speed/memory comparisons need a pool of identical machines (same hardware, OS, toolchain and load) or separately named runners with their own runs; accuracy-only benchmarks can use any machine. `discovery-start` and `runner-setup` own these checks.
+1. Estimate runtime from command timings and scope, and confirm the runner or service can remain available. When that is longer than the user wants to wait, `discovery-start` offers Fast-track Discovery.
+2. Check queued or running work that could conflict with or delay the operation.
 3. Agree on the stopping boundary.
 4. Capture project, run, scan, chat, and agent IDs as they are created.
 5. Explain what continues platform-side after the interactive session ends and what still requires monitoring.

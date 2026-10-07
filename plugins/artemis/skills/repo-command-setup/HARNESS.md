@@ -1,6 +1,6 @@
 # Author a Discovery-ready benchmark harness
 
-Use this companion when the repository lacks a suitable correctness-gated benchmark that writes Artemis metrics, or needs benchmark tiers or measurement conditions for Fast-track Discovery. After the harness exists and has been verified locally, return to [SKILL.md](SKILL.md) to wire and verify the three commands.
+Use this companion when the repository lacks a suitable correctness-gated benchmark that writes Artemis metrics, or needs benchmark tiers for Fast-track Discovery. After the harness exists and has been verified locally, return to [SKILL.md](SKILL.md) to wire and verify the three commands.
 
 ## What Artemis needs
 
@@ -38,21 +38,13 @@ Confirm the results file contains the ranking metric as a number. Then return to
 
 ## Long benchmarks: small, medium and full tiers
 
-Fast-track Discovery minimizes time to trustworthy results using benchmark tiers and parallel runners; `discovery-start` owns the choice and launch. Keep fast benchmarks on a single Discovery. Prepare tiers when staging has been chosen. Reuse existing workload-selection options where possible; a custom harness could accept `--tier small`, `--tier medium` and `--tier full`. These are harness options, not Artemis CLI flags.
+Prepare tiers once the user has chosen [Fast-track Discovery](../discovery-start/FAST_TRACK.md). Reuse existing workload-selection options where possible; a custom harness could accept `--tier small`, `--tier medium` and `--tier full`. These are harness options, not Artemis CLI flags.
 
 - Use fixed, representative inputs nested small ⊆ medium ⊆ full. Preserve the behavior being optimized; fewer tasks or samples must still exercise the target path.
 - Keep metric names, units, definitions and directions identical across tiers. Keep the correctness gate at every tier with the same acceptance criteria; reducing benchmark coverage must not disable tests or relax quality tolerances.
-- Save one project validation script per tier with its workload fixed in the benchmark command and the build/test gate included. Record each script ID, workload and measured duration, and verify each through [SKILL.md](SKILL.md). Keep harness, workload selection and gates outside the candidate agent's edit scope.
+- Save one Script per tier with its workload fixed in the benchmark command and the build/test gate included. Record each Script ID, workload and measured duration, and verify each through [SKILL.md](SKILL.md). Keep harness, workload selection and gates outside the candidate agent's edit scope.
 
-Treat the smaller tiers as screening evidence. Nested inputs do not guarantee the same ranking; `discovery-start` owns promotion and the final full-benchmark comparison.
-
-## Parallel runners: measurement conditions
-
-Speed and memory measurements from different machines are not comparable. A runner pool sharing one name assigns tasks to any member and a Discovery measures its baseline once, so pool members must be interchangeable (same hardware, OS, toolchain and load) for timing or memory benchmarks. Machines that differ need separate runner names and separate runs, each with its own baseline. Accuracy-only benchmarks can use any machine with the required environment. Keep workloads, metric definitions and correctness gates fixed across instances.
-
-Record machine identity and measurement conditions alongside each execution, outside the numeric results file. A shared runner name identifies a group, not a machine; verify the pool members really are interchangeable before trusting timing results from it, and fall back to one machine or separately named runners when they are not. Apply this rule to tier screening and final full-benchmark validation alike.
-
-`discovery-start` owns approval before starting or reusing additional runners and verification of active instances; `runner-setup` owns registration. More capacity does not relax the harness contract.
+A smaller tier only screens versions: nested inputs do not guarantee the same ranking. Promotion and the final comparison are in [Fast-track Discovery](../discovery-start/FAST_TRACK.md).
 
 ## Minimal JSON example
 
