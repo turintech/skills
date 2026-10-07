@@ -69,12 +69,14 @@ Reuse a credential that can read the repository. Check the provider values the i
 
 Use a key for the repository's git service even when the repository is public. Without one, Artemis reads it from GitHub unauthenticated, which GitHub rate-limits, and later checks such as the upstream check on `changeset create` start failing.
 
-If no suitable credential exists, present **both** setup routes and let the user choose. For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
+If no suitable credential exists, present **both** setup routes and let the user choose, except for `quickstart`'s public demo (below). For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
 
 1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account on the Git page of their deployment (`<deployment-base-url>/settings/git`). Then re-run `artemis key list`: a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
 2. **Access key in the Web UI:** ask the user to add it on `<deployment-base-url>/settings/git/create-key` (**Add access key**: a GitHub, GitLab or Azure DevOps personal access token, a Bitbucket API token or app password, or an SSH key). They paste the secret into that page, never into chat or a command line, where `ps` and shell history can see it. Then re-run `artemis key list` and take the new key's UUID.
 
 Prefer an existing GitHub OAuth credential over adding a new access key when both would work. Record the selected key UUID.
+
+When `quickstart` is importing its public demo, offer only the GitHub OAuth route (1): one click on **Connect to GitHub**, nothing to paste. Ask the user to say "done" when the GitHub section shows **Connected**, then re-run `artemis key list`. If the user says the Git page has no **Connect to GitHub** button, fall back to route 2: a GitHub personal access token with read access to public repositories.
 
 ## 4. Import once
 
@@ -139,7 +141,7 @@ When a calling skill invoked this one, return the project UUID to it. Otherwise 
 - [ ] Remote URL, explicit branch, and branch-tip commit (`SEED_SHA`) recorded.
 - [ ] Project name is distinct enough to avoid confusion with other projects against the same repository.
 - [ ] Existing readable Git credential reused when possible (GitHub OAuth preferred over a new PAT).
-- [ ] If no credential existed, both Web UI routes (GitHub connect, Add access key) were offered; the user entered any new secret in the browser, never in chat or a command line.
+- [ ] If no credential existed, both Web UI routes (GitHub connect, Add access key) were offered, or only GitHub connect for `quickstart`'s demo; the user entered any new secret in the browser, never in chat or a command line.
 - [ ] Import performed once with confirmed inputs.
 - [ ] Project UUID captured and imported `gitHash` verified against `SEED_SHA`.
 - [ ] Clickable project link returned to the user.

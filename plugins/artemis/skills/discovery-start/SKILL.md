@@ -80,6 +80,8 @@ Capture `script_id` from the create or list response. Prefer passing `--script` 
 
 Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its §2.
 
+A calling skill's go-ahead counts only if the user was told, earlier in this session, that the run uses account credits. If you cannot see that they were, ask in one line before dispatching: "This uses account credits; go ahead?", and wait for a yes.
+
 ```bash
 artemis --output-format json discovery create \
   --project "<project-uuid>" \
@@ -189,7 +191,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Project UUID confirmed; runner either supplied by the calling skill, or confirmed **with the user** rather than picked because it showed online
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
-- [ ] User said yes to the model, version count and credit spend before the run was dispatched (`discovery create`, or `setup complete` for a setup run), unless a calling skill passed their go-ahead
+- [ ] User said yes to the model, version count and credit spend before the run was dispatched (`discovery create`, or `setup complete` for a setup run), unless a calling skill passed their go-ahead and the user was told earlier this session that the run uses account credits
 - [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
 - [ ] `--llm-metrics=false` unless AI Metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
