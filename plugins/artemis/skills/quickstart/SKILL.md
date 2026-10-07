@@ -71,7 +71,7 @@ When the request already named their own code or asked for setup only, say that 
 
 ## 3. Defaults, stated rather than asked
 
-Write the section 2 welcome as reply text, then go straight on to section 4 in the same turn. Do not ask before starting: the defaults are the **Particle Life demo** and the **terminal, with links**. Switch whenever the user says so:
+Write the section 2 welcome as reply text, all four lines, then go straight on to section 4 in the same turn. Never skip it for a new user: line 4 is where they learn the demo uses credits, and the demo run's go-ahead depends on it. Do not ask before starting: the defaults are the **Particle Life demo** and the **terminal, with links**. Switch whenever the user says so:
 
 1. **Their own project:** the "A repository but no project" path in section 1.
 2. **Just set me up:** the CLI, sign-in and a runner, then stop, with no project and no run.
@@ -127,7 +127,7 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 ## 6. Rules for this flow
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of measurements, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
-- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run, once the user has replied at least once since the welcome without switching away from the demo (§2 named the demo and its credits). If they have not replied since the welcome by the time section 7's step 7 is reached, ask one line first: "Setup is done. Start the Particle Life run now? It uses credits." A run on the user's own code goes through `discovery-start`, which asks first.
+- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run, but only when this session sent the §2 welcome with its credits line and the user has replied at least once since, without switching away from the demo. Otherwise, by the time section 7's step 7 is reached, ask one line first and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
@@ -165,7 +165,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
 - model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
 - `--target-files` only when the repository made them obvious
-- for the demo, the user's go-ahead under the §6 rule (a reply since the welcome without switching, or a yes to its one-line question), so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
+- for the demo, the user's go-ahead under the §6 rule (the welcome with its credits line was sent and the user replied since without switching, or they said yes to its one-line question), so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
 
 Then follow the run with `discovery-inspect`.
 
