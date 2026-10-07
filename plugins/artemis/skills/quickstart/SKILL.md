@@ -190,6 +190,17 @@ The user chose the demo; that was the decision. Go through section 7 in one pass
 - target files: `src/simulation.cpp`, `src/simulation.hpp`
 - task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests. The tests compare floating-point results exactly, so keep the order in which forces are added.`
 
+`repo-command-setup` skips its own verification for the demo, so it does not create the script; create it here, after step 3 and before step 5, unless `project scripts list --project <project-id>` already has one with these commands (a resumed session):
+
+```bash
+artemis --output-format json project scripts create --project "<project-id>" --name "Particle Life benchmark" \
+  --setup-cmd "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel" \
+  --setup-cmd "ctest --test-dir build --output-on-failure" \
+  --benchmark-cmd "python3 tools/benchmark.py --no-visualize" --measure none
+```
+
+Capture the script's `id`: step 5 runs it with `--script` and step 7 passes it to `discovery-start`. `--measure none` because the benchmark writes `simulation_fps` itself.
+
 The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. AI Metrics are off (`--llm-metrics=false`) so only the measured `simulation_fps` is on show.
 
 Do not check or ask about credits first: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar.
