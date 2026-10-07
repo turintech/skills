@@ -34,9 +34,9 @@ artemis model list --help
 artemis model list
 ```
 
-Inspect the current model list, present meaningful choices when the user has not selected one, and record the chosen UUID or model-type code. Only listed models can be used by agents.
+Only listed models can be used by agents. When the user has not named one, recommend the high-effort preset, `artemis --output-format json model list | python3 -c 'import json,sys; print(next((m["modelId"] for m in json.load(sys.stdin) if "high" in (m.get("effort") or "").split(", ")), ""))'` (if that prints nothing, the model in the **High Effort** group of `artemis model groups`), rather than offering a list; record the chosen UUID or model-type code.
 
-**When a calling skill supplies the model, version budget or measurement count, use them and do not re-ask.** `quickstart` fixes all of these for its demo so a first-time user is never asked to choose between things they have not seen yet. Ask only when the user is driving the run themselves and has not said what they want.
+**When a calling skill supplies the model, version budget or measurement count, use them and do not re-ask.** `quickstart` fixes all of these for its demo so a first-time user is never asked to choose between things they have not seen yet. When the user is driving the run themselves and has not said what they want, recommend the high-effort model and 5 versions instead of asking, and let them change either in their reply to the go-ahead below.
 
 ## 1. Create the run
 
@@ -78,7 +78,7 @@ Compile and test are unmeasured setup commands. Use `--measure none` when the be
 
 Capture `script_id` from the create or list response. Prefer passing `--script` explicitly even when a default exists.
 
-Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its §2.
+Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes; this one question also carries the recommended defaults. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its §2.
 
 ```bash
 artemis --output-format json discovery create \
