@@ -93,22 +93,23 @@ Here's the plan:
 1. ✓ Artemis skills, already installed
 2. ○ Install the Artemis CLI
 3. ○ Sign in: you'll create an API key
-4. ○ Start a runner on this machine
-5. ○ Import Particle Life
-6. ○ Measure it on a branch, about a minute
-7. ○ Start a Discovery run, about 15 minutes
+4. ○ Connect to GitHub: one click on the Git page, about a minute
+5. ○ Start a runner on this machine
+6. ○ Import Particle Life
+7. ○ Measure it on a branch, about a minute
+8. ○ Start a Discovery run, about 15 minutes
 ```
 
-At the close each ticked line ends with its link, for example `5. ✓ Particle Life imported: <project link>`.
+At the close each ticked line ends with its link, for example `6. ✓ Particle Life imported: <project link>`. Leave out step 4 when `artemis --output-format json key list` already shows a key whose `provider` starts with `github_` (`github_oauth_token`, `github_app`, `github_pat`), or when the user continues an existing Particle Life project. Number the remaining steps in order.
 
 Then the starting point decides what comes before section 7:
 
 - **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the newest such project, when it was created, and how many there are:
-  - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in step 7, about 15 minutes, using credits.
+  - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in section 7's step 7, about 15 minutes, using credits.
   - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch.
-- **Their own code:** where it lives (repository URL and branch, and can Artemis reach it). `project-import` imports it as a new project, then 7b and section 7. If projects for it already exist and the user hasn't said to continue one, don't ask: import fresh and say in one line which one exists, for example "Importing a new project; `<name>` from `<date>` already exists, say 'continue' to use it instead." If they say so before step 2, switch to that project's id and tell them the new, still-empty project can be archived. A project this session created, or one named in a section 11 report being resumed, counts as continuing: use it without importing again.
+- **Their own code:** where it lives (repository URL and branch, and can Artemis reach it). `project-import` imports it as a new project, then 7b and section 7. If projects for it already exist and the user hasn't said to continue one, don't ask: import fresh and say in one line which one exists, for example "Importing a new project; `<name>` from `<date>` already exists, say 'continue' to use it instead." If they say so before section 7's step 2, switch to that project's id and tell them the new, still-empty project can be archived. A project this session created, or one named in a section 11 report being resumed, counts as continuing: use it without importing again.
 - **A project URL:** 7b, then section 7.
-- **Just set me up:** the plan is steps 1 to 4 only. Do section 5's CLI and runner items, skip Git access and the project, then go straight to section 11.
+- **Just set me up:** the plan is steps 1, 2, 3 and 5 only (skills, CLI, sign-in, runner). Do section 5's CLI and runner items, skip Git access and the project, then go straight to section 11.
 
 ## 5. Setup
 
@@ -117,7 +118,7 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 | Item | Skill | Human part | Tell them (section 8) |
 |---|---|---|---|
 | CLI installed and signed in | `cli-setup` | Creates an API key and enters it in their own terminal | |
-| Git access | `project-import` | Connects a Git provider if the account has none | |
+| Git access | `project-import`, its section 3 only: keep the key UUID; the import itself waits for the plan's Import step | For the demo: clicks **Connect to GitHub** on the Git page if there is no `github_*` key (the CLI needs one even for the public demo). Own code: connects a key for the repository's git service if none can read it | `<deployment-base-url>/settings/git`; they say "done" when the GitHub section shows **Connected**, or when the access key is saved if the page has no Connect button |
 | Runner on this machine | `runner-setup` | Nothing: the agent downloads it and starts it with the CLI's API key | Its name, online. Once the project exists: `<deployment-base-url>/projects/<project-id>/settings/execution` (**Runner and Scripts**) |
 | Project imported or reused | `project-import` | Nothing | `<deployment-base-url>/projects/<project-id>`: the project's overview page |
 
@@ -125,7 +126,7 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 
 ## 6. Rules for this flow
 
-- **Never ask the user to choose run settings.** Not the model, the version budget, the number of measurements, the target files, or the task wording. They are fixed in step 7 and 7a; pass them to the owning skills.
+- **Never ask the user to choose run settings.** Not the model, the version budget, the number of measurements, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
 - **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run (choosing the demo was the yes; §2 named the credits). A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
@@ -201,15 +202,16 @@ For example: "Your project is in Artemis: [Open project](<link>). You'll see the
 | Step | Agent's job |
 |---|---|
 | Sign in and create an API key | `cli-setup` owns the order and the message. Say the step is theirs, and wait |
-| Connect a Git provider | Take them to the page |
+| Connect to GitHub (demo) or a Git provider | Give the `<deployment-base-url>/settings/git` link and wait for "done" |
 
 ## 10. When it cannot continue
 
 | Situation | Do |
 |---|---|
-| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Say which model failed and offer one fresh run from the same branch with a model from the top tier in `artemis model groups` (or the step 7 model if another was used); it spends credits again, so start it only on the user's yes. Once only, and never for a build, test or benchmark failure |
+| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Say which model failed and offer one fresh run from the same branch with a model from the top tier in `artemis model groups` (or section 7's step 7 model if another was used); it spends credits again, so start it only on the user's yes. Once only, and never for a build, test or benchmark failure |
 | The project URL's deployment is not the one the CLI is signed in to | Say both, and settle it before creating anything |
 | No runner can run here, or the user does not want one | Say that nothing can be measured without a machine, and stop |
+| The user has no GitHub account, or will not connect one | Say the CLI needs a Git key even for the public demo; offer **just set me up** or their own project instead, and stop the demo |
 | The runner lacks the toolchain | Name the tool and the machine; installing it is the user's call |
 | Nothing worth measuring | Say so and stop |
 | A run fails within seconds with no baseline | `discovery-inspect` |
@@ -240,6 +242,7 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] Welcome written as text before the question box
 - [ ] The plan in the host's task list before any other tool call, each item ticked with its link, and a numbered list at the close
 - [ ] Demo: an existing Particle Life project found before importing, and the user asked fresh or continue
+- [ ] Demo: a `github_*` key found, or GitHub connected, before the import
 - [ ] Own code: an existing project for the repository named in one line, without a question, before importing fresh
 - [ ] Just set me up: stopped after the runner, with no project imported and no run started
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
