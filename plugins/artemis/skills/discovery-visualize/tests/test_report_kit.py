@@ -15,6 +15,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import build_report  # noqa: E402
 import check_report  # noqa: E402
+import collect_discovery  # noqa: E402
+
+FIXTURE = ROOT / "tests" / "fixtures" / "synthetic"
 
 PAGE = """const R = ArtemisReport;
 R.header(document.getElementById('header'), { title: 'A finding', prov: ['run r'] });
@@ -107,6 +110,34 @@ class RecipeTests(unittest.TestCase):
         recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
         self.assertNotIn("{ text: t.readings + ' runs vs '", recipe)
         self.assertNotIn("fmt.p", recipe.replace("fmt.pct", ""))
+
+
+
+class RecipeRenderTests(unittest.TestCase):
+    """report-kit.md's own default page, run on the synthetic run, with and without each reading."""
+
+    @staticmethod
+    def recipe_page() -> str:
+        recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
+        return recipe.split("```js\n", 1)[1].split("\n```", 1)[0]
+
+    @staticmethod
+    def fixture_snapshot(with_readings: bool) -> dict:
+        payloads = collect_discovery.load_from_dir(str(FIXTURE))
+        if not with_readings:
+            payloads["observations"] = None
+        return collect_discovery.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_recipe_renders_with_each_reading(self) -> None:
+        html = build_report.build(self.fixture_snapshot(True), self.recipe_page(), "Title")
+        self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
+    # Without readings the page threw "winM.runs is not iterable" and drew nothing.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_recipe_renders_without_readings(self) -> None:
+        html = build_report.build(self.fixture_snapshot(False), self.recipe_page(), "Title")
+        self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
 
 
 if __name__ == "__main__":
