@@ -61,7 +61,7 @@ Compare each finalist against the project's code on the full Script, with [Compa
 
 This follows `change-validate` §2–4, with two differences: the version is on a Discovery branch, and the baseline is the project's code, named by its commit.
 
-`compare` takes the project code's readings by commit from every branch and runner that used the same Script, including the baselines of other Discovery runs. Measure on a copy of the tier Script made for one runner and used only there, so its readings all come from that machine. Create the branch once per project, and the copy once per tier and runner:
+`compare` takes the project code's readings by commit from every branch and runner that used the same Script, including the baselines of other Discovery runs. Measure on a copy of the tier Script made for one runner and used only there, so its readings all come from that machine. Create a branch whose starting commit is the project's code, once per project, and a copy of the tier Script for your runner, once per tier and runner:
 
 ```bash
 artemis --output-format json changeset create --project "<project-uuid>" --name "Project code"
