@@ -126,8 +126,8 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 
 ## 6. Rules for this flow
 
-- **Never ask the user to choose run settings.** Not the model, the version budget, the number of measurements, the target files, or the task wording. They are fixed in step 7 and 7a; pass them to the owning skills.
-- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run, once the user has replied at least once since the welcome without switching away from the demo (§2 named the demo and its credits). If they have not replied since the welcome by the time step 7 is reached, ask one line first: "Setup is done. Start the Particle Life run now? It uses credits." A run on the user's own code goes through `discovery-start`, which asks first.
+- **Never ask the user to choose run settings.** Not the model, the version budget, the number of measurements, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
+- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run, once the user has replied at least once since the welcome without switching away from the demo (§2 named the demo and its credits). If they have not replied since the welcome by the time section 7's step 7 is reached, ask one line first: "Setup is done. Start the Particle Life run now? It uses credits." A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
