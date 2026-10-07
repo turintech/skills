@@ -58,18 +58,36 @@ artemis runner list
 
 Start here when there is no CLI, or it needs replacing. The deployment's **Connect Your Agent** page at `<deployment-base-url>/settings/connect-agent` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
 
-Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always read `artemis --version` after downloading, and fall back to the newest versioned release when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
+Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always check a downloaded build's version before it replaces anything, and fall back to the newest versioned release when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
 
 ### Where to download from
 
-**If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below. Check what it serves before keeping it: download, run `--version`, and compare with the minimum. When the directory's build is older than the minimum, use the newest release from the public listing instead, and say in one line which directory was out of date.
+**If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below, with a `checksums.txt`. Check what it serves before it replaces anything: this downloads into a temporary directory, checks the checksum and the version there, and installs only a build that passes both:
 
 ```bash
 DIR="<the CLI download directory from the prompt>"
 PLATFORM="linux-amd64"   # see the table below
-mkdir -p ~/.local/bin && curl -fL "$DIR/artemis-cli-$PLATFORM" -o ~/.local/bin/artemis && chmod +x ~/.local/bin/artemis
-artemis --version
+MIN="1.1.8"              # the highest artemis-cli-min of the skills in use
+TMP="$(mktemp -d)"; F="$TMP/artemis-cli-$PLATFORM"
+if ! curl -fsSL "$DIR/artemis-cli-$PLATFORM" -o "$F"; then
+  echo "NO BUILD: $DIR has no artemis-cli-$PLATFORM"
+elif ! ( cd "$TMP" && curl -fsSLO "$DIR/checksums.txt" \
+     && grep " artemis-cli-$PLATFORM\$" checksums.txt > sum.txt && [ -s sum.txt ] \
+     && { sha256sum -c sum.txt 2>/dev/null || shasum -a 256 -c sum.txt; } ); then
+  echo "INSTALL FAILED: checksum"
+elif ! V="$(chmod +x "$F" && "$F" --version)"; then
+  echo "WON'T RUN: the downloaded build did not start"
+elif VN="$(echo "$V" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"; [ -z "$VN" ] || [ -z "$MIN" ] \
+     || [ "$(printf '%s\n' "$MIN" "$VN" | sort -V | head -1)" != "$MIN" ]; then
+  echo "TOO OLD: the directory's build reports \"$V\", below $MIN"
+else
+  { mkdir -p ~/.local/bin && install -m 755 "$F" ~/.local/bin/artemis && ~/.local/bin/artemis --version; } \
+    || echo "INSTALL FAILED: could not write ~/.local/bin/artemis"
+fi
+rm -rf "$TMP"
 ```
+
+Nothing is replaced unless the last branch runs. On `TOO OLD` or `NO BUILD`, install the newest release from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
 
 The public download paths need no login, so send no credentials.
 
