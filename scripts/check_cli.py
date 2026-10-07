@@ -107,6 +107,8 @@ def cli_min(skill):
 
 
 version = subprocess.run([CLI, "--version"], capture_output=True, text=True).stdout.strip()
+# The release gate sets this: a CLI too old for a skill is a failure there, not a skip.
+STRICT = os.environ.get("ARTEMIS_CLI_STRICT") == "1"
 have = version_tuple(version)
 # A build from source reports 0.1.0 and has everything on main, so it checks every skill.
 if have and have[0] == 0:
@@ -116,9 +118,12 @@ failures, checked, skipped = [], [], []
 for skill in sorted(SKILLS.iterdir()):
     need = cli_min(skill)
     if have and need and have < need:
-        print(f"SKIP {skill.name}: needs CLI {'.'.join(map(str, need))}, checking against {version}")
-        skipped.append(skill.name)
-        continue
+        if STRICT:
+            failures.append(f"{skill.name}: needs CLI {'.'.join(map(str, need))}, the CLI checked is {version}")
+        else:
+            print(f"SKIP {skill.name}: needs CLI {'.'.join(map(str, need))}, checking against {version}")
+            skipped.append(skill.name)
+            continue
     for f in sorted(skill.rglob("*.md")):
         for cmd in set(commands(f.read_text())):
             checked.append(cmd)

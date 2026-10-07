@@ -28,6 +28,8 @@ jobs:
         run: scripts/check-skills.sh
       - name: Test the discovery-visualize collector, report kit and checker
         run: python3 -m unittest discover -s plugins/artemis/skills/discovery-visualize/tests -p "test_*.py" -v
+      - name: Test the skill checks
+        run: python3 -m unittest discover -s scripts/tests -p "test_*.py" -v
       - name: Report where skills could be shorter
         run: python3 scripts/skill_length_report.py
       # Last, so a failing release gate does not hide the other results.
@@ -40,4 +42,4 @@ jobs:
           if [ -n "$FILES_AUTH" ]; then auth=(--anyauth -u "$FILES_AUTH"); fi
           curl -fsSL "${auth[@]}" https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-linux-amd64 -o "$RUNNER_TEMP/artemis-latest"
           chmod +x "$RUNNER_TEMP/artemis-latest"
-          ARTEMIS_CLI="$RUNNER_TEMP/artemis-latest" scripts/check-skills.sh
+          ARTEMIS_CLI_STRICT=1 ARTEMIS_CLI="$RUNNER_TEMP/artemis-latest" scripts/check-skills.sh
