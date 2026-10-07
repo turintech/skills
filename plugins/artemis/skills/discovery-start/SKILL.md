@@ -78,7 +78,7 @@ Compile and test are unmeasured setup commands. Use `--measure none` when the be
 
 Capture the script's `id` from the create or list response. Prefer passing `--script` explicitly even when a default exists.
 
-Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes; this one question also carries the recommended defaults. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its §2.
+Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes; this one question also carries the recommended defaults. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its welcome or in its one-line question before the run.
 
 ```bash
 artemis --output-format json discovery create \
