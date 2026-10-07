@@ -12,12 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Download the newest Artemis CLI release
+      - name: Download the Artemis CLI
+        env:
+          # Repository secret ARTEMIS_FILES_AUTH ("user:password"), only if the file server needs auth again.
+          FILES_AUTH: ${{ secrets.ARTEMIS_FILES_AUTH }}
         run: |
           base=https://files.artemis.turintech.ai/public/artemis-cli
-          auth="Artemis_User:Artemis_Custom_Runner_2025"
-          ver=$(curl -fsS --anyauth -u "$auth" "$base/" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV | tail -1)
-          curl -fsSL --anyauth -u "$auth" "$base/$ver/artemis-cli-linux-amd64" -o "$RUNNER_TEMP/artemis"
+          auth=()
+          if [ -n "$FILES_AUTH" ]; then auth=(--anyauth -u "$FILES_AUTH"); fi
+          ver=$(curl -fsS "${auth[@]}" "$base/" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV | tail -1)
+          curl -fsSL "${auth[@]}" "$base/$ver/artemis-cli-linux-amd64" -o "$RUNNER_TEMP/artemis"
           chmod +x "$RUNNER_TEMP/artemis"
           echo "ARTEMIS_CLI=$RUNNER_TEMP/artemis" >> "$GITHUB_ENV"
       - name: Check skill metadata, references and CLI commands
@@ -26,3 +30,14 @@ jobs:
         run: python3 -m unittest discover -s plugins/artemis/skills/discovery-visualize/tests -p "test_*.py" -v
       - name: Report where skills could be shorter
         run: python3 scripts/skill_length_report.py
+      # Last, so a failing release gate does not hide the other results.
+      - name: Check main against the CLI production installs (latest/)
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        env:
+          FILES_AUTH: ${{ secrets.ARTEMIS_FILES_AUTH }}
+        run: |
+          auth=()
+          if [ -n "$FILES_AUTH" ]; then auth=(--anyauth -u "$FILES_AUTH"); fi
+          curl -fsSL "${auth[@]}" https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-linux-amd64 -o "$RUNNER_TEMP/artemis-latest"
+          chmod +x "$RUNNER_TEMP/artemis-latest"
+          ARTEMIS_CLI="$RUNNER_TEMP/artemis-latest" scripts/check-skills.sh
