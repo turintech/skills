@@ -171,7 +171,7 @@ Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the 
 
 **This is the usual cause of a CLI that was working a minute ago.** When `artemis status` reports `USER_MGMT_URL: required but not set` and friends, look for a `.env` in the current directory before concluding the user is logged out: many repositories ship one for their own app, and working inside such a repository silently replaces the CLI's config. The fix is to run from elsewhere or pass `--config`, not to log in again.
 
-**A deployment URL in the environment needs its own key.** From CLI 1.1.15, if `ARTEMIS_BASE_URL` (or a service URL) is set in the shell to a different deployment from the one the config file's key belongs to, commands that reach the deployment are refused: "the stored key would be sent to a deployment it was not issued for". The user is not logged out. Unset the variable, set `ARTEMIS_API_KEY` beside it, or keep a second deployment in `artemis env`.
+**A deployment URL in the environment needs its own key.** From CLI 1.1.15, if `ARTEMIS_BASE_URL` (or a service URL) is set in the shell to a different deployment from the one the config file's key belongs to, commands that reach the deployment are refused: "the stored key would be sent to a deployment it was not issued for". The user is not logged out. Unset the variable, set `ARTEMIS_API_KEY` beside it, or log in to that deployment with `artemis login` (a named `artemis env` keeps both).
 
 ### Deployments with a self-signed certificate
 

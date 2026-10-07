@@ -95,7 +95,7 @@ artemis maintain scans run --project <p> --rule <rule-id> --count 10
 ```
 
 - `--rule` is required and repeatable, up to 20 Rules per Scan.
-- `--count` is about how many Issues to surface (default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. From CLI 1.1.15 it takes 1-100 (1.1.14 took up to 1000), and `--no-limit` asks for no limit, as the Web UI does, using more tokens.
+- `--count` is about how many Issues to surface (default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. From CLI 1.1.15 it takes 1-100 (1.1.14 took up to 1000), and `--no-limit`, instead of `--count` (the two can't be combined), asks for no limit, as the Web UI does, using more tokens.
 - `--focus "<text>"` points the Scan at part of the code, like the Web UI's "What to focus on". `--commit <sha>` scans that commit instead of the project head. There is no `--path`.
 
 The Scan runs in the background; capture its `id`. Check on it with `scans get <scan-id> --project <p>` in the waiting pattern above, breaking on `.status` `done`, `failed` or `cancelled`. Stop a Scan, after the user's yes, with `scans cancel <scan-id> --project <p> --force` (without `--force` it asks, and with no terminal or in JSON mode exits 7); it keeps what it already found. (`--wait --timeout` also exists, but its 20-minute default outlasts an agent's shell.)
