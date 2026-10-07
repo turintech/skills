@@ -198,7 +198,7 @@ A Fix in Discovery leaves no Branch on the Issue; its versions are in the Discov
 
 ## 8. Re-sync outdated Issues
 
-The code moves on: an Issue may already be fixed, have moved, or no longer apply. A **Re-sync** re-checks Issues against the current code. It is an agent run, so run it after the user's yes:
+The code moves on: an Issue may already be fixed, have moved, or no longer apply. Each Issue has a **sync status**: `current`, `outdated` (its file or its Rule changed) or `obsolete`; `issues list --sync-status` filters on it. A **Re-sync** re-checks Issues against the current code. It is an agent run, so run it after the user's yes:
 
 ```bash
 artemis maintain syncs run --project <p>                     # every outdated Issue
