@@ -38,12 +38,23 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Skills up to date | Load `cli-setup` and run its *Check versions* step 1 once, after the host is known and before the other checks, even when the CLI already works, unless the setup prompt says to use the installed skills as they are. The one check that may speak: one line before it runs, and a reload request only if it updated something |
 | Browser control | Load the browser tools before looking; deferred tools report none until loaded. Load the skill and follow `cli-follow-along` section 1 for the exact call |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
-| Demo toolchain | Unless the user brought their own code, and when the runner will run on this machine: `for t in cmake ctest c++ python3; do command -v "$t" >/dev/null && continue; echo "missing: $t"; done`, and on macOS `[ "$(uname -s)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1 && echo "missing: Xcode Command Line Tools (xcode-select --install)"`, since without them `c++` and `python3` are stubs. The demo builds with CMake and a C++ compiler and benchmarks with Python 3 on this machine's runner. A missing tool is the user's to install before the runner step: name it and the command, such as `brew install cmake` or `sudo apt install cmake g++ python3` |
+| Demo toolchain | Unless the user brought their own code, and when the runner will run on this machine: the check below. The demo builds with CMake 3.20 or newer (`ctest --test-dir`) and a C++ compiler and benchmarks with Python 3. A missing tool is the user's to install before the runner step: name it and the command, such as `brew install cmake` or `sudo apt install cmake g++ python3` |
 | CLI | `artemis --version` is at least this skill's `artemis-cli-min` (1.1.14, the highest of the Artemis skills, because later steps hand on to `discovery-inspect`, `discovery-steer` and `change-validate`). If it is older, `cli-setup` updates it now, before the runner and project checks, so no later step stops for it. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
 | The code, locally | `git -C . remote get-url origin` against the project's `gitUrl` |
+
+The demo toolchain check:
+
+```bash
+for t in cmake ctest c++ python3; do command -v "$t" >/dev/null || echo "missing: $t"; done
+if command -v cmake >/dev/null; then
+  set -- $(cmake --version); v=$3; major=${v%%.*}; minor=${v#*.}; minor=${minor%%.*}
+  if [ "$major" -lt 3 ] || { [ "$major" -eq 3 ] && [ "$minor" -lt 20 ]; }; then echo "too old: cmake $v, the demo needs 3.20 or newer"; fi
+fi
+if [ "$(uname -s)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then echo "missing: Xcode Command Line Tools (xcode-select --install)"; fi
+```
 
 ## 1. Where the user is starting from
 
