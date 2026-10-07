@@ -123,7 +123,7 @@ A draft's link is `<deployment-base-url>/projects/<project-uuid>/discover/setup/
 
 ## 6. When the user says "run 1 and 3"
 
-For each chosen draft, confirm the model, the version budget, the measurements per version and the credit spend as `discovery-start` describes, then:
+For each chosen draft, confirm the model, the version budget, the measurements per version and the credit spend as `discovery-start` describes. Ask once whether Claude Code or Codex should also contribute, as `discovery-collaborate` describes; if yes, add its sentence to each chosen run's task. Then:
 
 ```bash
 artemis discovery update "<run-id>" --model "<model>" --runner "<runner-name>" --versions <n>
@@ -131,7 +131,7 @@ artemis --output-format json discovery setup trial-run "<run-id>"   # wait as in
 artemis discovery setup complete "<run-id>"
 ```
 
-Runs on one runner queue and run one after another, so several drafts can be completed together and the runner works through them. Put drafts on different runners to run them at the same time. Give the user each run's link.
+Runs on one runner queue and run one after another, so several drafts can be completed together and the runner works through them. Put drafts on different runners to run them at the same time. Give the user each run's link. If the user chose contributors, start them once the runs are exploring (`discovery-collaborate`).
 
 ## Checklist
 
@@ -144,3 +144,4 @@ Runs on one runner queue and run one after another, so several drafts can be com
 - [ ] Each draft created with `--setup`, `--source-changeset`/`--source-sha`, `--script` and `--llm-metrics=false`, and its task says not to change the benchmarks or tests
 - [ ] Table of drafts with links and what is still to choose
 - [ ] No draft started without the user's yes on model, versions and credits
+- [ ] User asked whether Claude Code or Codex should contribute; their answer reflected in each run's task
