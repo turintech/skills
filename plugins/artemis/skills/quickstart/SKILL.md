@@ -1,9 +1,9 @@
 ---
 name: quickstart
 description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and recommends the Particle Life example to anyone who has not run Artemis before, or stops once the CLI and a runner are ready when the user only wants setup. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
-compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
+compatibility: Requires Artemis CLI 1.1.15+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
-  artemis-cli-min: "1.1.14"
+  artemis-cli-min: "1.1.15"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -38,7 +38,7 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Skills up to date | Load `cli-setup` and run its *Check versions* step 1 once, after the host is known and before the other checks, even when the CLI already works, unless the setup prompt says to use the installed skills as they are. The one check that may speak: one line before it runs, and a reload request only if it updated something |
 | Browser control | Load the browser tools before looking; deferred tools report none until loaded. Load the skill and follow `cli-follow-along` section 1 for the exact call |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
-| CLI | `artemis --version` is at least this skill's `artemis-cli-min` (1.1.14, the highest of the Artemis skills, because later steps hand on to `discovery-inspect`, `discovery-steer` and `change-validate`). If it is older, `cli-setup` updates it now, before the runner and project checks, so no later step stops for it. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
+| CLI | `artemis --version` is at least this skill's `artemis-cli-min` (1.1.15, the highest of the Artemis skills, so neither the later steps here nor a skill the user moves on to, such as `maintain`, stops for an update). If it is older, `cli-setup` updates it now, before the runner and project checks. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
