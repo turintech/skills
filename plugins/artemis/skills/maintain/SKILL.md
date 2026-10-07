@@ -46,7 +46,7 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 ```bash
 for i in $(seq 16); do   # about 8 minutes
   out=$(artemis --output-format json maintain issues get <issue-id> -p <p>) || { echo "issues get failed"; break; }
-  s=$(printf '%s' "$out" | jq -r '.fixStatus')
+  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("fixStatus") or "")')
   case "$s" in done|failed|cancelled) break;; esac
   sleep 30
 done; echo "fixStatus=$s"

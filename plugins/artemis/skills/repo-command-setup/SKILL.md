@@ -209,7 +209,7 @@ artemis --output-format json changeset validate "<changeset-id>" \
 for i in $(seq 16); do
   out=$(artemis --output-format json changeset validation get "<validation-id>" \
         --project "<project-uuid>") || { echo "validation get failed"; break; }
-  s=$(printf '%s' "$out" | jq -r .status)
+  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status") or "")')
   case "$s" in success|failed|cancelled) break ;; esac
   sleep 30
 done; echo "$s"
