@@ -12,7 +12,7 @@ metadata:
 ## At a glance
 
 - **Problem:** Downloads, registers, starts, updates and verifies an Artemis runner on this machine, and checks it has the toolchain a project needs.
-- **Must be available:** A safe machine with the repository's toolchains and adequate resources, a unique runner name, and an authenticated CLI, whose API key registers the runner.
+- **Must be available:** A safe machine with the repository's toolchains and adequate resources, a unique runner-group name, and an authenticated CLI, whose API key registers the runner.
 - **Use / don't use:** Use when a runner is missing, offline, outdated, or unverified; skip it when a suitable runner is already online and confirmed to be polling.
 - **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
