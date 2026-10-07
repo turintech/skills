@@ -30,7 +30,7 @@ Record:
 
 - repository URL for `--git-url`;
 - exact branch for `--branch`;
-- exact branch-tip commit as the seed;
+- exact branch-tip commit, which becomes the imported commit (`gitHash`);
 - meaningful project name for `--name`.
 
 Resolve and record the branch tip before import:
@@ -41,7 +41,7 @@ SEED_SHA="$(GIT_TERMINAL_PROMPT=0 git ls-remote --exit-code --heads \
 printf '%s\n' "$SEED_SHA"
 ```
 
-If it is empty, use the imported project's `gitHash` as the seed and say so.
+If it is empty, set `SEED_SHA` to the imported project's `gitHash` and say so.
 
 Always pass `--branch`. Import may accept a typo and fail only when Artemis later attempts checkout. Carry `SEED_SHA` through verification and handoff.
 
@@ -127,18 +127,18 @@ List or inspect the project using the installed CLI and confirm:
 - selected Git credential is correct;
 - project is on the intended Artemis deployment.
 
-If the imported commit differs because the branch moved, stop and record the new state rather than treating the original seed as valid. Use the UUID rather than the project name for validation, command configuration, and discovery.
+If the imported commit differs because the branch moved, stop and record the new state rather than treating the recorded commit as valid. Use the UUID rather than the project name for validation, command configuration, and discovery.
 
 When a calling skill invoked this one, return the project UUID to it. Otherwise follow `repo-command-setup`'s workflow path: verify locally before import, or return to `repo-command-setup` §5b after import for runner verification.
 
 ## Checklist
 
 - [ ] Authenticated deployment confirmed.
-- [ ] Remote URL, explicit branch, and seed SHA recorded.
+- [ ] Remote URL, explicit branch, and branch-tip commit (`SEED_SHA`) recorded.
 - [ ] Project name is distinct enough to avoid confusion with other projects against the same repository.
 - [ ] Existing readable Git credential reused when possible (GitHub OAuth preferred over a new PAT).
 - [ ] If no credential existed, both Web UI routes (GitHub connect, Add access key) were offered; the user entered any new secret in the browser, never in chat or a command line.
 - [ ] Import performed once with confirmed inputs.
-- [ ] Project UUID captured and imported `gitHash` verified against the seed SHA.
+- [ ] Project UUID captured and imported `gitHash` verified against `SEED_SHA`.
 - [ ] Clickable project link returned to the user.
-- [ ] UUID and seed handed to `repo-command-setup` §5b or `discovery-start`.
+- [ ] UUID and imported commit handed to `repo-command-setup` §5b or `discovery-start`.

@@ -92,7 +92,7 @@ Say one thing the page does not: mentioning a file with @ (the **+** button) is 
 | Overview | **Agent notes**, the **Best version**, and **What next?** (continue, explore a direction, generate more versions). **Decide what's next** at the top scrolls here |
 | Experiments | What the agent tried, as a canvas, list or board |
 | Versions | The results. **Table**: one row per version with each metric. **Graphs**: every version against the baseline, ranked by the metric picked in its dropdown |
-| Metrics | How the score is weighted, not the results. **Save & recompute** changes it: ask first |
+| Metrics | Each metric's importance, not the results. **Save & recompute** re-scores every version: ask first |
 | Setup | The runner, script and metrics the run uses |
 
 Then click a version. **Code** is its diff, **Details** has the approach, the commit, its metrics against the baseline with the change in percent, and the experiment's conclusion. **Logs** has the runs. The arrows beside the version step to the previous and next one.

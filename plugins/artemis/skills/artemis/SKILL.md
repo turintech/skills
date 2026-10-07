@@ -29,7 +29,7 @@ When the user names a downstream task and supplies its inputs, route directly to
 
 Artemis evaluates repository code on a user-supplied runner with root-level `compile`, `test`, and `benchmark` commands stored as a project validation script. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
 
-A **project** imports a repository branch at a specific commit; a **changeset** (shown as a **branch** in the Web UI) holds versions of that code; a **version** is the baseline or an AI-generated candidate; a **validation** is one measured execution of a script on a version (a script run in the Web UI); a **Discovery run** generates and evaluates versions against a metric.
+A **project** imports a repository branch at a specific commit; a **changeset** (shown as a **branch** in the Web UI) holds versions of that code, each a commit; a **validation** is one measured execution of a script on a version (a script run in the Web UI); a **Discovery run** generates and evaluates versions against a metric, and its **versions** are the code variants its **Experiments** produce, each a real commit with its own metric values.
 
 ### Official docs
 
@@ -68,7 +68,7 @@ If the intent is ambiguous, explain the smallest relevant distinction and ask on
 
 ## 2. Inspect current state
 
-Use available local and Artemis state to inspect the repository and its documentation, remote, branch, seed SHA, ownership, working tree, deployment, authentication, imported projects, runners, commands, metrics, and existing run IDs. Do not make external changes during readiness inspection.
+Use available local and Artemis state to inspect the repository and its documentation, remote, branch, imported commit, ownership, working tree, deployment, authentication, imported projects, runners, commands, metrics, and existing run IDs. Do not make external changes during readiness inspection.
 
 ### Recover IDs from the Web UI
 
@@ -109,7 +109,7 @@ Before setup that changes external state or any long-running operation, give the
 ```text
 Workflow:
 Target deployment:
-Repository / branch / seed:
+Repository / branch / commit:
 Goal and success metric:
 Ready:
 Missing prerequisites:
@@ -118,7 +118,7 @@ Expected runtime and persistence:
 External changes requiring approval:
 ```
 
-Omit fields that do not apply. A missing prerequisite is not a user choice. The **seed** is the exact imported commit later checked against a discovery's `baselineVersionSha`.
+Omit fields that do not apply. A missing prerequisite is not a user choice. The **commit** is the exact imported commit (`gitHash`) later checked against a discovery's `baselineVersionSha`.
 
 For discovery or validation, settle the correctness gate, metric and direction, runner, and stopping boundary; for discovery also settle the task, model, and version budget. For Maintain, settle scan/fix scope, model when overriding the default, and whether fixes stop at a Branch in Artemis, a pushed git branch, or a pull request.
 

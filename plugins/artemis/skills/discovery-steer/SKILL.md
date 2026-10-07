@@ -25,7 +25,7 @@ Successful delivery is not proof of compliance. Verify both the agent-run handof
 artemis --output-format json discovery get "<run-id>"
 ```
 
-Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions`, and `agentRunId`. Surface conflicts between the requested direction and the original task or targets; target files are guidance, not a guaranteed write boundary.
+Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions`, and `agentRunId`. Surface conflicts between the requested direction and the run's Goal (`taskDescription`) or targets; target files are guidance, not a guaranteed write boundary.
 
 ### Budget gate
 
@@ -76,7 +76,7 @@ Read relevant version rationales and diffs with `discovery-inspect`. In-flight w
 
 ## Checklist
 
-- [ ] Original task, targets, status, and current agent run inspected
+- [ ] Goal (`taskDescription`), targets, status, and current agent run inspected
 - [ ] Budget remains, or it was expanded before steering
 - [ ] Conflict with the requested direction surfaced
 - [ ] `discovery steer` returned a resulting agent ID with `verified: true`

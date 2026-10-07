@@ -178,11 +178,11 @@ The user chose the demo; that was the decision. Go through section 7 in one pass
 - target files: `src/simulation.cpp`, `src/simulation.hpp`
 - task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests. The tests compare floating-point results exactly, so keep the order in which forces are added.`
 
-The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. LLM-judged metrics are off so only the measured `simulation_fps` is on show.
+The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. AI Metrics are off (`--llm-metrics=false`) so only the measured `simulation_fps` is on show.
 
 Do not check or ask about credits first: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar.
 
-End on the code, not a number: the run's **Metrics** to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a weighted roll-up, not a measurement.
+End on the code, not a number: the run's **Metrics** to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a roll-up of the metrics by importance, not a measurement.
 
 ## 7b. Before section 7 on their own code
 
@@ -224,7 +224,7 @@ Show the plan again with everything ticked, then a short readiness report, wheth
 - **Agent and skills:** the host, and that the Artemis skills are installed.
 - **CLI:** version, deployment, the account when the CLI shows it, and whether it was already there, updated or new.
 - **Runner:** name and machine, and whether it was reused, started, or skipped and why.
-- **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the original and best measured values.
+- **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the baseline and best measured values.
 - **Still yours to do:** anything left for the user, or "nothing".
 
 Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.

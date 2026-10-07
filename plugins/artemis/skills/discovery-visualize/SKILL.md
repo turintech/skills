@@ -82,7 +82,7 @@ On a host without Artifacts the box says **OPEN YOUR REPORT** and the line under
 
 These override any host chart default:
 
-- Rank by Artemis's change against the baseline from `discovery compare` (the collector's `rankings`), not the Composite score (`fitnessScore`), which is an importance-weighted roll-up of the metrics. Show the Composite score only as a separate platform score.
+- Rank by Artemis's change against the baseline from `discovery compare` (the collector's `rankings`), not the Composite score (`fitnessScore`), which is a roll-up of the metrics by importance tier. Show the Composite score only as a separate platform score.
 - Use the **raw** per-metric winner in the default headline comparison. A per-metric **eligible** winner requires `lifecycle=completed`, `executionStatus=success`, and `experimentStatus != refuted`; when the raw winner fails that gate, warn clearly and show the eligible alternative secondarily.
 - Never claim one overall winner for multiple objectives unless the user supplied the aggregation rule.
 - The collector reads each metric's direction from the platform only. When `higherIsBetter` is `null`, the metric has no ranking or winner: ask the user which way is better before naming one.
@@ -90,7 +90,7 @@ These override any host chart default:
 - Plot `mean` / `min` / `max` / `count`, and individual `runs` when present.
 - Verdicts and intervals are falcon's, in `vsBaseline` (`better`, `worse`, `noise`, `pending`), the same ones the Web UI shows; never compute statistics in the page or the conversation. Show the runs beside any verdict. Say "within the noise", not "worse", for `noise`, and "too few runs to tell" for `pending`.
 - Colour by better and worse only when the user asks for it.
-- Keep measured metrics, AI-assessed metrics (`kind: quality`) and experiment verdicts visually distinct: AI-assessed metrics get their own figure, never the headline, the forest or a verdict.
+- Keep measured metrics, AI Metrics (`kind: quality`) and Experiment conclusions visually distinct: AI Metrics get their own figure, never the headline, the forest or a verdict.
 - Versions are numbered in the order they were made, so version order is generation order. The trajectory marks the raw winner only; plot running-best only when the user is judging search speed.
 - A Pareto front is an analytical view over named axes, not an Artemis verdict.
 

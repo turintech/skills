@@ -34,4 +34,4 @@ If Artifacts are disabled, leave the local HTML in place and give the file path.
 - Provenance and the Artemis link on the page, in the footer
 - Individual runs against the baseline band when there are several per version
 - `<details>` for the full version table
-- Explicit notes for `n=1`, LLM quality scores, and ineligible raw winners without making eligibility the headline
+- Explicit notes for `n=1`, AI Metrics, and ineligible raw winners without making eligibility the headline

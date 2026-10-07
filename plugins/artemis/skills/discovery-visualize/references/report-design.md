@@ -15,8 +15,8 @@ Work out what the reader wants to take away before choosing a chart. Most prompt
 | only "compare", "show", "chart", "visualise" the run (**the default**) | Best vs baseline: how much better, and is it real? | Title with the % and falcon's verdict, chips, headline, `compareRuns`, `forest`, method note |
 | "is it real", "is it noise", "significant", "reliable" | Is the gain bigger than run-to-run noise? | The default, or every run against the baseline's spread (`strip`) for one version |
 | "how did it go", "over time", "did steering help" | How did the search unfold? | Generation-order trajectory, annotated |
-| "what did it try", "what worked", "why did it fail" | What did the agent try, and what came of it? | Versions grouped by outcome, with the agent's verdicts |
-| "AI-assessed", "code quality", "what did the model think" | How did the run's model score the code? | AI-assessed metrics, in their own figure |
+| "what did it try", "what worked", "why did it fail" | What did the agent try, and what came of it? | Versions grouped by outcome, with the Experiments' conclusions |
+| "AI-assessed", "code quality", "what did the model think" | How did the Orchestrator model score the code? | AI Metrics, in their own figure |
 | two metrics, "trade-off", "cost of" | What does one metric cost in the other? | Pareto scatter over the named axes |
 | a specific chart ("a bar chart of...", "just the table") | Theirs | Exactly what they asked for (section 0) |
 
@@ -28,12 +28,12 @@ When the prompt names no story, build the default. Do not ask first.
 
 In this order, with the kit calls from [report-kit.md](report-kit.md):
 
-1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the original, a real gain".
+1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain".
 2. **Chips:** falcon's verdict (the strong chip only for `better`), the 95% interval, and the runs per side.
 3. **Headline:** baseline mean, then the %, then the best version's mean.
-4. **Figure 1, `compareRuns`:** every run of the original and the best version, the gap between the means labelled with the % and p.
+4. **Figure 1, `compareRuns`:** every run of the baseline and the best version, the gap between the means labelled with the % and p.
 5. **Figure 2, `forest`:** every measured version's % change with its 95% interval, best first.
-6. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Artemis agent's experiment verdict disagrees with falcon's, one bullet that says so.
+6. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Experiment's conclusion disagrees with falcon's verdict, one bullet that says so.
 
 With one run per version there is no test: say "measured once" in a chip and skip Figure 2's intervals.
 
@@ -57,7 +57,7 @@ An unattended run (scheduled, nobody to ask) builds the default too. Three figur
 ## 2. Page anatomy
 
 1. **Eyebrow:** project or repository and the metric key. Small, neutral.
-2. **Title: the main finding, as a sentence.** It must be true of the raw measurements on the page, for example "v5 is 10.9% faster than the original, a real gain" or "No version beat the baseline". Numbers are welcome in the title; adjectives need evidence on the page.
+2. **Title: the main finding, as a sentence.** It must be true of the raw measurements on the page, for example "v5 is 10.9% faster than the baseline, a real gain" or "No version beat the baseline". Numbers are welcome in the title; adjectives need evidence on the page.
 3. **Chips** under the title: falcon's verdict, the interval and the runs per side. A one-line lede only when the task needs explaining.
 4. **Headline comparison:** baseline mean, then the change (`pctBetter`, with `timesBetter` under it), then the best measured version's mean and name. It sits at the top of Figure 1's card.
 5. **Figures**, each as: the **question as its heading**, the chart, then **findings as bullets** directly under it. A caption line only when a mark needs explaining.
@@ -69,8 +69,8 @@ An unattended run (scheduled, nobody to ask) builds the default too. Three figur
 
 A finding is what a reader should remember from its figure. Few words, bullets not paragraphs, one idea per bullet.
 
-- **Lead with the answer, in bold:** "**No overlap:** all 3 v5 runs beat every original run".
-- Then one fact per bullet, with numbers from the snapshot: "Weakest v5 run 2.96 fps against the original's best 2.72 fps".
+- **Lead with the answer, in bold:** "**No overlap:** all 3 v5 runs beat every baseline run".
+- Then one fact per bullet, with numbers from the snapshot: "Weakest v5 run 2.96 fps against the baseline's best 2.72 fps".
 - Answer the heading's question, not a description of the chart.
 - Name versions by label and change: "v4, merged neighbour cell lists".
 - Say when the answer is "no" or "within the noise". A report that finds nothing is still a finding.
@@ -81,9 +81,9 @@ Optional. One line when a mark needs explaining: what a mark is (mean of `n`, or
 
 ## 3. The figures
 
-**Best vs baseline (`compareRuns`).** Two rows, the original and the best version. Every run is a large dot, a tick marks the mean, a band spans slowest to fastest run (accent-soft for the best, neutral for the original). Mean labels sit above the original's row and below the best's, so they never meet the bracket between the means, which carries the % and p.
+**Best vs baseline (`compareRuns`).** Two rows, the baseline and the best version. Every run is a large dot, a tick marks the mean, a band spans slowest to fastest run (accent-soft for the best, neutral for the baseline). Mean labels sit above the baseline's row and below the best's, so they never meet the bracket between the means, which carries the % and p.
 
-**Every version's change (`forest`).** One row per measured version, best first: the % change as a dot, its 95% interval (`vsBaseline.ciLowPct` to `ciHighPct`) as a bar, a zero line labelled "original". Filled dot: falcon says `better` or `worse`. Hollow: `noise` or `pending`. The best version in the accent; better or worse ones in ink; the rest muted grey. The right column gives the % and falcon's verdict.
+**Every version's change (`forest`).** One row per measured version, best first: the % change as a dot, its 95% interval (`vsBaseline.ciLowPct` to `ciHighPct`) as a bar, a zero line labelled "baseline". Filled dot: falcon says `better` or `worse`. Hollow: `noise` or `pending`. The best version in the accent; better or worse ones in ink; the rest muted grey. The right column gives the % and falcon's verdict.
 
 **Change per version (ranked bars).** Horizontal bars of `pctBetter` (or `timesBetter`), sorted best first, from a zero line that is the baseline. Value label at each bar's end, version label on the left. The best version in the accent colour, the rest neutral. Versions with no measurement listed at the bottom as text, not as zero-length bars.
 
@@ -95,11 +95,11 @@ Optional. One line when a mark needs explaining: what a mark is (mean of `n`, or
 
 Steers: the CLI does not list a run's past steers, and versions do not record which agent made them. Mark a steer only when this conversation sent it (`discovery-steer`) or the user says when it happened, and place it by `createdAt`: after the last version made before the steer. Never guess a steer from the shape of the line.
 
-When the user asks for the composite score over time, plot each version's `fitness` as its own trajectory, titled "Composite score (the agent's score)", never on the same axis as a measured metric and without a zero line.
+When the user asks for the Composite score over time, plot each version's `fitness` as its own trajectory, titled "Composite score (the platform's roll-up of the metrics by importance)", never on the same axis as a measured metric and without a zero line.
 
-**Versions by outcome.** Cards or a compact table grouped as measured improvement, no measurable change, slower, and failed or not measured. Each row: label, the experiment title, the measured change, and the agent's verdict, visibly separate from the measurement.
+**Versions by outcome.** Cards or a compact table grouped as measured improvement, no measurable change, slower, and failed or not measured. Each row: label, the experiment title, the measured change, and the Experiment's conclusion, visibly separate from the measurement.
 
-**AI-assessed metrics.** Metrics with `kind: quality` are scored by the run's model from the code, not measured. Give them their own figure, after the measured ones: `rankedBars` of each version's score per AI-assessed metric, with the baseline as the reference line when it has a score. Caption it "Scored by the run's model from the code; a judgement, not a measurement." Never put them in the title, the headline, `forest` or a verdict, and never average them with measured metrics. When the user asks for "all metrics", show measured and AI-assessed metrics as two separate figures.
+**AI Metrics.** Metrics with `kind: quality` are scored by the Orchestrator model from the code, not measured. Give them their own figure, after the measured ones: `rankedBars` of each version's score per metric, with the baseline as the reference line when it has a score. Caption it "Scored by the Orchestrator model from the code; a judgement, not a measurement." Never put them in the title, the headline, `forest` or a verdict, and never average them with measured metrics. When the user asks for "all metrics", show measured metrics and AI Metrics as two separate figures.
 
 **Pareto scatter.** Only for two named axes. Label the non-dominated points; caption it as an analytical view, not an Artemis verdict.
 
@@ -113,13 +113,13 @@ A professional data designer should be happy to put their name to it.
 - **Label directly:** value labels on the marks the finding talks about; no legend for a single series; a legend when colour carries a category.
 - **Type:** one family (IBM Plex Sans, with a system fallback) and tabular figures everywhere. No monospace anywhere in the report. Headings at least one step above body text; the title is the largest thing on the page. No `ch` width limits on report text: findings run the full width.
 - **Figures sized to read:** at least 520px of drawing width, horizontal scroll on phones rather than squashing.
-- **Hover** shows the exact values (mean, runs, % vs baseline, the agent's verdict). Nothing on the page depends on hover.
+- **Hover** shows the exact values (mean, runs, % vs baseline, the Experiment's conclusion). Nothing on the page depends on hover.
 - Light and dark themes both designed, and a background set on the page.
 
 ## 5. What the data can and cannot say
 
 - The best version is the raw per-metric winner (`perMetricWinners[metric].raw`). If it fails the eligibility gate, it stays the measured headline, and a note names the gate and the best eligible version.
-- A version with a strong measurement and a **refuted** verdict usually means it did not beat an earlier version. Say so in the finding, from `experimentConclusion`, so the table does not read as a failure.
+- A version with a strong measurement and a **refuted** conclusion usually means it did not beat an earlier version. Say so in the finding, from `experimentConclusion`, so the table does not read as a failure.
 - Missing measurements are gaps with a reason (`executionStatus`, `lifecycle`), never zeros.
 - "Real" means falcon's verdict in `vsBaseline` is `better` (or `worse` for a real loss). Never compute a p-value, interval or verdict in the page or by hand.
 - Always show the runs beside a verdict. Say "within the noise" for `noise`, never "worse", and "too few runs to tell" for `pending`.

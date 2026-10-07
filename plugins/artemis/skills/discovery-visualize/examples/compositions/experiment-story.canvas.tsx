@@ -29,7 +29,7 @@ const nodes: StoryNode[] = [
     title: "All-pairs traversal",
     kind: "baseline",
     parentIds: [],
-    summary: "The original implementation measured before generated changes.",
+    summary: "The unchanged implementation measured before generated changes.",
   },
   {
     id: "experiment-grid",
@@ -57,7 +57,7 @@ const nodes: StoryNode[] = [
     kind: "experiment",
     parentIds: ["experiment-grid"],
     status: "validated",
-    summary: "Build on the grid idea by streaming candidates into evaluation.",
+    summary: "Build on the grid Experiment by streaming candidates into evaluation.",
   },
   {
     id: "v2",
@@ -116,11 +116,11 @@ export default function ExperimentStoryExample() {
   return (
     <Stack gap={16}>
       <Stack gap={5}>
-        <H1>The spatial grid idea produced both grid versions; the cache idea was refuted</H1>
+        <H1>The spatial grid Experiment produced both grid versions; the cache Experiment was refuted</H1>
         <Text tone="secondary">
           Select a node to inspect its intent, status, and platform link.
         </Text>
-        <H2>Which ideas led to which versions?</H2>
+        <H2>Which Experiments led to which versions?</H2>
       </Stack>
 
       <div style={{ overflowX: "auto" }}>

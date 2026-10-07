@@ -111,7 +111,7 @@ artemis --output-format json runner list
 
 Confirm the intended runner appears online. If the command fails or omits the runner, check `runner.log`. A project's runner is set on the project's **Runner and Scripts** settings page (`<deployment-base-url>/projects/<project-id>/settings/execution`).
 
-For end-to-end verification, use `repo-command-setup` §5b to validate the project's original code and confirm its commands execute on the intended runner.
+For end-to-end verification, use `repo-command-setup` §5b to validate the project's starting commit (`--version original`) and confirm its commands execute on the intended runner.
 
 ### The runner's environment is not the user's shell
 

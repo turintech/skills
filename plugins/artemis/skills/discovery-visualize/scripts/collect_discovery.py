@@ -588,7 +588,7 @@ def build_snapshot(
             "unranked": unranked,
         }
         if raw is None:
-            winners[name]["reason"] = "Artemis has no change against the original for any version yet"
+            winners[name]["reason"] = "Artemis has no change against the baseline for any version yet"
 
         best_version = None
         best_mean = None

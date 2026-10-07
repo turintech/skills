@@ -97,9 +97,9 @@ Pass `--source-changeset` when a calling skill measured a branch: the run's base
 
 `--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `quickstart`, passes them here.
 
-`--execution-mode` defaults to `benchmark`, which runs and measures every version. `test` runs the commands only as a pass or fail gate, so measurements do not count, and `skip` runs nothing and grades by review. Keep the default for a measured run.
+`--execution-mode` defaults to `benchmark`, which runs and measures every version. `test` runs the commands only as a pass or fail gate, so measurements do not count, and `skip` turns Benchmark Metrics off: nothing runs and only AI Metrics score versions. Keep the default for a measured run.
 
-`--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for LLM-judged metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
+`--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for AI Metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
 
 ### How many times each version is measured
 
@@ -191,7 +191,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
 - [ ] User said yes to the model, version count and credit spend before the run was dispatched (`discovery create`, or `setup complete` for a setup run), unless a calling skill passed their go-ahead
 - [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
-- [ ] `--llm-metrics=false` unless LLM-judged metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
+- [ ] `--llm-metrics=false` unless AI Metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
 - [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (`baselineVersionSha` + schema non-null) before walking away

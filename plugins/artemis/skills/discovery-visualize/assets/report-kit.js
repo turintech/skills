@@ -355,7 +355,7 @@
     return svg;
   }
 
-  /* compareRuns(el, base, best, opts): every run of the original and the best version, with the gap between the means.
+  /* compareRuns(el, base, best, opts): every run of the baseline and the best version, with the gap between the means.
      base, best: { label, sub, runs: [], mean, color }
      opts: { pctText (the bracket label, e.g. "+10.9%  (better)"), axisLabel, aria, colors: {base, best}, decimals } */
   function compareRuns(el, base, best, o = {}) {
@@ -393,7 +393,7 @@
     return svg;
   }
 
-  /* forest(el, rows, opts): each version's % change against the original with its 95% interval.
+  /* forest(el, rows, opts): each version's % change against the baseline with its 95% interval.
      rows: [{ label, sub, pct, lo, hi, verdict, n, hero, color, note }] in the order to draw; pct, lo, hi and verdict are falcon's
      opts: { aria, header }. Filled dot: falcon's verdict is better or worse; hollow: noise or pending. */
   function forest(el, rows, o = {}) {
@@ -405,7 +405,7 @@
     const svg = svgRoot(el, W, H, o.aria);
     drawXAxis(svg, x, T - 10, H - 40, { tickFormat: t => (Math.abs(t) < 1e-9 ? '0%' : fmt.pct(t, 0)) });
     s(svg, 'line', { x1: x(0), x2: x(0), y1: T - 10, y2: H - 40, class: 'ar-zero' });
-    s(svg, 'text', { x: x(0) + 6, y: T - 14, class: 'ar-ax' }, 'original');
+    s(svg, 'text', { x: x(0) + 6, y: T - 14, class: 'ar-ax' }, 'baseline');
     s(svg, 'text', { x: W - 8, y: T - 14, 'text-anchor': 'end', class: 'ar-ax' }, o.header || 'change · verdict');
     rows.forEach((r, i) => {
       const y = T + i * rowH + 16;

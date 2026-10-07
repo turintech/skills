@@ -53,7 +53,7 @@ Each version's metric carries `vsBaseline`, falcon's comparison against the run'
 ## Kinds
 
 - **target** — worker metrics that are not compile/test/benchmark harness timings. These are the default plots.
-- **quality**: AI-assessed metrics (`source=agent`): the run's model scores them from the code. A judgement, not a measurement; never given a verdict in a report.
+- **quality**: AI Metrics (`source=agent`): the Orchestrator model scores them from the code. A judgement, not a measurement; never given a verdict in a report.
 - **harness** — `compile_*`, `unit_test_*`, `benchmark_*`. Show on request or in the audit table, not as headline KPIs.
 
 ## Do not add

@@ -34,9 +34,9 @@ All accept `--output-format json` for scripting.
 ```bash
 artemis discovery list --project <uuid> --all  # all runs for a project
 artemis discovery get <run-id>                 # the run record
-artemis discovery experiments list <run-id> --all  # hypotheses + verdicts
+artemis discovery experiments list <run-id> --all  # hypotheses + conclusions
 artemis discovery experiments get <experiment-id> # one hypothesis + conclusion
-artemis discovery versions list <run-id> --all     # candidates + lifecycle/composite score
+artemis discovery versions list <run-id> --all     # versions + lifecycle/Composite score
 artemis discovery versions get <version-id>    # one version (rationale, status)
 artemis discovery versions logs <version-id>   # runner output for one version
 artemis discovery metrics <run-id> [--all]     # measured numbers per version
@@ -52,7 +52,7 @@ artemis chat messages "$(echo "$run" | jq -r .agentRunId)"   # narration + tool 
 artemis chat list --project <project-uuid>                   # if you lost the id
 ```
 
-Use chat to see current activity and experiment records for complete hypotheses, conclusions, confidence, and reviewer notes. `chat messages` is a summary: assistant deltas may be truncated and tool events may omit inputs and outputs.
+Use chat to see current activity and experiment records for complete hypotheses, conclusions, confidence, and LLM council notes. `chat messages` is a summary: assistant deltas may be truncated and tool events may omit inputs and outputs.
 
 ### Timestamps
 
@@ -72,7 +72,7 @@ Repeated status text or repeated `propose`/`conclude` calls can be normal while 
 
 `discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `processId`, and `observationGroupId`. Read the actual discovery changeset with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
 
-When reporting a run or candidate, include clickable Web UI links:
+When reporting a run or version, include clickable Web UI links:
 
 ```text
 [Open project](<deployment-base-url>/projects/<project-id>)
@@ -114,7 +114,7 @@ artemis discovery experiments list <run-id> --all
 
 Each experiment is a hypothesis with `status` = `validated` / `refuted` / `inconclusive` and a `confidence`. This is the agent's *reasoning* — a validated experiment does not guarantee a fast version; cross-check the numbers.
 
-### 3. Which candidates ran, and did they pass? (versions)
+### 3. Which versions ran, and did they pass? (versions)
 
 ```bash
 artemis discovery versions list <run-id> --all
@@ -165,7 +165,7 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 ## Common misreads
 
 - **`versionCount: 0` is not conclusive by itself.** If the run is active, inspect `discovery versions list`, agent narration, and available execution logs; exploration may not have started. If it becomes terminal, the runner is idle, and no version exists, the run failed to explore; relaunch it through `discovery-start`.
-- **The Composite score (`fitnessScore`) is an importance-weighted roll-up of the metrics against the baseline, not a verdict.** It can be near zero or negative for a version that improved your target, so decide with `discovery compare`'s verdicts. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. LLM-judged metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
+- **The Composite score (`fitnessScore`) is a roll-up of the metrics by importance tier against the baseline, not a verdict.** It can be near zero or negative for a version that improved your target, so decide with `discovery compare`'s verdicts. A score shown as PENDING means a metric has no interval (one measurement per version); it does not mean work is still running. AI Metrics are scored 1-5 and stored as 0-1, so 0.8 means 4/5, not 80%.
 - **Task logs cover only versions that reached a runner.** Use `execution-log-inspect` for compile, test, benchmark, and ingestion evidence. Cross-check `discovery versions list` because `generation_failed` versions were never dispatched.
 - **Names drift.** A project's platform-side name can diverge from whatever you called it at import time; always reference the **project UUID**.
 
