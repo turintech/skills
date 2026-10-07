@@ -152,15 +152,16 @@ artemis maintain issues fix <issue-uuid>... [--model claude-sonnet-5]
 
 ### Fix in Discovery
 
-For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them:
+For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The maintain agent settles the run's settings: unless it is given them, it asks for the version budget (10 by default), the model and the runner, then the script and how many times each version is benchmarked. Agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), that each version is agent work that spends credits, and that the run also scores AI Metrics. Then pass them, so the agent asks nothing it was already told:
 
 ```bash
 artemis maintain issues fix <issue-uuid> --discovery --project <p> \
-  --runner <runner> --script <script> --versions 5 --repeats 3 --timeout 8m
+  --model <model> --versions <n> --runner <runner> --script <script> --repeats <runs> --timeout 8m
 ```
 
-- It needs a runner and a script (or `--execution-mode skip` for no runner) and spends credits; say both before the yes.
-- It goes through the maintain agent, which settles the run's settings; flags you pass are handed over so it doesn't ask. Piped, it takes one turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only after the user's yes. If the turn hits `--timeout` (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`.
+- `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
+- Fix in Discovery always scores AI Metrics: the maintain agent has no switch for them and the CLI no flag. If the user says no to them at the go-ahead, start the run with `discovery-start` instead.
+- Piped, the command takes one agent turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only after the user's yes. If the turn hits `--timeout` (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`.
 - Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 
 ### Your own coding agent
@@ -213,6 +214,7 @@ Syncs run in the background like Scans. There is no `syncs get`: match the sync 
 - [ ] CLI at least 1.1.14; project UUID confirmed.
 - [ ] Rules in place and none still drafts.
 - [ ] The user said yes before each Scan, fix (agent, Fix again, Discovery), Re-sync, `maintain chat` turn, `chat send` or resuming `chat answer`, card approval and `rules delete`.
+- [ ] For Fix in Discovery, the yes covered the model, versions, runner and script, Benchmark runs and AI Metrics, and those settings were passed as flags.
 - [ ] The Scan reached `done`, and `issuesFound` is checked, not assumed.
 - [ ] Issues triaged before any fix; unrelated Issues in separate `fix` calls.
 - [ ] Waited on `fixStatus` with a bounded check, at most three runs, then checked `fix-runs` and the chat.
