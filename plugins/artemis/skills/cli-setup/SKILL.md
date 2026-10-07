@@ -35,8 +35,30 @@ The skills, the CLI and the platform are released separately, so a returning use
 Then:
 
 - **Nothing changed:** say nothing more and carry on.
-- **Something changed:** ask the user once to reload, wait, then invoke the skill you were following again, because the copy already read is the old one. Claude Code: `/reload-plugins` (if it warns about the cache, `/reload-plugins --force`, or restart Claude Code). Other hosts: usually a new chat, where they paste their request again. Do not repeat this step in the same chat; in a new chat it reports current.
+- **Something changed:** the copy already read is the old one, so ask the user once to reload (*Asking for a reload*, below), wait, then invoke the skill you were following again. Other hosts: usually a new chat, where they paste their request again. Do not repeat this step in the same chat; in a new chat it reports current.
 - **The check could not run:** if a command fails, Claude Code finds no Artemis plugin, or this skill was not loaded from the installed plugin (in Claude Code its base directory is not under the plugins directory, `~/.claude/plugins/` by default, as with `--plugin-dir`), install nothing, say in one line that the skills could not be checked, and continue.
+
+**Asking for a reload.** After an install, first check whether the Artemis skills are already usable in this session: if `artemis:quickstart` is among your available skills, or the Skill tool loads it, carry on without asking. After an update, or when they are not usable, send the request as its own message, two numbered boxes and nothing else (Claude Code shown):
+
+````text
+```
+┌──────────────────────────────────────────────────────────┐
+│  1  TYPE THIS HERE IN THIS CHAT                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+```
+/reload-plugins
+```
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  2  THEN SAY "DONE"                                      │
+└──────────────────────────────────────────────────────────┘
+```
+````
+
+If it warns about the cache, `/reload-plugins --force`, or restart Claude Code. If the user sends anything else instead, such as a shell command pasted into the chat, answer in one line that points back to step 1 and wait; don't explain the reload again.
 
 **2. The CLI.** It must meet the skills' minimum: see *Verify*, and *Update* if it is older.
 
