@@ -23,7 +23,7 @@ A runner executes project-supplied compile, test, and benchmark commands on the 
 - A machine where running code from the connected repositories is safe.
 - The toolchains required by the projects assigned to this runner installed on that machine — Artemis runs their commands as-is from the repository root.
 - Enough disk, memory, and network access for builds.
-- A meaningful, unique runner name that identifies its owner or host.
+- A meaningful runner name that identifies its owner or host, unique unless the user is adding capacity to a group (see [Shared names add capacity](#shared-names-add-capacity)).
 - An authenticated `artemis` CLI on the target deployment. The runner uses the same API key, read from the CLI's config file.
 
 ## Get the runner
