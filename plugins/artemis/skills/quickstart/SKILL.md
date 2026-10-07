@@ -1,6 +1,6 @@
 ---
 name: quickstart
-description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and recommends the Particle Life example to anyone who has not run Artemis before, or stops once the CLI and a runner are ready when the user only wants setup. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
+description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and starts the Particle Life example by default for anyone who has not run Artemis before, or stops once the CLI and a runner are ready when the user only wants setup. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
 compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
   artemis-cli-min: "1.1.14"
@@ -36,7 +36,7 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 |---|---|
 | Assistant host | Claude Code, Cursor, Codex, or GitHub Copilot |
 | Skills up to date | Load `cli-setup` and run its *Check versions* step 1 once, after the host is known and before the other checks, even when the CLI already works, unless the setup prompt says to use the installed skills as they are. The one check that may speak: one line before it runs, and a reload request only if it updated something |
-| Browser control | Load the browser tools before looking; deferred tools report none until loaded. Load the skill and follow `cli-follow-along` section 1 for the exact call |
+| Browser control | Not checked here. Only when the user asks for the browser, section 3 hands over to `cli-follow-along` section 1 |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
 | CLI | `artemis --version` is at least this skill's `artemis-cli-min` (1.1.14, the highest of the Artemis skills, because later steps hand on to `discovery-inspect`, `discovery-steer` and `change-validate`). If it is older, `cli-setup` updates it now, before the runner and project checks, so no later step stops for it. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
@@ -48,9 +48,9 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 
 Four starting points, one flow. Work out which from what arrived and what section 0 found, not by asking.
 
-**A project URL or id.** The prompt behind **Setup with a local agent** on a project's overview page. The URL carries the project id and the deployment. Confirm the CLI is signed in to that deployment before creating anything: signed in elsewhere, the project reads as missing and any branch lands on the wrong deployment. Ask the follow-along question in one line, then section 4.
+**A project URL or id.** The prompt behind **Setup with a local agent** on a project's overview page. The URL carries the project id and the deployment. Confirm the CLI is signed in to that deployment before creating anything: signed in elsewhere, the project reads as missing and any branch lands on the wrong deployment. Stay in the terminal unless they ask for the browser, then section 4.
 
-**An Artemis user with a new project.** The CLI is signed in, a runner is online, and the account already has projects. They know Artemis: skip the welcome, the demo and the follow-along question (stay in the terminal unless they ask). Ask only where the code lives, unless the current directory is it, then section 4.
+**An Artemis user with a new project.** The CLI is signed in, a runner is online, and the account already has projects. They know Artemis: skip the welcome and the demo, and stay in the terminal unless they ask. Ask only where the code lives, unless the current directory is it, then section 4.
 
 **A repository but no project.** Treat it like the case above when the CLI is already set up; otherwise like "nothing yet", with their repository in place of the demo.
 
@@ -64,29 +64,30 @@ For a user with nothing yet, as the first part of section 3. Four short lines:
 
 1. Artemis uses AI to try improvements to real code and measures every attempt.
 2. The measuring happens on the user's own machine, through a small program called a runner.
-3. Next comes a quick setup, then a demo, their own project, or nothing more until they are ready.
-4. Setup takes a few minutes. The Particle Life demo then runs 5 versions, about 15 minutes, most of it watching results arrive.
+3. Next comes a quick setup, then the Particle Life demo, run from this session with links to each page. Say "my own code", "just set me up" or "show me in the browser" at any time to change that.
+4. Setup takes a few minutes. The demo then runs 5 versions, about 15 minutes, using account credits (the balance is at the bottom of the Web UI's left sidebar).
 
-Say once, before the first run, that runs use account credits and the balance is at the bottom of the Web UI's left sidebar. Nothing more, and do not repeat it.
+When the request already named their own code or asked for setup only, say that in place of the demo in line 3 ("then your repository, measured on a branch" or "then stop once the CLI and a runner are ready"), and line 4 becomes just "Setup takes a few minutes." For the demo, line 4 is the one mention of credits; do not repeat it.
 
-## 3. Two questions, asked together
+## 3. Defaults, stated rather than asked
 
-First write the section 2 welcome as reply text: the question box shows no text of its own, and narration in your reasoning is not seen. Then ask both questions in one question box, in the same turn. Ask them even when the prompt says not to ask about settings: they are about the session, not the run, and they are the only questions before it, apart from the fresh-or-continue question in section 4.
+Write the section 2 welcome as reply text, then go straight on to section 4 in the same turn. Do not ask before starting: the defaults are the **Particle Life demo** and the **terminal, with links**. Switch whenever the user says so:
 
-1. **Start with:** **Particle Life demo (recommended)**, a deliberately slow C++ simulation that shows a real optimisation end to end in about 15 minutes; **your own project**; or **just set me up**, the CLI, sign-in and a runner, then stop, with no project and no run.
-2. **Follow along in:** **Terminal, with links (recommended)**, or **Terminal with computer use in your browser**, which also drives Chrome so they watch each page change and needs the Claude browser extension. Recommend the terminal even when a browser is connected.
+1. **Their own project:** the "A repository but no project" path in section 1.
+2. **Just set me up:** the CLI, sign-in and a runner, then stop, with no project and no run.
+3. **The browser:** computer use drives Chrome so they watch each page change, and it needs the Claude browser extension.
 
-If they choose the browser, load the skill and follow `cli-follow-along` section 1 for the connection, and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
+On a switch, rewrite the plan in the task list. A switch after the demo run has started does not stop it: say it carries on in the platform, then continue with the new choice.
 
-If they are undecided about the demo, recommend it again once and move on.
+If they ask for the browser, load the skill and follow `cli-follow-along` section 1 for the connection, and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
 
 ## 4. Show the plan
 
-Your first action after the two answers is the plan, before any other tool call. Returning users get it once their starting point is clear.
+Your first action after the welcome is the plan, before any other tool call. Returning users get it once their starting point is clear.
 
 Put it in the host's task list (Claude Code's task list, Cursor's todos, Codex's plan tool; load the task tools first if they are deferred, as with the browser tools): one item per step, the finished ones already done. It stays on screen and ticks as the session goes. When a step finishes, mark it done and add its link from the "Tell them" columns to the item. Only when the host has no task list, send it as a numbered message instead, and again after setup and after the measurement.
 
-Only the steps this user needs; say which are theirs and roughly how long the long ones take. At the close (section 11), send it as a numbered message, one step per line, each ticked line with its link. For a brand-new user choosing the demo:
+Only the steps this user needs; say which are theirs and roughly how long the long ones take. At the close (section 11), send it as a numbered message, one step per line, each ticked line with its link. For a brand-new user on the demo default:
 
 ```text
 Here's the plan:
@@ -126,7 +127,7 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 ## 6. Rules for this flow
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of measurements, the target files, or the task wording. They are fixed in step 7 and 7a; pass them to the owning skills.
-- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run (choosing the demo was the yes; §2 named the credits). A run on the user's own code goes through `discovery-start`, which asks first.
+- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run, once the user has replied at least once since the welcome without switching away from the demo (§2 named the demo and its credits). If they have not replied since the welcome by the time step 7 is reached, ask one line first: "Setup is done. Start the Particle Life run now? It uses credits." A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
@@ -164,13 +165,13 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
 - model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
 - `--target-files` only when the repository made them obvious
-- for the demo, the user's go-ahead: choosing the demo was the yes and §2 named the credits, so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
+- for the demo, the user's go-ahead under the §6 rule (a reply since the welcome without switching, or a yes to its one-line question), so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
 
 Then follow the run with `discovery-inspect`.
 
 ## 7a. The demo's fixed inputs
 
-The user chose the demo; that was the decision. Go through section 7 in one pass with:
+The demo is the default the user kept; that was the decision. Go through section 7 in one pass with:
 
 - compile: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel`
 - test: `ctest --test-dir build --output-on-failure`
@@ -236,8 +237,8 @@ Say once, while the run is going, that it continues on the platform if the termi
 ## Checklist
 
 - [ ] State checked first, and the starting point taken from what arrived
-- [ ] New users: both opening questions asked together; returning users: only where the code lives
-- [ ] Welcome written as text before the question box
+- [ ] New users: welcome with the stated defaults and no question before setup; returning users: only where the code lives
+- [ ] A switch to own code, setup only or the browser honoured whenever the user asks
 - [ ] The plan in the host's task list before any other tool call, each item ticked with its link, and a numbered list at the close
 - [ ] Demo: an existing Particle Life project found before importing, and the user asked fresh or continue
 - [ ] Own code: an existing project for the repository named in one line, without a question, before importing fresh
