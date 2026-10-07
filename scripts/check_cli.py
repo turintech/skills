@@ -94,16 +94,39 @@ def check(cmd):
     return problems + [f for f in flags if f not in known and f != "--help"]
 
 
-failures, checked = [], []
+def version_tuple(text):
+    m = re.search(r"(\d+)\.(\d+)\.(\d+)", text or "")
+    return tuple(int(n) for n in m.groups()) if m else None
+
+
+def cli_min(skill):
+    """metadata.artemis-cli-min as a (major, minor, patch) tuple, or None."""
+    path = skill / "SKILL.md"
+    m = path.exists() and re.search(r'^  artemis-cli-min: "([^"]+)"', path.read_text(), re.M)
+    return version_tuple(m.group(1)) if m else None
+
+
+version = subprocess.run([CLI, "--version"], capture_output=True, text=True).stdout.strip()
+have = version_tuple(version)
+# A build from source reports 0.1.0 and has everything on main, so it checks every skill.
+if have and have[0] == 0:
+    have = None
+
+failures, checked, skipped = [], [], []
 for skill in sorted(SKILLS.iterdir()):
+    need = cli_min(skill)
+    if have and need and have < need:
+        print(f"SKIP {skill.name}: needs CLI {'.'.join(map(str, need))}, checking against {version}")
+        skipped.append(skill.name)
+        continue
     for f in sorted(skill.rglob("*.md")):
         for cmd in set(commands(f.read_text())):
             checked.append(cmd)
             for flag in check(cmd):
                 failures.append(f"{f.relative_to(SKILLS)}: {flag} unknown in: {cmd[:90]}")
 
-version = subprocess.run([CLI, "--version"], capture_output=True, text=True).stdout.strip()
 for f in sorted(set(failures)):
     print("FAIL", f)
-print(f"{len(checked)} commands checked against {version}: {'OK' if not failures else str(len(set(failures))) + ' problems'}")
+note = f" ({len(skipped)} skills skipped: they need a newer CLI)" if skipped else ""
+print(f"{len(checked)} commands checked against {version}: {'OK' if not failures else str(len(set(failures))) + ' problems'}{note}")
 sys.exit(1 if failures else 0)
