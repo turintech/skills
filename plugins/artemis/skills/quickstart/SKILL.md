@@ -79,7 +79,7 @@ For a user with nothing yet, as the first part of section 3. Four short lines:
 3. Next comes a quick setup, then the Particle Life demo, run from this session with links to each page. Say "my own code", "just set me up" or "show me in the browser" at any time to change that.
 4. Setup takes a few minutes. The demo then runs 5 versions, about 15 minutes, using account credits (the balance is at the bottom of the Web UI's left sidebar).
 
-When the request already named their own code or asked for setup only, say that in place of the demo in line 3 ("then your repository, measured on a branch" or "then stop once the CLI and a runner are ready"), and line 4 becomes just "Setup takes a few minutes." For the demo, line 4 is the one mention of credits; do not repeat it.
+When the request already named their own code or asked for setup only, say that in place of the demo in line 3 ("then your repository, measured on a branch" or "then stop once the CLI and a runner are ready"), and line 4 becomes just "Setup takes a few minutes." For the demo, line 4 is the welcome's only mention of credits; the §6 one-line question, when it is needed, names them again.
 
 ## 3. Defaults, stated rather than asked
 
@@ -119,7 +119,7 @@ Then the starting point decides what comes before section 7:
 
 - **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the newest such project, when it was created, and how many there are:
   - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in section 7's step 7, about 15 minutes, using credits.
-  - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch.
+  - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch (it uses account credits).
 - **Their own code:** where it lives (repository URL and branch, and can Artemis reach it). `project-import` imports it as a new project, then 7b and section 7. If projects for it already exist and the user hasn't said to continue one, don't ask: import fresh and say in one line which one exists, for example "Importing a new project; `<name>` from `<date>` already exists, say 'continue' to use it instead." If they say so before section 7's step 2, switch to that project's id and tell them the new, still-empty project can be archived. A project this session created, or one named in a section 11 report being resumed, counts as continuing: use it without importing again.
 - **A project URL:** 7b, then section 7.
 - **Just set me up:** the plan is steps 1, 2, 3 and 5 only (skills, CLI, sign-in, runner). Do section 5's CLI and runner items, skip Git access and the project, then go straight to section 11.
@@ -140,7 +140,8 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 ## 6. Rules for this flow
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of measurements, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
-- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch, starting the demo run, but only when this session sent the §2 welcome with its credits line and the user has replied at least once since, without switching away from the demo. Otherwise, by the time section 7's step 7 is reached, ask one line first and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." A run on the user's own code goes through `discovery-start`, which asks first.
+- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch.
+- **The demo run** is announced, not asked, only when this session sent the §2 welcome with its credits line and the user has since replied in chat (a permission prompt is not a reply) or answered the §4 fresh-or-continue question, without switching away from the demo. Otherwise, at section 7's step 7 and before handing over to `discovery-start`, ask one line and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
@@ -172,7 +173,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
 
-**Step 7.** If a run is queued or running, give its link and hand over to `discovery-inspect`. If one has completed and the user asked for a first run, that request is met: give its result with the link and the date it ran, never as this session's result, and offer to steer it (`discovery-steer`), start a fresh run, or set up their own project. Otherwise hand these to `discovery-start`:
+**Step 7.** If a run is queued or running, give its link and hand over to `discovery-inspect`. If one has completed and the user asked for a first run, that request is met: give its result with the link and the date it ran, never as this session's result, and offer to steer it (`discovery-steer`), start a fresh run (it uses account credits), or set up their own project. Otherwise hand these to `discovery-start`:
 
 - `--source-changeset` from step 2, so the run starts from the code and numbers the user just saw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
@@ -205,7 +206,7 @@ Capture the script's `id`: step 5 runs it with `--script` and step 7 passes it t
 
 The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. AI Metrics are off (`--llm-metrics=false`) so only the measured `simulation_fps` is on show.
 
-Do not check or ask about credits first: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar.
+Do not check the credit balance or ask whether the account has credits: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar.
 
 End on the code, not a number: the run's **Metrics** to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a roll-up of the metrics by importance, not a measurement.
 
@@ -273,4 +274,5 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
 - [ ] A link and what they will see each time something appeared in Artemis
 - [ ] Discovery started from the branch, with settings fixed rather than asked
+- [ ] Demo run announced only after the credits line and a user reply; otherwise the §6 one-line question asked and answered yes
 - [ ] Readiness report given, each line from a check that ran
