@@ -46,7 +46,7 @@ Otherwise confirm which runner to use before `discovery create`; do not select o
 
 Check whether the project already has a queued or running discovery:
 
-- Queuing is **per runner**: runs on one runner serialize; runs on different runners can execute concurrently.
+- Queuing is **per runner**: work on one runner process serializes; different runners execute concurrently. Several machines can share one runner name; see [parallel runners](FAST_TRACK.md#parallel-runners).
 - An offline runner blocks its queue indefinitely, including later work assigned to it.
 
 ```bash
@@ -56,7 +56,7 @@ artemis --output-format json discovery list --project "<project-uuid>" --all \
       | "\(.id) \(.status) vc=\(.versionCount)"'
 ```
 
-Choose whether to accept serialization, use another runner, or provision one. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
+Choose whether to accept serialization, use another runner, or provision one. Before starting or reusing another runner, ask the user and name the machines: it runs their code on their hardware. Never cancel queued or running work without user confirmation; cancellation retains its versions, experiments, and logs for inspection.
 
 Execution runs require a validation script. Creating without `--script` or a project default fails with `NoDefaultValidationScriptError`.
 
@@ -95,7 +95,7 @@ artemis --output-format json discovery create \
   [--target-files <path> --target-files <path>]
 ```
 
-Pass `--source-changeset` when a calling skill measured a branch: the run's baseline then starts from that branch's code and the numbers the user already saw. Without it the run starts from the project's imported code.
+Pass `--source-changeset` when starting from an existing branch, including a version from an earlier Discovery run. It copies that branch's head into the new run, which measures it again as its baseline; no readings carry over. Confirm the head is the intended version before creating the run. Without it the run starts from the project's imported code.
 
 `--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `quickstart`, passes them here.
 
@@ -114,7 +114,11 @@ The server default is one measurement per version, recorded on the run as `evalu
 
 Repetitions multiply **runner** time, not agent time: a 10-version run at three repeats performs 33 measurements instead of 11. On a benchmark measured in seconds that is a couple of extra minutes and well worth it. On one measured in tens of minutes it dominates the run.
 
-Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Ask how long one benchmark takes, multiply by versions plus one for the baseline, and say the result out loud before creating the run.
+Unless a calling skill supplied the measurement count, decide with the user against their benchmark's duration rather than copying a number. Use verified timings when available; otherwise ask. Estimate benchmark time as duration × (versions + one baseline) × repetitions; use the cap for `until_stable`. Add build/test time per version and queue delays separately, and give the estimate before creating the run.
+
+### Long benchmarks
+
+When the estimate above is longer than the user wants to wait, offer [Fast-track Discovery](FAST_TRACK.md) before creating the run: search on a smaller benchmark first, and run independent searches on separate runners.
 
 Capture the run's `id` from the JSON (there is no `run_id` key); every later command needs it.
 
@@ -195,6 +199,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Validation script created or reused; `--script` passed (or a project default confirmed)
 - [ ] `--llm-metrics=false` unless AI Metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Measurements per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
+- [ ] Fast-track offered when the estimate was longer than the user wanted to wait; if used, its [checklist](FAST_TRACK.md#checklist) completed
 - [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (`baselineVersionSha` + schema non-null) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`

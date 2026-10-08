@@ -12,18 +12,18 @@ metadata:
 ## At a glance
 
 - **Problem:** Downloads, registers, starts, updates and verifies an Artemis runner on this machine, and checks it has the toolchain a project needs.
-- **Must be available:** A safe machine with the repository's toolchains and adequate resources, a unique runner name, and an authenticated CLI, whose API key registers the runner.
+- **Must be available:** A safe machine with the repository's toolchains and adequate resources, a unique runner-group name, and an authenticated CLI, whose API key registers the runner.
 - **Use / don't use:** Use when a runner is missing, offline, outdated, or unverified; skip it when a suitable runner is already online and confirmed to be polling.
 - **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
-A runner executes project-supplied compile, test, and benchmark commands on the user's machine. Treat it as a machine-level service, not a project dependency.
+A runner executes a project's Script commands on the user's machine; for Discovery, these skills use a build, a test and a benchmark. Treat it as a machine-level service, not a project dependency.
 
 ## Requirements
 
 - A machine where running code from the connected repositories is safe.
 - The toolchains required by the projects assigned to this runner installed on that machine — Artemis runs their commands as-is from the repository root.
 - Enough disk, memory, and network access for builds.
-- A meaningful, unique runner name that identifies its owner or host.
+- A meaningful runner name that identifies its owner or host, unique unless the user is adding capacity to a group (see [Shared names add capacity](#shared-names-add-capacity)).
 - An authenticated `artemis` CLI on the target deployment. The runner uses the same API key, read from the CLI's config file.
 
 ## Get the runner
@@ -52,11 +52,13 @@ For an on-prem deployment, use that deployment's page rather than inventing serv
 
 Before starting anything, check `artemis runner list` and local processes so an existing runner is not duplicated.
 
+When this adds a runner to work that already has one, get the user's approval first, as `discovery-start` §1 describes.
+
 **Do not offer a menu of ways to start it.** Say in one line what you are about to do, start it as a background process, and report the result. A first-time user has no basis to choose between a background process, a visible terminal and a tmux session, and asking turns setup into an interview. Use `tmux` only when the user has already asked for it.
 
 State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Start it, and only once the check below passes, report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
 
-On every start the runner signs in with an API key and appears in the fleet under the name it is given. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The config file is the one the CLI is using:
+On every start the runner signs in with an API key and appears in the fleet under the name it is given. When adding approved capacity to an existing group, pass its exact name as `<unique-name>`. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The config file is the one the CLI is using:
 
 - a `.env` in the folder where the user's `artemis` commands run (usually the repository, not this runner folder), if there is one;
 - otherwise, when `artemis env current` names an environment other than `default`, `envs/<name>.env` in the CLI's config folder;
@@ -94,9 +96,13 @@ Use a visible terminal or a named `tmux` session only when the user asks for one
 
 Ask separately before creating an operating-system service, even if the user already approved starting a process.
 
+### Shared names add capacity
+
+Several machines can serve one Discovery when they register with the same runner name and the same user's API key; another user's key makes a separate group. `artemis runner list` shows a group's online count, not its machines, so check the run's executions with `discovery-inspect` before relying on the extra capacity. For speed or memory benchmarks, share a name only as [Fast-track Discovery](../discovery-start/FAST_TRACK.md#parallel-runners) describes.
+
 ## Whose runner is that?
 
-`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so only reuse a runner you can show belongs to **this** machine: read the running process (`--runner-name` on the local `artemis-runner start` command) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online.
+`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so only reuse a runner you can show belongs to **this** machine: read the running process (`--runner-name` on the local `artemis-runner start` command) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online. For approved extra capacity, confirm the other machines and the group with the user; a local process match does not show who owns every machine sharing its name.
 
 `runner list --output-format json` carries a `userId` per runner, but `artemis status` does not report who you are and there is no identity command, so that field cannot be compared against the current user. The local-process check is what works.
 

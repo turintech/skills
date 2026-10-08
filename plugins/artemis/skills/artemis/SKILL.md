@@ -126,7 +126,7 @@ For discovery or validation, settle the correctness gate, metric and direction, 
 
 Before launching discovery, validation, or Maintain:
 
-1. Estimate runtime from command timings and scope, and confirm the runner or service can remain available.
+1. Estimate runtime from command timings and scope, and confirm the runner or service can remain available. When that is longer than the user wants to wait, `discovery-start` offers Fast-track Discovery.
 2. Check queued or running work that could conflict with or delay the operation.
 3. Agree on the stopping boundary.
 4. Capture project, run, scan, chat, and agent IDs as they are created.
