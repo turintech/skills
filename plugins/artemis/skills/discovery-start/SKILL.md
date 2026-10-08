@@ -93,7 +93,7 @@ artemis --output-format json discovery create \
   [--target-files <path> --target-files <path>]
 ```
 
-Pass `--source-changeset` when starting from an existing branch, including a previous Discovery candidate. It copies that branch's head into the new baseline; it does not carry over measurements. Confirm the head is the intended version before creating the run. Without it the run starts from the project's imported code.
+Pass `--source-changeset` when starting from an existing branch, including a version from an earlier Discovery run. It copies that branch's head into the new run, which measures it again as its baseline; no readings carry over. Confirm the head is the intended version before creating the run. Without it the run starts from the project's imported code.
 
 `--target-files` is repeatable and optional. It points the agent at the files worth changing; without it the whole repository is in scope. A calling skill that knows the files, such as the demo in `quickstart`, passes them here.
 

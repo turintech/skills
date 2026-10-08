@@ -16,7 +16,7 @@ metadata:
 - **Use / don't use:** Use when a runner is missing, offline, outdated, or unverified; skip it when a suitable runner is already online and confirmed to be polling.
 - **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
-A runner executes project-supplied compile, test, and benchmark commands on the user's machine. Treat it as a machine-level service, not a project dependency.
+A runner executes a project's Script commands on the user's machine; for Discovery, these skills use a build, a test and a benchmark. Treat it as a machine-level service, not a project dependency.
 
 ## Requirements
 
