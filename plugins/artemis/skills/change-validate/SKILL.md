@@ -12,18 +12,18 @@ metadata:
 ## At a glance
 
 - **Problem:** Answers "is this change really faster?" with measurements, not a single run: the starting commit and the change are measured the same number of times on the same runner, and the platform says per metric whether the difference is real.
-- **Must be available:** An authenticated CLI, an online runner, an imported project whose validation script produces metrics, and a local git checkout of that project with the change in it, uncommitted, on top of the project's commit.
+- **Must be available:** An authenticated CLI, an online runner, an imported project whose Script produces metrics, and a local git checkout of that project with the change in it, uncommitted, on top of the project's commit.
 - **Use / don't use:** Use for one change the user or their agent has already made. To have Artemis search for improvements, use `discovery-start`. To judge a Discovery run's versions, use `discovery-inspect`.
-- **Next skill:** `changeset pr` ships a change that came out better. `repo-command-setup` fixes a script whose repeats are not independent (section 4).
+- **Next skill:** `changeset pr` ships a change that came out better. `repo-command-setup` fixes a Script whose readings are not independent (section 4).
 
 ## Requirements
 
 - `artemis --version` meets `metadata.artemis-cli-min`: `artemis changeset compare --help` must work. Otherwise `cli-setup`.
 - An online runner: `artemis runner list`. Otherwise `runner-setup`.
-- The project id and a validation script whose benchmark writes metrics: `artemis project scripts list --project <p>`. Otherwise `project-import` and `repo-command-setup`.
+- The project id and a Script whose benchmark writes metrics: `artemis project scripts list --project <p>`. Otherwise `project-import` and `repo-command-setup`.
 - The checkout is the project's repository (`git remote get-url origin` matches the project's `gitUrl`), and its `HEAD` is the commit the project is on (`gitHash` for this project in `artemis --output-format json project list --all`). If `HEAD` differs, the saved change would carry every unrelated difference: say so and ask whether to update the checkout first.
 
-Settings are fixed unless the user asks: the project's script, 5 runs per side, one runner. Do not ask the user to choose them.
+Settings are fixed unless the user asks: the project's Script, 5 Script runs per side, one runner. Do not ask the user to choose them.
 
 ## 1. Put the change on a branch
 
@@ -77,9 +77,9 @@ When `recommendedReadings` is null, `recommendedReadingsReason` says why:
 - `no_effect`: both sides average the same; say so.
 - `no_data`: not enough readings to size it yet; run more pairs, then compare again.
 
-## 4. Repeats that are not independent
+## 4. Readings that are not independent
 
-`spreadPct` is pooled over both sides. If both sides have at least two readings but `spreadPct` is null, every run gave exactly the same number. The runs are not independent measurements (a cached build or result, a benchmark that reports a fixed value, a timer too coarse to see a difference), so the interval means nothing. Say this plainly, report no verdict for that metric, and hand over to `repo-command-setup` to fix the benchmark.
+`spreadPct` is pooled over both sides. If both sides have at least two readings but `spreadPct` is null, every reading was exactly the same number. The readings are not independent measurements (a cached build or result, a benchmark that reports a fixed value, a timer too coarse to see a difference), so the interval means nothing. Say this plainly, report no verdict for that metric, and hand over to `repo-command-setup` to fix the benchmark.
 
 ## 5. Hand back
 
@@ -93,5 +93,5 @@ When `recommendedReadings` is null, `recommendedReadingsReason` says why:
 - [ ] Both sides measured the same number of times, alternating one run per call, on one runner and one script
 - [ ] Stopped at the first failed run and read its log; asked before going past about 10 runs per side
 - [ ] Verdict, improvement and interval quoted from `changeset compare`, nothing computed
-- [ ] Spread checked before any verdict; identical repeats flagged instead of reported
+- [ ] Spread checked before any verdict; identical readings flagged instead of reported
 - [ ] Scripts tab link given

@@ -29,7 +29,7 @@ When the user names a downstream task and supplies its inputs, route directly to
 
 Artemis evaluates repository code on a user-supplied runner by running a project Script: root-level commands in `setup`, `benchmark` and `teardown` phases. The platform requires no particular commands; for Discovery these skills put a build and a correctness test in setup, so a version that doesn't compile or is wrong fails before it is measured. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
 
-A **project** imports a repository branch at a specific commit; a **changeset** (shown as a **branch** in the Web UI) holds versions of that code, each a commit; a **validation** is one measured execution of a script on a version (a script run in the Web UI); a **Discovery run** generates and evaluates versions against a metric, and its **versions** are the code variants its **Experiments** produce, each a real commit with its own metric values.
+A **project** imports a repository branch at a specific commit; a **changeset** (shown as a **branch** in the Web UI) holds versions of that code, each a commit; a **Validation** is one run of a Script on a branch version (listed under **Script runs**); a **Discovery run** generates and evaluates versions against a metric, and its **versions** are the code variants its **Experiments** produce, each a real commit with its own metric values.
 
 ### Official docs
 
@@ -98,7 +98,7 @@ Raise only rows required by the selected workflow:
 | Runner | Approved machine, required toolchain and resources, and availability | `runner-setup` |
 | Repository | A remote that one of the user's Git keys can read | `project-import` |
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
-| Commands | Exact verified commands, stored as a validation script, and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
+| Commands | Exact verified commands, stored as a Script, and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
 
 Maintain needs no runner or benchmark, except Fix in Discovery, which needs a runner and a script. Inspection normally needs only the authenticated CLI and identifiers.
 
@@ -139,7 +139,7 @@ Before launching discovery, validation, or Maintain:
 - Asking to be shown in the browser ("show me in my browser", "use computer use", a tour of the platform): `platform-tour`. A plain "how do I" is answered in the terminal by the task skill
 - CLI: `cli-setup`
 - Runner: `runner-setup`
-- Repository commands, validation scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
+- Repository commands, Scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
 - Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`
 - Discovery launch, including `discovery create --script` and guided `--setup`: `discovery-start`
