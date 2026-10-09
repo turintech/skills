@@ -89,7 +89,7 @@ Install by direct download. The installer script and the `latest/` directory can
 ```bash
 DIR="<the CLI download directory from the prompt>"
 PLATFORM="linux-amd64"   # see the table below
-MIN="1.1.15"             # the highest artemis-cli-min of the skills in use
+MIN="1.1.16"             # the highest artemis-cli-min of the skills in use
 TMP="$(mktemp -d)"; F="$TMP/artemis-cli-$PLATFORM"
 if ! curl -fsSL "$DIR/artemis-cli-$PLATFORM" -o "$F"; then
   echo "NO BUILD: $DIR has no artemis-cli-$PLATFORM"

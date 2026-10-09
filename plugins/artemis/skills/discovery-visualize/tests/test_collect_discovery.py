@@ -419,3 +419,38 @@ class FalconComparisonTests(unittest.TestCase):
         source = (SCRIPTS / "collect_discovery.py").read_text(encoding="utf-8")
         for name in ("betainc", "t_quantile", "welch", "t_two_sided_p", "pct_better"):
             self.assertNotIn(name, source)
+
+
+class ProjectNameTests(unittest.TestCase):
+    def fake_cli(self, tmp: str, script: str) -> str:
+        fake = Path(tmp) / "artemis"
+        fake.write_text("#!/bin/sh\n" + script, encoding="utf-8")
+        fake.chmod(0o755)
+        return str(fake)
+
+    def test_reads_project_get(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cli = self.fake_cli(tmp, 'case "$*" in *"project get p-1"*) echo \'{"id":"p-1","name":"From get"}\';; *) echo "unexpected: $*" >&2; exit 9;; esac\n')
+            self.assertEqual(collector.project_name("p-1", cli=cli), "From get")
+
+    def test_an_old_cli_without_project_get_falls_back_to_the_list(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cli = self.fake_cli(tmp, 'case "$*" in *"project get"*) echo \'Error: unknown command "get" for "artemis project"\' >&2; exit 1;; *"project list"*) echo \'{"docs":[{"id":"p-2","name":"Other"},{"id":"p-1","name":"From list"}]}\';; esac\n')
+            self.assertEqual(collector.project_name("p-1", cli=cli), "From list")
+
+    def test_a_get_answer_for_another_project_is_not_used(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cli = self.fake_cli(tmp, 'case "$*" in *"project get"*) echo \'{"id":"p-9","name":"Wrong"}\';; *"project list"*) echo \'{"docs":[{"id":"p-1","name":"Right"}]}\';; esac\n')
+            self.assertEqual(collector.project_name("p-1", cli=cli), "Right")
+
+    def test_the_cache_saves_a_second_lookup(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "calls"
+            cli = self.fake_cli(tmp, f'echo "$*" >> {log}\necho \'{{"id":"p-1","name":"Cached"}}\'\n')
+            cache: dict[str, str | None] = {}
+            self.assertEqual(collector.project_name("p-1", cli=cli, cache=cache), "Cached")
+            self.assertEqual(collector.project_name("p-1", cli=cli, cache=cache), "Cached")
+            self.assertEqual(len(log.read_text(encoding="utf-8").splitlines()), 1)
+
+    def test_no_project_id_makes_no_call(self) -> None:
+        self.assertIsNone(collector.project_name(None, cli="/nonexistent/artemis"))
