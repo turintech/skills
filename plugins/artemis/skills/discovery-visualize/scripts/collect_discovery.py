@@ -205,12 +205,26 @@ def list_project_runs(project_id: str, cli: str = "artemis", config: str | None 
     return as_docs(extract_json(run_artemis(["discovery", "list", "--project", project_id, "--all"], cli, config)))
 
 
-def project_names(cli: str = "artemis", config: str | None = None) -> dict[str, str]:
-    """Project id to name. The CLI has no `project get`, so this reads `project list`; empty if that fails."""
+def project_name(project_id: str | None, cli: str = "artemis", config: str | None = None, cache: dict[str, str | None] | None = None) -> str | None:
+    """A project's name from `project get` (CLI 1.1.16+), else from `project list` on older CLIs; None if neither works."""
+    if not project_id:
+        return None
+    if cache is not None and project_id in cache:
+        return cache[project_id]
+    name = None
     try:
-        return {p["id"]: p["name"] for p in as_docs(extract_json(run_artemis(["project", "list", "--all"], cli, config))) if p.get("id") and p.get("name")}
+        doc = extract_json(run_artemis(["project", "get", project_id], cli, config))
+        name = doc.get("name") if isinstance(doc, dict) and doc.get("id") == project_id else None
     except (RuntimeError, ValueError):
-        return {}
+        pass
+    if not name:
+        try:
+            name = next((p.get("name") for p in as_docs(extract_json(run_artemis(["project", "list", "--all"], cli, config))) if p.get("id") == project_id), None)
+        except (RuntimeError, ValueError):
+            name = None
+    if cache is not None:
+        cache[project_id] = name
+    return name
 
 
 UPGRADE_HINT = "artemis discovery compare needs artemis CLI 1.1.14 or newer: follow cli-setup to upgrade"
@@ -237,11 +251,9 @@ def fetch_comparison(run_id: str, cli: str = "artemis", config: str | None = Non
         raise RuntimeError(f"artemis discovery compare failed: {error}") from error
 
 
-def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, names: dict[str, str] | None = None) -> dict[str, Any]:
+def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, names: dict[str, str | None] | None = None) -> dict[str, Any]:
     call = lambda *args: extract_json(run_artemis(list(args), cli, config))
     run = call("discovery", "get", run_id)
-    if names is None:
-        names = project_names(cli, config)
     project_id = (run.get("docs") or [run])[0].get("projectId") if isinstance(run, dict) else None
     return {
         "run": run,
@@ -251,7 +263,7 @@ def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, name
         "experiments": call("discovery", "experiments", "list", run_id, "--all"),
         "comparison": fetch_comparison(run_id, cli, config),
         "status": call("status"),
-        "projectName": names.get(project_id or ""),
+        "projectName": project_name(project_id, cli, config, names),
     }
 
 
@@ -760,7 +772,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"collect_discovery.py: {UPGRADE_HINT}", file=sys.stderr)
             return 1
         runs, skipped = [], []
-        names = project_names(args.cli, args.config)
+        names: dict[str, str | None] = {}
         for item in sorted(list_project_runs(args.project, args.cli, args.config), key=lambda r: r.get("createdAt") or ""):
             try:
                 runs.append(build_snapshot(fetch_cli(item["id"], args.cli, args.config, names), collected_at=collected_at, base_url=args.base_url))

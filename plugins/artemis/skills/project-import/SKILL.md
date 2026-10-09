@@ -1,9 +1,9 @@
 ---
 name: project-import
 description: Import an existing remote Git repository into Artemis as a fresh project, using an explicit branch and reusable Git credential, then capture and verify the project UUID. Use when a repository is ready for a new unit of Artemis work, even if other projects already exist for the same repository.
-compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.16+ and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.8"
+  artemis-cli-min: "1.1.16"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -101,25 +101,15 @@ Give the user a clickable link as soon as the UUID is known:
 
 Use the authenticated deployment base URL, including for on-prem deployments. Repeat the link after import verification so the user can inspect the project in the Web UI.
 
-**Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes. `importedStatus` reports where it is — `importing`, `success`, or `failed` — on both `project import` and `project list`:
+**Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes. `importedStatus` reports where it is: `importing`, `success`, or `failed`.
+
+Wait for it with one command that fits a 10-minute tool timeout:
 
 ```bash
-artemis --output-format json project list --all | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus'
-artemis --output-format json project list --all | python3 -c 'import json,sys; print(next((p.get("importedStatus") for p in json.load(sys.stdin).get("docs") or [] if p.get("id")=="<project-uuid>"), ""))'
+artemis project get <project-uuid> --wait --timeout 9m
 ```
 
-Wait for `success` before running anything against the project, with one bounded check that fits a 10-minute tool timeout (48 checks, 10 s apart):
-
-```bash
-for i in $(seq 48); do
-  out=$(artemis --output-format json project list --all) || { echo "project list failed"; break; }
-  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(next((p.get("importedStatus") or "" for p in json.load(sys.stdin).get("docs") or [] if p.get("id")=="<project-uuid>"), ""))')
-  case "$s" in success|failed) break;; esac
-  sleep 10
-done; echo "$s"
-```
-
-If it is still `importing`, or empty because the project isn't listed yet, after that, give the user the project link, say the import is still running, and stop. On `failed`, check the key can read the repo and the branch exists, then import once more; don't loop.
+Exit 0 means the import succeeded. Exit 6 means it is still importing after 9 minutes: give the user the project link, say the import is still running, and stop. Otherwise read the error. An error saying "the import of … failed" means the import failed: check the key can read the repo and the branch exists, then import once more; don't loop. Any other error is a CLI or connection problem: report it.
 
 ## 5. Verify and hand off
 
