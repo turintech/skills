@@ -6,7 +6,7 @@ Title `Artemis · <kind> started`, or `Artemis · Discovery continued` after `di
 
 | Kind | Rows |
 |---|---|
-| Discovery, Fix in Discovery | Project, Goal (`taskDescription`), Versions (count · model · reviewers, as passed), Benchmark runs (only when `--eval-runs` or `--max-runs` was passed) |
+| Discovery, Fix in Discovery | Project, Goal (`taskDescription`), Versions (count · model · reviewers, as passed), Benchmark runs (only when `--eval-runs` or `--max-runs`, or for Fix in Discovery `--repeats`, was passed) |
 | Discovery continued | Project, Versions (`+<n>`, budget now `numVersions`) |
 | Scan | Project, Rules (names), Target (`<n>` issues, or `no limit`), Model |
 | Fix | Project, Issues (display ids), Model |
