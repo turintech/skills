@@ -32,8 +32,8 @@ Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions
 `continue` sets the budget to the versions the run already has plus `--versions <n>`; budget it never used is not carried over. So `n` is the number of new versions, and each one spends credits.
 
 - Active with budget remaining: steer directly. If an active run has exhausted its budget, wait for it to complete first.
-- Completed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
-- Failed: the Web UI's **Retry** asks the run's agent to retry the action that failed rather than adding budget. Do the same with the user's yes: `discovery steer "<run-id>" --message "Please retry the last action that failed."` (section 2), then check `discovery get`.
+- Completed, failed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
+- A failed run is never steered: from CLI 1.1.16 `steer` refuses it and points at `continue`, and older CLIs would restart it with no new budget. Continue it as above, then check `discovery get`.
 
 ```bash
 artemis --output-format json discovery continue "<run-id>" --versions <n>
