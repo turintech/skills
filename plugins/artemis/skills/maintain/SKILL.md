@@ -95,6 +95,7 @@ artemis maintain scans run --project <p> --rule <rule-id> --count 10
 ```
 
 - `--rule` is required and repeatable, up to 20 Rules per Scan.
+- Once it starts, post the start block (`artemis`'s *Start block*): Scan started.
 - `--count` is about how many Issues to surface (default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. It takes 1-100, and `--no-limit`, instead of `--count` (the two can't be combined), asks for no limit, as the Web UI does, using more tokens.
 - `--focus "<text>"` points the Scan at part of the code, like the Web UI's "What to focus on". `--commit <sha>` scans that commit instead of the project head. There is no `--path`.
 
@@ -145,7 +146,7 @@ artemis maintain issues fix <issue-uuid>... [--model claude-sonnet-5]
 ```
 
 - All the Issues in one call land in **one Branch** and one fix chat. Group related Issues; put unrelated ones in separate calls so each gets its own Branch and PR. They can't be split afterwards.
-- It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background. Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
+- It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background; post the start block (`artemis`'s *Start block*): Fix started. Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
 - The terminal `fixStatus` values are `done`, `failed` and `cancelled`. There is no `fixed` or `complete`.
 - `done` can still be an empty Branch. Check `artemis changeset diff <changeset-id> --project <p>` before shipping; don't judge by `publish`/`pr` output, which reads empty for every unpublished fix. If the diff is empty, **Fix again** (run `fix` on the Issue again); if it is still empty, the Issue is probably already fixed, so re-sync it (§8).
 - Every attempt is kept: `artemis maintain issues fix-runs <id> -p <p>` lists them, and the Issue reflects the latest. Trying a different `--model` on a second attempt loses nothing.
@@ -159,6 +160,7 @@ artemis maintain issues fix <issue-uuid> --discovery --project <p> \
   --model <model> --versions <n> --runner <runner> --script <script> --repeats <runs> --timeout 8m
 ```
 
+- Post the start block (`artemis`'s *Start block*): Fix in Discovery started, opening the run.
 - `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
 - Fix in Discovery always scores AI Metrics: the maintain agent has no switch for them and the CLI no flag. If the user says no to them at the go-ahead, start the run with `discovery-start` instead.
 - Piped, the command takes one agent turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only after the user's yes. If the turn hits `--timeout` (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`.

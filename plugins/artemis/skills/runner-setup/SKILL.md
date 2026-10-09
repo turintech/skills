@@ -133,7 +133,7 @@ artemis changeset validate "<changeset-id>" --project "<project-id>" --version o
 artemis changeset validation logs "<validation-id>" --project "<project-id>"
 ```
 
-Use the changeset the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
+Just before the `--wait` validation, post the start block (`artemis`'s *Start block*): Validation started. Use the changeset the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
 
 Report the runner name, host, and verification result. Do not claim success from a quiet process or log alone.
 

@@ -132,6 +132,28 @@ Before launching discovery, validation, or Maintain:
 4. Capture project, run, scan, chat, and agent IDs as they are created.
 5. Explain what continues platform-side after the interactive session ends and what still requires monitoring.
 
+### Start block
+
+Right after a command starts work in Artemis, and before waiting on it (just before the command when it runs with `--wait`), post one block so anyone watching the chat sees what started and where to click:
+
+```text
+Artemis · Discovery started
+Project   <project name>
+Goal      <the run's taskDescription>
+Versions  <n> · model <model> · reviewers <review models>
+Open      <link>
+```
+
+- Title `Artemis · <kind> started`, or `Artemis · Discovery continued` after `discovery continue`. Pad the labels to one column.
+- Rows by kind:
+  - Discovery and Fix in Discovery: Project, Goal, Versions (count, model and reviewers as passed). Continued: Project, Versions (`+<n>`, budget now `numVersions`).
+  - Scan: Project, Rules (names), Target (`<n>` issues, or `no limit`), Model.
+  - Fix: Project, Issues (display ids), Model.
+  - Validation: Project, Version (`original`, `latest` or the SHA), Script (name), Runner, Benchmark runs (only when set). A series of validations (pairs, turns) gets one block at its start.
+- Take values from the command's response and from what you passed: names, not ids, and model codes, not catalogue UUIDs. Get a missing project name from `artemis --output-format json project get <project-id>` (`.name`). Leave out a row you don't know; never guess.
+- `Open` is last and a bare full URL, since links don't render inside a code block: the base URL `artemis status` reports plus the path in `cli-follow-along` §2's table. When the deployment's path shape isn't known, use the project link.
+- One block per start, nothing else around it: no banners or ASCII art.
+
 ## 6. Route to the owning skill
 
 - Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and a request to set up a project from its URL or id, as from **Setup with a local agent** on a project's overview page: `quickstart`

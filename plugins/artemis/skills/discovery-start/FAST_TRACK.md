@@ -69,7 +69,7 @@ artemis --output-format json project scripts create --project "<project-uuid>" \
   --name "<tier> on <runner-name>" --from "<tier-script-id>"
 ```
 
-Then measure the two sides in turns, one run per call, on that runner with that copy. Start each validation without `--wait`: the response carries its `id` at once. Wait for it with the loop in `repo-command-setup` §5b, and start the next only when it has finished, never while one is still running. Then read the verdict:
+Then measure the two sides in turns, one run per call, posting one start block for the series (`artemis`'s *Start block*: Validation started), on that runner with that copy. Start each validation without `--wait`: the response carries its `id` at once. Wait for it with the loop in `repo-command-setup` §5b, and start the next only when it has finished, never while one is still running. Then read the verdict:
 
 ```bash
 artemis --output-format json changeset validate "<project-code-changeset-id>" --project "<project-uuid>" \

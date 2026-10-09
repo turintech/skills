@@ -122,11 +122,7 @@ When the estimate above is longer than the user wants to wait, offer [Fast-track
 
 Capture the run's `id` from the JSON (there is no `run_id` key); every later command needs it.
 
-Immediately give the user a clickable link:
-
-```text
-[Open run](<deployment-base-url>/projects/<project-uuid>/discover/<run-id>)
-```
+Immediately post the start block (`artemis`'s *Start block*): Discovery started, opening `<deployment-base-url>/projects/<project-uuid>/discover/<run-id>`.
 
 A `--setup` run lives at `<deployment-base-url>/projects/<project-uuid>/discover/setup/<run-id>` until `setup complete`, then at the link above. If that link returns not found, give the project link, `<deployment-base-url>/projects/<project-uuid>`, where Discover lists the run.
 

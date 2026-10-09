@@ -207,6 +207,7 @@ artemis --output-format json changeset validate "<changeset-id>" \
   --script "<script-id>" \
   --runner "<runner-name>"
 # no --wait: the response carries the validation's "id" straight away
+# then post the start block (artemis's Start block): Validation started
 
 for i in $(seq 16); do
   out=$(artemis --output-format json changeset validation get "<validation-id>" \

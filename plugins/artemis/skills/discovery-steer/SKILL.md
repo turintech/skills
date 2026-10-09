@@ -39,7 +39,7 @@ Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions
 artemis --output-format json discovery continue "<run-id>" --versions <n>
 ```
 
-Read the response: the run should be `running` with a new `agentRunId`. If the dispatch fails, the run stays failed and the command exits non-zero: report that and stop, don't retry in a loop. `continue` adds budget and restarts the run but cannot carry new guidance; when both are needed, continue first, then steer.
+Read the response: the run should be `running` with a new `agentRunId`; post the start block (`artemis`'s *Start block*): Discovery continued. If the dispatch fails, the run stays failed and the command exits non-zero: report that and stop, don't retry in a loop. `continue` adds budget and restarts the run but cannot carry new guidance; when both are needed, continue first, then steer.
 
 ## 2. Send the instruction
 

@@ -81,6 +81,9 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 | The code of a version | `/projects/<project-id>/branches/<changeset-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
 | A branch's script runs | `/projects/<project-id>/branches/<changeset-id>/validations` (the Scripts tab) | the changeset's Validations tab |
 | The project's runner | `/projects/<project-id>/settings/execution` (Project Settings, Runner and Scripts) | the project's Settings |
+| Maintain, with its scans under Background agents | `/projects/<project-id>/maintain` | the project's Maintain page |
+| One Maintain issue | `/projects/<project-id>/maintain/issues/id/<issue-id>` | the issue on the Maintain board |
+| One plan | `/projects/<project-id>/plan/<plan-id>` | the project's Plan page |
 | API keys, Git | `/settings/api-keys`, `/settings/git` | same |
 
 ### Arrive before the change, never after
