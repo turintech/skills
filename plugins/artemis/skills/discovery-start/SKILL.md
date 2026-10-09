@@ -122,11 +122,7 @@ When the estimate above is longer than the user wants to wait, offer [Fast-track
 
 Capture the run's `id` from the JSON (there is no `run_id` key); every later command needs it.
 
-Immediately give the user a clickable link:
-
-```text
-[Open run](<deployment-base-url>/projects/<project-uuid>/discover/<run-id>)
-```
+Immediately post the start block (`artemis`'s *Start block*): Discovery started, opening `<deployment-base-url>/projects/<project-uuid>/discover/<run-id>`. A `--setup` run starts nothing until `setup complete`, so post its block then, not after `create`.
 
 A `--setup` run lives at `<deployment-base-url>/projects/<project-uuid>/discover/setup/<run-id>` until `setup complete`, then at the link above. If that link returns not found, give the project link, `<deployment-base-url>/projects/<project-uuid>`, where Discover lists the run.
 
@@ -148,7 +144,7 @@ artemis discovery metrics-schema regenerate "<run-id>"
 artemis discovery setup complete "<run-id>"
 ```
 
-Run `trial-run` without `--wait`: it returns the check's validation id at once (`.validation.id`, also recorded on the run as `baselineValidationId`). Wait for it with the loop in `repo-command-setup` §5b: one shell call, 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a trial run behind an offline runner stays `created`); never start another trial run. Ask the user before `setup complete`, as above.
+Run `trial-run` without `--wait`: it returns the check's validation id at once (`.validation.id`, also recorded on the run as `baselineValidationId`). Wait for it with the loop in `repo-command-setup` §5b: one shell call, 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a trial run behind an offline runner stays `created`); never start another trial run. Ask the user before `setup complete`, as above, and once it succeeds post the start block (`artemis`'s *Start block*): Discovery started.
 
 `--setup` does not copy project command defaults. Script selection is `--script` plus, optionally, `setup trial-run --script`. Use `metrics-schema propose`, `regenerate`, or `set` on the objective step.
 

@@ -50,7 +50,7 @@ artemis changeset validate <changeset-id> --project <p> --version original --scr
 artemis changeset validate <changeset-id> --project <p> --version latest --script <s> --runner <r> --wait
 ```
 
-Same runner, same script, same number of runs for both sides, always. After the first pair, say how long one pair took and roughly how long the rest will take. Stop at the first non-zero exit and report it; exit 6 means the run outlasted `--timeout`. A run that fails is not a reading: read its log (`artemis changeset validation logs <validation-id> --project <p>`, or `execution-log-inspect`), and if the change broke the build or the tests, stop and say so. That is the answer.
+Before the first pair, post one start block for the series (`artemis`'s *Start block*): Validation started. Same runner, same script, same number of runs for both sides, always. After the first pair, say how long one pair took and roughly how long the rest will take. Stop at the first non-zero exit and report it; exit 6 means the run outlasted `--timeout`. A run that fails is not a reading: read its log (`artemis changeset validation logs <validation-id> --project <p>`, or `execution-log-inspect`), and if the change broke the build or the tests, stop and say so. That is the answer.
 
 ## 3. Read the verdict
 

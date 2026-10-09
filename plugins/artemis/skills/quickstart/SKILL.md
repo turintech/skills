@@ -155,7 +155,7 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
 | 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | Section 0's demo toolchain check instead | |
 | 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
-| 5. A measured run on the branch | this skill | `changeset validate` on the runner, then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
+| 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (`artemis`'s *Start block*: Validation started), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
 | 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
 | 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Metrics** and the winning version |
 

@@ -132,6 +132,18 @@ Before launching discovery, validation, or Maintain:
 4. Capture project, run, scan, chat, and agent IDs as they are created.
 5. Explain what continues platform-side after the interactive session ends and what still requires monitoring.
 
+### Start block
+
+Right after a command starts work in Artemis, post one block so a watcher sees what started and where to click. The rows for each kind, and where the values and the link come from, are in [references/start-block.md](references/start-block.md).
+
+```text
+Artemis · Discovery started
+Project   <project name>
+Goal      <taskDescription>
+Versions  <n> · model <model> · reviewers <review models>
+Open      <link>
+```
+
 ## 6. Route to the owning skill
 
 - Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and a request to set up a project from its URL or id, as from **Setup with a local agent** on a project's overview page: `quickstart`
