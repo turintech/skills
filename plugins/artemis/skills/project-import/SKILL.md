@@ -109,7 +109,7 @@ Wait for it with one command that fits a 10-minute tool timeout:
 artemis project get <project-uuid> --wait --timeout 9m
 ```
 
-Exit 0 means the import succeeded. Exit 6 means it is still importing after 9 minutes: give the user the project link, say the import is still running, and stop. Otherwise read the error. An error saying "the import of … failed" means the import failed: check the key can read the repo and the branch exists, then import once more; don't loop. Any other error is a CLI or connection problem: report it.
+Exit 0 means the import succeeded. Exit 6 means it is still importing after 9 minutes: give the user the project link, say the import is still running, and stop. Otherwise read the error. One starting "the import of <name> failed;" means the import failed, and the CLI suggests `artemis project delete <project-uuid> --force`: ask the user before deleting it, since `--force` skips the confirmation. Then check the key can read the repo and the branch exists, and import once more; don't loop. Any other error, including "waiting for the import of <name>: …", is a CLI or connection problem: report it.
 
 ## 5. Verify and hand off
 

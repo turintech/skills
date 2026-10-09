@@ -435,8 +435,13 @@ class ProjectNameTests(unittest.TestCase):
 
     def test_an_old_cli_without_project_get_falls_back_to_the_list(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            cli = self.fake_cli(tmp, 'case "$*" in *"project get"*) echo "Usage: artemis project [command]";; *"project list"*) echo \'{"docs":[{"id":"p-2","name":"Other"},{"id":"p-1","name":"From list"}]}\';; esac\n')
+            cli = self.fake_cli(tmp, 'case "$*" in *"project get"*) echo \'Error: unknown command "get" for "artemis project"\' >&2; exit 1;; *"project list"*) echo \'{"docs":[{"id":"p-2","name":"Other"},{"id":"p-1","name":"From list"}]}\';; esac\n')
             self.assertEqual(collector.project_name("p-1", cli=cli), "From list")
+
+    def test_a_get_answer_for_another_project_is_not_used(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cli = self.fake_cli(tmp, 'case "$*" in *"project get"*) echo \'{"id":"p-9","name":"Wrong"}\';; *"project list"*) echo \'{"docs":[{"id":"p-1","name":"Right"}]}\';; esac\n')
+            self.assertEqual(collector.project_name("p-1", cli=cli), "Right")
 
     def test_the_cache_saves_a_second_lookup(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
