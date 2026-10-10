@@ -34,15 +34,15 @@ Do this in its own directory, never the user's repository: the runner, its log a
 mkdir -p <absolute-home>/artemis-runner && cd <absolute-home>/artemis-runner
 ```
 
-`<absolute-home>` is the expanded home path, such as `/home/alice`, never `~`.
+`<absolute-home>` is the expanded home path, such as `/home/alice`, never `~`. In the Windows PowerShell block below, write it as a Windows path, such as `C:\Users\alice`; in Git Bash, `cygpath -w "$HOME"` prints it.
 
 Download it yourself from `https://files.artemis.turintech.ai/public/artemis-runner/`. Read that directory and take the newest version the deployment accepts, the same rule `artemis-runner upgrade` follows: on `dev.artemis.turintech.ai` any build, including alphas (`a`), betas (`b`) and release candidates (`rc`); on `staging.artemis.turintech.ai` finals and release candidates; everywhere else finals only (`X.Y.Z`). Never take the `latest-*` files, which can point at a release candidate. Don't reuse a version from memory, because the published set moves. Download with `curl -fL -o <file> <url>`, so an error page is never saved as the runner.
 
-- **Linux or Windows on x64:** the standalone executable, `artemis-runner-<version>-linux` or `artemis-runner-<version>-windows.exe`. Save it as `artemis-runner` (Linux needs `chmod +x artemis-runner`).
-- **macOS (Intel or Apple silicon) and Linux on ARM64:** the Python package, `artemis-runner-<version>-wheels.tar.gz`. It needs Python 3.11: `tar -xzf` it, `cd artemis-runner-*-wheels`, run `python3.11 -m venv .venv` and `.venv/bin/pip install --find-links wheels/ artemis-runner`. Then `cd <absolute-home>/artemis-runner` again, so `runner.log` and `runner.pid` stay in one place. Call the runner by its full path rather than activating the environment, so build commands don't inherit the environment's Python on `PATH`.
+- **Linux or Windows on x64:** the standalone executable, `artemis-runner-<version>-linux` or `artemis-runner-<version>-windows.exe`. Save it as `artemis-runner` on Linux (`chmod +x artemis-runner`) and `artemis-runner.exe` on Windows.
+- **macOS (Intel or Apple silicon) and Linux on ARM64:** the Python package, `artemis-runner-<version>-wheels.tar.gz`. It needs Python 3.11, 3.12 or 3.13: find one with `for v in 3.13 3.12 3.11; do for p in python$v /opt/homebrew/bin/python$v /usr/local/bin/python$v; do command -v "$p" && break 2; done; done` (the Homebrew paths cover a shell without them on `PATH`) and use the path it prints as `<python>` below. If there is none, ask the user to install one and wait; on macOS that is `brew install python@3.12`, their step, which needs Homebrew. Then `tar -xzf` the archive, `cd artemis-runner-*-wheels`, run `<python> -m venv .venv` and `.venv/bin/pip install --find-links wheels/ artemis-runner`. Then `cd <absolute-home>/artemis-runner` again, so `runner.log` and `runner.pid` stay in one place. Call the runner by its full path rather than activating the environment, so build commands don't inherit the environment's Python on `PATH`.
 - **Windows on ARM64:** the `-wheels.zip`, installed as the deployment's **Add new Artemis runner** page shows.
 
-Check the download before going on: `<absolute-home>/artemis-runner/artemis-runner --version` (for the Python package, `<absolute-home>/artemis-runner/artemis-runner-<version>-wheels/.venv/bin/artemis-runner --version`) must print a version.
+Check the download before going on: `<absolute-home>/artemis-runner/artemis-runner --version` (on Windows, `<absolute-home>/artemis-runner/artemis-runner.exe --version`, with forward slashes since Git Bash runs it; for the Python package, `<absolute-home>/artemis-runner/artemis-runner-<version>-wheels/.venv/bin/artemis-runner --version`) must print a version.
 
 Match the runner to the deployment. A build that is too old fails its sign-in or task calls with `404`s, which looks like a network or credential fault and is not one. If the download fails or the deployment needs another build, its **Add new Artemis runner** page (`<deployment-base-url>/settings/runners/new`) offers the one it expects.
 
@@ -79,6 +79,23 @@ CLI_ENV="<the CLI's config file, from the list above>"
   i=0
   while [ $i -lt 60 ] && kill -0 "$(cat runner.pid)" 2>/dev/null && ! grep -q "Connected to Artemis" runner.log; do sleep 1; i=$((i+1)); done
   if kill -0 "$(cat runner.pid)" 2>/dev/null && grep -q "Connected to Artemis" runner.log; then echo "runner connected"; else echo "runner did not start:"; tail -n 20 runner.log; fi
+}
+```
+
+On Windows, start it from PowerShell the same way: only the key is set, from the CLI's config file, and it is never printed. Save the block as `start-runner.ps1` in the runner folder and run `powershell -NoProfile -ExecutionPolicy Bypass -File start-runner.ps1`, which also works from Git Bash, where Claude Code runs its shell on Windows.
+
+```powershell
+Set-Location <absolute-home>\artemis-runner
+$Runner = "<absolute-home>\artemis-runner\artemis-runner.exe"
+$CliEnv = "<the CLI's config file, from the list above>"   # usually "$env:APPDATA\artemis\.env"
+$key = (Get-Content $CliEnv | Where-Object { $_ -match '^(export )?ARTEMIS_API_KEY=' } | Select-Object -Last 1) -replace '^(export )?ARTEMIS_API_KEY=', '' -replace '["'']', '' -replace '\s.*$', ''
+if (-not $key) { Write-Error "No ARTEMIS_API_KEY in $CliEnv" } else {
+  $env:ARTEMIS_API_KEY = $key
+  $p = Start-Process -FilePath $Runner -ArgumentList 'start', '--runner-name', '<unique-name>', '--url', '<deployment-base-url>' -RedirectStandardOutput runner.log -RedirectStandardError runner.err.log -WindowStyle Hidden -PassThru
+  Remove-Item Env:ARTEMIS_API_KEY
+  $p.Id | Set-Content runner.pid   # stop: Stop-Process -Id (Get-Content runner.pid)
+  for ($i = 0; $i -lt 60 -and -not $p.HasExited -and -not (Select-String -Path runner.log, runner.err.log -Pattern 'Connected to Artemis' -Quiet -ErrorAction SilentlyContinue); $i++) { Start-Sleep 1 }
+  if (-not $p.HasExited -and (Select-String -Path runner.log, runner.err.log -Pattern 'Connected to Artemis' -Quiet -ErrorAction SilentlyContinue)) { 'runner connected' } else { 'runner did not start:'; Get-Content runner.log, runner.err.log -Tail 20 }
 }
 ```
 
