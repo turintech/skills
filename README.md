@@ -65,6 +65,9 @@ Skills are versioned independently of the Artemis CLI and platform. Commits use 
 | `discovery-inspect` | Interpret status, versions, metrics, and diffs |
 | `discovery-visualize` | Chart or report a discovery run on Cursor, Claude Code, or Copilot |
 | `discovery-steer` | Continue, expand, or redirect a live run |
+| `discovery-recommend` | Recommend several runs, write their benchmarks and keep them as drafts |
+| `discovery-collaborate` | Have Claude Code or Codex add experiments and versions to a live run |
+| `discovery-split` | Split a strong version into measured atomic changes and small pull requests |
 | `change-validate` | Check whether a local change is really faster: original vs change, same runner, the platform's verdict |
 | `execution-log-inspect` | Read runner task logs |
 | `maintain` | Scan, triage, fix, and ship code-health issues |

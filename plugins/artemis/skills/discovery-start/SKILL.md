@@ -40,6 +40,8 @@ Only listed models can be used by agents. When the user has not named one, recom
 
 ## 1. Create the run
 
+**Ask about contributors.** Unless a calling skill has already asked, ask once whether Claude Code or Codex should also contribute ideas and code to this run (`discovery-collaborate` has the question and what to add to the task). If the user says yes, add that sentence to the task before `discovery create`, and follow `discovery-collaborate` once the run is exploring.
+
 **When a calling skill has already chosen the runner, use it and do not re-ask**, the same as the model and budget above. `quickstart` picks one for its demo so a first-time user is never asked to choose between machines they have not heard of.
 
 Otherwise confirm which runner to use before `discovery create`; do not select one merely because it is online. If the project has a default (`artemis project runner get --project "<project-uuid>"`), confirm it remains appropriate. If no runner was named and several are online, list them and ask.
