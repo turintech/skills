@@ -146,9 +146,9 @@ artemis maintain issues fix <issue-uuid>... [--model claude-sonnet-5]
 ```
 
 - All the Issues in one call land in **one Branch** and one fix chat. Group related Issues; put unrelated ones in separate calls so each gets its own Branch and PR. They can't be split afterwards.
-- It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background; post the start block (`artemis`'s *Start block*): Fix started. Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
+- It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background; post the start block (`artemis`'s *Start block*): Fix started, opening the Issue's page (`<deployment-base-url>/projects/<project-uuid>/maintain/issues/id/<issue-uuid>`, the link `maintain issues get` prints). Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
 - The terminal `fixStatus` values are `done`, `failed` and `cancelled`. There is no `fixed` or `complete`.
-- `done` can still be an empty Branch. Check `artemis changeset diff <changeset-id> --project <p>` before shipping; don't judge by `publish`/`pr` output, which reads empty for every unpublished fix. If the diff is empty, **Fix again** (run `fix` on the Issue again); if it is still empty, the Issue is probably already fixed, so re-sync it (§8).
+- `done` can still be an empty Branch. Check `artemis changeset diff <changeset-id> --project <p>` before shipping, and give the user the Branch link (`<deployment-base-url>/projects/<project-uuid>/branches/<changeset-id>/changes`, `cli-follow-along` §2) once it has changes; don't judge by `publish`/`pr` output, which reads empty for every unpublished fix. If the diff is empty, **Fix again** (run `fix` on the Issue again); if it is still empty, the Issue is probably already fixed, so re-sync it (§8).
 - Stop a running fix, after the user's yes, with `artemis maintain issues cancel <ISS-n> -p <p> --force` (the Web UI's Stop). It reports `not_running` when nothing is running, and refuses a local attempt.
 - Every attempt is kept: `artemis maintain issues fix-runs <id> -p <p>` lists them, and the Issue reflects the latest. Trying a different `--model` on a second attempt loses nothing.
 
@@ -186,6 +186,7 @@ artemis maintain issues submit-local-fix <id>... --project <p>  # uploads the ch
 - It sends modified tracked files only. Add new files with `--include-untracked`, or name exact files with `--path`.
 - Issues fixed by one edit go in one call, so they share the Branch.
 - `--keep-open` attaches the Branch without moving the Issue to done.
+- Then link the Branch, from the Issue's `changesetId` (`maintain issues get`), as for the fix agent.
 - Don't move an Issue to `done` by hand when you have a fix to attach: once it is done, no Branch can be attached.
 
 ## 7. Ship: branch and/or PR
