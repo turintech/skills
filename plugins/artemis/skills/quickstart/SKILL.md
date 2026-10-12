@@ -292,7 +292,7 @@ Show the plan again with everything ticked, then a short readiness report, wheth
 
 Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.
 
-Ask the next step as one question with options (the host's question tool when it has one), never as a sentence a bare "yes" could answer. Any other offer, such as adding the CLI to a shell startup file, goes in its own message, naming the file and the lines it would add. When an answer still fits more than one offer ("both", "yes"), ask which, and do each one separately. Choosing the demo here is a §3 switch: the credits line, then the plan.
+Send the ticked plan and the readiness report first, as their own message; only then ask the next step, as one question with options (the host's question tool when it has one), never as a sentence a bare "yes" could answer. Any other offer, such as adding the CLI to a shell startup file, goes in its own message, naming the file and the lines it would add. When an answer still fits more than one offer ("both", "yes"), ask which, and do each one separately. Choosing the demo here is a §3 switch: the credits line, then the plan.
 
 When they later make a change of their own, `change-validate` checks whether it is really faster.
 
@@ -315,4 +315,4 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] A link and what they will see each time something appeared in Artemis
 - [ ] Discovery started from the branch, with settings fixed rather than asked
 - [ ] No demo `discovery create` until the credits line (welcome line 4 or the §6 question) was sent and answered in this conversation
-- [ ] Readiness report given, each line from a check that ran
+- [ ] Ticked plan and readiness report sent before the next-step question, each line from a check that ran
