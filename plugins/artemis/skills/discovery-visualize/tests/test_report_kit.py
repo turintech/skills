@@ -116,7 +116,7 @@ class RecipeTests(unittest.TestCase):
         recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
         figure = recipe.split("// The Composite score per version", 1)[1].split("// Method note.", 1)[0]
         self.assertIn("R.trajectory(fc.chart, S.versions.map(v => ({ label: v.label, y: v.fitness, gapText", figure)
-        self.assertIn(".length >= 3", figure)
+        self.assertIn("fits.length >= 3 && new Set(fits).size > 1", recipe)
         self.assertNotIn("zero:", figure)
 
 
@@ -184,6 +184,16 @@ class RecipeRenderTests(unittest.TestCase):
         snapshot = self.fixture_snapshot(True)
         for v in snapshot["versions"]:
             v["fitness"] = None
+        html = build_report.build(snapshot, self.recipe_page(), "Title")
+        self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
+
+    # Every version on the same Composite score: no flat chart, one line in the method note instead.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_recipe_renders_with_equal_composite_scores(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        for v in snapshot["versions"]:
+            v["fitness"] = 1
         html = build_report.build(snapshot, self.recipe_page(), "Title")
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
 

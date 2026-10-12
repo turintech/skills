@@ -432,18 +432,20 @@
   function baselineBest(el, panels, o = {}) {
     const grid = h('div', 'ar-bb');
     panels.forEach(p => {
-      const card = h('div', 'ar-bb-panel'), head = h('div', 'ar-bb-title', p.title);
+      const bars = p.bars || [p.base, p.best], n = bars.length;
+      // With more than two bars the unit goes in the title once; on every bar it makes neighbouring labels collide.
+      const unit = p.unit && n <= 2 ? ' ' + p.unit : '';
+      const card = h('div', 'ar-bb-panel'), head = h('div', 'ar-bb-title', p.title + (p.unit && n > 2 ? ' (' + p.unit + ')' : ''));
       if (p.badge) head.append(' ', h('span', 'ar-bb-badge ' + (p.badge.tone || 'flat'), (p.badge.dir === 'up' ? '▲ ' : p.badge.dir === 'down' ? '▼ ' : '') + p.badge.text));
       card.append(head);
       if (p.note) card.append(h('div', 'ar-bb-note', p.note));
-      const bars = p.bars || [p.base, p.best], n = bars.length;
       const W = Math.max(360, 72 * n + 40), H = 210, T = 30, B = 40, bw = Math.min(100, (W - 40) / n * 0.68), gap = n > 2 ? (W - 40 - n * bw) / (n - 1) : 48, x0 = (W - n * bw - (n - 1) * gap) / 2;
       const hi = Math.max(...bars.map(d => d.value), 0) || 1, y = v => H - B - Math.max(0, v) / hi * (H - T - B);
-      const unit = p.unit ? ' ' + p.unit : '';
-      const svg = svgRoot(card, W, H, p.aria || p.title + ': ' + bars.map(d => d.label + ' ' + fmt.num(d.value) + unit).join(', '));
+      const svg = svgRoot(card, W, H, p.aria || p.title + ': ' + bars.map(d => d.label + ' ' + fmt.num(d.value) + (p.unit ? ' ' + p.unit : '')).join(', '));
+      svg.style.maxWidth = W + 'px';  // a lone panel otherwise stretches its two bars and their labels across the page
       bars.forEach((d, i) => {
         const c = i === 0 ? 'var(--ar-baseline)' : 'var(--ar-accent)', x = x0 + i * (bw + gap), top = y(d.value);
-        tip(s(svg, 'rect', { x, y: top, width: bw, height: Math.max(2, H - B - top), rx: 3, style: `fill:${d.color || c}` }), [d.label, fmt.num(d.value, 3) + unit]);
+        tip(s(svg, 'rect', { x, y: top, width: bw, height: Math.max(2, H - B - top), rx: 3, style: `fill:${d.color || c}` }), [d.label, fmt.num(d.value, 3) + (p.unit ? ' ' + p.unit : '')]);
         s(svg, 'text', { x: x + bw / 2, y: top - 8, 'text-anchor': 'middle', class: 'ar-val' }, fmt.num(d.value, o.decimals != null ? o.decimals : 2) + unit);
         s(svg, 'text', { x: x + bw / 2, y: H - B + 20, 'text-anchor': 'middle', class: 'ar-lab' }, d.label);
       });

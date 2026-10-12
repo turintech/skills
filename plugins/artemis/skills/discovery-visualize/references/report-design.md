@@ -98,7 +98,7 @@ Optional. One line when a mark needs explaining: what a mark is (mean of `n`, or
 
 Steers: the CLI does not list a run's past steers, and versions do not record which agent made them. Mark a steer only when this conversation sent it (`discovery-steer`) or the user says when it happened, and place it by `createdAt`: after the last version made before the steer. Never guess a steer from the shape of the line.
 
-The default report ends with the Composite score per version once three or more versions have one, and draws it the same way when the user asks for it over time: each version's `fitness` as its own trajectory, titled "Composite score (the platform's roll-up of the metrics by importance)", never on the same axis as a measured metric and without a zero line.
+The default report ends with the Composite score per version once three or more versions have one and the scores differ (the same score everywhere is one line in the method note), and draws it the same way when the user asks for it over time: each version's `fitness` as its own trajectory, titled "Composite score (the platform's roll-up of the metrics by importance)", never on the same axis as a measured metric and without a zero line.
 
 **Versions by outcome.** Cards or a compact table grouped as measured improvement, no measurable change, slower, and failed or not measured. Each row: label, the experiment title, the measured change, and the Experiment's conclusion, visibly separate from the measurement.
 

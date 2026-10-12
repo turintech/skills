@@ -124,14 +124,16 @@ if (!singleRun) {
 }
 
 // The Composite score per version, in the order they were made: its own axis, no zero line, never the verdict.
-if (S.versions.filter(v => v.fitness != null).length >= 3) {
+const fits = S.versions.filter(v => v.fitness != null).map(v => v.fitness);
+if (fits.length >= 3 && new Set(fits).size > 1) {  // a flat line says nothing a sentence can't: the method note says it
   const fc = R.figure(page, { question: 'Composite score per version (the platform’s roll-up of the metrics by importance)' });
   R.trajectory(fc.chart, S.versions.map(v => ({ label: v.label, y: v.fitness, gapText: 'no score', mark: v.version === win.version,
     tip: [v.label + ': Composite score ' + (v.fitness == null ? 'none' : F.num(v.fitness, 2))] })),
     { yLabel: 'Composite score', aria: 'Composite score per version, in the order the versions were made' });
-  const scored = S.versions.filter(v => v.fitness != null), top = scored.reduce((a, b) => (b.fitness > a.fitness ? b : a));
+  const scored = S.versions.filter(v => v.fitness != null), most = Math.max(...scored.map(v => v.fitness));
+  const tops = scored.filter(v => v.fitness === most).map(v => v.label);  // the score tops out, so several versions can share it
   fc.bullets([
-    '<b>Highest Composite score:</b> ' + top.label + ' (' + F.num(top.fitness, 2) + ')' + (top.version === win.version ? ', also Artemis’s best on ' + key : ''),
+    '<b>Highest Composite score, ' + F.num(most, 2) + ':</b> ' + tops.join(', ') + (tops.length > 1 ? ' share it' : ''),
     scored.length < S.versions.length ? (S.versions.length - scored.length) + ' of ' + S.versions.length + ' versions have no score' : '',
   ].filter(Boolean));
   fc.caption('Each version’s Composite score, as the Web UI lists it. It is not a verdict: the figures above decide which version is better. The ring marks ' + winV.label + '.');
@@ -142,6 +144,7 @@ const agent = winV.experimentStatus;
 R.bullets(page, [
   perVersion + ' benchmark runs per version, ' + base.count + ' for the baseline, on the same runner',
   'Verdicts, % changes and 95% intervals are Artemis’s own (artemis discovery compare), as the Web UI shows them',
+  fits.length >= 3 && new Set(fits).size === 1 ? 'Every scored version has the same Composite score, ' + F.num(fits[0], 2) : '',
   t && t.recommendedReadings ? 'Artemis suggests ' + t.recommendedReadings + ' runs per side to settle ' + winV.label : '',
   t && agent && (agent === 'validated') !== (t.verdict === 'better') ? 'The Experiment behind ' + winV.label + ' concluded “' + agent + '”; the verdict uses only the measured runs' : '',
 ].filter(Boolean), { quiet: true });

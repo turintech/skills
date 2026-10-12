@@ -39,7 +39,7 @@ const urgentText = ['critical', 'high'].filter(s => bySeverity(s).length).map(s 
 
 R.header(document.getElementById('header'), {
   eyebrow: 'Artemis Maintain · ' + S.projectName,
-  title: [open.length + ' open issues, ', { em: urgentText }, untriaged ? ', and ' + untriaged + ' not triaged yet' : ''],
+  title: [open.length + (open.length === 1 ? ' open issue, ' : ' open issues, '), { em: urgentText }, untriaged ? ', and ' + untriaged + ' not triaged yet' : ''],
   chips: [
     { text: urgentText, strong: urgent > 0 },
     { text: untriaged + ' of ' + open.length + ' untriaged' },
@@ -52,7 +52,7 @@ const f1 = R.figure(page, { question: 'How severe are the open issues?' });
 R.rankedBars(f1.chart, present.map(s => {
   const n = bySeverity(s).length, t = bySeverity(s).filter(i => i.lane !== 'untriaged').length;
   return { label: s.charAt(0).toUpperCase() + s.slice(1), value: n, text: n + ' open · ' + t + ' triaged', strong: s === 'critical' || s === 'high' };
-}), { base: 0, tickFormat: v => String(Math.round(v)) });
+}), { base: 0, tickFormat: v => (Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : '') });
 f1.bullets([
   urgent ? '<b>' + urgentText + '</b> open: fix or triage these first' : '<b>Nothing critical or high is open</b>',
   present.map(s => bySeverity(s).length + ' ' + s).join(', '),
