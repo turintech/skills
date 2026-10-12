@@ -144,6 +144,15 @@ Versions  <n> · model <model> · reviewers <review models>
 Open      <link>
 ```
 
+### Waiting out loud
+
+While Artemis works, never go quiet and never paste a raw status line on its own. Each wait gets two kinds of line:
+
+1. **Before the wait:** what Artemis is doing, where, how long it should take, and the start block's `Open` link. Shape: `Artemis is <doing X> on <runner>; this usually takes about <N> min. Follow it at <link>.`
+2. **After each check loop that ends unfinished:** the time since the start block, the status and any count the response gives, and how much longer you will check. Shape: `Artemis is still <doing X>, <M> min in: <status>, <count>. I'll check for up to 8 more minutes.`
+
+Take the expected time only from a measurement: the phase durations `repo-command-setup` §5a records, or an earlier run of the same script in this session. With none, say there's no typical time yet and give the check limit instead (`I'll check for up to 8 min`); never invent a figure.
+
 ## 6. Route to the owning skill
 
 - Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and a request to set up a project from its URL or id, as from **Setup with a local agent** on a project's overview page: `quickstart`

@@ -54,6 +54,8 @@ done; echo "fixStatus=$s"
 
 After three runs with no change, stop waiting and look at why. For a fix, `artemis --output-format json maintain issues fix-runs <id> -p <p>` lists `.runs[]` with `isActive` and `agentRunStatus`: a failed fix run is not written back, so `fixStatus` can sit at `in_progress` for good. If `agentRunStatus` is `failed` or `cancelled`, or the run's chat (`artemis chat messages <chat-id>`) is waiting on a question card, stop and tell the user; with their yes, a fix that is still running can be stopped (§6). Scans and Re-syncs get the same three-run limit.
 
+Before each wait, and after each run of the loop that ends unfinished, say what Artemis is doing (`artemis`'s *Waiting out loud*): a Scan reads the code against its Rules (link: the Maintain page), a fix writes the change on a Branch (link: the Issue's page), a Re-sync re-checks Issues against the current code (link: the Maintain page). There's no typical time for these yet, so give the limit: about 8 minutes a run, three runs at most. For a Scan, add `issuesFound` when `scans get` shows it.
+
 ---
 
 ## 1. Get Rules in place

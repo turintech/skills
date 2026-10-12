@@ -133,7 +133,7 @@ artemis changeset validate "<changeset-id>" --project "<project-id>" --version o
 artemis changeset validation logs "<validation-id>" --project "<project-id>"
 ```
 
-Just before the `--wait` validation, post the start block (`artemis`'s *Start block*): Validation started. Use the changeset the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
+Just before the `--wait` validation, post the start block (`artemis`'s *Start block*): Validation started, and say what Artemis is doing (`artemis`'s *Waiting out loud*): checking which tools the runner has. The checks are quick; a long wait here is usually the runner picking the job up. Use the changeset the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
 
 Report the runner name, host, and verification result, with the page where it shows as online: once a project exists, its **Runner and Scripts** settings page (above); before that, **Runners** (`<deployment-base-url>/settings/runners`), which also lists other people's runners, so keep it off a recorded screen. Do not claim success from a quiet process or log alone.
 

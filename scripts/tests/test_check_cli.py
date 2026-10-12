@@ -16,7 +16,7 @@ def fake_cli(test, version):
     folder = tempfile.mkdtemp()
     test.addCleanup(shutil.rmtree, folder)
     path = pathlib.Path(folder) / "artemis"
-    path.write_text(f'#!/bin/sh\nif [ "$1" = "--version" ]; then echo "Artemis CLI {version}"; else echo "Usage:\n  artemis [command]"; fi\n')
+    path.write_text(f'#!/bin/sh\nif [ "$1" = "--version" ]; then echo "Artemis CLI {version}"; else printf "Usage:\\n  artemis [command]\\n"; fi\n')
     path.chmod(path.stat().st_mode | stat.S_IEXEC)
     return str(path)
 
