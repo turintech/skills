@@ -425,14 +425,15 @@
   }
 
   /* baselineBest(el, panels, opts): one small panel per metric: the baseline bar, then the version bars.
-     panels: [{ title, unit, base: {label, value}, best: {label, value}, bars: [{label, value, color}], badge: {text, tone: 'good'|'bad'|'flat'}, note, aria }]
+     panels: [{ title, unit, base: {label, value}, best: {label, value}, bars: [{label, value, color}], badge: {text, tone: 'good'|'bad'|'flat', dir: 'up'|'down'}, note, aria }]
      `bars` (baseline first) replaces base/best, for one run per version: the baseline against each version. Values print on
-     the bars; there are no grid lines or axes; the badge (Artemis's change) sits in the title and `note` under it. */
+     the bars; there are no grid lines or axes; the badge (Artemis's change) sits in the title and `note` under it.
+     The badge's arrow follows the raw change (dir) and its colour the verdict (tone), as the Web UI does (ART-2549). */
   function baselineBest(el, panels, o = {}) {
     const grid = h('div', 'ar-bb');
     panels.forEach(p => {
       const card = h('div', 'ar-bb-panel'), head = h('div', 'ar-bb-title', p.title);
-      if (p.badge) head.append(' ', h('span', 'ar-bb-badge ' + (p.badge.tone || 'flat'), (p.badge.tone === 'good' ? '▲ ' : p.badge.tone === 'bad' ? '▼ ' : '') + p.badge.text));
+      if (p.badge) head.append(' ', h('span', 'ar-bb-badge ' + (p.badge.tone || 'flat'), (p.badge.dir === 'up' ? '▲ ' : p.badge.dir === 'down' ? '▼ ' : '') + p.badge.text));
       card.append(head);
       if (p.note) card.append(h('div', 'ar-bb-note', p.note));
       const bars = p.bars || [p.base, p.best], n = bars.length;

@@ -41,7 +41,7 @@ R.header(document.getElementById('header'), {
   chips: t ? [
     { text: 'Verdict: ' + t.verdict, strong: t.verdict === 'better' },
     t.ciLowPct != null ? { text: '95% interval ' + F.pct(t.ciLowPct) + ' to ' + F.pct(t.ciHighPct) } : null,
-    { text: (t.readings != null ? t.readings : winM.count) + ' runs vs ' + (S.baseline.readings[key] || base.count) + ' for the baseline' },
+    (n => ({ text: n + (n === 1 ? ' run' : ' runs') + ' vs ' + (S.baseline.readings[key] || base.count) + ' for the baseline' }))(t.readings != null ? t.readings : winM.count),
   ].filter(Boolean) : [{ text: 'No verdict from Artemis for this metric' }],
 });
 
@@ -65,15 +65,17 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
   if (!b || !vm || b.mean == null || vm.mean == null) return null;
   const vb = vm.vsBaseline, real = vb && (vb.verdict === 'better' || vb.verdict === 'worse');
   const why = !vb ? '' : vb.verdict === 'noise' ? ', within the noise' : vb.verdict === 'pending' ? ', too few runs to tell' : '';
-  const badge = !pw.timesBetter ? null : {
-    text: (F.times(pw.timesBetter) === '1.00×' ? 'no change' : pw.pctBetter >= 0 ? F.times(pw.timesBetter) + ' better' : F.times(1 / pw.timesBetter) + ' worse') + why,
+  const same = !pw.timesBetter || F.times(pw.timesBetter) === '1.00×';
+  const badge = same ? { text: 'no change', tone: 'flat' } : {
+    text: (pw.pctBetter >= 0 ? F.times(pw.timesBetter) + ' better' : F.times(1 / pw.timesBetter) + ' worse') + why,
+    dir: vm.mean > b.mean ? 'up' : 'down',  // the raw change; colour alone carries the verdict (ART-2549)
     tone: real ? (vb.verdict === 'better' ? 'good' : 'bad') : 'flat' };
   return { title: m.key, unit: m.unit || '', base: { label: 'Baseline', value: b.mean }, best: { label: 'Artemis ' + v.label, value: vm.mean }, badge };
 }).filter(Boolean);
 const f1 = R.figure(page, { question: singleRun ? 'The baseline against each version, 1 run each' : panels.length > 1 ? 'The baseline against the best version, per metric' : 'The baseline against the best version' });
 R.headline(f1.top, {
   left: { k: 'Baseline', v: F.num(base.mean, 2), unit },
-  mid: { big: F.pct(win.pctBetter), small: F.times(win.timesBetter) + ' the baseline, as Artemis measures it' },
+  mid: { big: F.pct(up ? win.pctBetter : -win.pctBetter), small: F.times(win.timesBetter) + ' better than the baseline, as Artemis measures it' },
   right: { k: 'Best version · ' + winV.label, v: F.num(winM.mean, 2), unit },
 });
 R.baselineBest(f1.chart, panels);

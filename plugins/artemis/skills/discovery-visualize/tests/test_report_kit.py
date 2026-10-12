@@ -143,6 +143,9 @@ class RecipeRenderTests(unittest.TestCase):
                 if m.get("mean") is not None:
                     m["count"] = 3
                     m["runs"] = [m["mean"] * 0.99, m["mean"], m["mean"] * 1.01]
+                    if m.get("vsBaseline"):
+                        m["vsBaseline"]["readings"] = 3
+        snapshot["baseline"]["readings"] = {k: 3 for k in snapshot["baseline"]["readings"]}
         html = build_report.build(snapshot, self.recipe_page(), "Title")
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
 
