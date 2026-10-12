@@ -44,11 +44,11 @@ artemis discovery metrics <run-id> [--all]     # measured numbers per version
 
 ### The agent's own narration
 
-The reasoning the Web UI shows as a chat is reachable from the CLI, but not under `discovery` — it lives under `artemis chat`, and the chat's ID is the **`agentRunId` on the run record**:
+The reasoning the Web UI shows as a chat is reachable from the CLI, but not under `discovery` — it lives under `artemis chat`, and the chat's ID is the **`chatId` on the run record** (CLI 1.1.16+; older CLIs give only `agentRunId`, which `chat messages` also accepts):
 
 ```bash
 run=$(artemis --output-format json discovery get <run-id>)
-artemis chat messages "$(echo "$run" | jq -r .agentRunId)"   # narration + tool calls
+artemis chat messages "$(echo "$run" | jq -r '.chatId // .agentRunId')"   # narration + tool calls
 artemis chat list --project <project-uuid>                   # if you lost the id
 ```
 
@@ -104,7 +104,7 @@ The next gap — evaluation finished to the next version being dispatched — is
 artemis --output-format json discovery get <run-id>
 ```
 
-Look at `status`, `versionCount`, `experimentCount`, `baselineVersionSha`, `metricsSchema`. A run past its baseline has a non-null `baselineVersionSha` + `metricsSchema` (a run still in `setup` can too, before any version); `baselineGroupId` is set as soon as a baseline is dispatched or adopted, before it finishes, so it proves nothing. **`baselineVersionSha` must match the commit you intended to run** — this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code).
+Look at `status`, `executionMode`, `versionCount`, `experimentCount`, `baselineVersionSha`, `metricsSchema`. A run past its baseline has a non-null `baselineVersionSha` + `metricsSchema` (a run still in `setup` can too, before any version); `baselineGroupId` is set as soon as a baseline is dispatched or adopted, before it finishes, so it proves nothing. **`baselineVersionSha` must match the commit you intended to run** — this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code). An `executionMode` of `skip` ("Assess only") runs nothing, so it never has a `baselineVersionSha`: for those, `metricsSchema` plus a rising `versionCount` show the run started, and there is no baseline commit to compare.
 
 ### 2. What did the agent try? (experiments)
 
@@ -171,7 +171,7 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 
 ## Checklist
 
-- [ ] `discovery get`: baseline finalized (`baselineVersionSha` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit.
+- [ ] `discovery get`: baseline finalized (`baselineVersionSha` + `metricsSchema` non-null) and `baselineVersionSha` == the intended commit; for `executionMode` `skip`, `metricsSchema` non-null and versions arriving instead.
 - [ ] `discovery compare`: each version's verdict on the target metric, as Artemis gives it; the verdicts, not the Composite score, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
