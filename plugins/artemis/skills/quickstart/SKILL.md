@@ -155,7 +155,7 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
 | 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | Section 0's demo toolchain check instead | |
 | 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
-| 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (`artemis`'s *Start block*: Validation started), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
+| 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (below), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
 | 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
 | 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Versions** and the winning version |
 
@@ -187,7 +187,18 @@ for i in $(seq 16); do
 done; echo "$s"
 ```
 
-This is the loop in `repo-command-setup` §5b. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
+Between the two, post the start block as reply text, with no other text around it: what started, and where to watch it. Every start in this flow gets one, and the Discovery run's comes from `discovery-start`. The format is `artemis`'s *Start block*, which this flow does not load:
+
+```text
+Artemis · Validation started
+Project   <project name>
+Version   original
+Script    <script name>
+Runner    <runner name>
+Open      <deployment-base-url>/projects/<project-id>/branches/<changeset-id>/validations
+```
+
+The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
 
@@ -290,6 +301,7 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] Just set me up: stopped after the runner, with no project imported and no run started
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
+- [ ] An `Artemis · Validation started` block before the wait, and `discovery-start`'s `Artemis · Discovery started` block after the run was created
 - [ ] A link and what they will see each time something appeared in Artemis
 - [ ] Discovery started from the branch, with settings fixed rather than asked
 - [ ] No demo `discovery create` until the credits line (welcome line 4 or the §6 question) was sent and answered in this conversation

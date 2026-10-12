@@ -122,7 +122,18 @@ When the estimate above is longer than the user wants to wait, offer [Fast-track
 
 Capture the run's `id` from the JSON (there is no `run_id` key); every later command needs it.
 
-Immediately post the start block (`artemis`'s *Start block*): Discovery started, opening `<deployment-base-url>/projects/<project-uuid>/discover/<run-id>`. A `--setup` run starts nothing until `setup complete`, so post its block then, not after `create`.
+Immediately post the start block, before any wait, as reply text with nothing around it. It is `artemis`'s *Start block*, carried here because callers such as `quickstart` do not load that skill:
+
+```text
+Artemis · Discovery started
+Project         <project name>
+Goal            <taskDescription>
+Versions        <n> · model <model> · LLM council <review models>
+Benchmark runs  <n>
+Open            <deployment-base-url>/projects/<project-uuid>/discover/<run-id>
+```
+
+Names, not ids. Leave out `· LLM council …` when no review models were passed, **Benchmark runs** unless `--eval-runs` or `--max-runs` was passed, and any row you don't know. A `--setup` run starts nothing until `setup complete`, so post its block then, not after `create`.
 
 A `--setup` run lives at `<deployment-base-url>/projects/<project-uuid>/discover/setup/<run-id>` until `setup complete`, then at the link above. If that link returns not found, give the project link, `<deployment-base-url>/projects/<project-uuid>`, where Discover lists the run.
 
@@ -190,6 +201,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 
 ## Checklist
 
+- [ ] `Artemis · Discovery started` block posted, with the run link, before any wait
 - [ ] Project UUID confirmed; runner either supplied by the calling skill, or confirmed **with the user** rather than picked because it showed online
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
