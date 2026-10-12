@@ -48,9 +48,9 @@ artemis --output-format json discovery steer "<run-id>" \
   --message "<new direction>"
 ```
 
-Add `--model <catalogue-uuid-or-model-type>` only when the user chose a model. Add `--skip-interaction` only when the user wants autonomous continuation.
+Add `--model <catalogue-uuid-or-model-type>` only when the user chose a model.
 
-`discovery steer` responds to the current agent run, follows any child run returned by the platform, repoints the discovery, and verifies the new `agentRunId`. Do not substitute generic `artemis chat send`; it does not perform discovery-specific repointing.
+`discovery steer` answers the run's chat, the one the Web UI replies to (CLI 1.1.16 and newer; older CLIs respond to the current agent run), follows the child run the answer starts, repoints the discovery to it, and verifies the new `agentRunId`. Do not substitute generic `artemis chat send`; it does not perform discovery-specific repointing.
 
 ## 3. Verify delivery
 
