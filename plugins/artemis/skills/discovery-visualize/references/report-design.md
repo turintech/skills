@@ -31,11 +31,12 @@ In this order, with the kit calls from [report-kit.md](report-kit.md):
 1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain".
 2. **Chips:** falcon's verdict (the strong chip only for `better`), the 95% interval, and the runs per side.
 3. **Headline:** baseline mean, then the %, then the best version's mean.
-4. **Figure 1, `compareRuns`:** every run of the baseline and the best version, the gap between the means labelled with the % and p. Without each reading, the headline means and a bullet saying the runs were not collected.
-5. **Figure 2, `forest`:** every measured version's % change with its 95% interval, best first.
-6. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Experiment's conclusion disagrees with falcon's verdict, one bullet that says so.
+4. **Figure 1, `baselineBest`:** per metric, two bars: the baseline and the version Artemis ranks best for it, values on the bars, Artemis's change as the badge in the panel title.
+5. **Figure 2, `compareRuns`:** every run of the target metric's baseline and best version, the gap between the means labelled with the %; only when the collector had each reading.
+6. **Figure 3, `forest`:** every measured version's % change with its 95% interval, best first.
+7. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Experiment's conclusion disagrees with falcon's verdict, one bullet that says so.
 
-With one run per version there is no test: say "measured once" in a chip and skip Figure 2's intervals.
+With one run per side there is no test: Figure 1 shows the baseline against each version (the best 8 when there are more), labelled "1 run each, not confirmed", with no badge, and Figures 2 and 3 are left out. Answer in text only when there is a single number.
 
 ### Custom requests
 
@@ -81,7 +82,9 @@ Optional. One line when a mark needs explaining: what a mark is (mean of `n`, or
 
 ## 3. The figures
 
-**Best vs baseline (`compareRuns`).** Two rows, the baseline and the best version. Every run is a large dot, a tick marks the mean, a band spans slowest to fastest run (accent-soft for the best, neutral for the baseline). Mean labels sit above the baseline's row and below the best's, so they never meet the bracket between the means, which carries the % and p.
+**Baseline against the best (`baselineBest`).** One small panel per metric, two bars: the baseline in the baseline colour and the best version in the accent, labelled "Artemis vN". Values print on the bars; no grid lines, axes or grey. The panel title carries Artemis's change ("1.67× better"), green only for a `better` verdict, red only for `worse`, plain otherwise with "within the noise" or "too few runs to tell". With `bars` it draws the baseline against each version instead.
+
+**Best vs baseline, every run (`compareRuns`).** Two rows, the baseline and the best version. Every run is a large dot, a tick marks the mean, a band spans slowest to fastest run (accent-soft for the best, neutral for the baseline). Mean labels sit above the baseline's row and below the best's, so they never meet the bracket between the means, which carries the % and p.
 
 **Every version's change (`forest`).** One row per measured version, best first: the % change as a dot, its 95% interval (`vsBaseline.ciLowPct` to `ciHighPct`) as a bar, a zero line labelled "baseline". Filled dot: falcon says `better` or `worse`. Hollow: `noise` or `pending`. The best version in the accent; better or worse ones in ink; the rest muted grey. The right column gives the % and falcon's verdict.
 
@@ -141,7 +144,7 @@ When the user asks about a project, several runs, or "all the branches", collect
 
 - **Baseline only:** provenance, progress, the baseline number, and "No version has been measured yet". No arrow, no figures.
 - **Nothing beat the baseline:** the title says so. Keep the forest (it shows how close each came) and lead the findings with why, from the experiment conclusions.
-- **One measurement per version:** no test, no intervals, no strip plot; a chip says each number is a single run, and the change per version is `rankedBars`.
+- **One measurement per version:** no test, no intervals, no strip plot: `baselineBest` with `bars`, the baseline against each version, noted "1 run each, not confirmed".
 - **Several target metrics:** one headline and one ranked figure per metric, no combined winner.
 
 ## Fallback HTML

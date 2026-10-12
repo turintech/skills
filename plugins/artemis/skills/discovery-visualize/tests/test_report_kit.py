@@ -133,10 +133,52 @@ class RecipeRenderTests(unittest.TestCase):
         html = build_report.build(self.fixture_snapshot(True), self.recipe_page(), "Title")
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
 
+    # The synthetic run has one run per side, so this gives each side three to reach the per-metric bars,
+    # the every-run figure and the forest.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_recipe_renders_with_several_runs_per_side(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        for side in [snapshot["baseline"]] + snapshot["versions"]:
+            for m in side["metrics"].values():
+                if m.get("mean") is not None:
+                    m["count"] = 3
+                    m["runs"] = [m["mean"] * 0.99, m["mean"], m["mean"] * 1.01]
+        html = build_report.build(snapshot, self.recipe_page(), "Title")
+        self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
+    # One run per side has no verdict: the page draws every version against the baseline and skips the intervals.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_recipe_renders_with_one_run_per_side(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        for side in [snapshot["baseline"]] + snapshot["versions"]:
+            for m in side["metrics"].values():
+                m["count"] = 1
+                if m.get("runs"):
+                    m["runs"] = m["runs"][:1]
+                if m.get("vsBaseline"):
+                    m["vsBaseline"].update({"verdict": "pending", "ciLowPct": None, "ciHighPct": None})
+        html = build_report.build(snapshot, self.recipe_page(), "Title")
+        self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
     # Without readings the page threw "winM.runs is not iterable" and drew nothing.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
     def test_recipe_renders_without_readings(self) -> None:
         html = build_report.build(self.fixture_snapshot(False), self.recipe_page(), "Title")
+        self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
+
+class MaintainReportTests(unittest.TestCase):
+    """maintain-report.md's page, on a small synthetic board."""
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_maintain_page_renders(self) -> None:
+        page = (ROOT / "references" / "maintain-report.md").read_text(encoding="utf-8").split("```js\n", 1)[1].split("\n```", 1)[0]
+        lanes = ["untriaged", "triaged", "in_progress", "done"]
+        issues = [{"status": "open", "severity": sev, "lane": lanes[i % 4], "validity": "not_set"}
+                  for i, sev in enumerate(["critical", "high", "high", "medium", "low", "low", "low"])]
+        issues.append({"status": "closed", "severity": "low", "lane": "done", "validity": "false_positive"})
+        snapshot = {"projectId": "p1234567", "projectName": "Smoke", "webUrl": "#", "issues": issues}
+        html = build_report.build(snapshot, page, "Maintain")
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
 
 
