@@ -178,6 +178,21 @@ class RecipeRenderTests(unittest.TestCase):
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
 
 
+    # The caption says the ring marks the winner, so the winner's point carries the ring (r=10) and no other does.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_recipe_rings_the_winner_on_the_composite_chart(self) -> None:
+        html = build_report.build(self.fixture_snapshot(True), self.recipe_page(), "Title")
+        with tempfile.TemporaryDirectory() as tmp:
+            page = Path(tmp) / "page.html"
+            page.write_text(html, encoding="utf-8")
+            dom = subprocess.run(
+                [check_report.find_chrome(), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
+                 "--virtual-time-budget=4000", "--dump-dom", page.as_uri()],
+                capture_output=True, text=True, timeout=120, check=False,
+            ).stdout
+        self.assertIn("The ring marks", dom)
+        self.assertEqual(dom.count('r="10"'), 1)
+
     # Fewer than three Composite scores: the page leaves that figure out and still draws the rest.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
     def test_recipe_renders_without_composite_scores(self) -> None:

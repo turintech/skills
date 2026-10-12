@@ -37,7 +37,7 @@ const perVersion = Math.min(...counts) === Math.max(...counts) ? String(counts[0
 
 R.header(document.getElementById('header'), {
   eyebrow: 'Artemis Discovery · ' + (project ? project + ' · ' : '') + key,
-  title: project ? ['Artemis made ' + project + ' ', gain, verdict] : [winV.label + ' is ', gain, ' than the baseline', verdict],
+  title: [winV.label + ' is ', gain, verdict],  // one line; the project is in the eyebrow
   chips: t ? [
     { text: 'Verdict: ' + t.verdict, strong: t.verdict === 'better' },
     t.ciLowPct != null ? { text: '95% interval ' + F.pct(t.ciLowPct) + ' to ' + F.pct(t.ciHighPct) } : null,

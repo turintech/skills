@@ -320,7 +320,7 @@
   }
 
   /* trajectory(el, points, opts): values in the order versions were made; gaps break the line.
-     points: [{ label, y (null for a gap), color, mark, valueLabel, tip }]
+     points: [{ label, y (null for a gap), gapText (default 'not measured'), color, mark, valueLabel, tip }]
      opts: { zero: {value, label}, annotations: [{after: index, text}], yLabel, yFormat, aria } */
   function trajectory(el, points, o = {}) {
     const W = 880, H = 340, L = 70, R = 30, T = 34, B = 44;
