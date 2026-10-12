@@ -176,5 +176,5 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 - [ ] `discovery compare`: each version's verdict on the target metric, as Artemis gives it; the verdicts, not the Composite score, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
-- [ ] Project link returned, naming the page to open (Discover, the run, its Versions tab, the winning version).
+- [ ] Links returned to the run's Versions page and the winning version, or, when the path shape isn't known, the project link naming the page to open.
 - [ ] A run that ended short of its budget checked against the agent narration first, so a platform-side stop is reported as such and not as a project, runner, or setup fault.
