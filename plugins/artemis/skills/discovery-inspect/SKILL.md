@@ -161,7 +161,7 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 - Versions already recorded are real. Their measurements happened on the runner and stand on their own.
 - Do not re-run setup, reinstall the runner, or re-import the project. None of them caused it.
 - `experimentCount` above `versionCount` means planned experiments never became versions, which is the expected shape here rather than a second fault.
-- Report it as a platform-side failure and name the remaining budget. If a calling skill has a retry rule, follow it. Otherwise follow `discovery-steer`: a failed run is retried through its agent (`discovery steer` with "Please retry the last action that failed."), and a cancelled run gets `discovery continue <run-id> --versions <n>` with the unused budget offered as `n`; both only with the user's yes, since they spend credits.
+- Report it as a platform-side failure and name the remaining budget. If a calling skill has a retry rule, follow it. Otherwise follow `discovery-steer`: a failed or cancelled run gets `discovery continue <run-id> --versions <n>`, with the unused budget offered as `n` (at least 1), only with the user's yes, since it spends credits. Don't steer a failed run.
 
 ## Common misreads
 

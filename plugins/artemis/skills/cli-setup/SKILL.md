@@ -74,7 +74,7 @@ artemis status
 artemis runner list
 ```
 
-`status` can report authentication as ok with a revoked key, so the key is only proven when `runner list` succeeds; a `401` there means log in again. If the version meets the skills' minimum (see *Verify*), `status` names the target deployment and `runner list` succeeds, there is nothing to install or log in. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
+`status` exits 3 when the deployment rejects the key, and `runner list` succeeding proves it; a `401` there means log in again. If the version meets the skills' minimum (see *Verify*), `status` names the target deployment and `runner list` succeeds, there is nothing to install or log in. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
 
 ## Install the CLI
 
@@ -207,9 +207,9 @@ Keep the surrounding chatter short. At this step the user needs the command, whe
 
 For on-prem, use the base URL accepted by `artemis login --help`. Do not set individual service URLs unless the current CLI explicitly requires it; the base URL normally derives them.
 
-Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the home config: a project-local `.env` is easy to leak and shadows the home config.
+From CLI 1.1.16 the CLI merges a `./.artemis.env` in the current folder over `~/.config/artemis/.env` and never reads `./.env`; a `./.env` that names another deployment stops every command except setup and diagnostics (`login`, `config`, `env`, `status`, `version`, `logout`), which only warn. The fix is to delete it, rename it to `.artemis.env`, or pick the deployment with `artemis login` or `--config`. Before 1.1.16, `./.env` comes before the home config. Keep keys in the home config: a project-local file is easy to leak.
 
-**This is the usual cause of a CLI that was working a minute ago.** When `artemis status` reports `USER_MGMT_URL: required but not set` and friends, look for a `.env` in the current directory before concluding the user is logged out: many repositories ship one for their own app, and working inside such a repository silently replaces the CLI's config. The fix is to run from elsewhere or pass `--config`, not to log in again.
+**On CLIs before 1.1.16 this is the usual cause of a CLI that was working a minute ago.** When `artemis status` reports `USER_MGMT_URL: required but not set` and friends, look for a `.env` in the current directory before concluding the user is logged out: many repositories ship one for their own app, and working inside such a repository silently replaces the CLI's config. The fix is to run from elsewhere or pass `--config`, not to log in again. From 1.1.16 the CLI ignores that file, noting once ".env is no longer read as Artemis configuration".
 
 **A deployment URL in the environment needs its own key.** From CLI 1.1.15, if `ARTEMIS_BASE_URL` (or a service URL) is set in the shell to a different deployment from the one the config file's key belongs to, commands that reach the deployment are refused: "the stored key would be sent to a deployment it was not issued for". The user is not logged out. Unset the variable, set `ARTEMIS_API_KEY` beside it, or log in to that deployment with `artemis login` (a named `artemis env` keeps both).
 
@@ -242,7 +242,7 @@ Compare the installed CLI with the skills you are about to use. Each skill decla
 ```bash
 artemis --version || artemis version
 artemis status
-artemis runner list   # proves the key; status alone can pass with a revoked one
+artemis runner list   # proves the key
 ```
 
 Confirm the build carries the command groups the task needs. For Discovery on current deployments, the CLI must expose:
@@ -253,6 +253,8 @@ artemis discovery create --help
 ```
 
 `discovery create` must accept `--script` and `--llm-metrics`. If either flag is missing, update the CLI by direct download (*Where to download from*).
+
+To repeat a benchmark when checking a change on a runner, `artemis changeset validate --help` must list `--eval-mode`, `--eval-runs` and `--max-runs` (CLI 1.1.17+). If they are missing, update the CLI the same way.
 
 Report the installed version, base URL, and authenticated user. Do not report success if `status` shows missing endpoints or an unauthenticated session.
 

@@ -59,7 +59,7 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 | Find why a build failed | **Branches**, the branch, its **Scripts** tab. The **Script runs** list is on the left: open the failed run, then the failing command under **Commands** to read its log. Hover status icons: some reasons only show as a tooltip | No |
 | Connect a machine | Go to `<deployment-base-url>/settings/runners/new` in the same tab: choose the operating system and architecture and follow the steps. When it says **New runner detected**, return through the project or **Discover**: its **View runners** and **Back to Runners** links open the **Runners** list. Both **Add new Artemis runner** links lead elsewhere: the Runner dropdown's opens a new tab, and the one on **Runner and Scripts** opens the **Runners** list, whose **Owner** column shows people's names | No, unless they run the steps |
 | Import a repository | **Projects**, **New**, **Connect Git Repository**, pick the repository, then **Create Project**. It needs a Git connection Artemis can read; the page offers one if there is none | Yes |
-| Try a sample project | **Projects**, **New**, **Open a sample Project**. Featured: Particle Life (C++), Julia Set (Java) and Smoke (Python), each with **Import project**; the project opens when the import finishes | Yes |
+| Try a sample project | **Projects**, **New**, **Open a sample Project**. Featured: Particle Life (C++), Julia Set (Java) and Shop Analytics (SQL), each with **Import project**; the project opens when the import finishes | Yes |
 | Set up a benchmark | Overview, the **Run and measure your code** card, **Setup**, **Create branch** (default name `artemis/measure`). That opens the branch's **Scripts** tab: **Ask agent** has the in-app agent write the script (it spends credits, a few dollars; say so first), **Add manually** is free. Then **Run script**: pick the runner (the first run makes it the project's default), set **Benchmark runs**, **Run**, and read **Measurements**. A passing run becomes the branch's baseline and offers **Optimise in Discover**. Commands live in **Project Settings**, **Runner and Scripts**, under **Scripts** | Yes |
 | Start a Discovery run | Section 3a | Yes |
 
@@ -79,7 +79,7 @@ Steps 1 and 2 may also offer an outline **Skip to Summary**. It starts nothing, 
 
 If step 1's heading reads **How should versions be scored?**, the deployment has the older wizard and its steps differ from this table. Its outline **Start now** starts the run and spends credits: never click it without the user's yes.
 
-The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, **Setup**, and the **Discovery agent** chat, where the agent explains what it is trying. It may start collapsed: open it with **Expand panel** at the top right. Stay on Overview while the first experiments arrive.
+The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, **Setup**, **Baseline** when the run has one, and the **Discovery agent** chat, where the agent explains what it is trying. It may start collapsed: open it with **Expand panel** at the top right. Stay on Overview while the first experiments arrive.
 
 Say one thing the page does not: mentioning a file with @ (the **+** button) is a hint to the agent about where to look, not a limit on which files change.
 
@@ -112,11 +112,11 @@ Three things to say while on Versions:
 | How do I get the code out? | The version's branch, **Create PR**; or on Versions, a row's menu: **Create PR**, **Download zip**, **Download Git patch** |
 | Can I rerun a version or the baseline? | Versions, a row's menu, **Run this version**; or **Run baseline** |
 | The run stopped; can it continue? | The run's header: **Continue** after a cancel, **Retry** after a failure, **Generate more versions** after it completes |
-| Where do I change what "better" means? | Project **Metrics** for direction; the run's **Metrics** tab for importance |
+| Where do I change what "better" means? | **Project Settings**, **Metrics** for direction; the run's **Metrics** tab for importance |
 
 ## 4. When the page does not match
 
-- **A button is greyed out:** hover it. The tooltip says what is missing, such as "Pick a runner first." or "Wait for the run to finish."
+- **A button is greyed out:** hover it. The tooltip says what is missing, such as "Pick a runner first." or "Wait for the selected script to finish before continuing."
 - **A button is missing or renamed:** read the page's navigation, use the control that does the same job, and say in one line what it is called now. Never click by guesswork or by coordinates from an earlier screenshot.
 - **A step needs something that is not there** (no machine online, no Git connection): say what is missing and recommend the one next step, usually setting it up through its own tour. Never pick another person's runner.
 - **A 500 mentioning `URL.canParse`:** Chrome is older than version 120; ask the user to update it.

@@ -27,7 +27,7 @@ Title: how many issues are open and how many are critical or high, naming only t
 ```js
 const R = ArtemisReport, S = SNAPSHOT;
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
-const LANES = [['untriaged', 'Untriaged'], ['triaged', 'Triaged'], ['in_progress', 'In progress'], ['done', 'Done']];
+const LANES = [['untriaged', 'Untriaged'], ['triaged', 'Triaged'], ['in_progress', 'In Progress'], ['done', 'Done']];
 const open = S.issues.filter(i => i.status === 'open');
 const archived = S.issues.filter(i => i.status === 'closed');
 const falsePositives = archived.filter(i => i.validity === 'false_positive').length;

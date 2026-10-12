@@ -32,8 +32,8 @@ Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions
 `continue` sets the budget to the versions the run already has plus `--versions <n>`; budget it never used is not carried over. So `n` is the number of new versions, and each one spends credits.
 
 - Active with budget remaining: steer directly. If an active run has exhausted its budget, wait for it to complete first.
-- Completed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
-- Failed: the Web UI's **Retry** asks the run's agent to retry the action that failed rather than adding budget. Do the same with the user's yes: `discovery steer "<run-id>" --message "Please retry the last action that failed."` (section 2), then check `discovery get`.
+- Completed, failed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
+- A failed run is not steered: from CLI 1.1.16 `steer` refuses it. The Web UI's **Retry**, which re-sends the run's chat without new budget, has no CLI equivalent, so continue it as above, naming the credit cost, then check `discovery get`.
 
 ```bash
 artemis --output-format json discovery continue "<run-id>" --versions <n>
@@ -48,9 +48,9 @@ artemis --output-format json discovery steer "<run-id>" \
   --message "<new direction>"
 ```
 
-Add `--model <catalogue-uuid-or-model-type>` only when the user chose a model. Add `--skip-interaction` only when the user wants autonomous continuation.
+Add `--model <catalogue-uuid-or-model-type>` only when the user chose a model.
 
-`discovery steer` responds to the current agent run, follows any child run returned by the platform, repoints the discovery, and verifies the new `agentRunId`. Do not substitute generic `artemis chat send`; it does not perform discovery-specific repointing.
+`discovery steer` answers the run's chat, the one the Web UI replies to (CLI 1.1.16 and newer; older CLIs respond to the current agent run), follows the child run the answer starts, repoints the discovery to it, and verifies the new `agentRunId`. Do not substitute generic `artemis chat send`; it does not perform discovery-specific repointing.
 
 ## 3. Verify delivery
 
