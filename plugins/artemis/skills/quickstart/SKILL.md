@@ -242,7 +242,7 @@ Capture the script's `id`: step 5 runs it with `--script` and step 7 passes it t
 
 The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. AI Metrics are off (`--llm-metrics=false`) so only the measured `simulation_fps` is on show.
 
-Do not check the credit balance or ask whether the account has credits: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar.
+Do not check the credit balance or ask whether the account has credits: new accounts have them. A 402 `INSUFFICIENT_BALANCE` from the gateway is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar. `ERR_LLM_PROVIDER_INSUFFICIENT_BALANCE` is the opposite: the model provider's account behind Artemis, so never ask the user to pay; an admin checks the provider's billing, or contact support.
 
 End on the code, not a number: the run's **Versions** tab (Table, or Graphs on `simulation_fps`) to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a roll-up of the metrics by importance, not a measurement.
 
