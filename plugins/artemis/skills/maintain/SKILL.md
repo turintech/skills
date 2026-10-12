@@ -1,9 +1,9 @@
 ---
 name: maintain
 description: Run Artemis Maintain end to end on a project. Author or import Rules, Scan the code for Issues, triage them, fix them with the fix agent, in Discovery or with your own coding agent, ship each fix as a branch or PR, and re-sync outdated Issues as the code moves on. Use when the user wants to scan a project for code-health Issues, set up Rules, or triage, fix or ship Issues.
-compatibility: Requires Artemis CLI 1.1.15+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.16+ and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.15"
+  artemis-cli-min: "1.1.16"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -13,7 +13,7 @@ metadata:
 
 - **Problem:** Finds code-health Issues against a project's Rules, then triages them, fixes them and ships each fix as a branch or pull request.
 - **Must be available:** An authenticated CLI and an imported project. No runner, except for Fix in Discovery.
-- **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.15, which has `scans get`, `scans cancel`, display ids, `--no-limit` and `--lane`); if it is older, load `cli-setup` first.
+- **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.16, which has `issues cancel` and display ids for `fix --discovery`, on top of 1.1.15's `scans get`, `scans cancel`, `--no-limit` and `--lane`); if it is older, load `cli-setup` first.
 - **Use / don't use:** Use to scan for Issues, manage Rules, or triage, fix and ship Issues. Not for Discovery runs (load `discovery-start`) or browser walkthroughs (load `platform-tour`).
 - **Next skill:** None required. Return to `artemis` routing for other work.
 
@@ -33,7 +33,7 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 - For **publish / pr** only: the project's git connection must have push access. Maintain's `publish` and `pr` push to GitHub.
 - Optionally `jq`; the snippets use it, but any JSON filter works.
 
-**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix`: without `--discovery` it takes the UUID, and with `--discovery` it passes the ids to the maintain agent as plain text, so give it UUIDs too. In scripts, lift `.id`.
+**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix`: without `--discovery` it takes the UUID. With `--discovery`, give display ids (`ISS-n`) with `-p`; the CLI turns a UUID into its display id, since the maintain agent reads only display ids. In scripts, lift `.id`.
 
 **Credits.** Every step but triage is an agent run: a Scan, a fix (including **Fix again**), Fix in Discovery, a Re-sync and every `maintain chat` turn spend credits. Before `scans run`, `issues fix` (with or without `--discovery`), `syncs run`, `maintain chat`, a `chat send` or a `chat answer` that sets an agent going again, tell the user what it will do and that it spends credits, and run it only on their yes. Approving a question card that starts a Scan, a fix or a Discovery run spends credits too: approve a card only after the user's yes.
 
@@ -52,7 +52,7 @@ for i in $(seq 16); do   # about 8 minutes
 done; echo "fixStatus=$s"
 ```
 
-After three runs with no change, stop waiting and look at why. For a fix, `artemis --output-format json maintain issues fix-runs <id> -p <p>` lists `.runs[]` with `isActive` and `agentRunStatus`: a failed fix run is not written back, so `fixStatus` can sit at `in_progress` for good. If `agentRunStatus` is `failed` or `cancelled`, or the run's chat (`artemis chat messages <chat-id>`) is waiting on a question card, stop and tell the user. Scans and Re-syncs get the same three-run limit.
+After three runs with no change, stop waiting and look at why. For a fix, `artemis --output-format json maintain issues fix-runs <id> -p <p>` lists `.runs[]` with `isActive` and `agentRunStatus`: a failed fix run is not written back, so `fixStatus` can sit at `in_progress` for good. If `agentRunStatus` is `failed` or `cancelled`, or the run's chat (`artemis chat messages <chat-id>`) is waiting on a question card, stop and tell the user; with their yes, a fix that is still running can be stopped (§6). Scans and Re-syncs get the same three-run limit.
 
 ---
 
@@ -149,6 +149,7 @@ artemis maintain issues fix <issue-uuid>... [--model claude-sonnet-5]
 - It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background; post the start block (`artemis`'s *Start block*): Fix started. Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
 - The terminal `fixStatus` values are `done`, `failed` and `cancelled`. There is no `fixed` or `complete`.
 - `done` can still be an empty Branch. Check `artemis changeset diff <changeset-id> --project <p>` before shipping; don't judge by `publish`/`pr` output, which reads empty for every unpublished fix. If the diff is empty, **Fix again** (run `fix` on the Issue again); if it is still empty, the Issue is probably already fixed, so re-sync it (§8).
+- Stop a running fix, after the user's yes, with `artemis maintain issues cancel <ISS-n> -p <p> --force` (the Web UI's Stop). It reports `not_running` when nothing is running, and refuses a local attempt.
 - Every attempt is kept: `artemis maintain issues fix-runs <id> -p <p>` lists them, and the Issue reflects the latest. Trying a different `--model` on a second attempt loses nothing.
 
 ### Fix in Discovery
@@ -156,7 +157,7 @@ artemis maintain issues fix <issue-uuid>... [--model claude-sonnet-5]
 For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The maintain agent settles the run's settings: unless it is given them, it asks for the version budget (10 by default), the model and the runner, then the script and how many times each version is benchmarked. Agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), that each version is agent work that spends credits, and that the run also scores AI Metrics. Then pass them, so the agent asks nothing it was already told:
 
 ```bash
-artemis maintain issues fix <issue-uuid> --discovery --project <p> \
+artemis maintain issues fix <ISS-n> --discovery --project <p> \
   --model <model> --versions <n> --runner <runner> --script <script> --repeats <runs> --timeout 8m
 ```
 
@@ -178,11 +179,12 @@ In text mode only the prompt goes to stdout. While that agent works in the user'
 
 ```bash
 artemis maintain issues transition <id> --to in_progress --source local_agent -p <p>
-artemis maintain issues submit-local-fix <id> --project <p>     # uploads the changed files, moves it to done
+artemis maintain issues submit-local-fix <id>... --project <p>  # uploads the changed files, moves them to done
 ```
 
 - Leave the fix uncommitted, on the project's current head: it uploads what differs from `HEAD`, so committed work shows no changes, and it refuses if the checkout has moved past the commit the fix is based on.
 - It sends modified tracked files only. Add new files with `--include-untracked`, or name exact files with `--path`.
+- Issues fixed by one edit go in one call, so they share the Branch.
 - `--keep-open` attaches the Branch without moving the Issue to done.
 - Don't move an Issue to `done` by hand when you have a fix to attach: once it is done, no Branch can be attached.
 
@@ -213,9 +215,9 @@ Syncs run in the background like Scans. There is no `syncs get`: match the sync 
 
 ## Checklist
 
-- [ ] CLI at least 1.1.15; project UUID confirmed.
+- [ ] CLI at least 1.1.16; project UUID confirmed.
 - [ ] Rules in place and none still drafts.
-- [ ] The user said yes before each Scan, fix (agent, Fix again, Discovery), Re-sync, `maintain chat` turn, `chat send` or resuming `chat answer`, card approval and `rules delete`.
+- [ ] The user said yes before each Scan, fix (agent, Fix again, Discovery), Re-sync, `maintain chat` turn, `chat send` or resuming `chat answer`, card approval, `issues cancel` and `rules delete`.
 - [ ] For Fix in Discovery, the yes covered the model, versions, runner and script, Benchmark runs and AI Metrics, and those settings were passed as flags.
 - [ ] The Scan reached `done`, and `issuesFound` is checked, not assumed.
 - [ ] Issues triaged before any fix; unrelated Issues in separate `fix` calls.
