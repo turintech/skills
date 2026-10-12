@@ -198,6 +198,13 @@ Runner    <runner name>
 Open      <deployment-base-url>/projects/<project-id>/branches/<changeset-id>/validations
 ```
 
+Then say what Artemis is doing, and say it again after each loop that ends unfinished. This is `artemis`'s *Waiting out loud*, carried here because this flow does not load that skill; it applies to every wait in this flow, including those `discovery-start` and `discovery-inspect` run for the demo:
+
+1. **Before the wait:** `Artemis is <doing X> on <runner>; this usually takes about <N> min. Follow it at <link>.` For this step: building, testing and benchmarking Particle Life on the runner, about a minute, at the start block's `Open` link. While the status is `created`, the runner has not picked it up yet; say so.
+2. **After a loop that ends unfinished:** `Artemis is still <doing X>, <M> min in: <status>, <count>. I'll check for up to 8 more minutes.`
+
+Take the expected time only from a measurement (the table's "About a minute" for the demo, `repo-command-setup` §5a's phases, or an earlier run in this session); with none, give the check limit instead. Never go quiet, and never paste a raw status line on its own.
+
 The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
@@ -303,6 +310,7 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] Just set me up: stopped after the runner, with no project imported and no run started
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
+- [ ] Each wait said out loud: what Artemis is doing, how long, the link, and an update after each unfinished loop
 - [ ] An `Artemis · Validation started` block before the wait, and `discovery-start`'s `Artemis · Discovery started` block after the run was created
 - [ ] A link and what they will see each time something appeared in Artemis
 - [ ] Discovery started from the branch, with settings fixed rather than asked
