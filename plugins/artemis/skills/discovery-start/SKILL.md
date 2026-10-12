@@ -80,7 +80,7 @@ Capture the script's `id` from the create or list response. Prefer passing `--sc
 
 Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes; this one question also carries the recommended defaults. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its welcome or in its one-line question before the run.
 
-A calling skill's go-ahead counts only if the user was told, earlier in this session, that the run uses account credits. If you cannot see that they were, ask in one line before dispatching: "This uses account credits; go ahead?", and wait for a yes.
+A calling skill's go-ahead counts only if a message in this conversation told the user this run uses account credits and the user replied after it (a permission prompt is not a reply, and an option's description is not the credits line). If you cannot point to that message and the reply, ask in one line before dispatching: "This uses account credits; go ahead?", and wait for a yes.
 
 ```bash
 artemis --output-format json discovery create \
@@ -122,7 +122,18 @@ When the estimate above is longer than the user wants to wait, offer [Fast-track
 
 Capture the run's `id` from the JSON (there is no `run_id` key); every later command needs it.
 
-Immediately post the start block (`artemis`'s *Start block*): Discovery started, opening `<deployment-base-url>/projects/<project-uuid>/discover/<run-id>`. A `--setup` run starts nothing until `setup complete`, so post its block then, not after `create`.
+Immediately post the start block, before any wait, as reply text with nothing around it. It is `artemis`'s *Start block*, carried here because callers such as `quickstart` do not load that skill:
+
+```text
+Artemis · Discovery started
+Project         <project name>
+Goal            <taskDescription>
+Versions        <n> · model <model> · LLM council <review models>
+Benchmark runs  <n>
+Open            <deployment-base-url>/projects/<project-uuid>/discover/<run-id>
+```
+
+Names, not ids. Leave out `· LLM council …` when no review models were passed, **Benchmark runs** unless `--eval-runs` or `--max-runs` was passed, and any row you don't know. A `--setup` run starts nothing until `setup complete`, so post its block then, not after `create`.
 
 A `--setup` run lives at `<deployment-base-url>/projects/<project-uuid>/discover/setup/<run-id>` until `setup complete`, then at the link above. If that link returns not found, give the project link, `<deployment-base-url>/projects/<project-uuid>`, where Discover lists the run.
 
@@ -190,6 +201,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 
 ## Checklist
 
+- [ ] `Artemis · Discovery started` block posted, with the run link, before any wait
 - [ ] Project UUID confirmed; runner either supplied by the calling skill, or confirmed **with the user** rather than picked because it showed online
 - [ ] Benchmark writes `artemis_results.json`/`.csv` (or qualitative-only is a deliberate choice)
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code

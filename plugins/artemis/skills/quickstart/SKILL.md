@@ -30,7 +30,7 @@ Carry these between skills so nothing is asked twice: deployment and whether the
 
 ## 0. Look before asking
 
-Check silently, and skip later steps that are already done. A missing CLI or a folder that is not a git repository is an answer, not a failure: end each check with `|| true` so the user's first sight of Artemis is not a red error.
+Check silently, and skip later steps that are already done. These checks only read. For a new user, the §2 welcome and the §4 plan come next, in one turn, before anything is installed or handed to another skill, including a setup-only request. A missing CLI or a folder that is not a git repository is an answer, not a failure: end each check with `|| true` so the user's first sight of Artemis is not a red error.
 
 | Check | How |
 |---|---|
@@ -39,7 +39,7 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Browser control | Not checked here. Only when the user asks for the browser, section 3 hands over to `cli-follow-along` section 1 |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
 | Demo toolchain | Unless the user brought their own code, and when the runner will run on this machine: the check below. The demo builds with CMake 3.20 or newer (`ctest --test-dir`) and a C++ compiler and benchmarks with Python 3. A missing tool is the user's to install before the runner step: name it and the command, such as `brew install cmake` or `sudo apt install cmake g++ python3` |
-| CLI | `artemis --version` is at least this skill's `artemis-cli-min` (1.1.16, the highest of the Artemis skills, so neither the later steps here nor a skill the user moves on to, such as `maintain`, stops for an update). If it is older, `cli-setup` updates it now, before the runner and project checks. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
+| CLI | `artemis --version` meets this skill's `artemis-cli-min` by `cli-setup`'s `cli_meets_min` (*Verify*; a dev build counts from its date) (1.1.16, the highest of the Artemis skills, so neither the later steps here nor a skill the user moves on to, such as `maintain`, stops for an update). If it is older or missing, note it: `cli-setup` updates it in section 5, after the welcome and the plan. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds. If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
@@ -89,7 +89,7 @@ Write the section 2 welcome as reply text, all four lines, then go straight on t
 2. **Just set me up:** the CLI, sign-in and a runner, then stop, with no project and no run.
 3. **The browser:** computer use drives Chrome so they watch each page change, and it needs the Claude browser extension.
 
-On a switch, rewrite the plan in the task list. A switch after the demo run has started does not stop it: say it carries on in the platform, then continue with the new choice.
+On a switch, rewrite the plan in the task list. A switch into the demo after setup (from **just set me up**, or a yes to the close's suggestion) first sends welcome line 4, the credits line, then the demo's plan, before any project check. A switch after the demo run has started does not stop it: say it carries on in the platform, then continue with the new choice.
 
 If they ask for the browser, load the skill and follow `cli-follow-along` section 1 for the connection, and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
 
@@ -141,7 +141,7 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of Benchmark runs, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
 - **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch.
-- **The demo run** is announced, not asked, only when this session sent the §2 welcome with its credits line and the user has since replied in chat (a permission prompt is not a reply) or answered the §4 fresh-or-continue question, without switching away from the demo. Otherwise, at section 7's step 7 and before handing over to `discovery-start`, ask one line and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." A run on the user's own code goes through `discovery-start`, which asks first.
+- **No `discovery create` for the demo without the credits line answered in this conversation.** The line is welcome line 4, sent in this session with the user replying in chat after it (a permission prompt is not a reply), or the one-line question below. If you cannot point to one of those two messages and the reply after it, ask at section 7's step 7, before handing over to `discovery-start`, and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." The §4 fresh-or-continue answer alone is not the go-ahead. A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
@@ -155,7 +155,7 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
 | 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | Section 0's demo toolchain check instead | |
 | 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
-| 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (`artemis`'s *Start block*: Validation started), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
+| 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (below), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
 | 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
 | 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Versions** and the winning version |
 
@@ -169,7 +169,43 @@ artemis --output-format json changeset create --project "<project-id>" --name "a
 
 Capture its id. Read the commit it holds with `artemis changeset versions <changeset-id> --project <id>` and report that one, not the project's `gitHash`.
 
-**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` so its id is printed at once, then wait with the loop in `repo-command-setup` §5b. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
+**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` and keep its id, then wait. Run both blocks as written, filling in only the `<...>` values; never filter the skill file to rebuild them, and never retype the loop. A validation ends `success`, `failed` or `cancelled`; a Discovery run ends `completed`, so a loop that waits for `completed` here never stops.
+
+```bash
+out=$(artemis --output-format json changeset validate "<changeset-id>" --project "<project-id>" \
+  --version original --script "<script-id>" --runner "<runner-name>") \
+  && printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
+```
+
+```bash
+for i in $(seq 16); do
+  out=$(artemis --output-format json changeset validation get "<validation-id>" \
+        --project "<project-id>") || { echo "validation get failed"; break; }
+  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status") or "")')
+  case "$s" in success|failed|cancelled) break ;; esac
+  sleep 30
+done; echo "$s"
+```
+
+Between the two, post the start block as reply text, with no other text around it: what started, and where to watch it. Every start in this flow gets one, and the Discovery run's comes from `discovery-start`. The format is `artemis`'s *Start block*, which this flow does not load:
+
+```text
+Artemis · Validation started
+Project   <project name>
+Version   original
+Script    <script name>
+Runner    <runner name>
+Open      <deployment-base-url>/projects/<project-id>/branches/<changeset-id>/validations
+```
+
+Then say what Artemis is doing, and say it again after each loop that ends unfinished. This is `artemis`'s *Waiting out loud*, carried here because this flow does not load that skill; it applies to every wait in this flow, including those `discovery-start` and `discovery-inspect` run for the demo:
+
+1. **Before the wait:** `Artemis is <doing X> on <runner>; this usually takes about <N> min. Follow it at <link>.` For this step: building, testing and benchmarking Particle Life on the runner, about a minute, at the start block's `Open` link. While the status is `created`, the runner has not picked it up yet; say so.
+2. **After a loop that ends unfinished:** `Artemis is still <doing X>, <M> min in: <status>, <count>. I'll check for up to 8 more minutes.`
+
+Take the expected time only from a measurement (the table's "About a minute" for the demo, `repo-command-setup` §5a's phases, or an earlier run in this session); with none, give the check limit instead. Never go quiet, and never paste a raw status line on its own.
+
+The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
 
@@ -179,7 +215,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
 - model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
 - `--target-files` only when the repository made them obvious
-- for the demo, the user's go-ahead under the §6 rule (the welcome with its credits line was sent and the user replied since without switching, or they said yes to its one-line question), so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
+- for the demo, the user's go-ahead under the §6 rule, naming the message that carried the credits line (welcome line 4 or the one-line question) and the user's reply, so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
 
 Then follow the run with `discovery-inspect`.
 
@@ -256,6 +292,8 @@ Show the plan again with everything ticked, then a short readiness report, wheth
 
 Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.
 
+Ask the next step as one question with options (the host's question tool when it has one), never as a sentence a bare "yes" could answer. Any other offer, such as adding the CLI to a shell startup file, goes in its own message, naming the file and the lines it would add. When an answer still fits more than one offer ("both", "yes"), ask which, and do each one separately. Choosing the demo here is a §3 switch: the credits line, then the plan.
+
 When they later make a change of their own, `change-validate` checks whether it is really faster.
 
 Say once, while the run is going, that it continues on the platform if the terminal is closed; and at the end, that the runner is still running, with its stop command.
@@ -272,7 +310,9 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] Just set me up: stopped after the runner, with no project imported and no run started
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
+- [ ] Each wait said out loud: what Artemis is doing, how long, the link, and an update after each unfinished loop
+- [ ] An `Artemis · Validation started` block before the wait, and `discovery-start`'s `Artemis · Discovery started` block after the run was created
 - [ ] A link and what they will see each time something appeared in Artemis
 - [ ] Discovery started from the branch, with settings fixed rather than asked
-- [ ] Demo run announced only after the credits line and a user reply; otherwise the §6 one-line question asked and answered yes
+- [ ] No demo `discovery create` until the credits line (welcome line 4 or the §6 question) was sent and answered in this conversation
 - [ ] Readiness report given, each line from a check that ran

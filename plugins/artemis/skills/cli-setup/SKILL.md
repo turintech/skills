@@ -87,6 +87,17 @@ Install by direct download. The installer script and the `latest/` directory can
 **If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below, with a `checksums.txt`. Check what it serves before it replaces anything: this downloads into a temporary directory, checks the checksum and the version there, and installs only a build that passes both:
 
 ```bash
+cli_meets_min() {  # $1: an `artemis --version` line, $2: the minimum release. Prints ok, old or unknown.
+  d="$(printf '%s' "$1" | grep -oE 'dev-[0-9]{8}' | cut -c5-)"
+  if [ -n "$d" ]; then   # a dev build counts from its date: on or after the day the minimum was published
+    r="$(curl -fsSI "https://files.artemis.turintech.ai/public/artemis-cli/$2/checksums.txt" | awk \
+      'tolower($1)=="last-modified:" {m=index("JanFebMarAprMayJunJulAugSepOctNovDec",$4); printf "%s%02d%s", $5, (m+2)/3, $3}')"
+    if [ -z "$r" ]; then echo unknown; elif [ "$d" -ge "$r" ]; then echo ok; else echo old; fi
+  else
+    v="$(printf '%s' "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    if [ -n "$v" ] && [ "$(printf '%s\n' "$2" "$v" | sort -V | head -1)" = "$2" ]; then echo ok; else echo old; fi
+  fi
+}
 DIR="<the CLI download directory from the prompt>"
 PLATFORM="linux-amd64"   # see the table below
 MIN="1.1.16"             # the highest artemis-cli-min of the skills in use
@@ -99,9 +110,12 @@ elif ! ( cd "$TMP" && curl -fsSLO "$DIR/checksums.txt" \
   echo "INSTALL FAILED: checksum"
 elif ! V="$(chmod +x "$F" && "$F" --version)"; then
   echo "WON'T RUN: the downloaded build did not start"
-elif VN="$(echo "$V" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"; [ -z "$VN" ] || [ -z "$MIN" ] \
-     || [ "$(printf '%s\n' "$MIN" "$VN" | sort -V | head -1)" != "$MIN" ]; then
+elif R="$(cli_meets_min "$V" "$MIN")"; [ "$R" = old ]; then
   echo "TOO OLD: the directory's build reports \"$V\", below $MIN"
+elif [ "$R" = unknown ]; then
+  echo "DEV UNCHECKED: \"$V\" is a dev build, and the $MIN release date could not be read"
+elif [ "$R" != ok ]; then
+  echo "CHECK FAILED: cli_meets_min did not run; paste the whole block"
 else
   { mkdir -p ~/.local/bin && install -m 755 "$F" ~/.local/bin/artemis && ~/.local/bin/artemis --version; } \
     || echo "INSTALL FAILED: could not write ~/.local/bin/artemis"
@@ -109,7 +123,7 @@ fi
 rm -rf "$TMP"
 ```
 
-Nothing is replaced unless the last branch runs. On `TOO OLD` or `NO BUILD`, install the newest release from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
+Nothing is replaced unless the last branch runs. `cli_meets_min` is the version rule (see *Verify*): a development build (`dev-<date>-<time>-<sha>`) meets a minimum only if it was built on or after the day that release was published. `DEV UNCHECKED` means that date could not be read: say so, and install it only on the user's yes. Never replace a dev build with a release: when the directory serves dev builds (a dev deployment), a release is no fallback, so on `NO BUILD` there stop and say which build is missing. Otherwise, on `TOO OLD` or `NO BUILD`, install the newest release from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
 
 The public download paths need no login, so send no credentials.
 
@@ -151,7 +165,7 @@ rm -rf "$TMP"
 
 The same lines work on Linux (`sha256sum`) and macOS (`shasum`). On `INSTALL FAILED`, stop and tell the user: never run a binary that doesn't match its checksum, and don't trust an older `artemis` already on `PATH`.
 
-A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`. Check that the user's own shell finds it with `bash -lc 'command -v artemis'`; if not, use the absolute path in the login box and offer, asking first, to add `~/.local/bin` to PATH in their shell startup file. On Windows, download the `.exe` and ask the user where to put it on PATH.
+A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`. Check that the user's own shell finds it with `bash -lc 'command -v artemis'`. If not, before the login box, offer to add `~/.local/bin` to PATH, naming the startup file and the line you would add, and wait for the answer, so the login command can be plain `artemis login ...`. If they decline, use the absolute path in the box. On Windows, download the `.exe` and ask the user where to put it on PATH.
 
 An *API key* is a secret and must never enter the conversation.
 
@@ -197,8 +211,8 @@ At the waiting `API key:` prompt, not here in the chat.
 
 Rules for that message:
 
-- **Nothing else in it.** No docs links, no status lines, no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
-- **One command, one line.** If an environment variable is genuinely needed for an already-open terminal, put it on the same line so it is a single copy.
+- **Nothing else in it.** No docs links, no status lines (not even "the deployment answers"), no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
+- **One command, short lines.** Up to about 80 characters, keep it on one line. Longer (a `--ssl-cert-file`, an absolute path), split it before each flag with a trailing ` \`, one flag per line, so a narrow terminal's wrapping cannot break the paste. If an environment variable is genuinely needed for an already-open terminal, put it on the first line so it is still a single copy.
 - **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
 - **Three boxes, one per user action:** run the command, create the key, paste the key. The line under box 3 says where it goes: the waiting prompt, not the chat.
 - Ask any follow-up question in a separate message afterwards, never stacked under the command.
@@ -237,7 +251,24 @@ bash -lc 'artemis status'
 
 ## Verify
 
-Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.8`; a development build reports `dev-<timestamp>-<sha>` and counts as newer than every release. If the installed release is lower than the highest minimum required, update the CLI before continuing.
+Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.8`; a development build reports `dev-<timestamp>-<sha>`. A dev build meets a minimum only if it was built on or after the day that release was published, which is the `Last-Modified` date of `checksums.txt` in the release's folder on the download server (`.../public/artemis-cli/<version>/checksums.txt`). Check with `cli_meets_min` (the same function as in *Where to download from*), in one shell call, for the highest minimum required:
+
+```bash
+cli_meets_min() {  # $1: an `artemis --version` line, $2: the minimum release. Prints ok, old or unknown.
+  d="$(printf '%s' "$1" | grep -oE 'dev-[0-9]{8}' | cut -c5-)"
+  if [ -n "$d" ]; then   # a dev build counts from its date: on or after the day the minimum was published
+    r="$(curl -fsSI "https://files.artemis.turintech.ai/public/artemis-cli/$2/checksums.txt" | awk \
+      'tolower($1)=="last-modified:" {m=index("JanFebMarAprMayJunJulAugSepOctNovDec",$4); printf "%s%02d%s", $5, (m+2)/3, $3}')"
+    if [ -z "$r" ]; then echo unknown; elif [ "$d" -ge "$r" ]; then echo ok; else echo old; fi
+  else
+    v="$(printf '%s' "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    if [ -n "$v" ] && [ "$(printf '%s\n' "$2" "$v" | sort -V | head -1)" = "$2" ]; then echo ok; else echo old; fi
+  fi
+}
+cli_meets_min "$(artemis --version)" "1.1.16"   # ok, old or unknown
+```
+
+`old`: update the CLI before continuing (on a dev deployment, from its dev directory, never a release). `unknown`: a dev build whose minimum's date could not be read; say so and offer the update.
 
 ```bash
 artemis --version || artemis version

@@ -1,6 +1,6 @@
 # Discovery snapshot contract
 
-`schemaVersion` is `2`. The collector is the only writer, and it computes no statistics: changes, intervals and verdicts are falcon's, from `artemis discovery compare` (CLI 1.1.14 or newer). Renderers must not recompute winners, percentages, statistics, or fitness ranks.
+`schemaVersion` is `2`. The collector is the only writer, and it computes no statistics: changes, intervals and verdicts are falcon's, from `artemis discovery compare` (CLI 1.1.14 or newer), and so are the per-metric mean, spread, min and max from CLI 1.1.17, which adds them to compare. On older CLIs those come from `discovery metrics --stats`. Renderers must not recompute winners, percentages, statistics, or fitness ranks.
 
 ## Top-level fields
 
@@ -10,7 +10,7 @@
 | `provenance.commands` | CLI commands used |
 | `run` | Status, task, counts, baseline SHA/observation, `projectName` (from `project get`, or `project list` on CLIs before 1.1.16; `null` if unavailable), `runner` (the runner's name, else its id), `projectUrl` (stable), `webUrl` (the run on newer deployments; if it 404s, link the project and name the Discover page) |
 | `metrics[]` | `key`, `source`, `unit` (from the platform, else from the name, e.g. `fps`), `role: "reference"` on a control metric and `reference` on the target it controls, `higherIsBetter` (from the platform; `null` when it stores no direction, and then the metric gets no ranking or winner), `kind` (`target` / `quality` / `harness`) |
-| `baseline.metrics` | Per-metric `{mean,min,max,count}` (plus `std`/`ste` when the CLI sent them, `runs`: each individual measurement in order, `q1`/`median`/`q3` from those runs for box plots, and `vsReference`) |
+| `baseline.metrics` | Per-metric `{mean,min,max,count}`, falcon's from `discovery compare` on CLI 1.1.17 or newer and the CLI's own `metrics --stats` before that (`provenance.statsSource` says which; plus `std`/`ste` when sent, `runs`: each individual measurement in order, `q1`/`median`/`q3` from those runs for box plots, and `vsReference`) |
 | `baseline.readings` | Readings per metric that falcon compared against |
 | `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), `overallVerdict` (falcon's, across the version's metrics), per-metric stats + `runs` (only when the collector had each reading, as for the baseline), `pctBetter`, `timesBetter`, `vsBaseline`, `eligible` |
 | `experiments[]` | Title, status, confidence, parents, linked version |

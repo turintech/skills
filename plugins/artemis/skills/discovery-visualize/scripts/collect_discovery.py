@@ -280,6 +280,26 @@ def _stat_payload(row: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def falcon_stats(compared: dict[str, Any] | None) -> dict[str, Any]:
+    """falcon's summary of one metric's readings, which `discovery compare` carries from CLI 1.1.17; {} on older CLIs."""
+    if not compared or compared.get("mean") is None:
+        return {}
+    stats = {"mean": compared["mean"], "min": compared.get("min"), "max": compared.get("max"), "count": compared.get("readings")}
+    for optional in ("std", "ste"):
+        if compared.get(optional) is not None:
+            stats[optional] = compared[optional]
+    return stats
+
+
+def use_falcon_stats(stat: dict[str, Any], compared: dict[str, Any] | None) -> None:
+    """Swap the CLI's summary for falcon's when compare carries one, std and ste included, so a row has one source."""
+    falcon = falcon_stats(compared)
+    if falcon:
+        stat.pop("std", None)
+        stat.pop("ste", None)
+        stat.update(falcon)
+
+
 def quartiles(values: list[float]) -> dict[str, float]:
     """First quartile, median and third quartile by linear interpolation (the usual "type 7")."""
     ordered = sorted(values)
@@ -427,6 +447,12 @@ def build_snapshot(
 
     experiments_by_id = {item["id"]: item for item in experiments_raw if item.get("id")}
     compared_metrics, compared_rows, compared_baseline = index_comparison(payloads.get("comparison"))
+    stats_from_falcon = any(
+        falcon_stats(m)
+        for row in [compared_baseline or {}, *compared_rows.values()]
+        for m in row.get("metrics") or []
+        if isinstance(m, dict)
+    )
 
     # Individual measurements, and the direction the platform stores with each one.
     runs_by_group: dict[str, dict[str, list[dict[str, Any]]]] = {}
@@ -512,6 +538,9 @@ def build_snapshot(
 
     baseline_group = run.get("baselineGroupId")
     baseline_stats = stats_by_group.get(baseline_group or "", {})
+    falcon_baseline = {m.get("name"): m for m in (compared_baseline or {}).get("metrics") or [] if isinstance(m, dict)}
+    for name, stat in baseline_stats.items():
+        use_falcon_stats(stat, falcon_baseline.get(name))
     add_reference_ratios(baseline_stats)
 
     versions: list[dict[str, Any]] = []
@@ -526,6 +555,7 @@ def build_snapshot(
         for name, stat in raw_metrics.items():
             compared = compared_by_name.get(name) or {}
             payload = dict(stat)
+            use_falcon_stats(payload, compared)
             payload["pctBetter"] = compared.get("improvementPct")
             payload["timesBetter"] = times_better(compared.get("improvementPct"), (metric_defs.get(name) or {}).get("higherIsBetter"))
             payload["vsBaseline"] = falcon_vs_baseline(compared)
@@ -684,6 +714,7 @@ def build_snapshot(
         "collectedAt": collected_at,
         "provenance": {
             "source": "artemis discovery metrics --all --stats",
+            "statsSource": "artemis discovery compare (falcon)" if stats_from_falcon else "artemis discovery metrics --all --stats",
             "runsSource": "artemis discovery metrics --all" if runs_by_group else None,
             "verdictsSource": "artemis discovery compare (falcon)" if compared_metrics or compared_rows else None,
             "commands": list(COMMANDS),

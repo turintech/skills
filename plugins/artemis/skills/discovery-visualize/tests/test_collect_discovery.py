@@ -304,6 +304,28 @@ class FalconComparisonTests(unittest.TestCase):
         self.assertEqual(definition["unit"], "fps")
         self.assertIn("discovery compare", snap["provenance"]["verdictsSource"])
 
+    def test_stats_come_from_compare_when_it_carries_them(self) -> None:
+        # CLI 1.1.17 adds falcon's summary to each compared metric; it replaces the CLI's own --stats.
+        payloads = self.payloads()
+        base, version = (row["metrics"][0] for row in payloads["comparison"]["versions"])
+        base.update(mean=101.0, min=97.0, max=104.0, std=2.5, ste=1.1)
+        version.update(mean=121.0, min=116.0, max=124.0, std=None, ste=None)
+        # The CLI's own std must not survive beside falcon's mean.
+        payloads["metrics"][1].update(std=9.0, ste=4.0)
+        snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual(snap["baseline"]["metrics"]["simulation_fps"],
+                         {"mean": 101.0, "min": 97.0, "max": 104.0, "count": 5, "std": 2.5, "ste": 1.1})
+        metric = snap["versions"][0]["metrics"]["simulation_fps"]
+        self.assertEqual((metric["mean"], metric["min"], metric["max"], metric["count"]), (121.0, 116.0, 124.0, 5))
+        self.assertNotIn("std", metric)
+        self.assertIn("compare", snap["provenance"]["statsSource"])
+
+    def test_stats_fall_back_to_metrics_stats_on_older_clis(self) -> None:
+        snap = collector.build_snapshot(self.payloads(), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual(snap["versions"][0]["metrics"]["simulation_fps"]["mean"], 120.0)
+        self.assertEqual(snap["baseline"]["metrics"]["simulation_fps"]["mean"], 100.0)
+        self.assertIn("--stats", snap["provenance"]["statsSource"])
+
     def test_fixture_snapshot_carries_falcons_verdict_words(self) -> None:
         payloads = collector.load_from_dir(str(FIXTURES))
         snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
