@@ -1,6 +1,6 @@
 # Maintain issues report
 
-For "chart", "graph" or "visualise" the issues of a project's Maintain scans. Same kit, template and checker as the Discovery report ([report-kit.md](report-kit.md)); only the data and the figures differ.
+For a summary of a project's Maintain board, and for "chart", "graph" or "visualise" its issues: `maintain` draws this page by default when it summarises the board. Same kit, template and checker as the Discovery report ([report-kit.md](report-kit.md)); only the data and the figures differ.
 
 ## Collect
 
@@ -22,7 +22,7 @@ The deployment base URL is the one `artemis status` reports. Each issue has `sev
 Title: how many issues are open and how many are critical or high, naming only the severities present. Two figures:
 
 1. **How severe are the open issues?** `rankedBars`, one bar per severity present, in severity order (not sorted by count), each labelled "N open · M triaged".
-2. **Where do they sit on the board?** A `table` of open issues: severity by lane, with a total.
+2. **Where do they sit on the board?** `stackedBars`, one bar per severity present, split by lane, with a lane key; the full severity-by-lane table folds out under it.
 
 ```js
 const R = ArtemisReport, S = SNAPSHOT;
@@ -39,7 +39,7 @@ const urgentText = ['critical', 'high'].filter(s => bySeverity(s).length).map(s 
 
 R.header(document.getElementById('header'), {
   eyebrow: 'Artemis Maintain · ' + S.projectName,
-  title: [open.length + ' open issues, ', { em: urgentText }, untriaged ? ', and ' + untriaged + ' not triaged yet' : ''],
+  title: [open.length + (open.length === 1 ? ' open issue, ' : ' open issues, '), { em: urgentText }, untriaged ? ', and ' + untriaged + ' not triaged yet' : ''],
   chips: [
     { text: urgentText, strong: urgent > 0 },
     { text: untriaged + ' of ' + open.length + ' untriaged' },
@@ -52,14 +52,19 @@ const f1 = R.figure(page, { question: 'How severe are the open issues?' });
 R.rankedBars(f1.chart, present.map(s => {
   const n = bySeverity(s).length, t = bySeverity(s).filter(i => i.lane !== 'untriaged').length;
   return { label: s.charAt(0).toUpperCase() + s.slice(1), value: n, text: n + ' open · ' + t + ' triaged', strong: s === 'critical' || s === 'high' };
-}), { base: 0, tickFormat: v => String(Math.round(v)) });
+}), { base: 0, tickFormat: v => (Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : '') });
 f1.bullets([
   urgent ? '<b>' + urgentText + '</b> open: fix or triage these first' : '<b>Nothing critical or high is open</b>',
   present.map(s => bySeverity(s).length + ' ' + s).join(', '),
 ]);
 
 const f2 = R.figure(page, { question: 'Where do they sit on the board?' });
-R.table(f2.chart, ['Severity', ...LANES.map(l => l[1]), 'Total'],
+f2.key(LANES.map((l, i) => ({ swatch: R.series(i), text: l[1] })));
+R.stackedBars(f2.chart, present.map(s => ({ label: s.charAt(0).toUpperCase() + s.slice(1),
+  segments: LANES.map((l, i) => ({ name: l[1], value: bySeverity(s).filter(x => x.lane === l[0]).length, color: R.series(i) })) })),
+  { aria: 'Open issues by severity, split by board lane' });
+const fold = R.h('details', 'ar-details'); fold.append(R.h('summary', '', 'Severity by lane, as a table')); f2.chart.append(fold);
+R.table(fold, ['Severity', ...LANES.map(l => l[1]), 'Total'],
   present.map(s => [s.charAt(0).toUpperCase() + s.slice(1), ...LANES.map(l => String(bySeverity(s).filter(i => i.lane === l[0]).length)), String(bySeverity(s).length)]),
   [1, 2, 3, 4, 5]);
 f2.bullets([

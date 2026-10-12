@@ -113,7 +113,7 @@ The Scan runs in the background; capture its `id`. Check on it with `scans get <
 
 ## 4. Read the board
 
-The board in the Web UI: `<deployment-base-url>/projects/<project-id>/maintain/issues`. Give the user that link with your summary.
+The board in the Web UI: `<deployment-base-url>/projects/<project-id>/maintain/issues`. Give the user that link with your summary, and draw the board's chart with it without being asked: severity, and severity by lane (the Maintain issues report in `discovery-visualize`, `references/maintain-report.md`). With no open issues, or one, answer in text and offer the chart.
 
 ```bash
 artemis maintain issues list --project <p> --severity high                       # open, high severity
