@@ -91,6 +91,8 @@ artemis --output-format json project import \
   --branch "<branch>"
 ```
 
+The Web UI imports with auto-sync off. CLI 1.1.16 and older turn it on by default, so on those add `--auto-sync=false`; 1.1.17 and newer import with it off and hide the flag.
+
 Capture the project UUID from the response immediately.
 
 Give the user a clickable link as soon as the UUID is known:
