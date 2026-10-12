@@ -123,6 +123,20 @@ if (!singleRun) {
   ].filter(Boolean));
 }
 
+// The Composite score per version, in the order they were made: its own axis, no zero line, never the verdict.
+if (S.versions.filter(v => v.fitness != null).length >= 3) {
+  const fc = R.figure(page, { question: 'Composite score per version (the platform’s roll-up of the metrics by importance)' });
+  R.trajectory(fc.chart, S.versions.map(v => ({ label: v.label, y: v.fitness, gapText: 'no score', mark: v.version === win.version,
+    tip: [v.label + ': Composite score ' + (v.fitness == null ? 'none' : F.num(v.fitness, 2))] })),
+    { yLabel: 'Composite score', aria: 'Composite score per version, in the order the versions were made' });
+  const scored = S.versions.filter(v => v.fitness != null), top = scored.reduce((a, b) => (b.fitness > a.fitness ? b : a));
+  fc.bullets([
+    '<b>Highest Composite score:</b> ' + top.label + ' (' + F.num(top.fitness, 2) + ')' + (top.version === win.version ? ', also Artemis’s best on ' + key : ''),
+    scored.length < S.versions.length ? (S.versions.length - scored.length) + ' of ' + S.versions.length + ' versions have no score' : '',
+  ].filter(Boolean));
+  fc.caption('Each version’s Composite score, as the Web UI lists it. It is not a verdict: the figures above decide which version is better. The ring marks ' + winV.label + '.');
+}
+
 // Method note.
 const agent = winV.experimentStatus;
 R.bullets(page, [

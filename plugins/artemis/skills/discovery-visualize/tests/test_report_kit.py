@@ -111,6 +111,14 @@ class RecipeTests(unittest.TestCase):
         self.assertNotIn("{ text: t.readings + ' runs vs '", recipe)
         self.assertNotIn("fmt.p", recipe.replace("fmt.pct", ""))
 
+    # ART-2547 (a): the default page charts the Composite score per version on its own axis, without a zero line.
+    def test_recipe_charts_the_composite_score_per_version(self) -> None:
+        recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
+        figure = recipe.split("// The Composite score per version", 1)[1].split("// Method note.", 1)[0]
+        self.assertIn("R.trajectory(fc.chart, S.versions.map(v => ({ label: v.label, y: v.fitness, gapText", figure)
+        self.assertIn(".length >= 3", figure)
+        self.assertNotIn("zero:", figure)
+
 
 
 class RecipeRenderTests(unittest.TestCase):
@@ -167,6 +175,16 @@ class RecipeRenderTests(unittest.TestCase):
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
     def test_recipe_renders_without_readings(self) -> None:
         html = build_report.build(self.fixture_snapshot(False), self.recipe_page(), "Title")
+        self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
+
+    # Fewer than three Composite scores: the page leaves that figure out and still draws the rest.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_recipe_renders_without_composite_scores(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        for v in snapshot["versions"]:
+            v["fitness"] = None
+        html = build_report.build(snapshot, self.recipe_page(), "Title")
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
 
 
