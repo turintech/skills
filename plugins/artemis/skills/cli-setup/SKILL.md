@@ -87,6 +87,17 @@ Install by direct download. The installer script and the `latest/` directory can
 **If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below, with a `checksums.txt`. Check what it serves before it replaces anything: this downloads into a temporary directory, checks the checksum and the version there, and installs only a build that passes both:
 
 ```bash
+cli_meets_min() {  # $1: an `artemis --version` line, $2: the minimum release. Prints ok, old or unknown.
+  d="$(printf '%s' "$1" | grep -oE 'dev-[0-9]{8}' | cut -c5-)"
+  if [ -n "$d" ]; then   # a dev build counts from its date: on or after the day the minimum was published
+    r="$(curl -fsSI "https://files.artemis.turintech.ai/public/artemis-cli/$2/checksums.txt" | awk \
+      'tolower($1)=="last-modified:" {m=index("JanFebMarAprMayJunJulAugSepOctNovDec",$4); printf "%s%02d%s", $5, (m+2)/3, $3}')"
+    if [ -z "$r" ]; then echo unknown; elif [ "$d" -ge "$r" ]; then echo ok; else echo old; fi
+  else
+    v="$(printf '%s' "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    if [ -n "$v" ] && [ "$(printf '%s\n' "$2" "$v" | sort -V | head -1)" = "$2" ]; then echo ok; else echo old; fi
+  fi
+}
 DIR="<the CLI download directory from the prompt>"
 PLATFORM="linux-amd64"   # see the table below
 MIN="1.1.16"             # the highest artemis-cli-min of the skills in use
@@ -99,9 +110,12 @@ elif ! ( cd "$TMP" && curl -fsSLO "$DIR/checksums.txt" \
   echo "INSTALL FAILED: checksum"
 elif ! V="$(chmod +x "$F" && "$F" --version)"; then
   echo "WON'T RUN: the downloaded build did not start"
-elif VN="$(echo "$V" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"; [ -z "$VN" ] || [ -z "$MIN" ] \
-     || [ "$(printf '%s\n' "$MIN" "$VN" | sort -V | head -1)" != "$MIN" ]; then
+elif R="$(cli_meets_min "$V" "$MIN")"; [ "$R" = old ]; then
   echo "TOO OLD: the directory's build reports \"$V\", below $MIN"
+elif [ "$R" = unknown ]; then
+  echo "DEV UNCHECKED: \"$V\" is a dev build, and the $MIN release date could not be read"
+elif [ "$R" != ok ]; then
+  echo "CHECK FAILED: cli_meets_min did not run; paste the whole block"
 else
   { mkdir -p ~/.local/bin && install -m 755 "$F" ~/.local/bin/artemis && ~/.local/bin/artemis --version; } \
     || echo "INSTALL FAILED: could not write ~/.local/bin/artemis"
@@ -109,7 +123,7 @@ fi
 rm -rf "$TMP"
 ```
 
-Nothing is replaced unless the last branch runs. On `TOO OLD` or `NO BUILD`, install the newest release from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
+Nothing is replaced unless the last branch runs. `cli_meets_min` is the version rule (see *Verify*): a development build (`dev-<date>-<time>-<sha>`) meets a minimum only if it was built on or after the day that release was published. `DEV UNCHECKED` means that date could not be read: say so, and install it only on the user's yes. Never replace a dev build with a release: when the directory serves dev builds (a dev deployment), a release is no fallback, so on `NO BUILD` there stop and say which build is missing. Otherwise, on `TOO OLD` or `NO BUILD`, install the newest release from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
 
 The public download paths need no login, so send no credentials.
 
@@ -237,7 +251,24 @@ bash -lc 'artemis status'
 
 ## Verify
 
-Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.8`; a development build reports `dev-<timestamp>-<sha>` and counts as newer than every release. If the installed release is lower than the highest minimum required, update the CLI before continuing.
+Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.8`; a development build reports `dev-<timestamp>-<sha>`. A dev build meets a minimum only if it was built on or after the day that release was published, which is the `Last-Modified` date of `checksums.txt` in the release's folder on the download server (`.../public/artemis-cli/<version>/checksums.txt`). Check with `cli_meets_min` (the same function as in *Where to download from*), in one shell call, for the highest minimum required:
+
+```bash
+cli_meets_min() {  # $1: an `artemis --version` line, $2: the minimum release. Prints ok, old or unknown.
+  d="$(printf '%s' "$1" | grep -oE 'dev-[0-9]{8}' | cut -c5-)"
+  if [ -n "$d" ]; then   # a dev build counts from its date: on or after the day the minimum was published
+    r="$(curl -fsSI "https://files.artemis.turintech.ai/public/artemis-cli/$2/checksums.txt" | awk \
+      'tolower($1)=="last-modified:" {m=index("JanFebMarAprMayJunJulAugSepOctNovDec",$4); printf "%s%02d%s", $5, (m+2)/3, $3}')"
+    if [ -z "$r" ]; then echo unknown; elif [ "$d" -ge "$r" ]; then echo ok; else echo old; fi
+  else
+    v="$(printf '%s' "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    if [ -n "$v" ] && [ "$(printf '%s\n' "$2" "$v" | sort -V | head -1)" = "$2" ]; then echo ok; else echo old; fi
+  fi
+}
+cli_meets_min "$(artemis --version)" "1.1.16"   # ok, old or unknown
+```
+
+`old`: update the CLI before continuing (on a dev deployment, from its dev directory, never a release). `unknown`: a dev build whose minimum's date could not be read; say so and offer the update.
 
 ```bash
 artemis --version || artemis version
