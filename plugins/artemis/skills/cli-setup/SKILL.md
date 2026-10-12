@@ -254,6 +254,8 @@ artemis discovery create --help
 
 `discovery create` must accept `--script` and `--llm-metrics`. If either flag is missing, update the CLI by direct download (*Where to download from*).
 
+To repeat a benchmark when checking a change on a runner, `artemis changeset validate --help` must list `--eval-mode`, `--eval-runs` and `--max-runs` (CLI 1.1.17+). If they are missing, update the CLI the same way.
+
 Report the installed version, base URL, and authenticated user. Do not report success if `status` shows missing endpoints or an unauthenticated session.
 
 ## Update

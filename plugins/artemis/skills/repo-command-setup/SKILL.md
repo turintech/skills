@@ -217,6 +217,8 @@ for i in $(seq 16); do
 done; echo "$s"
 ```
 
+To repeat the benchmark inside one validation (CLI 1.1.17+), add `--eval-runs <n>` (1 to 500), or `--max-runs <n>` to repeat until the results stabilise, at most n times (it implies `--eval-mode until_stable`). Without them the server's defaults apply. If `changeset validate --help` doesn't list them, update the CLI with `cli-setup`.
+
 Once the validation starts, post the start block (`artemis`'s *Start block*): Validation started, then say what Artemis is doing (`artemis`'s *Waiting out loud*): running the build, tests and benchmark on that runner, about as long as the §5a run took, followed on the branch's Scripts tab (`cli-follow-along` §2). While it is `created`, it is waiting for the runner to pick it up; say so. The script holds the commands; validation runs it with `--script`. `--measure none` keeps command-runtime metrics out unless runtime is the target; `--version original` resolves the changeset's original code. Start the validation without `--wait` so its id is printed at once, then run the loop above. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If the CLI call fails, the loop stops and says so instead of waiting out the 8 minutes. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`, and so can one whose commands ran but recorded nothing, so check `artemis process status "<processId>"`, with `processId` from `validation get`, before blaming the runner); never start another validation. Then read the result:
 
 ```bash
