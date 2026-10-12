@@ -26,11 +26,15 @@ const R = ArtemisReport, S = SNAPSHOT, F = R.fmt;
 const key = S.metrics.find(m => m.kind === 'target' && m.role !== 'reference').key;
 const def = S.metrics.find(m => m.key === key), unit = def.unit || '', up = def.higherIsBetter;
 const word = up ? 'faster' : 'lower';  // the metric's own word: faster, smaller, more accurate
+const worse = up ? 'slower' : 'higher';  // and for a best version that is still behind the baseline
 const base = S.baseline.metrics[key], win = S.perMetricWinners[key].raw;
 if (!win) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason + '. Say so to the user instead of drawing this page.');
 const winV = S.versions.find(v => v.version === win.version), winM = winV.metrics[key], t = winM.vsBaseline;
 const sha = S.run.baselineVersionSha.slice(0, 7), project = S.run.projectName;
-const gain = { em: F.pct(win.pctBetter).replace('+', '') + ' ' + word };
+// falcon's change decides the wording: a negative change is a best version still behind the baseline.
+const behind = win.pctBetter < 0;
+const gain = { em: F.pct(Math.abs(win.pctBetter)).replace('+', '') + ' ' + (behind ? worse : word) };
+const times = win.timesBetter == null ? '' : F.times(behind ? 1 / win.timesBetter : win.timesBetter) + ' ';
 const verdict = !t ? '' : t.verdict === 'better' ? ', a real gain' : t.verdict === 'worse' ? ', a real loss' : t.verdict === 'noise' ? ', within the noise' : t.verdict === 'pending' ? ', too few runs to tell yet' : '';
 const counts = S.versions.filter(v => v.metrics[key]).map(v => v.metrics[key].count);
 const perVersion = Math.min(...counts) === Math.max(...counts) ? String(counts[0]) : Math.min(...counts) + ' to ' + Math.max(...counts);
@@ -76,7 +80,7 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
 const f1 = R.figure(page, { question: singleRun ? 'The baseline against each version, 1 run each' : panels.length > 1 ? 'The baseline against the best version, per metric' : 'The baseline against the best version' });
 R.headline(f1.top, {
   left: { k: 'Baseline', v: F.num(base.mean, 2), unit },
-  mid: { big: F.pct(up ? win.pctBetter : -win.pctBetter), small: F.times(win.timesBetter) + ' better than the baseline, as Artemis measures it' },
+  mid: { big: F.pct(up ? win.pctBetter : -win.pctBetter), small: times + (behind ? 'worse' : 'better') + ' than the baseline, as Artemis measures it' },
   right: { k: 'Best version · ' + winV.label, v: F.num(winM.mean, 2), unit },
 });
 R.baselineBest(f1.chart, panels);
@@ -145,6 +149,9 @@ R.bullets(page, [
   perVersion + ' benchmark runs per version, ' + base.count + ' for the baseline, on the same runner',
   'Verdicts, % changes and 95% intervals are Artemis’s own (artemis discovery compare), as the Web UI shows them',
   fits.length >= 3 && new Set(fits).size === 1 ? 'Every scored version has the same Composite score, ' + F.num(fits[0], 2) : '',
+  // The Web UI marks the highest Composite score as Best; say so when that is not this page's best version.
+  (sc => { const top = sc.filter(v => v.fitness === Math.max(...sc.map(x => x.fitness))).map(v => v.label);
+    return sc.length < 2 || top.includes(winV.label) ? '' : 'The Web UI’s Best is ' + top.join(', ') + ', by Composite score; this page ranks the versions by ' + key + ', on which ' + winV.label + ' is best'; })(S.versions.filter(v => v.fitness != null)),
   t && t.recommendedReadings ? 'Artemis suggests ' + t.recommendedReadings + ' runs per side to settle ' + winV.label : '',
   t && agent && (agent === 'validated') !== (t.verdict === 'better') ? 'The Experiment behind ' + winV.label + ' concluded “' + agent + '”; the verdict uses only the measured runs' : '',
 ].filter(Boolean), { quiet: true });
