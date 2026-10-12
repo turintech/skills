@@ -144,13 +144,13 @@ artemis discovery metrics-schema regenerate "<run-id>"
 artemis discovery setup complete "<run-id>"
 ```
 
-Run `trial-run` without `--wait`: it returns the check's validation id at once (`.validation.id`, also recorded on the run as `baselineValidationId`). Wait for it with the loop in `repo-command-setup` §5b: one shell call, 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a trial run behind an offline runner stays `created`); never start another trial run. Ask the user before `setup complete`, as above, and once it succeeds post the start block (`artemis`'s *Start block*): Discovery started.
+Run `trial-run` without `--wait`: it returns the check's validation id at once (`.validation.id`, also recorded on the run as `baselineValidationId`). Wait for it with the loop in `repo-command-setup` §5b, saying what Artemis is doing as that section does: one shell call, 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a trial run behind an offline runner stays `created`); never start another trial run. Ask the user before `setup complete`, as above, and once it succeeds post the start block (`artemis`'s *Start block*): Discovery started.
 
 `--setup` does not copy project command defaults. Script selection is `--script` plus, optionally, `setup trial-run --script`. Use `metrics-schema propose`, `regenerate`, or `set` on the objective step.
 
 ## 2. Baseline / metrics schema
 
-During baseline finalization, Artemis derives and stores `metricsSchema` using the selected model. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. Never a foreground `sleep` between tool calls. Run the loop again once if the baseline is still pending:
+During baseline finalization, Artemis derives and stores `metricsSchema` using the selected model. Before the loop, say so (`artemis`'s *Waiting out loud*): Artemis is measuring the original code on the runner, once per Benchmark run, then setting up the metrics with the model; a `skip` run only sets up the metrics. Expect about the phase durations `repo-command-setup` §5a recorded, with the benchmark counted once per Benchmark run; the schema step has no typical time yet. Link the run. After a loop that ends pending, give its printed status and whether the schema is set. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. Never a foreground `sleep` between tool calls. Run the loop again once if the baseline is still pending:
 
 ```bash
 for i in $(seq 16); do
@@ -172,7 +172,7 @@ artemis discovery baseline set "<run_id>" --metrics-schema "<path-to-schema.json
 
 ## 3. Verify exploration started
 
-A finalized baseline does not prove that the run explored a version. Check the same way, one shell call of at most 8 minutes with a 10-minute shell timeout, until at least one version appears or the run becomes terminal:
+A finalized baseline does not prove that the run explored a version. Check the same way, one shell call of at most 8 minutes with a 10-minute shell timeout, until at least one version appears or the run becomes terminal. Before the loop, say what Artemis is doing (`artemis`'s *Waiting out loud*): its agent is planning experiments and writing the first version, then measuring it. There's no typical time for this yet, so give the limit (up to 16 minutes, or 24 for a long benchmark, below) and the run link. After a loop, give the printed status, `versionCount` and `experimentCount`:
 
 ```bash
 for i in $(seq 16); do
