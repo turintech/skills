@@ -169,7 +169,25 @@ artemis --output-format json changeset create --project "<project-id>" --name "a
 
 Capture its id. Read the commit it holds with `artemis changeset versions <changeset-id> --project <id>` and report that one, not the project's `gitHash`.
 
-**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` so its id is printed at once, then wait with the loop in `repo-command-setup` §5b. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
+**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` and keep its id, then wait. Run both blocks as written, filling in only the `<...>` values; never filter the skill file to rebuild them, and never retype the loop. A validation ends `success`, `failed` or `cancelled`; a Discovery run ends `completed`, so a loop that waits for `completed` here never stops.
+
+```bash
+out=$(artemis --output-format json changeset validate "<changeset-id>" --project "<project-id>" \
+  --version original --script "<script-id>" --runner "<runner-name>") \
+  && printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
+```
+
+```bash
+for i in $(seq 16); do
+  out=$(artemis --output-format json changeset validation get "<validation-id>" \
+        --project "<project-id>") || { echo "validation get failed"; break; }
+  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status") or "")')
+  case "$s" in success|failed|cancelled) break ;; esac
+  sleep 30
+done; echo "$s"
+```
+
+This is the loop in `repo-command-setup` §5b. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
 
