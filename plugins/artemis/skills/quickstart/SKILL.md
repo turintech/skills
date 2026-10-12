@@ -30,7 +30,7 @@ Carry these between skills so nothing is asked twice: deployment and whether the
 
 ## 0. Look before asking
 
-Check silently, and skip later steps that are already done. A missing CLI or a folder that is not a git repository is an answer, not a failure: end each check with `|| true` so the user's first sight of Artemis is not a red error.
+Check silently, and skip later steps that are already done. These checks only read. For a new user, the §2 welcome and the §4 plan come next, in one turn, before anything is installed or handed to another skill, including a setup-only request. A missing CLI or a folder that is not a git repository is an answer, not a failure: end each check with `|| true` so the user's first sight of Artemis is not a red error.
 
 | Check | How |
 |---|---|
@@ -39,7 +39,7 @@ Check silently, and skip later steps that are already done. A missing CLI or a f
 | Browser control | Not checked here. Only when the user asks for the browser, section 3 hands over to `cli-follow-along` section 1 |
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
 | Demo toolchain | Unless the user brought their own code, and when the runner will run on this machine: the check below. The demo builds with CMake 3.20 or newer (`ctest --test-dir`) and a C++ compiler and benchmarks with Python 3. A missing tool is the user's to install before the runner step: name it and the command, such as `brew install cmake` or `sudo apt install cmake g++ python3` |
-| CLI | `artemis --version` is at least this skill's `artemis-cli-min` (1.1.16, the highest of the Artemis skills, so neither the later steps here nor a skill the user moves on to, such as `maintain`, stops for an update). If it is older, `cli-setup` updates it now, before the runner and project checks. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
+| CLI | `artemis --version` is at least this skill's `artemis-cli-min` (1.1.16, the highest of the Artemis skills, so neither the later steps here nor a skill the user moves on to, such as `maintain`, stops for an update). If it is older or missing, note it: `cli-setup` updates it in section 5, after the welcome and the plan. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds (status alone can pass with a revoked key). If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
 | Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
@@ -89,7 +89,7 @@ Write the section 2 welcome as reply text, all four lines, then go straight on t
 2. **Just set me up:** the CLI, sign-in and a runner, then stop, with no project and no run.
 3. **The browser:** computer use drives Chrome so they watch each page change, and it needs the Claude browser extension.
 
-On a switch, rewrite the plan in the task list. A switch after the demo run has started does not stop it: say it carries on in the platform, then continue with the new choice.
+On a switch, rewrite the plan in the task list. A switch into the demo after setup (from **just set me up**, or a yes to the close's suggestion) first sends welcome line 4, the credits line, then the demo's plan, before any project check. A switch after the demo run has started does not stop it: say it carries on in the platform, then continue with the new choice.
 
 If they ask for the browser, load the skill and follow `cli-follow-along` section 1 for the connection, and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
 
