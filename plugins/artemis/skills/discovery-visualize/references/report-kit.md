@@ -55,7 +55,7 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
   const pw = (S.perMetricWinners[m.key] || {}).raw, b = S.baseline.metrics[m.key];
   if (singleRun) {
     const all = S.versions.filter(x => x.metrics[m.key] && x.metrics[m.key].mean != null)
-      .sort((p, q) => (q.metrics[m.key].pctBetter || 0) - (p.metrics[m.key].pctBetter || 0));
+      .sort((p, q) => (q.metrics[m.key].pctBetter ?? -1e9) - (p.metrics[m.key].pctBetter ?? -1e9));  // no value: last
     const vs = all.slice(0, 8);  // more bars than this stop being readable in one panel
     if (!b || b.mean == null || !vs.length) return null;
     return { title: m.key, unit: m.unit || '', note: '1 run each, not confirmed' + (all.length > vs.length ? ', the best ' + vs.length + ' of ' + all.length : ''),
@@ -65,8 +65,9 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
   if (!b || !vm || b.mean == null || vm.mean == null) return null;
   const vb = vm.vsBaseline, real = vb && (vb.verdict === 'better' || vb.verdict === 'worse');
   const why = !vb ? '' : vb.verdict === 'noise' ? ', within the noise' : vb.verdict === 'pending' ? ', too few runs to tell' : '';
-  const same = !pw.timesBetter || F.times(pw.timesBetter) === '1.00×';
-  const badge = same ? { text: 'no change', tone: 'flat' } : {
+  // No timesBetter (no direction, or a fall of 100% or more) means no badge, never "no change".
+  const same = pw.timesBetter != null && F.times(pw.timesBetter) === '1.00×';
+  const badge = pw.timesBetter == null ? null : same ? { text: 'no change', tone: 'flat' } : {
     text: (pw.pctBetter >= 0 ? F.times(pw.timesBetter) + ' better' : F.times(1 / pw.timesBetter) + ' worse') + why,
     dir: vm.mean > b.mean ? 'up' : 'down',  // the raw change; colour alone carries the verdict (ART-2549)
     tone: real ? (vb.verdict === 'better' ? 'good' : 'bad') : 'flat' };
@@ -88,7 +89,7 @@ const runsKnown = !singleRun && Array.isArray(base.runs) && Array.isArray(winM.r
 if (runsKnown) {
   const fr = R.figure(page, { question: 'Every benchmark run: the baseline against the best version' });
   R.compareRuns(fr.chart,
-    { label: 'Baseline', sub: sha, runs: base.runs, mean: base.mean },
+    { label: 'Baseline', sub: sha, runs: base.runs, mean: base.mean, color: 'var(--ar-baseline)' },
     { label: winV.label, sub: 'best version', runs: winM.runs, mean: winM.mean },
     { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + unit + ', ' + (up ? 'higher' : 'lower') + ' is better)',
       aria: key + ', every run: baseline mean ' + F.num(base.mean, 2) + ' against ' + winV.label + ' mean ' + F.num(winM.mean, 2) });
