@@ -74,7 +74,7 @@ artemis status
 artemis runner list
 ```
 
-`status` can report authentication as ok with a revoked key, so the key is only proven when `runner list` succeeds; a `401` there means log in again. If the version meets the skills' minimum (see *Verify*), `status` names the target deployment and `runner list` succeeds, there is nothing to install or log in. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
+`status` exits 3 when the deployment rejects the key, and `runner list` succeeding proves it; a `401` there means log in again. If the version meets the skills' minimum (see *Verify*), `status` names the target deployment and `runner list` succeeds, there is nothing to install or log in. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
 
 ## Install the CLI
 
@@ -242,7 +242,7 @@ Compare the installed CLI with the skills you are about to use. Each skill decla
 ```bash
 artemis --version || artemis version
 artemis status
-artemis runner list   # proves the key; status alone can pass with a revoked one
+artemis runner list   # proves the key
 ```
 
 Confirm the build carries the command groups the task needs. For Discovery on current deployments, the CLI must expose:
