@@ -193,6 +193,60 @@ class RecipeRenderTests(unittest.TestCase):
         self.assertIn("The ring marks", dom)
         self.assertEqual(dom.count('r="10"'), 1)
 
+    @staticmethod
+    def page_text(html: str) -> str:
+        with tempfile.TemporaryDirectory() as tmp:
+            page = Path(tmp) / "page.html"
+            page.write_text(html, encoding="utf-8")
+            dom = subprocess.run(
+                [check_report.find_chrome(), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
+                 "--virtual-time-budget=4000", "--dump-dom", page.as_uri()],
+                capture_output=True, text=True, encoding="utf-8", timeout=120, check=False,
+            ).stdout
+        import html as html_lib
+        import re
+        text = re.sub(r"<script.*?</script>|<style.*?</style>", " ", dom, flags=re.S)
+        return re.sub(r"\s+", " ", html_lib.unescape(re.sub(r"<[^>]+>", " ", text)))
+
+    # The best version can still be behind the baseline: falcon's change is negative and its verdict "worse".
+    def behind_snapshot(self, higher_is_better: bool) -> dict:
+        snapshot = self.fixture_snapshot(True)
+        key = "latency_ms"
+        next(m for m in snapshot["metrics"] if m["key"] == key)["higherIsBetter"] = higher_is_better
+        times = collect_discovery.times_better(-24.0, higher_is_better)
+        snapshot["perMetricWinners"][key]["raw"].update({"pctBetter": -24.0, "timesBetter": times})
+        win = next(v for v in snapshot["versions"] if v["version"] == snapshot["perMetricWinners"][key]["raw"]["version"])
+        win["metrics"][key].update({"pctBetter": -24.0, "timesBetter": times})
+        if win["metrics"][key].get("vsBaseline"):
+            win["metrics"][key]["vsBaseline"]["verdict"] = "worse"
+        return snapshot
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_best_version_behind_the_baseline_reads_as_behind_when_lower_is_better(self) -> None:
+        text = self.page_text(build_report.build(self.behind_snapshot(False), self.recipe_page(), "Title"))
+        self.assertIn("v2 is 24.0% higher , a real loss", text)
+        self.assertIn("1.24× worse than the baseline", text)
+        self.assertNotIn("better than the baseline", text)
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_best_version_behind_the_baseline_reads_as_behind_when_higher_is_better(self) -> None:
+        text = self.page_text(build_report.build(self.behind_snapshot(True), self.recipe_page(), "Title"))
+        self.assertIn("v2 is 24.0% slower , a real loss", text)
+        self.assertIn("1.32× worse than the baseline", text)
+        self.assertNotIn("better than the baseline", text)
+
+    # The Web UI marks the highest Composite score Best; the page says so when its own best version differs.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_method_note_names_the_web_uis_best_when_it_differs(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        for v in snapshot["versions"]:
+            v["fitness"] = 0.9 if v["label"] == "v4" else 0.3
+        text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
+        self.assertIn("The Web UI’s Best is v4, by Composite score; this page ranks the versions by latency_ms, on which v2 is best", text)
+        for v in snapshot["versions"]:
+            v["fitness"] = 0.9 if v["label"] == "v2" else 0.3
+        self.assertNotIn("The Web UI’s Best", self.page_text(build_report.build(snapshot, self.recipe_page(), "Title")))
+
     # Fewer than three Composite scores: the page leaves that figure out and still draws the rest.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
     def test_recipe_renders_without_composite_scores(self) -> None:
