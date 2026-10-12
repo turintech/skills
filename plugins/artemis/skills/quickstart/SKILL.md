@@ -157,7 +157,7 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
 | 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (`artemis`'s *Start block*: Validation started), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
 | 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
-| 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Metrics** and the winning version |
+| 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Versions** and the winning version |
 
 A step is not finished until its "Tell them" line has been said.
 
@@ -208,7 +208,7 @@ The model is pinned because the win this demo shows, a spatial grid replacing th
 
 Do not check the credit balance or ask whether the account has credits: new accounts have them. A 402 or `INSUFFICIENT_BALANCE` is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar.
 
-End on the code, not a number: the run's **Metrics** to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a roll-up of the metrics by importance, not a measurement.
+End on the code, not a number: the run's **Versions** tab (Table, or Graphs on `simulation_fps`) to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a roll-up of the metrics by importance, not a measurement.
 
 ## 7b. Before section 7 on their own code
 
