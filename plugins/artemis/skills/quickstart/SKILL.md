@@ -141,7 +141,7 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of Benchmark runs, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
 - **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch.
-- **The demo run** is announced, not asked, only when this session sent the §2 welcome with its credits line and the user has since replied in chat (a permission prompt is not a reply) or answered the §4 fresh-or-continue question, without switching away from the demo. Otherwise, at section 7's step 7 and before handing over to `discovery-start`, ask one line and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." A run on the user's own code goes through `discovery-start`, which asks first.
+- **No `discovery create` for the demo without the credits line answered in this conversation.** The line is welcome line 4, sent in this session with the user replying in chat after it (a permission prompt is not a reply), or the one-line question below. If you cannot point to one of those two messages and the reply after it, ask at section 7's step 7, before handing over to `discovery-start`, and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." The §4 fresh-or-continue answer alone is not the go-ahead. A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
@@ -179,7 +179,7 @@ Capture its id. Read the commit it holds with `artemis changeset versions <chang
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
 - model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
 - `--target-files` only when the repository made them obvious
-- for the demo, the user's go-ahead under the §6 rule (the welcome with its credits line was sent and the user replied since without switching, or they said yes to its one-line question), so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
+- for the demo, the user's go-ahead under the §6 rule, naming the message that carried the credits line (welcome line 4 or the one-line question) and the user's reply, so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
 
 Then follow the run with `discovery-inspect`.
 
@@ -274,5 +274,5 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
 - [ ] A link and what they will see each time something appeared in Artemis
 - [ ] Discovery started from the branch, with settings fixed rather than asked
-- [ ] Demo run announced only after the credits line and a user reply; otherwise the §6 one-line question asked and answered yes
+- [ ] No demo `discovery create` until the credits line (welcome line 4 or the §6 question) was sent and answered in this conversation
 - [ ] Readiness report given, each line from a check that ran

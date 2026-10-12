@@ -80,7 +80,7 @@ Capture the script's `id` from the create or list response. Prefer passing `--sc
 
 Before the command that dispatches the agent, tell the user the model, the number of versions, and that each version is agent work that spends credits, and go ahead only on their yes; this one question also carries the recommended defaults. For a direct run that command is `discovery create`; for a `--setup` run it is `discovery setup complete` (and a later `discovery update --versions` changes the count, so confirm again). Skip asking when a calling skill passes the user's go-ahead, as `quickstart` does for its demo after naming the credits in its welcome or in its one-line question before the run.
 
-A calling skill's go-ahead counts only if the user was told, earlier in this session, that the run uses account credits. If you cannot see that they were, ask in one line before dispatching: "This uses account credits; go ahead?", and wait for a yes.
+A calling skill's go-ahead counts only if a message in this conversation told the user this run uses account credits and the user replied after it (a permission prompt is not a reply, and an option's description is not the credits line). If you cannot point to that message and the reply, ask in one line before dispatching: "This uses account credits; go ahead?", and wait for a yes.
 
 ```bash
 artemis --output-format json discovery create \
