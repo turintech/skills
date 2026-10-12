@@ -80,7 +80,7 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 | One version | `/projects/<project-id>/discover/<run-id>/versions/<version-id>` | `/projects/<project-id>/discovery/<run-id>/versions/<version-id>` |
 | The code of a version | `/projects/<project-id>/branches/<changeset-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
 | A branch's script runs | `/projects/<project-id>/branches/<changeset-id>/validations` (the Scripts tab) | the changeset's Validations tab |
-| The project's runner | `/projects/<project-id>/settings/execution` (Project Settings, Runner and Scripts) | the project's Settings |
+| The project's runner | `/settings/project/execution?projectId=<project-id>` (Project Settings, Runner and Scripts) | `/projects/<project-id>/settings/execution`, or the project's Settings |
 | Maintain, with its scans under Background agents | `/projects/<project-id>/maintain` | the project's Maintain page |
 | One Maintain issue | `/projects/<project-id>/maintain/issues/id/<issue-id>` | the issue on the Maintain board |
 | One plan | `/projects/<project-id>/plan/<plan-id>` | the project's Plan page |

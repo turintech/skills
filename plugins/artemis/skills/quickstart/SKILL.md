@@ -132,7 +132,7 @@ Hand each missing item to its skill. Say plainly when a step is the user's, and 
 |---|---|---|---|
 | CLI installed and signed in | `cli-setup` | Creates an API key and enters it in their own terminal | |
 | Git access | `project-import`, its section 3 only: keep the key UUID; the import itself waits for the plan's Import step | For the demo: clicks **Connect to GitHub** on the Git page if there is no `github_*` key (the CLI needs one even for the public demo). Own code: connects a key for the repository's git service if none can read it | `<deployment-base-url>/settings/git`; they say "done" when the GitHub section shows **Connected**, or when the access key is saved if the page has no Connect button |
-| Runner on this machine | `runner-setup` | Nothing: the agent downloads it and starts it with the CLI's API key | Its name, online. Once the project exists: `<deployment-base-url>/projects/<project-id>/settings/execution` (**Runner and Scripts**) |
+| Runner on this machine | `runner-setup` | Nothing: the agent downloads it and starts it with the CLI's API key | Its name, online. Once the project exists: `<deployment-base-url>/settings/project/execution?projectId=<project-id>` (**Runner and Scripts**; older deployments: `/projects/<project-id>/settings/execution`) |
 | Project imported or reused | `project-import` | Nothing | `<deployment-base-url>/projects/<project-id>`: the project's overview page |
 
 Whichever runner `runner-setup` reuses or starts is the one every later step uses; pass it on rather than asking.
