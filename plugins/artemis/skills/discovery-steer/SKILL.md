@@ -31,7 +31,10 @@ Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions
 
 `continue` sets the budget to the versions the run already has plus `--versions <n>`; budget it never used is not carried over. So `n` is the number of new versions, and each one spends credits.
 
-- Active with budget remaining: steer directly. If an active run has exhausted its budget, wait for it to complete first.
+- Active with budget remaining: steer directly.
+- Active (`running` or `awaiting_approval`) and the user wants more versions, or its budget is spent: a live run's budget can't be raised (`discovery update --versions` is refused), so offer the two ways and name what each costs:
+  - wait for it to finish, then `continue --versions <n>`, which loses nothing;
+  - or, on the user's yes, `discovery cancel "<run-id>"` now, then `continue --versions <n>`. The agent picks up from where it stopped, but the cancel stops a version still running and its work is lost.
 - Completed, failed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
 - A failed run is not steered: from CLI 1.1.16 `steer` refuses it. The Web UI's **Retry**, which re-sends the run's chat without new budget, has no CLI equivalent, so continue it as above, naming the credit cost, then check `discovery get`.
 
