@@ -155,10 +155,12 @@ During baseline finalization, Artemis derives and stores `metricsSchema` using t
 ```bash
 for i in $(seq 16); do
   out=$(artemis --output-format json discovery get "<run_id>") || { echo "discovery get failed"; break; }
-  printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); sys.exit(0 if (r.get("baselineVersionSha") is not None and r.get("metricsSchema") is not None) or r.get("status") == "failed" else 1)' && break
+  printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); sys.exit(0 if ((r.get("baselineVersionSha") is not None or r.get("executionMode") == "skip") and r.get("metricsSchema") is not None) or r.get("status") == "failed" else 1)' && break
   sleep 30
-done; printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(json.dumps({"status": r.get("status"), "baselineVersionSha": r.get("baselineVersionSha"), "hasSchema": r.get("metricsSchema") is not None}))'
+done; printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(json.dumps({"status": r.get("status"), "executionMode": r.get("executionMode"), "baselineVersionSha": r.get("baselineVersionSha"), "hasSchema": r.get("metricsSchema") is not None}))'
 ```
+
+A `skip` run executes nothing, so it never gets a `baselineVersionSha`; the loop waits only for its `metricsSchema`.
 
 If baseline finalization is delayed, use `discovery-inspect` to compare the run record with runner activity. Large task logs can delay ingestion; see [advanced log control](../repo-command-setup/ADVANCED.md#control-log-volume).
 
@@ -197,5 +199,5 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Benchmark runs per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
 - [ ] Fast-track offered when the estimate was longer than the user wanted to wait; if used, its [checklist](FAST_TRACK.md#checklist) completed
 - [ ] Clickable Discovery link returned to the user
-- [ ] Baseline finalized (`baselineVersionSha` + schema non-null) before walking away
+- [ ] Baseline finalized (`baselineVersionSha` + schema non-null; schema only for `--execution-mode skip`) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`
