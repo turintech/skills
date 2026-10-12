@@ -165,7 +165,7 @@ rm -rf "$TMP"
 
 The same lines work on Linux (`sha256sum`) and macOS (`shasum`). On `INSTALL FAILED`, stop and tell the user: never run a binary that doesn't match its checksum, and don't trust an older `artemis` already on `PATH`.
 
-A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`. Check that the user's own shell finds it with `bash -lc 'command -v artemis'`; if not, use the absolute path in the login box and offer, asking first, to add `~/.local/bin` to PATH in their shell startup file. On Windows, download the `.exe` and ask the user where to put it on PATH.
+A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`. Check that the user's own shell finds it with `bash -lc 'command -v artemis'`. If not, before the login box, offer to add `~/.local/bin` to PATH, naming the startup file and the line you would add, and wait for the answer, so the login command can be plain `artemis login ...`. If they decline, use the absolute path in the box. On Windows, download the `.exe` and ask the user where to put it on PATH.
 
 An *API key* is a secret and must never enter the conversation.
 
@@ -211,8 +211,8 @@ At the waiting `API key:` prompt, not here in the chat.
 
 Rules for that message:
 
-- **Nothing else in it.** No docs links, no status lines, no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
-- **One command, one line.** If an environment variable is genuinely needed for an already-open terminal, put it on the same line so it is a single copy.
+- **Nothing else in it.** No docs links, no status lines (not even "the deployment answers"), no version notes, no "and next I will". Those belong in the message before or after. The user is about to act, and every extra sentence is something to read past.
+- **One command, short lines.** Up to about 80 characters, keep it on one line. Longer (a `--ssl-cert-file`, an absolute path), split it before each flag with a trailing ` \`, one flag per line, so a narrow terminal's wrapping cannot break the paste. If an environment variable is genuinely needed for an already-open terminal, put it on the first line so it is still a single copy.
 - **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
 - **Three boxes, one per user action:** run the command, create the key, paste the key. The line under box 3 says where it goes: the waiting prompt, not the chat.
 - Ask any follow-up question in a separate message afterwards, never stacked under the command.
