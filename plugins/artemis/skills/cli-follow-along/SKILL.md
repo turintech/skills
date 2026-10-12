@@ -65,7 +65,7 @@ metadata:
 Deployments differ. On newer ones a Discovery run sits under `/discover`; on older ones it sits under `/discovery`. **Do not build URLs from memory.**
 
 1. Open `<deployment-base-url>/projects/<project-id>` and let it settle.
-2. Read the page's own navigation and use those links: the project's left bar (on newer deployments Overview, Agents, Maintain, Discover, Plan, Branches, Files, and Project Settings with General, Runner and Scripts, Metrics) and, inside a run, its tabs (Experiments, Versions, Metrics).
+2. Read the page's own navigation and use those links: the project's left bar (on newer deployments Overview, Agents, Maintain, Discover, Plan, Branches, Files, and Project Settings with General, Runner and Scripts, Metrics) and, inside a run, its tabs (Experiments, Versions, Metrics, and Baseline when the run has one).
 3. Follow the link for what you want to show instead of typing a path.
 4. Reuse the paths you resolved for the rest of the session; they do not change while you work.
 

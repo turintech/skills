@@ -79,7 +79,7 @@ Steps 1 and 2 may also offer an outline **Skip to Summary**. It starts nothing, 
 
 If step 1's heading reads **How should versions be scored?**, the deployment has the older wizard and its steps differ from this table. Its outline **Start now** starts the run and spends credits: never click it without the user's yes.
 
-The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, **Setup**, and the **Discovery agent** chat, where the agent explains what it is trying. It may start collapsed: open it with **Expand panel** at the top right. Stay on Overview while the first experiments arrive.
+The page then becomes the run: **Overview**, **Experiments**, **Versions**, **Metrics**, **Setup**, **Baseline** when the run has one, and the **Discovery agent** chat, where the agent explains what it is trying. It may start collapsed: open it with **Expand panel** at the top right. Stay on Overview while the first experiments arrive.
 
 Say one thing the page does not: mentioning a file with @ (the **+** button) is a hint to the agent about where to look, not a limit on which files change.
 
@@ -116,7 +116,7 @@ Three things to say while on Versions:
 
 ## 4. When the page does not match
 
-- **A button is greyed out:** hover it. The tooltip says what is missing, such as "Pick a runner first." or "Wait for the run to finish."
+- **A button is greyed out:** hover it. The tooltip says what is missing, such as "Pick a runner first." or "Wait for the selected script to finish before continuing."
 - **A button is missing or renamed:** read the page's navigation, use the control that does the same job, and say in one line what it is called now. Never click by guesswork or by coordinates from an earlier screenshot.
 - **A step needs something that is not there** (no machine online, no Git connection): say what is missing and recommend the one next step, usually setting it up through its own tour. Never pick another person's runner.
 - **A 500 mentioning `URL.canParse`:** Chrome is older than version 120; ask the user to update it.

@@ -140,7 +140,7 @@ Right after a command starts work in Artemis, post one block so a watcher sees w
 Artemis · Discovery started
 Project   <project name>
 Goal      <taskDescription>
-Versions  <n> · model <model> · reviewers <review models>
+Versions  <n> · model <model> · LLM council <review models>
 Open      <link>
 ```
 
