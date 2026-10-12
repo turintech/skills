@@ -72,13 +72,14 @@ Repeated status text or repeated `propose`/`conclude` calls can be normal while 
 
 `discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `processId`, and `observationGroupId`. Read the actual discovery changeset with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
 
-When reporting a run or version, include clickable Web UI links:
+When reporting a run or version, include clickable Web UI links to the run's Versions page and to the winning version, built from `cli-follow-along` §2's table as the start block does (newer deployments shown):
 
 ```text
-[Open project](<deployment-base-url>/projects/<project-id>)
+[Open the run's versions](<deployment-base-url>/projects/<project-id>/discover/<run-id>/versions)
+[Open the winning version](<deployment-base-url>/projects/<project-id>/discover/<run-id>/versions/<version-id>)
 ```
 
-Link the project, then name the page to open, such as Discover, the run, or its Versions tab. Run and version paths differ between deployments, so do not build them from memory.
+When the deployment's path shape isn't known, link the project (`<deployment-base-url>/projects/<project-id>`) and name the page to open: Discover, the run, its Versions tab.
 
 ## Inspect runner output
 
@@ -152,7 +153,7 @@ It can also happen **before the baseline exists**, a minute into a new run: `ver
 ```bash
 run=$(artemis --output-format json discovery get <run-id>)
 echo "$run" | jq '{status, versionCount, numVersions, experimentCount, agentRunId}'
-artemis chat messages "$(echo "$run" | jq -r .agentRunId)" | tail -20
+artemis chat messages "$(echo "$run" | jq -r '.chatId // .agentRunId')" | tail -20
 ```
 
 The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` with `Connection error.`, or a bare `session.end  Internal error` immediately after a normal assistant turn. The CLI's run record doesn't include the run's own reason; read it in the run's chat. A version's `failureReason` (`discovery versions list` or `versions get`) is set when the agent set the version aside, its edits never landed, or the run stopped under it. It is empty when the version's commands failed (`executionStatus` `failed`) or the user cancelled it; read `versions logs` for those. Read it before blaming the project:
@@ -175,5 +176,5 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 - [ ] `discovery compare`: each version's verdict on the target metric, as Artemis gives it; the verdicts, not the Composite score, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
-- [ ] Project link returned, naming the page to open (Discover, the run, its Versions tab, the winning version).
+- [ ] Links returned to the run's Versions page and the winning version, or, when the path shape isn't known, the project link naming the page to open.
 - [ ] A run that ended short of its budget checked against the agent narration first, so a platform-side stop is reported as such and not as a project, runner, or setup fault.
