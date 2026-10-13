@@ -138,7 +138,9 @@ class FewBarsTests(unittest.TestCase):
             with self.subTest(chart.split("(")[0]):
                 body = "ArtemisReport." + chart + "; F.bullets(['One open issue']);"
                 probe = "setTimeout(function () { var r = document.querySelector('.ar-chart svg rect'); var d = document.createElement('pre'); d.id = '__geo'; d.textContent = JSON.stringify([[Math.round(r.getBoundingClientRect().width), 0, 0]]); document.body.appendChild(d); }, 600);"
-                html = build_report.build(RecipeRenderTests.fixture_snapshot(True), self.page(body + "\n" + probe), "Title")
+                snapshot = RecipeRenderTests.fixture_snapshot(True)
+                snapshot.pop("bestLines", None)  # a bare chart page, not a run report
+                html = build_report.build(snapshot, self.page(body + "\n" + probe), "Title")
                 self.assertGreater(self.geometry(html)[0][0], 150)
                 self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
 
