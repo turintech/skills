@@ -19,6 +19,8 @@
 | `perMetricWinners[metric]` | `{raw, eligible, unranked}`, the first rows of `rankings`, plus the labels left unranked because falcon has no change for them; `raw` and `eligible` may be `null`. When `raw` is `null` (no stored direction, or no change from falcon yet), `reason` says why |
 | `executionSummary` | Completed / generation_failed / scoring_failed / execution_* / `missingTargetMetrics` |
 | `experimentSummary` | validated / refuted / inconclusive counts |
+| `webUiBest` | `{version, label, fitness}`: the version the Web UI badges Best (highest Composite score among versions that scored, have a sha and did not fail; the earlier on a tie); `null` when no score is above 0 |
+| `steering` | `{points, source, reason}`: each steer from the run's chat, `{at, guidance, firstVersion, firstLabel}`, in time order; `firstVersion` is the first version made after it (`null` if none yet). `reason` is set when the chat could not be read |
 | `pareto` | `null` unless `--pareto` was passed |
 | `references` | Target and reference metric pairs, such as a Triton kernel and cuBLAS measured in the same benchmark |
 

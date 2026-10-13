@@ -28,10 +28,10 @@ When the prompt names no story, build the default. Do not ask first.
 
 In this order, with the kit calls from [report-kit.md](report-kit.md):
 
-1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain".
+1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain". The version is the Web UI's Best (`webUiBest`, the highest Composite score), and the lede says so; when a single measured metric has another best version, the lede names it. Without a Web UI Best, lead with the best on the target metric and say why.
 2. **Chips:** falcon's verdict (the strong chip only for `better`), the 95% interval, and the runs per side.
 3. **Headline:** baseline mean, then the %, then the best version's mean.
-4. **Figure 1, `baselineBest`:** per metric, two bars: the baseline and the version Artemis ranks best for it, values on the bars, Artemis's change as the badge in the panel title.
+4. **Figure 1, `baselineBest`:** per metric, two bars: the baseline and the headline version, values on the bars, Artemis's change as the badge in the panel title, and a note naming the metric's own best version when it is another.
 5. **Figure 2, `compareRuns`:** every run of the target metric's baseline and best version, the gap between the means labelled with the %; only when the collector had each reading.
 6. **Figure 3, `forest`:** every measured version's % change with its 95% interval, best first.
 7. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Experiment's conclusion disagrees with falcon's verdict, one bullet that says so.
@@ -96,7 +96,7 @@ Optional. One line when a mark needs explaining: what a mark is (mean of `n`, or
 
 **Search trajectory.** `pctBetter` by version number (versions are numbered in the order they were made). A zero line for the baseline, a line through consecutive measured versions that breaks at gaps, a ring on the best version, and a value label on the points the finding mentions. Annotate what explains the shape when it is known from this conversation or the run: a steer ("steered toward the solver loops" between v5 and v6), a version set aside. Do not add a running-best line unless the reader is judging how fast the search found things.
 
-Steers: the CLI does not list a run's past steers, and versions do not record which agent made them. Mark a steer only when this conversation sent it (`discovery-steer`) or the user says when it happened, and place it by `createdAt`: after the last version made before the steer. Never guess a steer from the shape of the line.
+Steers: the collector reads them from the run's chat (`steering.points`), so a new conversation marks them too. Each has the guidance and `firstVersion`, the first version made after it; draw the mark just before that version. When `steering.reason` is set the chat could not be read: say the steers are unknown, and never guess one from the shape of the line.
 
 The default report ends with the Composite score per version once three or more versions have one and the scores differ (the same score everywhere is one line in the method note), and draws it the same way when the user asks for it over time: each version's `fitness` as its own trajectory, titled "Composite score (the platform's roll-up of the metrics by importance)", never on the same axis as a measured metric and without a zero line.
 

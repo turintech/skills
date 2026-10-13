@@ -174,6 +174,124 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class WebUiBestTests(unittest.TestCase):
+    @staticmethod
+    def version(number: int, fitness: float | None, sha: str | None = "abc", status: str = "scored") -> dict:
+        return {"version": number, "label": f"v{number}", "fitness": fitness, "versionSha": sha, "displayStatus": status}
+
+    def test_highest_composite_score_like_the_web_ui(self) -> None:
+        best = collector.web_ui_best([self.version(1, 0.2), self.version(2, 0.7), self.version(3, 0.4)])
+        self.assertEqual(best, {"version": 2, "label": "v2", "fitness": 0.7})
+
+    def test_a_tie_goes_to_the_earlier_version(self) -> None:
+        self.assertEqual(collector.web_ui_best([self.version(1, 0.5), self.version(2, 0.5)])["version"], 1)
+
+    def test_failed_unscored_and_shaless_versions_are_skipped(self) -> None:
+        versions = [
+            self.version(1, 0.3),
+            self.version(2, 0.9, status="execution_failed"),
+            self.version(3, 0.8, sha=None),
+            self.version(4, None),
+        ]
+        self.assertEqual(collector.web_ui_best(versions)["version"], 1)
+
+    def test_no_best_unless_a_score_beats_the_baseline(self) -> None:
+        self.assertIsNone(collector.web_ui_best([self.version(1, 0.0), self.version(2, -0.1)]))
+
+    def test_fixture_snapshot_names_the_web_uis_best(self) -> None:
+        snapshot = collector.build_snapshot(collector.load_from_dir(str(FIXTURES)), collected_at="2026-09-02T00:00:00+00:00")
+        self.assertEqual(snapshot["webUiBest"], {"version": 2, "label": "v2", "fitness": 0.9})
+
+
+class SteeringTests(unittest.TestCase):
+    TASK = "Make the kernel faster."
+    VERSIONS = [
+        {"version": 1, "label": "v1", "createdAt": "2026-10-13T11:47:53Z"},
+        {"version": 2, "label": "v2", "createdAt": "2026-10-13T11:54:43Z"},
+        {"version": 3, "label": "v3", "createdAt": "2026-10-13T12:36:23Z"},
+        {"version": 4, "label": "v4", "createdAt": "2026-10-13T12:38:14Z"},
+    ]
+
+    @staticmethod
+    def user(at: str, message: str, run: str) -> dict:
+        return {"type": "user", "agentRunId": run, "timestamp": at, "payload": {"id": run, "message": message, "parts": None}}
+
+    def chat(self) -> list:
+        return [
+            self.user("2026-10-13T11:46:49.635000Z", self.TASK, "run-1"),
+            {"type": "assistant.end", "agentRunId": "run-1", "timestamp": "2026-10-13T11:50:00Z", "payload": {}},
+            # A continue without guidance resends the task: not a steer.
+            self.user("2026-10-13T12:35:33.287000Z", self.TASK, "run-2"),
+            self.user("2026-10-13T12:35:39.627000Z", "  Focus on memory now.  ", "run-3"),
+        ]
+
+    def test_a_steer_is_placed_before_the_first_version_made_after_it(self) -> None:
+        steering = collector.steering_points(self.chat(), self.VERSIONS)
+        self.assertIsNone(steering["reason"])
+        self.assertEqual(
+            steering["points"],
+            [{"at": "2026-10-13T12:35:39.627000Z", "guidance": "Focus on memory now.", "firstVersion": 3, "firstLabel": "v3"}],
+        )
+
+    def test_a_steer_after_the_last_version_has_no_first_version(self) -> None:
+        chat = self.chat() + [self.user("2026-10-13T13:00:00Z", "Try the cache next.", "run-4")]
+        last = collector.steering_points(chat, self.VERSIONS)["points"][-1]
+        self.assertEqual((last["guidance"], last["firstVersion"]), ("Try the cache next.", None))
+
+    def test_a_run_never_steered_has_no_points(self) -> None:
+        steering = collector.steering_points(self.chat()[:3], self.VERSIONS)
+        self.assertEqual((steering["points"], steering["reason"]), ([], None))
+
+    def test_an_unreadable_chat_says_so(self) -> None:
+        steering = collector.steering_points(None, self.VERSIONS)
+        self.assertEqual(steering["points"], [])
+        self.assertIn("could not be read", steering["reason"])
+
+    def test_from_dir_reads_chat_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            for item in FIXTURES.iterdir():
+                shutil.copy(item, tmp)
+            Path(tmp, "chat.json").write_text(json.dumps(self.chat()), encoding="utf-8")
+            versions = json.loads(Path(tmp, "versions.json").read_text(encoding="utf-8"))
+            for doc, row in zip(versions.get("docs", versions) if isinstance(versions, dict) else versions, self.VERSIONS + self.VERSIONS):
+                doc["createdAt"] = row["createdAt"]
+            Path(tmp, "versions.json").write_text(json.dumps(versions), encoding="utf-8")
+            snapshot = collector.build_snapshot(collector.load_from_dir(tmp), collected_at="2026-09-02T00:00:00+00:00")
+        self.assertEqual([p["guidance"] for p in snapshot["steering"]["points"]], ["Focus on memory now."])
+
+    def test_fetch_cli_reads_the_runs_chat(self) -> None:
+        calls = []
+
+        def fake(args, cli="artemis", config=None):
+            calls.append(args)
+            if args[:2] == ["discovery", "get"]:
+                return json.dumps({"id": "run", "projectId": "proj", "chatId": "chat-9"})
+            if args[:2] == ["chat", "messages"]:
+                return json.dumps(self.chat())
+            return "{}"
+
+        original = collector.run_artemis
+        collector.run_artemis = fake
+        try:
+            payloads = collector.fetch_cli("run")
+        finally:
+            collector.run_artemis = original
+        self.assertIn(["chat", "messages", "chat-9"], calls)
+        self.assertEqual(len(payloads["chat"]), 4)
+
+    def test_fetch_chat_failure_is_not_fatal(self) -> None:
+        def failing(args, cli="artemis", config=None):
+            raise RuntimeError("artemis chat messages failed (1): 404")
+
+        original = collector.run_artemis
+        collector.run_artemis = failing
+        try:
+            self.assertIsNone(collector.fetch_chat("chat-9"))
+            self.assertIsNone(collector.fetch_chat(None))
+        finally:
+            collector.run_artemis = original
+
+
 class ObservationTests(unittest.TestCase):
     """Individual runs and the platform's direction come from `discovery metrics --all`."""
 

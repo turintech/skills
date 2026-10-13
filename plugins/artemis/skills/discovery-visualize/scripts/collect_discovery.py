@@ -39,6 +39,7 @@ COMMANDS = (
     "artemis --output-format json discovery metrics <run-id> --all",
     "artemis --output-format json discovery experiments list <run-id> --all",
     "artemis --output-format json discovery compare <run-id>",
+    "artemis --output-format json chat messages <chat-id>",
     "artemis --output-format json project list --all",
 )
 
@@ -178,6 +179,8 @@ def load_from_dir(directory: str) -> dict[str, Any]:
             "since the verdicts and changes come from it"
         )
     comparison = extract_json(load_text(comparison_path))
+    chat_path = os.path.join(directory, "chat.json")
+    chat = extract_json(load_text(chat_path)) if os.path.isfile(chat_path) else None
     return {
         "run": run,
         "versions": versions,
@@ -185,6 +188,7 @@ def load_from_dir(directory: str) -> dict[str, Any]:
         "observations": observations,
         "experiments": experiments,
         "comparison": comparison,
+        "chat": chat,
     }
 
 
@@ -251,10 +255,21 @@ def fetch_comparison(run_id: str, cli: str = "artemis", config: str | None = Non
         raise RuntimeError(f"artemis discovery compare failed: {error}") from error
 
 
+def fetch_chat(chat_id: str | None, cli: str = "artemis", config: str | None = None) -> Any:
+    """The run's chat log, where each steer is a user message. None when the run has no chat or it cannot be read."""
+    if not chat_id:
+        return None
+    try:
+        return extract_json(run_artemis(["chat", "messages", chat_id], cli, config))
+    except (RuntimeError, ValueError):
+        return None
+
+
 def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, names: dict[str, str | None] | None = None) -> dict[str, Any]:
     call = lambda *args: extract_json(run_artemis(list(args), cli, config))
     run = call("discovery", "get", run_id)
-    project_id = (run.get("docs") or [run])[0].get("projectId") if isinstance(run, dict) else None
+    record = (run.get("docs") or [run])[0] if isinstance(run, dict) else {}
+    project_id = record.get("projectId")
     return {
         "run": run,
         "versions": call("discovery", "versions", "list", run_id, "--all"),
@@ -264,6 +279,7 @@ def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, name
         "comparison": fetch_comparison(run_id, cli, config),
         "status": call("status"),
         "projectName": project_name(project_id, cli, config, names),
+        "chat": fetch_chat(record.get("chatId"), cli, config),
     }
 
 
@@ -361,6 +377,68 @@ def _eligible(version: dict[str, Any]) -> bool:
         and version.get("executionStatus") == "success"
         and version.get("experimentStatus") != "refuted"
     )
+
+
+def web_ui_best(versions: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The version the Web UI badges Best: the highest Composite score among versions that scored, have a sha and
+    did not fail, the earlier one on a tie, and none unless that score is above 0 (better than the baseline)."""
+    best = None
+    for version in versions:  # in version order, so a tie keeps the earlier version
+        if version.get("fitness") is None or not version.get("versionSha"):
+            continue
+        if version.get("displayStatus") in ("generation_failed", "execution_failed", "scoring_failed"):
+            continue
+        if best is None or version["fitness"] > best["fitness"]:
+            best = version
+    if best is None or best["fitness"] <= 0:
+        return None
+    return {"version": best["version"], "label": best["label"], "fitness": best["fitness"]}
+
+
+def _instant(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def steering_points(chat: Any, versions: list[dict[str, Any]]) -> dict[str, Any]:
+    """Each steer on the run, from its chat log: every user message after the first (the task) that brings new
+    guidance, placed before the first version made after it. A continue without guidance resends the task, so it
+    is not a steer."""
+    if chat is None:
+        return {"points": [], "source": None, "reason": "the run's chat could not be read, so its steers are unknown"}
+    events = chat if isinstance(chat, list) else as_docs(chat)
+    messages = []
+    for event in events:
+        payload = event.get("payload") if isinstance(event, dict) else None
+        if event.get("type") != "user" or not isinstance(payload, dict):
+            continue
+        text = (payload.get("message") or "").strip()
+        at = _instant(event.get("timestamp") or event.get("createdAt"))
+        if text and at:
+            messages.append((at, text))
+    messages.sort(key=lambda item: item[0])
+    points = []
+    task = messages[0][1] if messages else None
+    made = [(v, _instant(v.get("createdAt"))) for v in versions]
+    for at, text in messages[1:]:
+        if text == task:
+            continue
+        after = [v for v, created in made if created and created >= at]
+        first = min(after, key=lambda v: v.get("version") or 0) if after else None
+        points.append(
+            {
+                "at": at.isoformat().replace("+00:00", "Z"),
+                "guidance": text,
+                "firstVersion": first["version"] if first else None,
+                "firstLabel": first["label"] if first else None,
+            }
+        )
+    return {"points": points, "source": "artemis chat messages <chat-id>", "reason": None}
 
 
 def pareto_front(
@@ -753,6 +831,8 @@ def build_snapshot(
         "rankings": rankings,
         "runningBest": running_best,
         "perMetricWinners": winners,
+        "webUiBest": web_ui_best(versions),
+        "steering": steering_points(payloads.get("chat"), versions),
         "executionSummary": {
             **lifecycle_counts,
             **{f"execution_{key}": value for key, value in execution_counts.items()},

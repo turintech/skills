@@ -235,17 +235,48 @@ class RecipeRenderTests(unittest.TestCase):
         self.assertIn("1.32× worse than the baseline", text)
         self.assertNotIn("better than the baseline", text)
 
-    # The Web UI marks the highest Composite score Best; the page says so when its own best version differs.
+    # The page leads with the Web UI's Best (highest Composite score), says so, and names a metric's own best when it differs.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
-    def test_method_note_names_the_web_uis_best_when_it_differs(self) -> None:
+    def test_the_headline_is_the_web_uis_best_and_says_so(self) -> None:
         snapshot = self.fixture_snapshot(True)
         for v in snapshot["versions"]:
             v["fitness"] = 0.9 if v["label"] == "v4" else 0.3
+        snapshot["webUiBest"] = collect_discovery.web_ui_best(snapshot["versions"])
         text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
-        self.assertIn("The Web UI’s Best is v4, by Composite score; this page ranks the versions by latency_ms, on which v2 is best", text)
-        for v in snapshot["versions"]:
-            v["fitness"] = 0.9 if v["label"] == "v2" else 0.3
-        self.assertNotIn("The Web UI’s Best", self.page_text(build_report.build(snapshot, self.recipe_page(), "Title")))
+        self.assertIn("v4 is the Web UI’s Best: the highest Composite score", text)
+        self.assertIn("Best on a single metric instead: v2 on latency_ms", text)
+        self.assertIn("Best version · v4", text)
+        # With several runs per side, each metric's panel shows v4 and notes the metric's own best.
+        for side in [snapshot["baseline"]] + snapshot["versions"]:
+            for m in side["metrics"].values():
+                if m.get("mean") is not None:
+                    m["count"] = 3
+                    m["runs"] = [m["mean"] * 0.99, m["mean"], m["mean"] * 1.01]
+        text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
+        self.assertIn("Artemis v4", text)
+        self.assertIn("v2 is best on this metric", text)
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_without_a_web_ui_best_the_page_says_why(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        snapshot["webUiBest"] = None
+        text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
+        self.assertIn("The Web UI shows no Best, as no version’s Composite score is above the baseline", text)
+        self.assertNotIn("is the Web UI’s Best", text)
+
+    # A steer read from the run's chat is drawn on the Composite chart and named in the method note.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_steer_from_the_chat_is_marked(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        snapshot["steering"] = {"points": [{"at": "2026-10-13T12:35:39Z", "guidance": "Focus on memory now", "firstVersion": 4, "firstLabel": "v4"}],
+                                "source": "artemis chat messages <chat-id>", "reason": None}
+        text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
+        self.assertIn("Steered: Focus on memory now", text)
+        self.assertIn("Steered before v4: “Focus on memory now”", text)
+        snapshot["steering"] = {"points": [], "source": None, "reason": "the run's chat could not be read, so its steers are unknown"}
+        text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
+        self.assertNotIn("Steered", text)
+        self.assertIn("Steers not shown: the run's chat could not be read", text)
 
     # Fewer than three Composite scores: the page leaves that figure out and still draws the rest.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
