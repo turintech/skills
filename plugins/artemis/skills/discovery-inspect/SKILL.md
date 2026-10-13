@@ -72,11 +72,12 @@ Repeated status text or repeated `propose`/`conclude` calls can be normal while 
 
 `discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `processId`, and `observationGroupId`. Read the actual discovery changeset with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
 
-When reporting a run or version, include clickable Web UI links to the run's Versions page and to the winning version, built from `cli-follow-along` §2's table as the start block does (newer deployments shown):
+Every answer about a run or version ends with clickable Web UI links to the run, to the version it reports on when there is one (the winning one, or the best one when none won) and to the run's Versions page, even when the answer is a single number. Build them from `cli-follow-along` §2's table as the start block does (newer deployments shown):
 
 ```text
+[Open the run](<deployment-base-url>/projects/<project-id>/discover/<run-id>)
 [Open the run's versions](<deployment-base-url>/projects/<project-id>/discover/<run-id>/versions)
-[Open the winning version](<deployment-base-url>/projects/<project-id>/discover/<run-id>/versions/<version-id>)
+[Open the version](<deployment-base-url>/projects/<project-id>/discover/<run-id>/versions/<version-id>)
 ```
 
 When the deployment's path shape isn't known, link the project (`<deployment-base-url>/projects/<project-id>`) and name the page to open: Discover, the run, its Versions tab.
@@ -176,5 +177,5 @@ The narration's final messages carry the reason, such as `ERR_LLM_CONNECTION` wi
 - [ ] `discovery compare`: each version's verdict on the target metric, as Artemis gives it; the verdicts, not the Composite score, decide the winner.
 - [ ] `versions list`: winners are `executionStatus=success`; every failure accounted for, including `generation_failed` ones execution logs cannot show.
 - [ ] Winner's `llmRationale` + the actual diff (`changeset diff`, or the Web UI): the change genuinely does what was asked (not a scoring shortcut).
-- [ ] Links returned to the run's Versions page and the winning version, or, when the path shape isn't known, the project link naming the page to open.
+- [ ] Every answer ends with links to the run, the version it reports on when there is one, and the run's Versions page, or, when the path shape isn't known, the project link naming the page to open.
 - [ ] A run that ended short of its budget checked against the agent narration first, so a platform-side stop is reported as such and not as a project, runner, or setup fault.

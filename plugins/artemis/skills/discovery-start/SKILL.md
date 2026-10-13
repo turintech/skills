@@ -103,6 +103,8 @@ Pass `--source-changeset` when starting from an existing branch, including a ver
 
 `--llm-metrics` defaults to `true` on create. Pass `--llm-metrics=false` unless the user asked for AI Metrics. Confirm the response has `scriptId` set and `useLlmMetrics` matching that choice before walking away.
 
+If the dispatching command fails or is blocked, tell the user what stopped it, quoting the message as given: the CLI's error and exit code, or the hook or permission prompt that refused the command. Never report it as an answer the user gave, such as a declined credits check, unless you asked that question and they said no.
+
 ### Benchmark runs per version
 
 Here Benchmark runs means `--eval-runs`, not the execution mode the CLI help also calls Benchmark runs. The server default is one Benchmark run per version, recorded on the run as `evaluationMode` and `evaluationRepetitions`. One Benchmark run yields a point estimate and no interval, so a difference between two versions cannot be separated from ordinary noise.
@@ -211,5 +213,6 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Benchmark runs per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
 - [ ] Fast-track offered when the estimate was longer than the user wanted to wait; if used, its [checklist](FAST_TRACK.md#checklist) completed
 - [ ] Clickable Discovery link returned to the user
+- [ ] A failed or blocked launch reported with the error or refusal quoted, never as an answer the user didn't give
 - [ ] Baseline finalized (`baselineVersionSha` + schema non-null; schema only for `--execution-mode skip`) before walking away
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`
