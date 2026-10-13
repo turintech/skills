@@ -28,6 +28,7 @@ for ref in $(sed -n '/^## 6\. Route to the owning skill/,$p' "$SKILLS/artemis/SK
   fi
 done
 
+python3 "$ROOT/scripts/check_frontmatter.py" || fail=1
 python3 "$ROOT/scripts/check_refs.py" || fail=1
 
 # Commands and flags against a real CLI, when one is given (CI downloads the newest release).

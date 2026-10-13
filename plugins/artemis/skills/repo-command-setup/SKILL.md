@@ -1,6 +1,6 @@
 ---
 name: repo-command-setup
-description: Derive, verify, and configure a project Script's commands: the build and test that gate Discovery, and a benchmark that writes numeric artemis_results metrics. Use when preparing a repository for validation or discovery, making a repo Discovery-ready, authoring a benchmark harness, fixing project commands, or checking that a repo can run on an Artemis runner.
+description: "Derive, verify, and configure a project Script's commands: the build and test that gate Discovery, and a benchmark that writes numeric artemis_results metrics. Use when preparing a repository for validation or discovery, making a repo Discovery-ready, authoring a benchmark harness, fixing project commands, or checking that a repo can run on an Artemis runner."
 compatibility: Requires Artemis CLI 1.1.13+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.13"

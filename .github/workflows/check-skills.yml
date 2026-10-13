@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install PyYAML for the front-matter check
+        run: python3 -m pip install pyyaml==6.0.2
       - name: Download the Artemis CLI
         env:
           # Repository secret ARTEMIS_FILES_AUTH ("user:password"), only if the file server needs auth again.
