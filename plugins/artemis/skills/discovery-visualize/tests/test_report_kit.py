@@ -256,6 +256,40 @@ class RecipeRenderTests(unittest.TestCase):
         self.assertIn("Artemis v4", text)
         self.assertIn("v2 is best on this metric", text)
 
+    # The per-panel note, like the lede, names another best only on a measured metric, never an AI Metric.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_panel_notes_name_another_best_only_on_measured_metrics(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        for side in [snapshot["baseline"]] + snapshot["versions"]:
+            for m in side["metrics"].values():
+                if m.get("mean") is not None:
+                    m["count"] = 3
+                    m["runs"] = [m["mean"] * 0.99, m["mean"], m["mean"] * 1.01]
+        lead = snapshot["webUiBest"]["version"]
+        kinds = {m["key"]: m["kind"] for m in snapshot["metrics"]}
+        quality = [k for k, w in snapshot["perMetricWinners"].items() if kinds[k] == "quality" and w["raw"] and w["raw"]["version"] != lead]
+        measured = [k for k, w in snapshot["perMetricWinners"].items() if kinds[k] != "quality" and w["raw"] and w["raw"]["version"] != lead]
+        self.assertTrue(quality)
+        text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
+        self.assertEqual(text.count("is best on this metric"), len(measured))
+
+    # A metric the Web UI's Best has no reading for keeps its panel, on the metric's own best, and says why.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_metric_the_best_did_not_measure_keeps_its_panel(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        best = next(v for v in snapshot["versions"] if v["version"] == snapshot["webUiBest"]["version"])
+        best["metrics"].pop("quality_score")
+        for side in [snapshot["baseline"]] + snapshot["versions"]:
+            for m in side["metrics"].values():
+                if m.get("mean") is not None:
+                    m["count"] = 3
+                    m["runs"] = [m["mean"] * 0.99, m["mean"], m["mean"] * 1.01]
+        text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
+        own = snapshot["perMetricWinners"]["quality_score"]["raw"]["label"]
+        self.assertIn(best["label"] + " has no reading on this metric", text)
+        self.assertIn("quality_score", text.split("What changed")[0])
+        self.assertIn("Artemis " + own, text)
+
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
     def test_without_a_web_ui_best_the_page_says_why(self) -> None:
         snapshot = self.fixture_snapshot(True)

@@ -223,6 +223,7 @@ class SteeringTests(unittest.TestCase):
             # A continue without guidance resends the task: not a steer.
             self.user("2026-10-13T12:35:33.287000Z", self.TASK, "run-2"),
             self.user("2026-10-13T12:35:39.627000Z", "  Focus on memory now.  ", "run-3"),
+            self.user("2026-10-13T12:35:50Z", "/compact", "run-3"),
         ]
 
     def test_a_steer_is_placed_before_the_first_version_made_after_it(self) -> None:
@@ -277,7 +278,7 @@ class SteeringTests(unittest.TestCase):
         finally:
             collector.run_artemis = original
         self.assertIn(["chat", "messages", "chat-9"], calls)
-        self.assertEqual(len(payloads["chat"]), 4)
+        self.assertEqual(payloads["chat"], self.chat())
 
     def test_fetch_chat_failure_is_not_fatal(self) -> None:
         def failing(args, cli="artemis", config=None):

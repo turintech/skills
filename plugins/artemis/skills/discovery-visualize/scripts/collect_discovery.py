@@ -426,7 +426,8 @@ def steering_points(chat: Any, versions: list[dict[str, Any]]) -> dict[str, Any]
     task = messages[0][1] if messages else None
     made = [(v, _instant(v.get("createdAt"))) for v in versions]
     for at, text in messages[1:]:
-        if text == task:
+        # A resent task is a continue without guidance; a "/" command such as /compact is not guidance either.
+        if text == task or text.startswith("/"):
             continue
         after = [v for v, created in made if created and created >= at]
         first = min(after, key=lambda v: v.get("version") or 0) if after else None

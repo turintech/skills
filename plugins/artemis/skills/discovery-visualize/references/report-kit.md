@@ -78,8 +78,10 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
     return { title: m.key, unit: m.unit || '', note: '1 run each, not confirmed' + (all.length > vs.length ? ', the best ' + vs.length + ' of ' + all.length : ''),
       bars: [{ label: 'Baseline', value: b.mean }].concat(vs.map(x => ({ label: 'Artemis ' + x.label, value: x.metrics[m.key].mean }))) };
   }
-  // Every panel shows the headline version, so the figure and the title agree.
-  const v = winV, vm = v.metrics[m.key], pw = vm && { pctBetter: vm.pctBetter, timesBetter: vm.timesBetter };
+  // Every panel shows the headline version, so the figure and the title agree; on a metric it has no reading for, the metric's own best.
+  const read = !!(winV.metrics[m.key] && winV.metrics[m.key].mean != null);
+  const v = read ? winV : own && S.versions.find(x => x.version === own.version), vm = v && v.metrics[m.key];
+  const pw = vm && { pctBetter: vm.pctBetter, timesBetter: vm.timesBetter };
   if (!b || !vm || b.mean == null || vm.mean == null) return null;
   const vb = vm.vsBaseline, real = vb && (vb.verdict === 'better' || vb.verdict === 'worse');
   const why = !vb ? '' : vb.verdict === 'noise' ? ', within the noise' : vb.verdict === 'pending' ? ', too few runs to tell' : '';
@@ -89,7 +91,7 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
     text: (pw.pctBetter >= 0 ? F.times(pw.timesBetter) + ' better' : F.times(1 / pw.timesBetter) + ' worse') + why,
     dir: vm.mean > b.mean ? 'up' : 'down',  // the raw change; colour alone carries the verdict (ART-2549)
     tone: real ? (vb.verdict === 'better' ? 'good' : 'bad') : 'flat' };
-  const note = own && own.version !== v.version ? own.label + ' is best on this metric' : undefined;
+  const note = !read ? winV.label + ' has no reading on this metric' : own && own.version !== v.version && m.kind !== 'quality' ? own.label + ' is best on this metric' : undefined;
   return { title: m.key, unit: m.unit || '', base: { label: 'Baseline', value: b.mean }, best: { label: 'Artemis ' + v.label, value: vm.mean }, badge, note };
 }).filter(Boolean);
 const f1 = R.figure(page, { question: singleRun ? 'The baseline against each version, 1 run each' : panels.length > 1 ? 'The baseline against the best version, per metric' : 'The baseline against the best version' });
