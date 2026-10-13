@@ -55,8 +55,9 @@ R.rankedBars(f1.chart, present.map(s => {
 }), { base: 0, tickFormat: v => (Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : '') });
 f1.bullets([
   urgent ? '<b>' + urgentText + '</b> open: fix or triage these first' : '<b>Nothing critical or high is open</b>',
-  present.map(s => bySeverity(s).length + ' ' + s).join(', '),
-]);
+  // The full count only when it adds a severity the first line doesn't already name.
+  present.some(s => s !== 'critical' && s !== 'high') ? present.map(s => bySeverity(s).length + ' ' + s).join(', ') : '',
+].filter(Boolean));
 
 const f2 = R.figure(page, { question: 'Where do they sit on the board?' });
 f2.key(LANES.map((l, i) => ({ swatch: R.series(i), text: l[1] })));

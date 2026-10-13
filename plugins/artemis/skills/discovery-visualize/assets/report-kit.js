@@ -70,6 +70,8 @@
   function svgRoot(el, W, H, label) { return s(el, 'svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': label || '' }); }
   // One or two bars drawn the full page width read as a stripe pinned to the left: draw them narrower, centred.
   const FEW_W = 600;
+  // The narrow canvas still leaves the bars 300 units after a long label's measured gutter.
+  const fewWidth = (n, L, R) => (n <= 2 ? Math.min(880, Math.max(FEW_W, L + R + 300)) : 880);
   function centreFew(svg, W) { svg.style.maxWidth = W + 'px'; svg.style.marginInline = 'auto'; return svg; }
   function gutter(rows) {
     return Math.ceil(Math.max(60, ...rows.map(r => Math.max(textWidth(r.label, FONT.lab), textWidth(r.sub || '', FONT.sub)))) + 24);
@@ -204,8 +206,8 @@
      rows: [{ label, sub, value, text, color, faded, tip: [lines] }] in the order to draw (best first)
      opts: { base: 0, min, max, refs: [{value, label, strong}], tickFormat, aria, note } */
   function rankedBars(el, rows, o = {}) {
-    const base = o.base != null ? o.base : 0, rh = 34, T = 36, R = 120, W = rows.length <= 2 ? FEW_W : 880;
-    const L = gutter(rows), H = T + rows.length * rh + (o.note ? 50 : 30);
+    const base = o.base != null ? o.base : 0, rh = 34, T = 36, R = 120;
+    const L = gutter(rows), W = fewWidth(rows.length, L, R), H = T + rows.length * rh + (o.note ? 50 : 30);
     const vals = rows.map(r => r.value).concat([base]).concat((o.refs || []).map(r => r.value));
     const lo = o.min != null ? o.min : Math.min(...vals), hi = o.max != null ? o.max : Math.max(...vals);
     const pad = (hi - lo) * 0.04, x = xScale([[lo - (o.min != null ? 0 : pad), hi + (o.max != null ? 0 : pad)]], L, W - R);
@@ -463,7 +465,7 @@
   /* stackedBars(el, rows, opts): one horizontal bar per row, split into named segments, with the row's total at its end.
      rows: [{ label, sub, segments: [{ name, value, color }] }]; opts: { aria, note }. Pair with fig.key for the segment names. */
   function stackedBars(el, rows, o = {}) {
-    const rh = 34, T = 14, R = 70, W = rows.length <= 2 ? FEW_W : 880, L = gutter(rows), H = T + rows.length * rh + (o.note ? 40 : 12);
+    const rh = 34, T = 14, R = 70, L = gutter(rows), W = fewWidth(rows.length, L, R), H = T + rows.length * rh + (o.note ? 40 : 12);
     const totals = rows.map(r => r.segments.reduce((a, g) => a + (g.value || 0), 0)), max = Math.max(1, ...totals);
     const x = v => L + v / max * (W - R - L);
     const svg = svgRoot(el, W, H, o.aria);

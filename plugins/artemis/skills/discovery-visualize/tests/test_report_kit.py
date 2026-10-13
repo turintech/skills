@@ -129,6 +129,19 @@ class FewBarsTests(unittest.TestCase):
                 self.assertLessEqual(abs(offset), 3, "the chart should sit in the middle of its card")
                 self.assertFalse([p for p in check_report.render_checks(html, check_report.find_chrome()) if p.startswith("OFF-CENTRE")])
 
+    # A long label still leaves the lone bar room: the canvas grows with the measured label gutter.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_long_label_leaves_the_bar_room(self) -> None:
+        label = "Force loop scans distant particles despite fixed radius"  # 55 characters
+        for chart in ("rankedBars(F.chart, [{ label: '%s', value: 1 }])" % label,
+                      "stackedBars(F.chart, [{ label: '%s', segments: [{ name: 'Untriaged', value: 1 }] }])" % label):
+            with self.subTest(chart.split("(")[0]):
+                body = "ArtemisReport." + chart + "; F.bullets(['One open issue']);"
+                probe = "setTimeout(function () { var r = document.querySelector('.ar-chart svg rect'); var d = document.createElement('pre'); d.id = '__geo'; d.textContent = JSON.stringify([[Math.round(r.getBoundingClientRect().width), 0, 0]]); document.body.appendChild(d); }, 600);"
+                html = build_report.build(RecipeRenderTests.fixture_snapshot(True), self.page(body + "\n" + probe), "Title")
+                self.assertGreater(self.geometry(html)[0][0], 150)
+                self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
     def test_many_bars_keep_the_full_width(self) -> None:
         rows = ", ".join("{ label: 'v%d', value: %d }" % (i, i) for i in range(1, 6))
@@ -435,6 +448,18 @@ class MaintainReportTests(unittest.TestCase):
         snapshot = {"projectId": "p1234567", "projectName": "Smoke", "webUrl": "#", "issues": issues}
         html = build_report.build(snapshot, page, "Maintain")
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+        severe = RecipeRenderTests.page_text(html).split("How severe are the open issues?")[1].split("Where do they sit")[0]
+        self.assertIn("1 critical, 2 high, 1 medium, 3 low", severe)
+
+    # Only High issues: the first line already names them, so the count isn't repeated as a bare "1 high".
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_the_count_is_not_repeated_when_the_first_line_says_it(self) -> None:
+        page = (ROOT / "references" / "maintain-report.md").read_text(encoding="utf-8").split("```js\n", 1)[1].split("\n```", 1)[0]
+        snapshot = {"projectId": "p1234567", "projectName": "Smoke", "webUrl": "#",
+                    "issues": [{"status": "open", "severity": "high", "lane": "untriaged", "validity": "not_set"}]}
+        severe = RecipeRenderTests.page_text(build_report.build(snapshot, page, "Maintain")).split("How severe are the open issues?")[1].split("Where do they sit")[0]
+        self.assertIn("1 high open: fix or triage these first", severe)
+        self.assertEqual(severe.count("1 high"), 1, severe)
 
 
 if __name__ == "__main__":
