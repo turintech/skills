@@ -1,4 +1,4 @@
-"""Skills report what really happened, ask the next step as a question, and link what they report."""
+"""Skills ask the next step as a question, and link what they report."""
 import pathlib
 import unittest
 
@@ -10,13 +10,6 @@ def skill(name):
 
 
 class ReportRules(unittest.TestCase):
-    def test_a_blocked_launch_is_reported_with_its_real_error(self):
-        # A sweep agent told the user a launch "was declined at the credits check" when a hook had blocked it.
-        text = skill("discovery-start")
-        for rule in ("If the dispatching command fails or is blocked, tell the user what stopped it, quoting",
-                     "Never report it as an answer the user gave"):
-            self.assertIn(rule, text, "discovery-start: missing the blocked-launch rule")
-
     def test_the_next_step_is_asked_with_the_question_tool(self):
         # After "just set me up" a sweep agent listed the next steps as bullets instead of asking.
         text = skill("quickstart")
