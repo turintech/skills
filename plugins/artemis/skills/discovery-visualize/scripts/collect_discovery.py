@@ -630,21 +630,37 @@ def build_snapshot(
         for rows in metrics.values():
             rows.sort(key=lambda item: item.get("createdAt") or "")
 
+    # A version or the baseline can be several series. A pooled row names them all in `groupIds`
+    # (`observationGroupId` is only the first), so each row is filed under every series it covers.
     stats_by_group: dict[str, dict[str, dict[str, Any]]] = {}
     names_by_id: dict[str, str] = {}
     for row in stats_raw:
-        group_id = row.get("observationGroupId")
+        ids = [g for g in row.get("groupIds") or [] if g] or [row.get("observationGroupId")]
         metric_id = row.get("metricId")
         name = row.get("metricName")
-        if not group_id or not name:
+        if not ids[0] or not name:
             continue
         names_by_id[metric_id] = name
         payload = _stat_payload(row)
-        runs = runs_by_group.get(group_id, {}).get(name)
-        if runs:
-            payload["runs"] = [item["value"] for item in runs]
-            payload.update(quartiles(payload["runs"]))
-        stats_by_group.setdefault(group_id, {})[name] = payload
+        for group_id in ids:
+            stats_by_group.setdefault(group_id, {}).setdefault(name, payload)
+
+    def series_stats(*id_lists: Any) -> dict[str, dict[str, Any]]:
+        """Every metric any of these series recorded, with the readings of all of them."""
+        ids = list(dict.fromkeys(g for ids_ in id_lists for g in (ids_ or []) if g))
+        joined: dict[str, dict[str, Any]] = {}
+        for group_id in ids:
+            for name, stat in stats_by_group.get(group_id, {}).items():
+                joined.setdefault(name, dict(stat))
+        for name, stat in joined.items():
+            readings = sorted(
+                (item for group_id in ids for item in runs_by_group.get(group_id, {}).get(name, [])),
+                key=lambda item: item.get("createdAt") or "",
+            )
+            if readings:
+                stat["runs"] = [item["value"] for item in readings]
+                stat.update(quartiles(stat["runs"]))
+        return joined
 
     schema_by_id = {item.get("metricId"): item for item in (run.get("metricsSchema") or []) if item.get("metricId")}
     metric_defs: dict[str, dict[str, Any]] = {}
@@ -694,7 +710,7 @@ def build_snapshot(
             target["vsReference"] = {"reference": pair["reference"], "ratio": ratio}
 
     baseline_group = run.get("baselineGroupId")
-    baseline_stats = stats_by_group.get(baseline_group or "", {})
+    baseline_stats = series_stats([baseline_group], (compared_baseline or {}).get("groupIds"))
     falcon_baseline = {m.get("name"): m for m in (compared_baseline or {}).get("metrics") or [] if isinstance(m, dict)}
     for name, stat in baseline_stats.items():
         use_falcon_stats(stat, falcon_baseline.get(name))
@@ -705,8 +721,8 @@ def build_snapshot(
         number = item.get("versionNumber")
         group_id = item.get("observationGroupId")
         experiment = experiments_by_id.get(item.get("experimentId") or "") or {}
-        raw_metrics = stats_by_group.get(group_id or "", {})
         compared_row = compared_rows.get(number) or compared_rows.get(item.get("versionSha")) or {}
+        raw_metrics = series_stats([group_id], compared_row.get("groupIds"))
         compared_by_name = {m.get("name"): m for m in compared_row.get("metrics") or [] if isinstance(m, dict)}
         joined: dict[str, Any] = {}
         for name, stat in raw_metrics.items():
