@@ -37,7 +37,7 @@ python3 "<skill-dir>/scripts/collect_discovery.py" \
 
 Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / trade-off view and named the axes, or when one target metric and one quality metric are the obvious pair and you label it as analysis.
 
-4. Read the snapshot. Trust `webUiBest`, `perMetricWinners`, `rankings`, raw `metrics` means, `runs`, `timesBetter`, `vsBaseline` (falcon's verdict and interval) and `steering` (each steer, from the run's chat). Lead with `webUiBest`; name each metric's raw winner where it differs; if a raw winner differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent any other overall winner. If `perMetricWinners[metric].raw` is `null`, say its `reason` (no stored direction, or no change from Artemis yet) and draw no winner for it. Collect with `--from-dir` only from a folder that holds `comparison.json` from `discovery compare`.
+4. Read the snapshot. Trust `webUiBest`, `perMetricWinners`, `rankings`, raw `metrics` means, `runs`, `timesBetter`, `vsBaseline` (falcon's verdict and interval) and `steering` (each steer, from the run's chat). Lead with `webUiBest`. `bestLines.lede` and `bestLines.notes` are the sentences that say so, name each measured metric whose own best differs, and flag a stored direction worth checking: put them on the page word for word, whatever page you write (`check_report.py` fails without them); if a raw winner differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent any other overall winner. If `perMetricWinners[metric].raw` is `null`, say its `reason` (no stored direction, or no change from Artemis yet) and draw no winner for it. Collect with `--from-dir` only from a folder that holds `comparison.json` from `discovery compare`.
 5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. The figures are kit functions ([references/report-kit.md](references/report-kit.md)); [references/component-catalog.md](references/component-catalog.md) is only for a Cursor canvas.
 6. Build the page with the kit in [references/report-kit.md](references/report-kit.md), on every host: write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. The result is one HTML file that looks the same whichever agent built it. Then read the adapter for how to hand it over:
    - Claude Code: [references/claude-code.md](references/claude-code.md) (publish as an Artifact)
@@ -53,7 +53,7 @@ The data contract is in [references/data-contract.md](references/data-contract.m
 
 Keep the message short: the report says the rest. In this order, and nothing after the box:
 
-1. **At most four lines of summary:** the main finding in one sentence, then up to two supporting facts or one caveat, each with a number. No nested bullets, no restating every figure.
+1. **At most four lines of summary:** open with the first sentence of `bestLines.lede` and its "Best on a single metric instead" sentence when there is one, then the main finding with a number. To point the user at a version other than the Web UI's Best, say it differs from the Web UI's Best and why: which metric, in the direction the project stores. No nested bullets, no restating every figure.
 2. **The link in a box, as its own block,** so it cannot be missed:
 
 ````text

@@ -27,18 +27,11 @@ const key = S.metrics.find(m => m.kind === 'target' && m.role !== 'reference').k
 const def = S.metrics.find(m => m.key === key), unit = def.unit || '', up = def.higherIsBetter;
 const word = up ? 'faster' : 'lower';  // the metric's own word: faster, smaller, more accurate
 const worse = up ? 'slower' : 'higher';  // and for a best version that is still behind the baseline
-const base = S.baseline.metrics[key], raw = S.perMetricWinners[key].raw, ui = S.webUiBest;
-// Lead with the Web UI's Best (highest Composite score), so the page and the Web UI name the same version.
-const uiM = ui ? S.versions.find(v => v.version === ui.version).metrics[key] : null;
-const byComposite = !!(uiM && uiM.pctBetter != null);
-const win = byComposite ? { version: ui.version, pctBetter: uiM.pctBetter, timesBetter: uiM.timesBetter } : raw;
-if (!win) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason + '. Say so to the user instead of drawing this page.');
-const winV = S.versions.find(v => v.version === win.version), winM = winV.metrics[key], t = winM.vsBaseline;
-// Where a single measured metric has another best version, the page says so up front.
-const elsewhere = S.metrics.filter(m => m.kind !== 'quality' && m.role !== 'reference')
-  .map(m => [m.key, (S.perMetricWinners[m.key] || {}).raw, (winV.metrics[m.key] || {}).pctBetter])
-  .filter(([, w, own]) => w && w.version !== win.version && (own == null || w.pctBetter > own))
-  .map(([k, w]) => w.label + ' on ' + k + ' (' + F.pct(w.pctBetter) + ')');
+const base = S.baseline.metrics[key], ui = S.webUiBest, BL = S.bestLines;
+// The collector picks the version the page leads with (the Web UI's Best) and writes the lines about it; keep them verbatim.
+if (!BL) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason + '. Say so to the user instead of drawing this page.');
+const winV = S.versions.find(v => v.version === BL.version), winM = winV.metrics[key], t = winM.vsBaseline;
+const win = { version: BL.version, pctBetter: winM.pctBetter, timesBetter: winM.timesBetter }, byComposite = BL.byComposite;
 const sha = S.run.baselineVersionSha.slice(0, 7), project = S.run.projectName;
 // falcon's change decides the wording: a negative change is a best version still behind the baseline.
 const behind = win.pctBetter < 0;
@@ -51,10 +44,7 @@ const perVersion = Math.min(...counts) === Math.max(...counts) ? String(counts[0
 R.header(document.getElementById('header'), {
   eyebrow: 'Artemis Discovery · ' + (project ? project + ' · ' : '') + key,
   title: [winV.label + ' is ', gain, verdict],  // one line; the project is in the eyebrow
-  lede: (byComposite ? winV.label + ' is the Web UI’s Best: the highest Composite score, the platform’s roll-up of the metrics by importance.'
-    : ui ? 'The Web UI’s Best is ' + ui.label + ', by Composite score, but Artemis has no change on ' + key + ' for it, so this page leads with the best version on ' + key + '.'
-    : 'The Web UI shows no Best, as no version’s Composite score is above the baseline, so this page leads with the best version on ' + key + '.')
-    + (elsewhere.length ? ' Best on a single metric instead: ' + elsewhere.join('; ') + '.' : ''),
+  lede: BL.lede,
   chips: t ? [
     { text: 'Verdict: ' + t.verdict, strong: t.verdict === 'better' },
     t.ciLowPct != null ? { text: '95% interval ' + F.pct(t.ciLowPct) + ' to ' + F.pct(t.ciHighPct) } : null,
@@ -75,7 +65,7 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
       .sort((p, q) => (q.metrics[m.key].pctBetter ?? -1e9) - (p.metrics[m.key].pctBetter ?? -1e9));  // no value: last
     const vs = all.slice(0, 8);  // more bars than this stop being readable in one panel
     if (!b || b.mean == null || !vs.length) return null;
-    return { title: m.key, unit: m.unit || '', note: '1 run each, not confirmed' + (all.length > vs.length ? ', the best ' + vs.length + ' of ' + all.length : ''),
+    return { title: m.key, unit: m.unit || '', note: '1 run each, not confirmed' + (all.length > vs.length ? ', the best ' + vs.length + ' of ' + all.length : '') + (BL.notes[m.key] ? '; ' + BL.notes[m.key] : ''),
       bars: [{ label: 'Baseline', value: b.mean }].concat(vs.map(x => ({ label: 'Artemis ' + x.label, value: x.metrics[m.key].mean }))) };
   }
   // Every panel shows the headline version, so the figure and the title agree; on a metric it has no reading for, the metric's own best.
@@ -91,7 +81,7 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
     text: (pw.pctBetter >= 0 ? F.times(pw.timesBetter) + ' better' : F.times(1 / pw.timesBetter) + ' worse') + why,
     dir: vm.mean > b.mean ? 'up' : 'down',  // the raw change; colour alone carries the verdict (ART-2549)
     tone: real ? (vb.verdict === 'better' ? 'good' : 'bad') : 'flat' };
-  const note = !read ? winV.label + ' has no reading on this metric' : own && own.version !== v.version && m.kind !== 'quality' ? own.label + ' is best on this metric' : undefined;
+  const note = BL.notes[m.key];
   return { title: m.key, unit: m.unit || '', base: { label: 'Baseline', value: b.mean }, best: { label: 'Artemis ' + v.label, value: vm.mean }, badge, note };
 }).filter(Boolean);
 const f1 = R.figure(page, { question: singleRun ? 'The baseline against each version, 1 run each' : panels.length > 1 ? 'The baseline against the best version, per metric' : 'The baseline against the best version' });

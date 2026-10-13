@@ -203,6 +203,91 @@ class WebUiBestTests(unittest.TestCase):
         self.assertEqual(snapshot["webUiBest"], {"version": 2, "label": "v2", "fitness": 0.9})
 
 
+class BestLinesTests(unittest.TestCase):
+    @staticmethod
+    def defs(**kinds: str) -> dict:
+        directions = {"latency_ms": False, "fps": True, "quality": True, "compile_s": False}
+        return {k: {"key": k, "kind": v, "higherIsBetter": directions.get(k, True), "unit": None} for k, v in kinds.items()}
+
+    @staticmethod
+    def version(n: int, **pcts: float | None) -> dict:
+        return {"version": n, "label": f"v{n}", "metrics": {k: {"mean": 1.0, "pctBetter": p} for k, p in pcts.items()}}
+
+    @staticmethod
+    def winner(n: int, pct: float) -> dict:
+        return {"raw": {"version": n, "label": f"v{n}", "pctBetter": pct}}
+
+    def test_lede_names_a_measured_metric_whose_best_is_better(self) -> None:
+        defs = self.defs(latency_ms="target", compile_s="harness", quality="quality")
+        versions = [self.version(1, latency_ms=10.0, compile_s=5.0, quality=12.0), self.version(2, latency_ms=20.0, compile_s=-3.0, quality=9.0)]
+        winners = {"latency_ms": self.winner(2, 20.0), "compile_s": self.winner(1, 5.0), "quality": self.winner(1, 12.0)}
+        lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
+        self.assertEqual(lines["version"], 2)
+        self.assertTrue(lines["byComposite"])
+        self.assertEqual(
+            lines["lede"],
+            "v2 is the Web UI\u2019s Best: the highest Composite score, the platform\u2019s roll-up of the metrics by importance. "
+            "Best on a single metric instead: v1 on compile_s (+5.0%).",
+        )
+        # An AI Metric's own best is never named; a measured metric's is, in its panel note too.
+        self.assertEqual(lines["notes"], {"compile_s": "v1 is best on compile_s"})
+
+    def test_a_tie_is_not_another_best(self) -> None:
+        defs = self.defs(latency_ms="target", compile_s="harness")
+        versions = [self.version(1, latency_ms=10.0, compile_s=0.0), self.version(2, latency_ms=20.0, compile_s=0.0)]
+        winners = {"latency_ms": self.winner(2, 20.0), "compile_s": self.winner(1, 0.0)}
+        lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
+        self.assertNotIn("instead", lines["lede"])
+        self.assertEqual(lines["notes"], {})
+
+    def test_a_metric_the_lead_did_not_measure_says_so(self) -> None:
+        defs = self.defs(latency_ms="target", quality="quality")
+        versions = [self.version(1, latency_ms=10.0, quality=1.0), self.version(2, latency_ms=20.0)]
+        winners = {"latency_ms": self.winner(2, 20.0), "quality": self.winner(1, 1.0)}
+        lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
+        self.assertEqual(lines["notes"], {"quality": "v2 has no reading on quality; v1 is best on it"})
+
+    def test_without_a_web_ui_best_the_target_winner_leads_and_says_why(self) -> None:
+        defs = self.defs(latency_ms="target")
+        versions = [self.version(1, latency_ms=10.0), self.version(2, latency_ms=20.0)]
+        lines = collector.best_lines(defs, versions, {"latency_ms": self.winner(2, 20.0)}, None)
+        self.assertEqual((lines["version"], lines["byComposite"]), (2, False))
+        self.assertIn("The Web UI shows no Best", lines["lede"])
+
+    def test_a_web_ui_best_with_no_change_on_the_target_falls_back(self) -> None:
+        defs = self.defs(latency_ms="target")
+        versions = [self.version(1, latency_ms=None), self.version(2, latency_ms=20.0)]
+        lines = collector.best_lines(defs, versions, {"latency_ms": self.winner(2, 20.0)}, {"version": 1, "label": "v1", "fitness": 0.9})
+        self.assertEqual(lines["version"], 2)
+        self.assertIn("The Web UI\u2019s Best is v1, by Composite score, but Artemis has no change on latency_ms", lines["lede"])
+
+    def test_no_best_version_gives_none(self) -> None:
+        self.assertIsNone(collector.best_lines(self.defs(latency_ms="target"), [self.version(1)], {"latency_ms": {"raw": None}}, None))
+
+    def test_a_reversed_stored_direction_is_flagged_not_changed(self) -> None:
+        defs = {
+            "simulation_fps": {"key": "simulation_fps", "kind": "target", "higherIsBetter": False, "unit": "fps"},
+            "command 1_runtime": {"key": "command 1_runtime", "kind": "harness", "higherIsBetter": True, "unit": "s"},
+            "command 1_cpu": {"key": "command 1_cpu", "kind": "harness", "higherIsBetter": True, "unit": None},
+            "latency_ms": {"key": "latency_ms", "kind": "harness", "higherIsBetter": False, "unit": "ms"},
+            "behavioral_equivalence": {"key": "behavioral_equivalence", "kind": "quality", "higherIsBetter": False, "unit": None},
+            # Its name points both ways, so nothing is flagged.
+            "memory_bandwidth": {"key": "memory_bandwidth", "kind": "harness", "higherIsBetter": False, "unit": None},
+        }
+        self.assertEqual(
+            collector.direction_checks(defs),
+            [
+                "simulation_fps is set as lower-is-better on this project; check Settings > Metrics.",
+                "command 1_runtime is set as higher-is-better on this project; check Settings > Metrics.",
+            ],
+        )
+        self.assertFalse(defs["simulation_fps"]["higherIsBetter"])
+        # The lede carries the flag, so the page and the chat answer say it too.
+        versions = [self.version(1, simulation_fps=5.0)]
+        lede = collector.best_lines(defs, versions, {"simulation_fps": self.winner(1, 5.0)}, None)["lede"]
+        self.assertIn("simulation_fps is set as lower-is-better on this project; check Settings > Metrics.", lede)
+
+
 class SteeringTests(unittest.TestCase):
     TASK = "Make the kernel faster."
     VERSIONS = [

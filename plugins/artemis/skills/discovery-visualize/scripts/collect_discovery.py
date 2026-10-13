@@ -395,6 +395,86 @@ def web_ui_best(versions: list[dict[str, Any]]) -> dict[str, Any] | None:
     return {"version": best["version"], "label": best["label"], "fitness": best["fitness"]}
 
 
+# Words that say which way a metric usually improves. Used only to flag a stored direction for the user to
+# check; the direction itself always comes from the platform.
+_USUALLY_LOWER = re.compile(r"(runtime|latency|duration|elapsed|wall|_ms$|_us$|_ns$|_seconds?$|memory|_mem$|rss)")
+_USUALLY_HIGHER = re.compile(r"(fps|throughput|qps|ops_per|per_sec|tflops|gflops|bandwidth|speedup)")
+_LOWER_UNITS = {"s", "ms", "us", "ns", "sec", "seconds", "mb", "gb", "kb", "bytes"}
+_HIGHER_UNITS = {"fps", "ops/s", "req/s", "tflops", "gflops"}
+
+
+def direction_checks(metric_defs: dict[str, dict[str, Any]]) -> list[str]:
+    """A plain line for each measured metric stored the opposite way to what its name or unit suggests."""
+    lines = []
+    for name, definition in metric_defs.items():
+        higher = definition.get("higherIsBetter")
+        if higher is None or definition["kind"] == "quality":
+            continue
+        unit = (definition.get("unit") or "").strip().lower()
+        usually_higher = unit in _HIGHER_UNITS or bool(_USUALLY_HIGHER.search(name.lower()))
+        usually_lower = unit in _LOWER_UNITS or bool(_USUALLY_LOWER.search(name.lower()))
+        if usually_higher == usually_lower:
+            continue
+        if usually_higher and not higher:
+            lines.append(f"{name} is set as lower-is-better on this project; check Settings > Metrics.")
+        elif usually_lower and higher:
+            lines.append(f"{name} is set as higher-is-better on this project; check Settings > Metrics.")
+    return lines
+
+
+def _pct(value: float) -> str:
+    """A change as the report kit prints it: a sign (a true minus for a fall) and one decimal."""
+    return ("+" if value >= 0 else "\u2212") + f"{abs(value):.1f}%"
+
+
+def best_lines(
+    metric_defs: dict[str, dict[str, Any]],
+    versions: list[dict[str, Any]],
+    winners: dict[str, dict[str, Any]],
+    ui_best: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """The sentences every report and chat answer carries verbatim: which version leads and why, and each
+    measured metric whose own best is another version. None when no target metric has a best version."""
+    key = next((n for n, d in metric_defs.items() if d["kind"] == "target" and d.get("role") != "reference"), None)
+    if key is None:
+        return None
+    by_number = {v["version"]: v for v in versions}
+    ui_stat = (by_number.get(ui_best["version"], {}).get("metrics") or {}).get(key) if ui_best else None
+    by_composite = bool(ui_stat and ui_stat.get("pctBetter") is not None)
+    raw = (winners.get(key) or {}).get("raw")
+    lead = by_number.get(ui_best["version"]) if by_composite else (by_number.get(raw["version"]) if raw else None)
+    if lead is None:
+        return None
+    if by_composite:
+        lede = f"{lead['label']} is the Web UI\u2019s Best: the highest Composite score, the platform\u2019s roll-up of the metrics by importance."
+    elif ui_best:
+        lede = (f"The Web UI\u2019s Best is {ui_best['label']}, by Composite score, but Artemis has no change on {key} for it, "
+                f"so this page leads with the best version on {key}.")
+    else:
+        lede = (f"The Web UI shows no Best, as no version\u2019s Composite score is above the baseline, "
+                f"so this page leads with the best version on {key}.")
+    elsewhere, notes = [], {}
+    for name, definition in metric_defs.items():
+        if definition.get("role") == "reference":
+            continue
+        own = (winners.get(name) or {}).get("raw")
+        stat = (lead.get("metrics") or {}).get(name) or {}
+        if stat.get("mean") is None:
+            notes[name] = f"{lead['label']} has no reading on {name}" + (f"; {own['label']} is best on it" if own else "")
+            continue
+        if definition["kind"] == "quality" or not own or own["version"] == lead["version"]:
+            continue
+        if stat.get("pctBetter") is not None and not own["pctBetter"] > stat["pctBetter"]:
+            continue
+        elsewhere.append(f"{own['label']} on {name} ({_pct(own['pctBetter'])})")
+        notes[name] = f"{own['label']} is best on {name}"
+    if elsewhere:
+        lede += " Best on a single metric instead: " + "; ".join(elsewhere) + "."
+    for line in direction_checks(metric_defs):
+        lede += " " + line
+    return {"version": lead["version"], "label": lead["label"], "byComposite": by_composite, "lede": lede, "notes": notes}
+
+
 def _instant(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
@@ -833,6 +913,7 @@ def build_snapshot(
         "runningBest": running_best,
         "perMetricWinners": winners,
         "webUiBest": web_ui_best(versions),
+        "bestLines": best_lines(metric_defs, versions, winners, web_ui_best(versions)),
         "steering": steering_points(payloads.get("chat"), versions),
         "executionSummary": {
             **lifecycle_counts,

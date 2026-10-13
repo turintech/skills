@@ -28,10 +28,10 @@ When the prompt names no story, build the default. Do not ask first.
 
 In this order, with the kit calls from [report-kit.md](report-kit.md):
 
-1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain". The version is the Web UI's Best (`webUiBest`, the highest Composite score), and the lede says so; when a single measured metric has another best version, the lede names it. Without a Web UI Best, lead with the best on the target metric and say why.
+1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain". The version is the Web UI's Best (`webUiBest`, the highest Composite score). The lede is `bestLines.lede`, word for word: it says how the version was chosen, names each measured metric whose own best version is another, and flags a stored direction worth checking in Settings > Metrics. A page you write yourself carries it too; `check_report.py` fails without it. Without a Web UI Best, the collector leads with the best on the target metric and the lede says why.
 2. **Chips:** falcon's verdict (the strong chip only for `better`), the 95% interval, and the runs per side.
 3. **Headline:** baseline mean, then the %, then the best version's mean.
-4. **Figure 1, `baselineBest`:** per metric, two bars: the baseline and the headline version, values on the bars, Artemis's change as the badge in the panel title, and a note naming the metric's own best version when it is another.
+4. **Figure 1, `baselineBest`:** per metric, two bars: the baseline and the headline version, values on the bars, Artemis's change as the badge in the panel title, and `bestLines.notes[metric]` as the panel's note, word for word.
 5. **Figure 2, `compareRuns`:** every run of the target metric's baseline and best version, the gap between the means labelled with the %; only when the collector had each reading.
 6. **Figure 3, `forest`:** every measured version's % change with its 95% interval, best first.
 7. **Method note** (quiet bullets): runs per version; verdicts, changes and intervals are Artemis's own (`discovery compare`), as the Web UI shows them; falcon's suggested runs when a verdict is `pending`; and, when the Experiment's conclusion disagrees with falcon's verdict, one bullet that says so.
@@ -121,7 +121,8 @@ A professional data designer should be happy to put their name to it.
 
 ## 5. What the data can and cannot say
 
-- The best version is the raw per-metric winner (`perMetricWinners[metric].raw`). If it fails the eligibility gate, it stays the measured headline, and a note names the gate and the best eligible version.
+- The report leads with the Web UI's Best (`bestLines`); each metric's own best is its raw winner (`perMetricWinners[metric].raw`). If a raw winner fails the eligibility gate, a note names the gate and the best eligible version.
+- Directions are the project's stored ones, as in the Web UI, even when the task suggests otherwise; `bestLines.lede` flags one that looks reversed, so the user can check Settings > Metrics. Never rank by the direction you think it should have.
 - A version with a strong measurement and a **refuted** conclusion usually means it did not beat an earlier version. Say so in the finding, from `experimentConclusion`, so the table does not read as a failure.
 - Missing measurements are gaps with a reason (`executionStatus`, `lifecycle`), never zeros.
 - "Real" means falcon's verdict in `vsBaseline` is `better` (or `worse` for a real loss). Never compute a p-value, interval or verdict in the page or by hand.

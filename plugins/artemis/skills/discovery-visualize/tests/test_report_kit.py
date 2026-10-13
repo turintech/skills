@@ -104,7 +104,7 @@ class RecipeTests(unittest.TestCase):
 
     def test_recipe_stops_when_there_is_no_best_version(self) -> None:
         recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
-        self.assertIn("if (!win) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason", recipe)
+        self.assertIn("if (!BL) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason", recipe)
 
     def test_recipe_never_prints_null_runs(self) -> None:
         recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
@@ -128,6 +128,13 @@ class RecipeRenderTests(unittest.TestCase):
     def recipe_page() -> str:
         recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
         return recipe.split("```js\n", 1)[1].split("\n```", 1)[0]
+
+    @staticmethod
+    def relead(snapshot: dict) -> dict:
+        """Recompute the collector's best lines after a test edits the snapshot."""
+        defs = {m["key"]: m for m in snapshot["metrics"]}
+        snapshot["bestLines"] = collect_discovery.best_lines(defs, snapshot["versions"], snapshot["perMetricWinners"], snapshot["webUiBest"])
+        return snapshot
 
     @staticmethod
     def fixture_snapshot(with_readings: bool) -> dict:
@@ -242,6 +249,7 @@ class RecipeRenderTests(unittest.TestCase):
         for v in snapshot["versions"]:
             v["fitness"] = 0.9 if v["label"] == "v4" else 0.3
         snapshot["webUiBest"] = collect_discovery.web_ui_best(snapshot["versions"])
+        self.relead(snapshot)
         text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
         self.assertIn("v4 is the Web UI’s Best: the highest Composite score", text)
         self.assertIn("Best on a single metric instead: v2 on latency_ms", text)
@@ -254,7 +262,7 @@ class RecipeRenderTests(unittest.TestCase):
                     m["runs"] = [m["mean"] * 0.99, m["mean"], m["mean"] * 1.01]
         text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
         self.assertIn("Artemis v4", text)
-        self.assertIn("v2 is best on this metric", text)
+        self.assertIn("v2 is best on latency_ms", text)
 
     # The per-panel note, like the lede, names another best only on a measured metric, never an AI Metric.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
@@ -265,13 +273,11 @@ class RecipeRenderTests(unittest.TestCase):
                 if m.get("mean") is not None:
                     m["count"] = 3
                     m["runs"] = [m["mean"] * 0.99, m["mean"], m["mean"] * 1.01]
-        lead = snapshot["webUiBest"]["version"]
-        kinds = {m["key"]: m["kind"] for m in snapshot["metrics"]}
-        quality = [k for k, w in snapshot["perMetricWinners"].items() if kinds[k] == "quality" and w["raw"] and w["raw"]["version"] != lead]
-        measured = [k for k, w in snapshot["perMetricWinners"].items() if kinds[k] != "quality" and w["raw"] and w["raw"]["version"] != lead]
-        self.assertTrue(quality)
+        notes = snapshot["bestLines"]["notes"]
         text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
-        self.assertEqual(text.count("is best on this metric"), len(measured))
+        for note in notes.values():
+            self.assertIn(note, text)
+        self.assertEqual(text.count(" is best on "), sum(" is best on " in n for n in notes.values()))
 
     # A metric the Web UI's Best has no reading for keeps its panel, on the metric's own best, and says why.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
@@ -279,6 +285,7 @@ class RecipeRenderTests(unittest.TestCase):
         snapshot = self.fixture_snapshot(True)
         best = next(v for v in snapshot["versions"] if v["version"] == snapshot["webUiBest"]["version"])
         best["metrics"].pop("quality_score")
+        self.relead(snapshot)
         for side in [snapshot["baseline"]] + snapshot["versions"]:
             for m in side["metrics"].values():
                 if m.get("mean") is not None:
@@ -286,7 +293,7 @@ class RecipeRenderTests(unittest.TestCase):
                     m["runs"] = [m["mean"] * 0.99, m["mean"], m["mean"] * 1.01]
         text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
         own = snapshot["perMetricWinners"]["quality_score"]["raw"]["label"]
-        self.assertIn(best["label"] + " has no reading on this metric", text)
+        self.assertIn(best["label"] + " has no reading on quality_score; " + own + " is best on it", text)
         self.assertIn("quality_score", text.split("What changed")[0])
         self.assertIn("Artemis " + own, text)
 
@@ -294,6 +301,7 @@ class RecipeRenderTests(unittest.TestCase):
     def test_without_a_web_ui_best_the_page_says_why(self) -> None:
         snapshot = self.fixture_snapshot(True)
         snapshot["webUiBest"] = None
+        self.relead(snapshot)
         text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
         self.assertIn("The Web UI shows no Best, as no version’s Composite score is above the baseline", text)
         self.assertNotIn("is the Web UI’s Best", text)
@@ -311,6 +319,20 @@ class RecipeRenderTests(unittest.TestCase):
         text = self.page_text(build_report.build(snapshot, self.recipe_page(), "Title"))
         self.assertNotIn("Steered", text)
         self.assertIn("Steers not shown: the run's chat could not be read", text)
+
+    # check_report fails a page that leaves out the collector's best lines, whatever script drew it.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_check_report_requires_the_best_lines(self) -> None:
+        snapshot = self.fixture_snapshot(True)
+        snapshot["bestLines"]["notes"]["compile_runtime"] = "v4 is best on compile_runtime"
+        own_page = "ArtemisReport.header(document.getElementById('header'), { title: 'My own page' });\n" \
+                   "ArtemisReport.trajectory(document.getElementById('page'), SNAPSHOT.versions.map(v => ({ label: v.label, y: v.fitness })));"
+        problems = check_report.render_checks(build_report.build(snapshot, own_page, "Title"), check_report.find_chrome())
+        self.assertTrue(any(p.startswith("MISSING BEST LINE") and "Web UI" in p for p in problems), problems)
+        self.assertTrue(any("v4 is best on compile_runtime" in p for p in problems), problems)
+        kept = own_page.replace("title: 'My own page'", "title: 'My own page', lede: SNAPSHOT.bestLines.lede + ' ' + Object.values(SNAPSHOT.bestLines.notes).join('. ')")
+        problems = check_report.render_checks(build_report.build(snapshot, kept, "Title"), check_report.find_chrome())
+        self.assertFalse([p for p in problems if p.startswith("MISSING BEST LINE")], problems)
 
     # Fewer than three Composite scores: the page leaves that figure out and still draws the rest.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
