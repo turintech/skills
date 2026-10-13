@@ -395,29 +395,24 @@ def web_ui_best(versions: list[dict[str, Any]]) -> dict[str, Any] | None:
     return {"version": best["version"], "label": best["label"], "fitness": best["fitness"]}
 
 
-# Words that say which way a metric usually improves. Used only to flag a stored direction for the user to
-# check; the direction itself always comes from the platform.
-_USUALLY_LOWER = re.compile(r"(runtime|latency|duration|elapsed|wall|_ms$|_us$|_ns$|_seconds?$|memory|_mem$|rss)")
-_USUALLY_HIGHER = re.compile(r"(fps|throughput|qps|ops_per|per_sec|tflops|gflops|bandwidth|speedup)")
-_LOWER_UNITS = {"s", "ms", "us", "ns", "sec", "seconds", "mb", "gb", "kb", "bytes"}
-_HIGHER_UNITS = {"fps", "ops/s", "req/s", "tflops", "gflops"}
+# Units that say which way a metric improves. Only the unit the platform stores counts, never the name or a
+# unit guessed from it, and anything else stays silent: a wrong hint is worse than none. The flag only asks the
+# user to check; the direction itself always comes from the platform.
+_HIGHER_UNITS = {"fps", "ops/s", "req/s", "tokens/s", "items/s", "/s"}
+_LOWER_UNITS = {"s", "ms", "us", "\u00b5s", "ns", "sec", "secs", "second", "seconds"}
 
 
 def direction_checks(metric_defs: dict[str, dict[str, Any]]) -> list[str]:
-    """A plain line for each measured metric stored the opposite way to what its name or unit suggests."""
+    """A plain line for each measured metric whose stored direction contradicts its platform unit."""
     lines = []
     for name, definition in metric_defs.items():
         higher = definition.get("higherIsBetter")
-        if higher is None or definition["kind"] == "quality":
+        unit = (definition.get("platformUnit") or "").strip().lower()
+        if higher is None or definition["kind"] == "quality" or not unit:
             continue
-        unit = (definition.get("unit") or "").strip().lower()
-        usually_higher = unit in _HIGHER_UNITS or bool(_USUALLY_HIGHER.search(name.lower()))
-        usually_lower = unit in _LOWER_UNITS or bool(_USUALLY_LOWER.search(name.lower()))
-        if usually_higher == usually_lower:
-            continue
-        if usually_higher and not higher:
+        if (unit in _HIGHER_UNITS or unit.endswith("/s")) and not higher:
             lines.append(f"{name} is set as lower-is-better on this project; check Settings > Metrics.")
-        elif usually_lower and higher:
+        elif unit in _LOWER_UNITS and higher:
             lines.append(f"{name} is set as higher-is-better on this project; check Settings > Metrics.")
     return lines
 
@@ -460,7 +455,9 @@ def best_lines(
         own = (winners.get(name) or {}).get("raw")
         stat = (lead.get("metrics") or {}).get(name) or {}
         if stat.get("mean") is None:
-            notes[name] = f"{lead['label']} has no reading on {name}" + (f"; {own['label']} is best on it" if own else "")
+            # Only when another version has the reading; with none, the page has no panel to put the note on.
+            if own:
+                notes[name] = f"{lead['label']} has no reading on {name}; {own['label']} is best on it"
             continue
         if definition["kind"] == "quality" or not own or own["version"] == lead["version"]:
             continue
@@ -673,6 +670,7 @@ def build_snapshot(
             "importance": schema.get("importance"),
             "kind": classify_kind(name, source),
             "unit": compared.get("unit") or unit_by_name.get(name) or infer_unit(name),
+            "platformUnit": compared.get("unit") or unit_by_name.get(name),
             "description": schema.get("description"),
         }
 

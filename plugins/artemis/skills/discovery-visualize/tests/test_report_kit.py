@@ -333,6 +333,16 @@ class RecipeRenderTests(unittest.TestCase):
         kept = own_page.replace("title: 'My own page'", "title: 'My own page', lede: SNAPSHOT.bestLines.lede + ' ' + Object.values(SNAPSHOT.bestLines.notes).join('. ')")
         problems = check_report.render_checks(build_report.build(snapshot, kept, "Title"), check_report.find_chrome())
         self.assertFalse([p for p in problems if p.startswith("MISSING BEST LINE")], problems)
+        # A note is matched whole, not as the start of a longer metric name.
+        snapshot["bestLines"]["notes"] = {"compile": "v4 is best on compile"}
+        prefix = own_page.replace("title: 'My own page'", "title: 'My own page', lede: SNAPSHOT.bestLines.lede + ' v4 is best on compile_runtime'")
+        problems = check_report.render_checks(build_report.build(snapshot, prefix, "Title"), check_report.find_chrome())
+        self.assertTrue(any("v4 is best on compile" in p for p in problems), problems)
+        # Text the reader can't see does not count.
+        snapshot["bestLines"]["notes"] = {}
+        hidden = own_page + "\nconst box = document.createElement('div'); box.style.display = 'none'; box.textContent = SNAPSHOT.bestLines.lede; document.body.append(box);"
+        problems = check_report.render_checks(build_report.build(snapshot, hidden, "Title"), check_report.find_chrome())
+        self.assertTrue(any(p.startswith("MISSING BEST LINE") and "Web UI" in p for p in problems), problems)
 
     # Fewer than three Composite scores: the page leaves that figure out and still draws the rest.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")

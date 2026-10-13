@@ -20,7 +20,7 @@
 | `executionSummary` | Completed / generation_failed / scoring_failed / execution_* / `missingTargetMetrics` |
 | `experimentSummary` | validated / refuted / inconclusive counts |
 | `webUiBest` | `{version, label, fitness}`: the version the Web UI badges Best (highest Composite score among versions that scored, have a sha and did not fail; the earlier on a tie); `null` when no score is above 0 |
-| `bestLines` | `{version, label, byComposite, lede, notes}`: the version the default page leads with (the Web UI's Best, else the target metric's raw winner) and the sentences to keep verbatim: `lede` says how it was chosen, names each measured metric whose own best is better, and flags a stored direction its name or unit contradicts; `notes[metric]` is that metric's panel note. `null` when no target metric has a best version |
+| `bestLines` | `{version, label, byComposite, lede, notes}`: the version the default page leads with (the Web UI's Best, else the target metric's raw winner) and the sentences to keep verbatim: `lede` says how it was chosen, names each measured metric whose own best is better, and flags a stored direction its platform unit contradicts (`metrics[].platformUnit`; a unit guessed from the name never counts); `notes[metric]` is that metric's panel note. `null` when no target metric has a best version |
 | `steering` | `{points, source, reason}`: each steer from the run's chat, `{at, guidance, firstVersion, firstLabel}`, in time order; `firstVersion` is the first version made after it (`null` if none yet). `reason` is set when the chat could not be read |
 | `pareto` | `null` unless `--pareto` was passed |
 | `references` | Target and reference metric pairs, such as a Triton kernel and cuBLAS measured in the same benchmark |

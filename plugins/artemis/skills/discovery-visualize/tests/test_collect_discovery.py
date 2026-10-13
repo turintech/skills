@@ -247,6 +247,13 @@ class BestLinesTests(unittest.TestCase):
         lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
         self.assertEqual(lines["notes"], {"quality": "v2 has no reading on quality; v1 is best on it"})
 
+    def test_a_metric_no_version_measured_needs_no_note(self) -> None:
+        defs = self.defs(latency_ms="target", quality="quality")
+        versions = [self.version(1, latency_ms=10.0), self.version(2, latency_ms=20.0)]
+        winners = {"latency_ms": self.winner(2, 20.0), "quality": {"raw": None}}
+        lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
+        self.assertEqual(lines["notes"], {})
+
     def test_without_a_web_ui_best_the_target_winner_leads_and_says_why(self) -> None:
         defs = self.defs(latency_ms="target")
         versions = [self.version(1, latency_ms=10.0), self.version(2, latency_ms=20.0)]
@@ -264,28 +271,47 @@ class BestLinesTests(unittest.TestCase):
     def test_no_best_version_gives_none(self) -> None:
         self.assertIsNone(collector.best_lines(self.defs(latency_ms="target"), [self.version(1)], {"latency_ms": {"raw": None}}, None))
 
-    def test_a_reversed_stored_direction_is_flagged_not_changed(self) -> None:
+    @staticmethod
+    def metric(kind: str, higher: bool, unit: str | None) -> dict:
+        return {"kind": kind, "higherIsBetter": higher, "platformUnit": unit, "unit": unit}
+
+    def test_a_stored_direction_its_platform_unit_contradicts_is_flagged_not_changed(self) -> None:
         defs = {
-            "simulation_fps": {"key": "simulation_fps", "kind": "target", "higherIsBetter": False, "unit": "fps"},
-            "command 1_runtime": {"key": "command 1_runtime", "kind": "harness", "higherIsBetter": True, "unit": "s"},
-            "command 1_cpu": {"key": "command 1_cpu", "kind": "harness", "higherIsBetter": True, "unit": None},
-            "latency_ms": {"key": "latency_ms", "kind": "harness", "higherIsBetter": False, "unit": "ms"},
-            "behavioral_equivalence": {"key": "behavioral_equivalence", "kind": "quality", "higherIsBetter": False, "unit": None},
-            # Its name points both ways, so nothing is flagged.
-            "memory_bandwidth": {"key": "memory_bandwidth", "kind": "harness", "higherIsBetter": False, "unit": None},
+            "simulation_fps": self.metric("target", False, "fps"),
+            "command 1_runtime": self.metric("harness", True, "s"),
+            "frames_out": self.metric("harness", False, "frames/s"),
+            "frame_time": self.metric("harness", False, "ms"),
+            "throughput": self.metric("harness", True, "ops/s"),
         }
         self.assertEqual(
             collector.direction_checks(defs),
             [
                 "simulation_fps is set as lower-is-better on this project; check Settings > Metrics.",
                 "command 1_runtime is set as higher-is-better on this project; check Settings > Metrics.",
+                "frames_out is set as lower-is-better on this project; check Settings > Metrics.",
             ],
         )
         self.assertFalse(defs["simulation_fps"]["higherIsBetter"])
-        # The lede carries the flag, so the page and the chat answer say it too.
-        versions = [self.version(1, simulation_fps=5.0)]
-        lede = collector.best_lines(defs, versions, {"simulation_fps": self.winner(1, 5.0)}, None)["lede"]
+        lede = collector.best_lines(
+            {"simulation_fps": {"key": "simulation_fps", **defs["simulation_fps"]}},
+            [{"version": 1, "label": "v1", "metrics": {"simulation_fps": {"mean": 1.0, "pctBetter": 5.0}}}],
+            {"simulation_fps": self.winner(1, 5.0)}, None)["lede"]
         self.assertIn("simulation_fps is set as lower-is-better on this project; check Settings > Metrics.", lede)
+
+    def test_names_and_unsure_units_never_flag(self) -> None:
+        defs = {
+            # Set the right way, and their names alone would have suggested the opposite.
+            "memory_saved_mb": self.metric("harness", True, "MB"),
+            "latency_reduction_pct": self.metric("harness", True, "%"),
+            "throughput_drop": self.metric("harness", False, None),
+            "runtime_improvement": self.metric("harness", True, None),
+            # No platform unit, only one guessed from the name: silent.
+            "wall_time_s": {"kind": "harness", "higherIsBetter": True, "platformUnit": None, "unit": "s"},
+            # An AI Metric, and a metric with no stored direction.
+            "speed_judgement": self.metric("quality", False, "fps"),
+            "latency": self.metric("harness", None, "ms"),
+        }
+        self.assertEqual(collector.direction_checks(defs), [])
 
 
 class SteeringTests(unittest.TestCase):

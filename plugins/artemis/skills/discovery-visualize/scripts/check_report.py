@@ -46,12 +46,16 @@ setTimeout(function () {
   // The collector's best lines must reach the page word for word, whatever page script drew it.
   var bl = typeof SNAPSHOT !== 'undefined' && SNAPSHOT && SNAPSHOT.bestLines;
   if (bl) {
-    var body = document.body.cloneNode(true);
-    body.querySelectorAll('script, style').forEach(function (n) { n.remove(); });
+    // What a reader can see: the live page's innerText, which leaves out scripts, styles and hidden text.
     var squash = function (x) { return String(x).replace(/\s+/g, ' ').trim(); };
-    var text = squash(body.textContent);
+    var text = squash(document.body.innerText);
+    var shown = function (line) {
+      // A whole match: "v3 is best on fps" is not satisfied by "v3 is best on fps_p99".
+      for (var i = text.indexOf(line); i >= 0; i = text.indexOf(line, i + 1)) if (!/[A-Za-z0-9_]/.test(text.charAt(i + line.length))) return true;
+      return false;
+    };
     [bl.lede].concat(Object.keys(bl.notes || {}).map(function (k) { return bl.notes[k]; })).forEach(function (line) {
-      if (text.indexOf(squash(line)) < 0) out.push('MISSING BEST LINE (keep it verbatim): ' + squash(line).slice(0, 90));
+      if (!shown(squash(line))) out.push('MISSING BEST LINE (keep it verbatim): ' + squash(line).slice(0, 90));
     });
   }
   var d = document.createElement('pre'); d.id = '__ar_probe'; d.textContent = out.join('\\n') || 'OK';
