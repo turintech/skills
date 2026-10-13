@@ -118,8 +118,8 @@ At the close each ticked line ends with its link, for example `6. ✓ Particle L
 Then the starting point decides what comes before section 7:
 
 - **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the newest such project, when it was created, and how many there are:
-  - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in section 7's step 7, about 15 minutes, using credits.
-  - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch (it uses account credits).
+  - **Start fresh (recommended):** `project-import` imports a new project, and the flow goes on to measure it and, after step 7's credits check, start a Discovery run. Don't mention credits in this option: the credits question comes later, on its own.
+  - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch, which goes through step 7's credits check first.
 - **Their own code:** where it lives (repository URL and branch, and can Artemis reach it). `project-import` imports it as a new project, then 7b and section 7. If projects for it already exist and the user hasn't said to continue one, don't ask: import fresh and say in one line which one exists, for example "Importing a new project; `<name>` from `<date>` already exists, say 'continue' to use it instead." If they say so before section 7's step 2, switch to that project's id and tell them the new, still-empty project can be archived. A project this session created, or one named in a section 11 report being resumed, counts as continuing: use it without importing again.
 - **A project URL:** 7b, then section 7.
 - **Just set me up:** the plan is steps 1, 2, 3 and 5 only (skills, CLI, sign-in, runner). Do section 5's CLI and runner items, skip Git access and the project, then go straight to section 11.
@@ -141,7 +141,7 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of Benchmark runs, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
 - **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch.
-- **No `discovery create` for the demo without the credits line answered in this conversation.** The line is welcome line 4, sent in this session with the user replying in chat after it (a permission prompt is not a reply), or the one-line question below. If you cannot point to one of those two messages and the reply after it, ask at section 7's step 7, before handing over to `discovery-start`, and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." The §4 fresh-or-continue answer alone is not the go-ahead. A run on the user's own code goes through `discovery-start`, which asks first.
+- **No `discovery create` for the demo without the credits line answered in this conversation.** The line is welcome line 4, sent in this session with the user replying in chat after it (a permission prompt is not a reply), or the one-line question below. If you cannot point to one of those two messages and the reply after it, ask at step 7's credits check, before handing over to `discovery-start`, and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." The §4 fresh-or-continue answer alone is not the go-ahead. A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
@@ -209,13 +209,17 @@ The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds betw
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
 
-**Step 7.** If a run is queued or running, give its link and hand over to `discovery-inspect`. If one has completed and the user asked for a first run, that request is met: give its result with the link and the date it ran, never as this session's result, and offer to steer it (`discovery-steer`), start a fresh run (it uses account credits), or set up their own project. Otherwise hand these to `discovery-start`:
+**Step 7.** If a run is queued or running, give its link and hand over to `discovery-inspect`. If one has completed and the user asked for a first run, that request is met: give its result with the link and the date it ran, never as this session's result, and offer to steer it (`discovery-steer`), start a fresh run (through the credits check below), or set up their own project. Otherwise, in this order:
+
+**Credits check, for the demo, before any `discovery create`.** Name to yourself the message that carried the credits line (welcome line 4, sent as reply text, or the question below) and the user's reply after it. Picking an option is not that reply, whichever question it answered and whatever its description said, and neither is the fresh-or-continue answer. If you cannot name both, send this as its own message and wait: "Setup is done. Start the Particle Life run now? It uses account credits." Go on only after a yes; on a no, start nothing and go to section 11. On the user's own code, skip this: `discovery-start` asks.
+
+**Then hand these to `discovery-start`:**
 
 - `--source-changeset` from step 2, so the run starts from the code and numbers the user just saw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
 - model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
 - `--target-files` only when the repository made them obvious
-- for the demo, the user's go-ahead under the §6 rule, naming the message that carried the credits line (welcome line 4 or the one-line question) and the user's reply, so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
+- for the demo, the go-ahead from the credits check, naming the message and the reply, so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
 
 Then follow the run with `discovery-inspect`.
 
@@ -290,7 +294,7 @@ Show the plan again with everything ticked, then a short readiness report, wheth
 - **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the baseline and best measured values.
 - **Still yours to do:** anything left for the user, or "nothing".
 
-Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.
+Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again. After a no at step 7's credits check, there is no run: suggest starting the Particle Life run now (asked again at the credits check), their own project, or nothing for now.
 
 Send the ticked plan and the readiness report first, as their own message; only then ask the next step, as one question with options (the host's question tool when it has one), never as a sentence a bare "yes" could answer. Any other offer, such as adding the CLI to a shell startup file, goes in its own message, naming the file and the lines it would add. When an answer still fits more than one offer ("both", "yes"), ask which, and do each one separately. Choosing the demo here is a §3 switch: the credits line, then the plan.
 
@@ -314,5 +318,5 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] An `Artemis · Validation started` block before the wait, and `discovery-start`'s `Artemis · Discovery started` block after the run was created
 - [ ] A link and what they will see each time something appeared in Artemis
 - [ ] Discovery started from the branch, with settings fixed rather than asked
-- [ ] No demo `discovery create` until the credits line (welcome line 4 or the §6 question) was sent and answered in this conversation
+- [ ] No demo `discovery create` until step 7's credits check: the credits line (welcome line 4 or the question) sent and a yes to it in this conversation; a picked option, including Start fresh, is not a yes
 - [ ] Ticked plan and readiness report sent before the next-step question, each line from a check that ran
