@@ -79,17 +79,17 @@ For a user with nothing yet, as the first part of section 3. Four short lines:
 3. Next comes a quick setup, then the Particle Life demo, run from this session with links to each page. Say "my own code", "just set me up" or "show me in the browser" at any time to change that.
 4. Setup takes a few minutes. The demo then runs 5 versions, about 15 minutes, using account credits (the balance is at the bottom of the Web UI's left sidebar).
 
-When the request already named their own code or asked for setup only, say that in place of the demo in line 3 ("then your repository, measured on a branch" or "then stop once the CLI and a runner are ready"), and line 4 becomes just "Setup takes a few minutes." For the demo, line 4 is the welcome's only mention of credits; the §6 one-line question, when it is needed, names them again.
+When the request already named their own code or asked for setup only, say that in place of the demo in line 3 ("then your repository, measured on a branch" or "then stop once the CLI and a runner are ready"), and line 4 becomes just "Setup takes a few minutes." For the demo, line 4 is the welcome's only mention of credits.
 
 ## 3. Defaults, stated rather than asked
 
-Write the section 2 welcome as reply text, all four lines, then go straight on to section 4 in the same turn. Never skip it for a new user: line 4 is where they learn the demo uses credits, and the demo run's go-ahead depends on it. Do not ask before starting: the defaults are the **Particle Life demo** and the **terminal, with links**. Switch whenever the user says so:
+Write the section 2 welcome as reply text, all four lines, then go straight on to section 4 in the same turn. Never skip it for a new user: line 4 is where they learn the demo uses credits. Do not ask before starting: the defaults are the **Particle Life demo** and the **terminal, with links**. Switch whenever the user says so:
 
 1. **Their own project:** the "A repository but no project" path in section 1.
 2. **Just set me up:** the CLI, sign-in and a runner, then stop, with no project and no run.
 3. **The browser:** computer use drives Chrome so they watch each page change, and it needs the Claude browser extension.
 
-On a switch, rewrite the plan in the task list. A switch into the demo after setup (from **just set me up**, or a yes to the close's suggestion) first sends welcome line 4, the credits line, then the demo's plan, before any project check. A switch after the demo run has started does not stop it: say it carries on in the platform, then continue with the new choice.
+On a switch, rewrite the plan in the task list. A switch into the demo after setup (from **just set me up**, or a yes to the close's suggestion) first sends welcome line 4 (the credits line), then the demo's plan, before any project check. A switch after the demo run has started does not stop it: say it carries on in the platform, then continue with the new choice.
 
 If they ask for the browser, load the skill and follow `cli-follow-along` section 1 for the connection, and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
 
@@ -141,7 +141,6 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of Benchmark runs, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
 - **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch.
-- **No `discovery create` for the demo without the credits line answered in this conversation.** The line is welcome line 4, sent in this session with the user replying in chat after it (a permission prompt is not a reply), or the one-line question below. If you cannot point to one of those two messages and the reply after it, ask at section 7's step 7, before handing over to `discovery-start`, and wait for a yes: "Setup is done. Start the Particle Life run now? It uses account credits." The §4 fresh-or-continue answer alone is not the go-ahead. A run on the user's own code goes through `discovery-start`, which asks first.
 - **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
@@ -215,7 +214,7 @@ The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds betw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
 - model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
 - `--target-files` only when the repository made them obvious
-- for the demo, the user's go-ahead under the §6 rule, naming the message that carried the credits line (welcome line 4 or the one-line question) and the user's reply, so `discovery-start` does not ask again. On the user's own code, pass nothing here: `discovery-start` asks
+- for the demo, that these settings are fixed, so `discovery-start` does not ask. On the user's own code, pass nothing here: `discovery-start` agrees the model and version count with the user
 
 Then follow the run with `discovery-inspect`.
 
@@ -314,6 +313,5 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] An `Artemis · Validation started` block before the wait, and `discovery-start`'s `Artemis · Discovery started` block after the run was created
 - [ ] A link and what they will see each time something appeared in Artemis
 - [ ] Discovery started from the branch, with settings fixed rather than asked
-- [ ] No demo `discovery create` until the credits line (welcome line 4 or the §6 question) was sent and answered in this conversation
 - [ ] Ticked plan and readiness report sent before the next-step question, each line from a check that ran
 - [ ] Next step asked with the host's question tool, including after just set me up, not as a list in text
