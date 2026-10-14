@@ -5,6 +5,7 @@ compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
   artemis-platform-min: "3.1.0"
+  artemis-runner-min: "5.3.0"
 ---
 
 # Set up an Artemis runner
@@ -13,7 +14,7 @@ metadata:
 
 - **Problem:** Downloads, registers, starts, updates and verifies an Artemis runner on this machine, and checks it has the toolchain a project needs.
 - **Must be available:** A safe machine with the repository's toolchains and adequate resources, a unique runner-group name, and an authenticated CLI, whose API key registers the runner.
-- **Use / don't use:** Use when a runner is missing, offline, outdated, or unverified; skip it when a suitable runner is already online and confirmed to be polling.
+- **Use / don't use:** Use when a runner is missing, offline, outdated, or unverified; skip it when a suitable runner is already online, confirmed to be polling, and at least `artemis-runner-min`.
 - **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
 A runner executes a project's Script commands on the user's machine; for Discovery, these skills use a build, a test and a benchmark. Treat it as a machine-level service, not a project dependency.
@@ -102,7 +103,7 @@ Several machines can serve one Discovery when they register with the same runner
 
 ## Whose runner is that?
 
-`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so only reuse a runner you can show belongs to **this** machine: read the running process (`--runner-name` on the local `artemis-runner start` command) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online. For approved extra capacity, confirm the other machines and the group with the user; a local process match does not show who owns every machine sharing its name.
+`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so only reuse a runner you can show belongs to **this** machine: read the running process (`--runner-name` on the local `artemis-runner start` command) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online. A local match is reused only when its binary is at least `artemis-runner-min` (5.3.0): run the binary from that process's command line with `--version`. Older runners, such as the 5.2.1 that earlier skills pinned, fail every validation on Platform 3.1.0 with `404`s, so upgrade one first (*Update or restart*). For approved extra capacity, confirm the other machines and the group with the user; a local process match does not show who owns every machine sharing its name.
 
 `runner list --output-format json` carries a `userId` per runner, but `artemis status` does not report who you are and there is no identity command, so that field cannot be compared against the current user. The local-process check is what works.
 
