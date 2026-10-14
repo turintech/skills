@@ -39,6 +39,7 @@ COMMANDS = (
     "artemis --output-format json discovery metrics <run-id> --all",
     "artemis --output-format json discovery experiments list <run-id> --all",
     "artemis --output-format json discovery compare <run-id>",
+    "artemis --output-format json chat messages <chat-id>",
     "artemis --output-format json project list --all",
 )
 
@@ -178,6 +179,8 @@ def load_from_dir(directory: str) -> dict[str, Any]:
             "since the verdicts and changes come from it"
         )
     comparison = extract_json(load_text(comparison_path))
+    chat_path = os.path.join(directory, "chat.json")
+    chat = extract_json(load_text(chat_path)) if os.path.isfile(chat_path) else None
     return {
         "run": run,
         "versions": versions,
@@ -185,6 +188,7 @@ def load_from_dir(directory: str) -> dict[str, Any]:
         "observations": observations,
         "experiments": experiments,
         "comparison": comparison,
+        "chat": chat,
     }
 
 
@@ -251,10 +255,21 @@ def fetch_comparison(run_id: str, cli: str = "artemis", config: str | None = Non
         raise RuntimeError(f"artemis discovery compare failed: {error}") from error
 
 
+def fetch_chat(chat_id: str | None, cli: str = "artemis", config: str | None = None) -> Any:
+    """The run's chat log, where each steer is a user message. None when the run has no chat or it cannot be read."""
+    if not chat_id:
+        return None
+    try:
+        return extract_json(run_artemis(["chat", "messages", chat_id], cli, config))
+    except (RuntimeError, ValueError):
+        return None
+
+
 def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, names: dict[str, str | None] | None = None) -> dict[str, Any]:
     call = lambda *args: extract_json(run_artemis(list(args), cli, config))
     run = call("discovery", "get", run_id)
-    project_id = (run.get("docs") or [run])[0].get("projectId") if isinstance(run, dict) else None
+    record = (run.get("docs") or [run])[0] if isinstance(run, dict) else {}
+    project_id = record.get("projectId")
     return {
         "run": run,
         "versions": call("discovery", "versions", "list", run_id, "--all"),
@@ -264,6 +279,7 @@ def fetch_cli(run_id: str, cli: str = "artemis", config: str | None = None, name
         "comparison": fetch_comparison(run_id, cli, config),
         "status": call("status"),
         "projectName": project_name(project_id, cli, config, names),
+        "chat": fetch_chat(record.get("chatId"), cli, config),
     }
 
 
@@ -361,6 +377,146 @@ def _eligible(version: dict[str, Any]) -> bool:
         and version.get("executionStatus") == "success"
         and version.get("experimentStatus") != "refuted"
     )
+
+
+def web_ui_best(versions: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The version the Web UI badges Best: the highest Composite score among versions that scored, have a sha and
+    did not fail, the earlier one on a tie, and none unless that score is above 0 (better than the baseline)."""
+    best = None
+    for version in versions:  # in version order, so a tie keeps the earlier version
+        if version.get("fitness") is None or not version.get("versionSha"):
+            continue
+        if version.get("displayStatus") in ("generation_failed", "execution_failed", "scoring_failed"):
+            continue
+        if best is None or version["fitness"] > best["fitness"]:
+            best = version
+    if best is None or best["fitness"] <= 0:
+        return None
+    return {"version": best["version"], "label": best["label"], "fitness": best["fitness"]}
+
+
+# Units that say which way a metric improves. Only the unit the platform stores counts, never the name or a
+# unit guessed from it, and anything else stays silent: a wrong hint is worse than none. The flag only asks the
+# user to check; the direction itself always comes from the platform.
+_HIGHER_UNITS = {"fps", "ops/s", "req/s", "tokens/s", "items/s", "/s"}
+_LOWER_UNITS = {"s", "ms", "us", "\u00b5s", "ns", "sec", "secs", "second", "seconds"}
+
+
+def direction_checks(metric_defs: dict[str, dict[str, Any]]) -> list[str]:
+    """A plain line for each measured metric whose stored direction contradicts its platform unit."""
+    lines = []
+    for name, definition in metric_defs.items():
+        higher = definition.get("higherIsBetter")
+        unit = (definition.get("platformUnit") or "").strip().lower()
+        if higher is None or definition["kind"] == "quality" or not unit:
+            continue
+        if (unit in _HIGHER_UNITS or unit.endswith("/s")) and not higher:
+            lines.append(f"{name} is set as lower-is-better on this project; check Settings > Metrics.")
+        elif unit in _LOWER_UNITS and higher:
+            lines.append(f"{name} is set as higher-is-better on this project; check Settings > Metrics.")
+    return lines
+
+
+def _pct(value: float) -> str:
+    """A change as the report kit prints it: a sign (a true minus for a fall) and one decimal."""
+    return ("+" if value >= 0 else "\u2212") + f"{abs(value):.1f}%"
+
+
+def best_lines(
+    metric_defs: dict[str, dict[str, Any]],
+    versions: list[dict[str, Any]],
+    winners: dict[str, dict[str, Any]],
+    ui_best: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """The sentences every report and chat answer carries verbatim: which version leads and why, and each
+    measured metric whose own best is another version. None when no target metric has a best version."""
+    key = next((n for n, d in metric_defs.items() if d["kind"] == "target" and d.get("role") != "reference"), None)
+    if key is None:
+        return None
+    by_number = {v["version"]: v for v in versions}
+    ui_stat = (by_number.get(ui_best["version"], {}).get("metrics") or {}).get(key) if ui_best else None
+    by_composite = bool(ui_stat and ui_stat.get("pctBetter") is not None)
+    raw = (winners.get(key) or {}).get("raw")
+    lead = by_number.get(ui_best["version"]) if by_composite else (by_number.get(raw["version"]) if raw else None)
+    if lead is None:
+        return None
+    if by_composite:
+        lede = f"{lead['label']} is the Web UI\u2019s Best: the highest Composite score, the platform\u2019s roll-up of the metrics by importance."
+    elif ui_best:
+        lede = (f"The Web UI\u2019s Best is {ui_best['label']}, by Composite score, but Artemis has no change on {key} for it, "
+                f"so this page leads with the best version on {key}.")
+    else:
+        lede = (f"The Web UI shows no Best, as no version\u2019s Composite score is above the baseline, "
+                f"so this page leads with the best version on {key}.")
+    elsewhere, notes = [], {}
+    for name, definition in metric_defs.items():
+        if definition.get("role") == "reference":
+            continue
+        own = (winners.get(name) or {}).get("raw")
+        stat = (lead.get("metrics") or {}).get(name) or {}
+        if stat.get("mean") is None:
+            # Only when another version has the reading; with none, the page has no panel to put the note on.
+            if own:
+                notes[name] = f"{lead['label']} has no reading on {name}; {own['label']} is best on it"
+            continue
+        if definition["kind"] == "quality" or not own or own["version"] == lead["version"]:
+            continue
+        if stat.get("pctBetter") is not None and not own["pctBetter"] > stat["pctBetter"]:
+            continue
+        elsewhere.append(f"{own['label']} on {name} ({_pct(own['pctBetter'])})")
+        notes[name] = f"{own['label']} is best on {name}"
+    if elsewhere:
+        lede += " Best on a single metric instead: " + "; ".join(elsewhere) + "."
+    for line in direction_checks(metric_defs):
+        lede += " " + line
+    return {"version": lead["version"], "label": lead["label"], "byComposite": by_composite, "lede": lede, "notes": notes}
+
+
+def _instant(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def steering_points(chat: Any, versions: list[dict[str, Any]]) -> dict[str, Any]:
+    """Each steer on the run, from its chat log: every user message after the first (the task) that brings new
+    guidance, placed before the first version made after it. A continue without guidance resends the task, so it
+    is not a steer."""
+    if chat is None:
+        return {"points": [], "source": None, "reason": "the run's chat could not be read, so its steers are unknown"}
+    events = chat if isinstance(chat, list) else as_docs(chat)
+    messages = []
+    for event in events:
+        payload = event.get("payload") if isinstance(event, dict) else None
+        if event.get("type") != "user" or not isinstance(payload, dict):
+            continue
+        text = (payload.get("message") or "").strip()
+        at = _instant(event.get("timestamp") or event.get("createdAt"))
+        if text and at:
+            messages.append((at, text))
+    messages.sort(key=lambda item: item[0])
+    points = []
+    task = messages[0][1] if messages else None
+    made = [(v, _instant(v.get("createdAt"))) for v in versions]
+    for at, text in messages[1:]:
+        # A resent task is a continue without guidance; a "/" command such as /compact is not guidance either.
+        if text == task or text.startswith("/"):
+            continue
+        after = [v for v, created in made if created and created >= at]
+        first = min(after, key=lambda v: v.get("version") or 0) if after else None
+        points.append(
+            {
+                "at": at.isoformat().replace("+00:00", "Z"),
+                "guidance": text,
+                "firstVersion": first["version"] if first else None,
+                "firstLabel": first["label"] if first else None,
+            }
+        )
+    return {"points": points, "source": "artemis chat messages <chat-id>", "reason": None}
 
 
 def pareto_front(
@@ -514,6 +670,7 @@ def build_snapshot(
             "importance": schema.get("importance"),
             "kind": classify_kind(name, source),
             "unit": compared.get("unit") or unit_by_name.get(name) or infer_unit(name),
+            "platformUnit": compared.get("unit") or unit_by_name.get(name),
             "description": schema.get("description"),
         }
 
@@ -753,6 +910,9 @@ def build_snapshot(
         "rankings": rankings,
         "runningBest": running_best,
         "perMetricWinners": winners,
+        "webUiBest": web_ui_best(versions),
+        "bestLines": best_lines(metric_defs, versions, winners, web_ui_best(versions)),
+        "steering": steering_points(payloads.get("chat"), versions),
         "executionSummary": {
             **lifecycle_counts,
             **{f"execution_{key}": value for key, value in execution_counts.items()},

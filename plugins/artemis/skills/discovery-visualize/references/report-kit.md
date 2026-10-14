@@ -27,9 +27,11 @@ const key = S.metrics.find(m => m.kind === 'target' && m.role !== 'reference').k
 const def = S.metrics.find(m => m.key === key), unit = def.unit || '', up = def.higherIsBetter;
 const word = up ? 'faster' : 'lower';  // the metric's own word: faster, smaller, more accurate
 const worse = up ? 'slower' : 'higher';  // and for a best version that is still behind the baseline
-const base = S.baseline.metrics[key], win = S.perMetricWinners[key].raw;
-if (!win) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason + '. Say so to the user instead of drawing this page.');
-const winV = S.versions.find(v => v.version === win.version), winM = winV.metrics[key], t = winM.vsBaseline;
+const base = S.baseline.metrics[key], ui = S.webUiBest, BL = S.bestLines;
+// The collector picks the version the page leads with (the Web UI's Best) and writes the lines about it; keep them verbatim.
+if (!BL) throw new Error('No best version for ' + key + ': ' + S.perMetricWinners[key].reason + '. Say so to the user instead of drawing this page.');
+const winV = S.versions.find(v => v.version === BL.version), winM = winV.metrics[key], t = winM.vsBaseline;
+const win = { version: BL.version, pctBetter: winM.pctBetter, timesBetter: winM.timesBetter }, byComposite = BL.byComposite;
 const sha = S.run.baselineVersionSha.slice(0, 7), project = S.run.projectName;
 // falcon's change decides the wording: a negative change is a best version still behind the baseline.
 const behind = win.pctBetter < 0;
@@ -42,6 +44,7 @@ const perVersion = Math.min(...counts) === Math.max(...counts) ? String(counts[0
 R.header(document.getElementById('header'), {
   eyebrow: 'Artemis Discovery · ' + (project ? project + ' · ' : '') + key,
   title: [winV.label + ' is ', gain, verdict],  // one line; the project is in the eyebrow
+  lede: BL.lede,
   chips: t ? [
     { text: 'Verdict: ' + t.verdict, strong: t.verdict === 'better' },
     t.ciLowPct != null ? { text: '95% interval ' + F.pct(t.ciLowPct) + ' to ' + F.pct(t.ciHighPct) } : null,
@@ -56,16 +59,19 @@ const changed = 'What changed: ' + winV.experimentTitle.charAt(0).toLowerCase() 
 // With one run per side there is no verdict: every version against the baseline, labelled as unconfirmed.
 const singleRun = base.count === 1 && counts.every(c => c === 1);
 const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
-  const pw = (S.perMetricWinners[m.key] || {}).raw, b = S.baseline.metrics[m.key];
+  const own = (S.perMetricWinners[m.key] || {}).raw, b = S.baseline.metrics[m.key];
   if (singleRun) {
     const all = S.versions.filter(x => x.metrics[m.key] && x.metrics[m.key].mean != null)
       .sort((p, q) => (q.metrics[m.key].pctBetter ?? -1e9) - (p.metrics[m.key].pctBetter ?? -1e9));  // no value: last
     const vs = all.slice(0, 8);  // more bars than this stop being readable in one panel
     if (!b || b.mean == null || !vs.length) return null;
-    return { title: m.key, unit: m.unit || '', note: '1 run each, not confirmed' + (all.length > vs.length ? ', the best ' + vs.length + ' of ' + all.length : ''),
+    return { title: m.key, unit: m.unit || '', note: '1 run each, not confirmed' + (all.length > vs.length ? ', the best ' + vs.length + ' of ' + all.length : '') + (BL.notes[m.key] ? '; ' + BL.notes[m.key] : ''),
       bars: [{ label: 'Baseline', value: b.mean }].concat(vs.map(x => ({ label: 'Artemis ' + x.label, value: x.metrics[m.key].mean }))) };
   }
-  const v = pw && S.versions.find(x => x.version === pw.version), vm = v && v.metrics[m.key];
+  // Every panel shows the headline version, so the figure and the title agree; on a metric it has no reading for, the metric's own best.
+  const read = !!(winV.metrics[m.key] && winV.metrics[m.key].mean != null);
+  const v = read ? winV : own && S.versions.find(x => x.version === own.version), vm = v && v.metrics[m.key];
+  const pw = vm && { pctBetter: vm.pctBetter, timesBetter: vm.timesBetter };
   if (!b || !vm || b.mean == null || vm.mean == null) return null;
   const vb = vm.vsBaseline, real = vb && (vb.verdict === 'better' || vb.verdict === 'worse');
   const why = !vb ? '' : vb.verdict === 'noise' ? ', within the noise' : vb.verdict === 'pending' ? ', too few runs to tell' : '';
@@ -75,7 +81,8 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
     text: (pw.pctBetter >= 0 ? F.times(pw.timesBetter) + ' better' : F.times(1 / pw.timesBetter) + ' worse') + why,
     dir: vm.mean > b.mean ? 'up' : 'down',  // the raw change; colour alone carries the verdict (ART-2549)
     tone: real ? (vb.verdict === 'better' ? 'good' : 'bad') : 'flat' };
-  return { title: m.key, unit: m.unit || '', base: { label: 'Baseline', value: b.mean }, best: { label: 'Artemis ' + v.label, value: vm.mean }, badge };
+  const note = BL.notes[m.key];
+  return { title: m.key, unit: m.unit || '', base: { label: 'Baseline', value: b.mean }, best: { label: 'Artemis ' + v.label, value: vm.mean }, badge, note };
 }).filter(Boolean);
 const f1 = R.figure(page, { question: singleRun ? 'The baseline against each version, 1 run each' : panels.length > 1 ? 'The baseline against the best version, per metric' : 'The baseline against the best version' });
 R.headline(f1.top, {
@@ -86,7 +93,7 @@ R.headline(f1.top, {
 R.baselineBest(f1.chart, panels);
 f1.bullets([changed]);
 f1.caption(singleRun ? 'One run of each, so no version is confirmed better or worse: rerun the baseline and the versions you like to find out.'
-  : 'Each panel is one metric: the baseline and the version Artemis ranks best for it, as means. The badge is Artemis’s change, on the metric’s own aggregator, as in the Web UI.');
+  : 'Each panel is one metric: the baseline and ' + winV.label + ', as means. The badge is Artemis’s change, on the metric’s own aggregator, as in the Web UI.');
 
 // Figure 2: every run of the target metric, the baseline against the best version, only when the collector had each reading.
 const runsKnown = !singleRun && Array.isArray(base.runs) && Array.isArray(winM.runs);
@@ -127,20 +134,24 @@ if (!singleRun) {
   ].filter(Boolean));
 }
 
+// Each steer from the run's chat, drawn before the first version made after it.
+const steers = S.steering.points.filter(p => p.firstVersion != null)
+  .map(p => ({ after: S.versions.findIndex(v => v.version === p.firstVersion) - 1, text: 'Steered: ' + F.short(p.guidance, 40) }))
+  .filter(a => a.after >= 0);
 // The Composite score per version, in the order they were made: its own axis, no zero line, never the verdict.
 const fits = S.versions.filter(v => v.fitness != null).map(v => v.fitness);
 if (fits.length >= 3 && new Set(fits).size > 1) {  // a flat line says nothing a sentence can't: the method note says it
   const fc = R.figure(page, { question: 'Composite score per version (the platform’s roll-up of the metrics by importance)' });
   R.trajectory(fc.chart, S.versions.map(v => ({ label: v.label, y: v.fitness, gapText: 'no score', mark: v.version === win.version,
     tip: [v.label + ': Composite score ' + (v.fitness == null ? 'none' : F.num(v.fitness, 2))] })),
-    { yLabel: 'Composite score', aria: 'Composite score per version, in the order the versions were made' });
+    { yLabel: 'Composite score', aria: 'Composite score per version, in the order the versions were made', annotations: steers });
   const scored = S.versions.filter(v => v.fitness != null), most = Math.max(...scored.map(v => v.fitness));
   const tops = scored.filter(v => v.fitness === most).map(v => v.label);  // the score tops out, so several versions can share it
   fc.bullets([
     '<b>Highest Composite score, ' + F.num(most, 2) + ':</b> ' + tops.join(', ') + (tops.length > 1 ? ' share it' : ''),
     scored.length < S.versions.length ? (S.versions.length - scored.length) + ' of ' + S.versions.length + ' versions have no score' : '',
   ].filter(Boolean));
-  fc.caption('Each version’s Composite score, as the Web UI lists it. It is not a verdict: the figures above decide which version is better. The ring marks ' + winV.label + '.');
+  fc.caption('Each version’s Composite score, as the Web UI lists it' + (ui ? '; the highest is the Web UI’s Best' : '') + '. It is not a verdict: the figures above say whether a version is really better. The ring marks ' + winV.label + '.');
 }
 
 // Method note.
@@ -149,9 +160,9 @@ R.bullets(page, [
   perVersion + ' benchmark runs per version, ' + base.count + ' for the baseline, on the same runner',
   'Verdicts, % changes and 95% intervals are Artemis’s own (artemis discovery compare), as the Web UI shows them',
   fits.length >= 3 && new Set(fits).size === 1 ? 'Every scored version has the same Composite score, ' + F.num(fits[0], 2) : '',
-  // The Web UI marks the highest Composite score as Best; say so when that is not this page's best version.
-  (sc => { const top = sc.filter(v => v.fitness === Math.max(...sc.map(x => x.fitness))).map(v => v.label);
-    return sc.length < 2 || top.includes(winV.label) ? '' : 'The Web UI’s Best is ' + top.join(', ') + ', by Composite score; this page ranks the versions by ' + key + ', on which ' + winV.label + ' is best'; })(S.versions.filter(v => v.fitness != null)),
+  byComposite ? 'Best version: the highest Composite score among the versions that scored, as the Web UI picks it; an earlier version wins a tie' : '',
+  ...S.steering.points.map(p => 'Steered' + (p.firstLabel ? ' before ' + p.firstLabel : ' after the last version') + ': “' + F.short(p.guidance, 120) + '”'),
+  S.steering.reason ? 'Steers not shown: ' + S.steering.reason : '',
   t && t.recommendedReadings ? 'Artemis suggests ' + t.recommendedReadings + ' runs per side to settle ' + winV.label : '',
   t && agent && (agent === 'validated') !== (t.verdict === 'better') ? 'The Experiment behind ' + winV.label + ' concluded “' + agent + '”; the verdict uses only the measured runs' : '',
 ].filter(Boolean), { quiet: true });

@@ -174,6 +174,236 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class WebUiBestTests(unittest.TestCase):
+    @staticmethod
+    def version(number: int, fitness: float | None, sha: str | None = "abc", status: str = "scored") -> dict:
+        return {"version": number, "label": f"v{number}", "fitness": fitness, "versionSha": sha, "displayStatus": status}
+
+    def test_highest_composite_score_like_the_web_ui(self) -> None:
+        best = collector.web_ui_best([self.version(1, 0.2), self.version(2, 0.7), self.version(3, 0.4)])
+        self.assertEqual(best, {"version": 2, "label": "v2", "fitness": 0.7})
+
+    def test_a_tie_goes_to_the_earlier_version(self) -> None:
+        self.assertEqual(collector.web_ui_best([self.version(1, 0.5), self.version(2, 0.5)])["version"], 1)
+
+    def test_failed_unscored_and_shaless_versions_are_skipped(self) -> None:
+        versions = [
+            self.version(1, 0.3),
+            self.version(2, 0.9, status="execution_failed"),
+            self.version(3, 0.8, sha=None),
+            self.version(4, None),
+        ]
+        self.assertEqual(collector.web_ui_best(versions)["version"], 1)
+
+    def test_no_best_unless_a_score_beats_the_baseline(self) -> None:
+        self.assertIsNone(collector.web_ui_best([self.version(1, 0.0), self.version(2, -0.1)]))
+
+    def test_fixture_snapshot_names_the_web_uis_best(self) -> None:
+        snapshot = collector.build_snapshot(collector.load_from_dir(str(FIXTURES)), collected_at="2026-09-02T00:00:00+00:00")
+        self.assertEqual(snapshot["webUiBest"], {"version": 2, "label": "v2", "fitness": 0.9})
+
+
+class BestLinesTests(unittest.TestCase):
+    @staticmethod
+    def defs(**kinds: str) -> dict:
+        directions = {"latency_ms": False, "fps": True, "quality": True, "compile_s": False}
+        return {k: {"key": k, "kind": v, "higherIsBetter": directions.get(k, True), "unit": None} for k, v in kinds.items()}
+
+    @staticmethod
+    def version(n: int, **pcts: float | None) -> dict:
+        return {"version": n, "label": f"v{n}", "metrics": {k: {"mean": 1.0, "pctBetter": p} for k, p in pcts.items()}}
+
+    @staticmethod
+    def winner(n: int, pct: float) -> dict:
+        return {"raw": {"version": n, "label": f"v{n}", "pctBetter": pct}}
+
+    def test_lede_names_a_measured_metric_whose_best_is_better(self) -> None:
+        defs = self.defs(latency_ms="target", compile_s="harness", quality="quality")
+        versions = [self.version(1, latency_ms=10.0, compile_s=5.0, quality=12.0), self.version(2, latency_ms=20.0, compile_s=-3.0, quality=9.0)]
+        winners = {"latency_ms": self.winner(2, 20.0), "compile_s": self.winner(1, 5.0), "quality": self.winner(1, 12.0)}
+        lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
+        self.assertEqual(lines["version"], 2)
+        self.assertTrue(lines["byComposite"])
+        self.assertEqual(
+            lines["lede"],
+            "v2 is the Web UI\u2019s Best: the highest Composite score, the platform\u2019s roll-up of the metrics by importance. "
+            "Best on a single metric instead: v1 on compile_s (+5.0%).",
+        )
+        # An AI Metric's own best is never named; a measured metric's is, in its panel note too.
+        self.assertEqual(lines["notes"], {"compile_s": "v1 is best on compile_s"})
+
+    def test_a_tie_is_not_another_best(self) -> None:
+        defs = self.defs(latency_ms="target", compile_s="harness")
+        versions = [self.version(1, latency_ms=10.0, compile_s=0.0), self.version(2, latency_ms=20.0, compile_s=0.0)]
+        winners = {"latency_ms": self.winner(2, 20.0), "compile_s": self.winner(1, 0.0)}
+        lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
+        self.assertNotIn("instead", lines["lede"])
+        self.assertEqual(lines["notes"], {})
+
+    def test_a_metric_the_lead_did_not_measure_says_so(self) -> None:
+        defs = self.defs(latency_ms="target", quality="quality")
+        versions = [self.version(1, latency_ms=10.0, quality=1.0), self.version(2, latency_ms=20.0)]
+        winners = {"latency_ms": self.winner(2, 20.0), "quality": self.winner(1, 1.0)}
+        lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
+        self.assertEqual(lines["notes"], {"quality": "v2 has no reading on quality; v1 is best on it"})
+
+    def test_a_metric_no_version_measured_needs_no_note(self) -> None:
+        defs = self.defs(latency_ms="target", quality="quality")
+        versions = [self.version(1, latency_ms=10.0), self.version(2, latency_ms=20.0)]
+        winners = {"latency_ms": self.winner(2, 20.0), "quality": {"raw": None}}
+        lines = collector.best_lines(defs, versions, winners, {"version": 2, "label": "v2", "fitness": 0.5})
+        self.assertEqual(lines["notes"], {})
+
+    def test_without_a_web_ui_best_the_target_winner_leads_and_says_why(self) -> None:
+        defs = self.defs(latency_ms="target")
+        versions = [self.version(1, latency_ms=10.0), self.version(2, latency_ms=20.0)]
+        lines = collector.best_lines(defs, versions, {"latency_ms": self.winner(2, 20.0)}, None)
+        self.assertEqual((lines["version"], lines["byComposite"]), (2, False))
+        self.assertIn("The Web UI shows no Best", lines["lede"])
+
+    def test_a_web_ui_best_with_no_change_on_the_target_falls_back(self) -> None:
+        defs = self.defs(latency_ms="target")
+        versions = [self.version(1, latency_ms=None), self.version(2, latency_ms=20.0)]
+        lines = collector.best_lines(defs, versions, {"latency_ms": self.winner(2, 20.0)}, {"version": 1, "label": "v1", "fitness": 0.9})
+        self.assertEqual(lines["version"], 2)
+        self.assertIn("The Web UI\u2019s Best is v1, by Composite score, but Artemis has no change on latency_ms", lines["lede"])
+
+    def test_no_best_version_gives_none(self) -> None:
+        self.assertIsNone(collector.best_lines(self.defs(latency_ms="target"), [self.version(1)], {"latency_ms": {"raw": None}}, None))
+
+    @staticmethod
+    def metric(kind: str, higher: bool, unit: str | None) -> dict:
+        return {"kind": kind, "higherIsBetter": higher, "platformUnit": unit, "unit": unit}
+
+    def test_a_stored_direction_its_platform_unit_contradicts_is_flagged_not_changed(self) -> None:
+        defs = {
+            "simulation_fps": self.metric("target", False, "fps"),
+            "command 1_runtime": self.metric("harness", True, "s"),
+            "frames_out": self.metric("harness", False, "frames/s"),
+            "frame_time": self.metric("harness", False, "ms"),
+            "throughput": self.metric("harness", True, "ops/s"),
+        }
+        self.assertEqual(
+            collector.direction_checks(defs),
+            [
+                "simulation_fps is set as lower-is-better on this project; check Settings > Metrics.",
+                "command 1_runtime is set as higher-is-better on this project; check Settings > Metrics.",
+                "frames_out is set as lower-is-better on this project; check Settings > Metrics.",
+            ],
+        )
+        self.assertFalse(defs["simulation_fps"]["higherIsBetter"])
+        lede = collector.best_lines(
+            {"simulation_fps": {"key": "simulation_fps", **defs["simulation_fps"]}},
+            [{"version": 1, "label": "v1", "metrics": {"simulation_fps": {"mean": 1.0, "pctBetter": 5.0}}}],
+            {"simulation_fps": self.winner(1, 5.0)}, None)["lede"]
+        self.assertIn("simulation_fps is set as lower-is-better on this project; check Settings > Metrics.", lede)
+
+    def test_names_and_unsure_units_never_flag(self) -> None:
+        defs = {
+            # Set the right way, and their names alone would have suggested the opposite.
+            "memory_saved_mb": self.metric("harness", True, "MB"),
+            "latency_reduction_pct": self.metric("harness", True, "%"),
+            "throughput_drop": self.metric("harness", False, None),
+            "runtime_improvement": self.metric("harness", True, None),
+            # No platform unit, only one guessed from the name: silent.
+            "wall_time_s": {"kind": "harness", "higherIsBetter": True, "platformUnit": None, "unit": "s"},
+            # An AI Metric, and a metric with no stored direction.
+            "speed_judgement": self.metric("quality", False, "fps"),
+            "latency": self.metric("harness", None, "ms"),
+        }
+        self.assertEqual(collector.direction_checks(defs), [])
+
+
+class SteeringTests(unittest.TestCase):
+    TASK = "Make the kernel faster."
+    VERSIONS = [
+        {"version": 1, "label": "v1", "createdAt": "2026-10-13T11:47:53Z"},
+        {"version": 2, "label": "v2", "createdAt": "2026-10-13T11:54:43Z"},
+        {"version": 3, "label": "v3", "createdAt": "2026-10-13T12:36:23Z"},
+        {"version": 4, "label": "v4", "createdAt": "2026-10-13T12:38:14Z"},
+    ]
+
+    @staticmethod
+    def user(at: str, message: str, run: str) -> dict:
+        return {"type": "user", "agentRunId": run, "timestamp": at, "payload": {"id": run, "message": message, "parts": None}}
+
+    def chat(self) -> list:
+        return [
+            self.user("2026-10-13T11:46:49.635000Z", self.TASK, "run-1"),
+            {"type": "assistant.end", "agentRunId": "run-1", "timestamp": "2026-10-13T11:50:00Z", "payload": {}},
+            # A continue without guidance resends the task: not a steer.
+            self.user("2026-10-13T12:35:33.287000Z", self.TASK, "run-2"),
+            self.user("2026-10-13T12:35:39.627000Z", "  Focus on memory now.  ", "run-3"),
+            self.user("2026-10-13T12:35:50Z", "/compact", "run-3"),
+        ]
+
+    def test_a_steer_is_placed_before_the_first_version_made_after_it(self) -> None:
+        steering = collector.steering_points(self.chat(), self.VERSIONS)
+        self.assertIsNone(steering["reason"])
+        self.assertEqual(
+            steering["points"],
+            [{"at": "2026-10-13T12:35:39.627000Z", "guidance": "Focus on memory now.", "firstVersion": 3, "firstLabel": "v3"}],
+        )
+
+    def test_a_steer_after_the_last_version_has_no_first_version(self) -> None:
+        chat = self.chat() + [self.user("2026-10-13T13:00:00Z", "Try the cache next.", "run-4")]
+        last = collector.steering_points(chat, self.VERSIONS)["points"][-1]
+        self.assertEqual((last["guidance"], last["firstVersion"]), ("Try the cache next.", None))
+
+    def test_a_run_never_steered_has_no_points(self) -> None:
+        steering = collector.steering_points(self.chat()[:3], self.VERSIONS)
+        self.assertEqual((steering["points"], steering["reason"]), ([], None))
+
+    def test_an_unreadable_chat_says_so(self) -> None:
+        steering = collector.steering_points(None, self.VERSIONS)
+        self.assertEqual(steering["points"], [])
+        self.assertIn("could not be read", steering["reason"])
+
+    def test_from_dir_reads_chat_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            for item in FIXTURES.iterdir():
+                shutil.copy(item, tmp)
+            Path(tmp, "chat.json").write_text(json.dumps(self.chat()), encoding="utf-8")
+            versions = json.loads(Path(tmp, "versions.json").read_text(encoding="utf-8"))
+            for doc, row in zip(versions.get("docs", versions) if isinstance(versions, dict) else versions, self.VERSIONS + self.VERSIONS):
+                doc["createdAt"] = row["createdAt"]
+            Path(tmp, "versions.json").write_text(json.dumps(versions), encoding="utf-8")
+            snapshot = collector.build_snapshot(collector.load_from_dir(tmp), collected_at="2026-09-02T00:00:00+00:00")
+        self.assertEqual([p["guidance"] for p in snapshot["steering"]["points"]], ["Focus on memory now."])
+
+    def test_fetch_cli_reads_the_runs_chat(self) -> None:
+        calls = []
+
+        def fake(args, cli="artemis", config=None):
+            calls.append(args)
+            if args[:2] == ["discovery", "get"]:
+                return json.dumps({"id": "run", "projectId": "proj", "chatId": "chat-9"})
+            if args[:2] == ["chat", "messages"]:
+                return json.dumps(self.chat())
+            return "{}"
+
+        original = collector.run_artemis
+        collector.run_artemis = fake
+        try:
+            payloads = collector.fetch_cli("run")
+        finally:
+            collector.run_artemis = original
+        self.assertIn(["chat", "messages", "chat-9"], calls)
+        self.assertEqual(payloads["chat"], self.chat())
+
+    def test_fetch_chat_failure_is_not_fatal(self) -> None:
+        def failing(args, cli="artemis", config=None):
+            raise RuntimeError("artemis chat messages failed (1): 404")
+
+        original = collector.run_artemis
+        collector.run_artemis = failing
+        try:
+            self.assertIsNone(collector.fetch_chat("chat-9"))
+            self.assertIsNone(collector.fetch_chat(None))
+        finally:
+            collector.run_artemis = original
+
+
 class ObservationTests(unittest.TestCase):
     """Individual runs and the platform's direction come from `discovery metrics --all`."""
 
