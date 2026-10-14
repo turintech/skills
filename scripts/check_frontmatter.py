@@ -1,10 +1,10 @@
-"""Every SKILL.md front matter parses as YAML, as strict skill loaders parse it."""
+"""Every SKILL.md front matter parses as YAML, as strict skill loaders parse it, with a non-empty name and description."""
 import pathlib
 import sys
 
 import yaml
 
-SKILLS = pathlib.Path(__file__).resolve().parents[1] / "plugins/artemis/skills"
+SKILLS = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[1] / "plugins/artemis/skills"
 
 fail = False
 for path in sorted(SKILLS.glob("*/SKILL.md")):
@@ -19,4 +19,9 @@ for path in sorted(SKILLS.glob("*/SKILL.md")):
     if not isinstance(front, dict) or not all(isinstance(front.get(k), str) for k in ("name", "description")):
         print(f"FAIL {name}: front matter needs a name and a description string")
         fail = True
+        continue
+    for key in ("name", "description"):
+        if not front[key].strip():
+            print(f"FAIL {name}: front matter {key} is empty")
+            fail = True
 sys.exit(fail)
