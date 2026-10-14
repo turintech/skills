@@ -404,6 +404,54 @@ class SteeringTests(unittest.TestCase):
             collector.run_artemis = original
 
 
+class SeveralSeriesTests(unittest.TestCase):
+    """A version or the baseline measured in more than one series keeps every metric and reading."""
+
+    @staticmethod
+    def payloads() -> dict:
+        payloads = collector.load_from_dir(str(FIXTURES))
+        rows = {r.get("versionNumber"): r for r in payloads["comparison"]["versions"]}
+        baseline = next(r for r in payloads["comparison"]["versions"] if r.get("isBaseline"))
+        # v1 was measured again into a second series, obs-1b, which also recorded a new metric.
+        rows[1]["groupIds"] = ["obs-1", "obs-1b"]
+        payloads["observations"].append({"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-1b",
+                                         "value": 7.5, "createdAt": "2026-01-03T00:00:00Z"})
+        payloads["metrics"].append({"metricId": "m-mem", "metricName": "peak_mem_mb", "observationGroupId": "obs-1b",
+                                    "mean": 300.0, "min": 300.0, "max": 300.0, "count": 1})
+        # The baseline is two series too, and only the second recorded peak_mem_mb.
+        baseline["groupIds"] = ["obs-base", "obs-base-2"]
+        payloads["metrics"].append({"metricId": "m-mem", "metricName": "peak_mem_mb", "observationGroupId": "obs-base-2",
+                                    "mean": 320.0, "min": 320.0, "max": 320.0, "count": 1})
+        return payloads
+
+    def test_a_metric_only_in_a_later_series_is_kept(self) -> None:
+        snapshot = collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00")
+        v1 = next(v for v in snapshot["versions"] if v["version"] == 1)
+        self.assertIn("peak_mem_mb", v1["metrics"])
+        self.assertIn("peak_mem_mb", snapshot["baseline"]["metrics"])
+        self.assertEqual(v1["metrics"]["peak_mem_mb"]["mean"], 300.0)
+        self.assertEqual(snapshot["baseline"]["metrics"]["peak_mem_mb"]["mean"], 320.0)
+
+    def test_readings_come_from_every_series(self) -> None:
+        snapshot = collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00")
+        v1 = next(v for v in snapshot["versions"] if v["version"] == 1)
+        self.assertEqual(v1["metrics"]["latency_ms"].get("runs"), [8.0, 7.5])
+
+    def test_a_pooled_row_is_found_from_any_of_its_series(self) -> None:
+        # A pooled stats row names every series; observationGroupId is only the first, not the version's own.
+        payloads = collector.load_from_dir(str(FIXTURES))
+        payloads["metrics"] = [m for m in payloads["metrics"] if m["observationGroupId"] != "obs-2"]
+        payloads["metrics"].append({"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-2a",
+                                    "groupIds": ["obs-2a", "obs-2"], "mean": 6.0, "min": 6.0, "max": 6.0, "count": 2})
+        snapshot = collector.build_snapshot(payloads, collected_at="2026-09-02T00:00:00+00:00")
+        v2 = next(v for v in snapshot["versions"] if v["version"] == 2)
+        self.assertIn("latency_ms", v2["metrics"])
+
+    def test_one_series_snapshots_are_unchanged(self) -> None:
+        before = collector.build_snapshot(collector.load_from_dir(str(FIXTURES)), collected_at="2026-09-02T00:00:00+00:00")
+        self.assertEqual([sorted(v["metrics"]) for v in before["versions"]][:2], [["compile_runtime", "latency_ms", "quality_score"]] * 2)
+
+
 class ObservationTests(unittest.TestCase):
     """Individual runs and the platform's direction come from `discovery metrics --all`."""
 
