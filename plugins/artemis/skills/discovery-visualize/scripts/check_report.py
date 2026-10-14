@@ -2,8 +2,9 @@
 """Check a built report before sharing it.
 
 Static checks always run. With Chrome or Chromium installed, the page is also rendered headlessly
-and checked for script errors, labels drawn outside their chart, empty titles or findings, and the
-snapshot's best lines (`bestLines.lede` and each of `bestLines.notes`) missing from the page.
+and checked for script errors, labels drawn outside their chart, a chart narrower than its card that
+is not centred in it, empty titles or findings, and the snapshot's best lines (`bestLines.lede` and
+each of `bestLines.notes`) missing from the page.
 Exit status is non-zero when anything fails.
 
     python3 check_report.py report.html
@@ -58,6 +59,12 @@ setTimeout(function () {
       if (!shown(squash(line))) out.push('MISSING BEST LINE (keep it verbatim): ' + squash(line).slice(0, 90));
     });
   }
+  // A chart narrower than its card sits in the middle of it, not pinned to the left.
+  document.querySelectorAll('.ar-chart svg').forEach(function (svg) {
+    var box = svg.parentElement.getBoundingClientRect(), r = svg.getBoundingClientRect();
+    if (r.width < box.width - 2 && Math.abs((r.left + r.width / 2) - (box.left + box.width / 2)) > 3)
+      out.push('OFF-CENTRE CHART: ' + (svg.getAttribute('aria-label') || '').slice(0, 60));
+  });
   var d = document.createElement('pre'); d.id = '__ar_probe'; d.textContent = out.join('\\n') || 'OK';
   document.body.appendChild(d);
 }, 1200);

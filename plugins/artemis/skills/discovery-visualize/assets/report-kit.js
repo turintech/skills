@@ -68,6 +68,11 @@
   }
   function decimals(step) { return Math.max(0, -Math.floor(Math.log10(step) + 1e-9)); }
   function svgRoot(el, W, H, label) { return s(el, 'svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': label || '' }); }
+  // One or two bars drawn the full page width read as a stripe pinned to the left: draw them narrower, centred.
+  const FEW_W = 600;
+  // The narrow canvas still leaves the bars 300 units after a long label's measured gutter.
+  const fewWidth = (n, L, R) => (n <= 2 ? Math.min(880, Math.max(FEW_W, L + R + 300)) : 880);
+  function centreFew(svg, W) { svg.style.maxWidth = W + 'px'; svg.style.marginInline = 'auto'; return svg; }
   function gutter(rows) {
     return Math.ceil(Math.max(60, ...rows.map(r => Math.max(textWidth(r.label, FONT.lab), textWidth(r.sub || '', FONT.sub)))) + 24);
   }
@@ -201,12 +206,13 @@
      rows: [{ label, sub, value, text, color, faded, tip: [lines] }] in the order to draw (best first)
      opts: { base: 0, min, max, refs: [{value, label, strong}], tickFormat, aria, note } */
   function rankedBars(el, rows, o = {}) {
-    const base = o.base != null ? o.base : 0, rh = 34, T = 36, R = 120, W = 880;
-    const L = gutter(rows), H = T + rows.length * rh + (o.note ? 50 : 30);
+    const base = o.base != null ? o.base : 0, rh = 34, T = 36, R = 120;
+    const L = gutter(rows), W = fewWidth(rows.length, L, R), H = T + rows.length * rh + (o.note ? 50 : 30);
     const vals = rows.map(r => r.value).concat([base]).concat((o.refs || []).map(r => r.value));
     const lo = o.min != null ? o.min : Math.min(...vals), hi = o.max != null ? o.max : Math.max(...vals);
     const pad = (hi - lo) * 0.04, x = xScale([[lo - (o.min != null ? 0 : pad), hi + (o.max != null ? 0 : pad)]], L, W - R);
     const svg = svgRoot(el, W, H, o.aria);
+    if (rows.length <= 2) centreFew(svg, W);
     const yb = T + rows.length * rh - 4;
     drawXAxis(svg, x, T - 8, yb, o);
     (o.refs || []).forEach(r => refLine(svg, x, r, T, yb));
@@ -442,7 +448,7 @@
       const W = Math.max(360, 72 * n + 40), H = 210, T = 30, B = 40, bw = Math.min(100, (W - 40) / n * 0.68), gap = n > 2 ? (W - 40 - n * bw) / (n - 1) : 48, x0 = (W - n * bw - (n - 1) * gap) / 2;
       const hi = Math.max(...bars.map(d => d.value), 0) || 1, y = v => H - B - Math.max(0, v) / hi * (H - T - B);
       const svg = svgRoot(card, W, H, p.aria || p.title + ': ' + bars.map(d => d.label + ' ' + fmt.num(d.value) + (p.unit ? ' ' + p.unit : '')).join(', '));
-      svg.style.maxWidth = W + 'px';  // a lone panel otherwise stretches its two bars and their labels across the page
+      centreFew(svg, W);  // a lone panel otherwise stretches its bars across the page, or sits at its left edge
       bars.forEach((d, i) => {
         const c = i === 0 ? 'var(--ar-baseline)' : 'var(--ar-accent)', x = x0 + i * (bw + gap), top = y(d.value);
         tip(s(svg, 'rect', { x, y: top, width: bw, height: Math.max(2, H - B - top), rx: 3, style: `fill:${d.color || c}` }), [d.label, fmt.num(d.value, 3) + (p.unit ? ' ' + p.unit : '')]);
@@ -459,10 +465,11 @@
   /* stackedBars(el, rows, opts): one horizontal bar per row, split into named segments, with the row's total at its end.
      rows: [{ label, sub, segments: [{ name, value, color }] }]; opts: { aria, note }. Pair with fig.key for the segment names. */
   function stackedBars(el, rows, o = {}) {
-    const rh = 34, T = 14, R = 70, W = 880, L = gutter(rows), H = T + rows.length * rh + (o.note ? 40 : 12);
+    const rh = 34, T = 14, R = 70, L = gutter(rows), W = fewWidth(rows.length, L, R), H = T + rows.length * rh + (o.note ? 40 : 12);
     const totals = rows.map(r => r.segments.reduce((a, g) => a + (g.value || 0), 0)), max = Math.max(1, ...totals);
     const x = v => L + v / max * (W - R - L);
     const svg = svgRoot(el, W, H, o.aria);
+    if (rows.length <= 2) centreFew(svg, W);
     rows.forEach((r, i) => {
       const y = T + i * rh;
       s(svg, 'text', { x: L - 12, y: y + (r.sub ? 10 : 15), 'text-anchor': 'end', class: 'ar-lab' }, r.label);

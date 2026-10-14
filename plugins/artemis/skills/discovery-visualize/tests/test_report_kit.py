@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -83,6 +84,78 @@ class KitTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             html = build_report.build({}, PAGE, "Title")
             self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
+
+class FewBarsTests(unittest.TestCase):
+    """One or two bars are drawn narrower and centred, not as a stripe pinned to the left."""
+
+    PAGES = {
+        "one ranked bar": "ArtemisReport.rankedBars(F.chart, [{ label: 'High', value: 1, text: '1 open' }], { aria: 'one' });",
+        "two ranked bars": "ArtemisReport.rankedBars(F.chart, [{ label: 'High', value: 2 }, { label: 'Low', value: 1 }], { aria: 'two' });",
+        "one stacked bar": "ArtemisReport.stackedBars(F.chart, [{ label: 'High', segments: [{ name: 'Untriaged', value: 1 }] }], { aria: 'stack' });",
+        "one panel, two bars": "ArtemisReport.baselineBest(F.chart, [{ title: 'latency_ms', base: { label: 'Baseline', value: 10 }, best: { label: 'v2', value: 6 } }]);",
+        "one panel, one bar": "ArtemisReport.baselineBest(F.chart, [{ title: 'latency_ms', bars: [{ label: 'Baseline', value: 10 }] }]);",
+    }
+
+    @staticmethod
+    def page(body: str) -> str:
+        return ("ArtemisReport.header(document.getElementById('header'), { title: 'Few bars' });\n"
+                "const F = ArtemisReport.figure(document.getElementById('page'), { question: 'How many?' });\n" + body)
+
+    @staticmethod
+    def geometry(html: str) -> list:
+        probe = """<script>setTimeout(function () { var o = []; document.querySelectorAll('.ar-chart svg').forEach(function (svg) {
+          var b = svg.parentElement.getBoundingClientRect(), r = svg.getBoundingClientRect();
+          o.push([Math.round(r.width), Math.round(b.width), Math.round((r.left + r.width / 2) - (b.left + b.width / 2))]); });
+          var d = document.createElement('pre'); d.id = '__geo'; d.textContent = JSON.stringify(o); document.body.appendChild(d); }, 800);</script>"""
+        with tempfile.TemporaryDirectory() as tmp:
+            page = Path(tmp) / "p.html"
+            page.write_text(html + probe, encoding="utf-8")
+            dom = subprocess.run([check_report.find_chrome(), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
+                                  "--window-size=1200,900", "--virtual-time-budget=3000", "--dump-dom", page.as_uri()],
+                                 capture_output=True, text=True, timeout=120, check=False).stdout
+        import re
+        return json.loads(re.search(r'<pre id="__geo">(.*?)</pre>', dom, re.S).group(1))
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_few_bars_are_narrow_and_centred(self) -> None:
+        snapshot = RecipeRenderTests.fixture_snapshot(True)
+        for name, body in self.PAGES.items():
+            with self.subTest(name):
+                html = build_report.build(snapshot, self.page(body), "Title")
+                width, card, offset = self.geometry(html)[0]
+                self.assertLessEqual(width, 620, "the chart should be drawn narrower than the card")
+                self.assertLess(width, card)
+                self.assertLessEqual(abs(offset), 3, "the chart should sit in the middle of its card")
+                self.assertFalse([p for p in check_report.render_checks(html, check_report.find_chrome()) if p.startswith("OFF-CENTRE")])
+
+    # A long label still leaves the lone bar room: the canvas grows with the measured label gutter.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_long_label_leaves_the_bar_room(self) -> None:
+        label = "Force loop scans distant particles despite fixed radius"  # 55 characters
+        for chart in ("rankedBars(F.chart, [{ label: '%s', value: 1 }])" % label,
+                      "stackedBars(F.chart, [{ label: '%s', segments: [{ name: 'Untriaged', value: 1 }] }])" % label):
+            with self.subTest(chart.split("(")[0]):
+                body = "ArtemisReport." + chart + "; F.bullets(['One open issue']);"
+                probe = "setTimeout(function () { var r = document.querySelector('.ar-chart svg rect'); var d = document.createElement('pre'); d.id = '__geo'; d.textContent = JSON.stringify([[Math.round(r.getBoundingClientRect().width), 0, 0]]); document.body.appendChild(d); }, 600);"
+                snapshot = RecipeRenderTests.fixture_snapshot(True)
+                snapshot.pop("bestLines", None)  # a bare chart page, not a run report
+                html = build_report.build(snapshot, self.page(body + "\n" + probe), "Title")
+                self.assertGreater(self.geometry(html)[0][0], 150)
+                self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_many_bars_keep_the_full_width(self) -> None:
+        rows = ", ".join("{ label: 'v%d', value: %d }" % (i, i) for i in range(1, 6))
+        html = build_report.build(RecipeRenderTests.fixture_snapshot(True), self.page("ArtemisReport.rankedBars(F.chart, [" + rows + "]);"), "Title")
+        width, card, offset = self.geometry(html)[0]
+        self.assertGreaterEqual(width, card - 2)
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_check_report_flags_a_chart_pinned_left(self) -> None:
+        body = "const svg = ArtemisReport.rankedBars(F.chart, [{ label: 'High', value: 1 }], { aria: 'pinned' }); svg.style.marginInline = '0';"
+        problems = check_report.render_checks(build_report.build(RecipeRenderTests.fixture_snapshot(True), self.page(body), "Title"), check_report.find_chrome())
+        self.assertTrue(any(p.startswith("OFF-CENTRE CHART") for p in problems), problems)
 
 
 class RecipeTests(unittest.TestCase):
@@ -377,6 +450,18 @@ class MaintainReportTests(unittest.TestCase):
         snapshot = {"projectId": "p1234567", "projectName": "Smoke", "webUrl": "#", "issues": issues}
         html = build_report.build(snapshot, page, "Maintain")
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+        severe = RecipeRenderTests.page_text(html).split("How severe are the open issues?")[1].split("Where do they sit")[0]
+        self.assertIn("1 critical, 2 high, 1 medium, 3 low", severe)
+
+    # Only High issues: the first line already names them, so the count isn't repeated as a bare "1 high".
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_the_count_is_not_repeated_when_the_first_line_says_it(self) -> None:
+        page = (ROOT / "references" / "maintain-report.md").read_text(encoding="utf-8").split("```js\n", 1)[1].split("\n```", 1)[0]
+        snapshot = {"projectId": "p1234567", "projectName": "Smoke", "webUrl": "#",
+                    "issues": [{"status": "open", "severity": "high", "lane": "untriaged", "validity": "not_set"}]}
+        severe = RecipeRenderTests.page_text(build_report.build(snapshot, page, "Maintain")).split("How severe are the open issues?")[1].split("Where do they sit")[0]
+        self.assertIn("1 high open: fix or triage these first", severe)
+        self.assertEqual(severe.count("1 high"), 1, severe)
 
 
 if __name__ == "__main__":
