@@ -49,8 +49,9 @@ The reasoning the Web UI shows as a chat is reachable from the CLI, but not unde
 ```bash
 run=$(artemis --output-format json discovery get <run-id>)
 artemis chat messages "$(echo "$run" | jq -r '.chatId // .agentRunId')"   # narration + tool calls
-artemis chat list --project <project-uuid>                   # if you lost the id
 ```
+
+Take the chat from the run record, not from `chat list`. A running Discovery also starts an `experiment_review` chat for each experiment it reviews, listed as "Untitled chat", and these outnumber the agent's own chat. They are reviews, not the Discovery agent: a message sent to one never reaches the run. Read the agent with `chat messages` as above; to redirect it, use `discovery steer` (skill `discovery-steer`), which starts a new agent run.
 
 Use chat to see current activity and experiment records for complete hypotheses, conclusions, confidence, and LLM council notes. `chat messages` is a summary: assistant deltas may be truncated and tool events may omit inputs and outputs.
 
