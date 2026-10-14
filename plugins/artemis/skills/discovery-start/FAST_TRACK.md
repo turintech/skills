@@ -36,7 +36,7 @@ Report differences on the other metrics to the user rather than trading them off
 
 ## 2. Medium: refine
 
-`discovery compare` names versions by `versionNumber` and SHA. Find the seed's version ID by its `versionNumber`, then get its branch and commit; a Discovery version ID is not a changeset ID:
+`discovery compare` names versions by `versionNumber` and SHA. Find the seed's version ID by its `versionNumber`, then get its branch and commit; a Discovery version ID is not a branch's `changesetId`:
 
 ```bash
 artemis --output-format json discovery versions list "<run-id>" --all

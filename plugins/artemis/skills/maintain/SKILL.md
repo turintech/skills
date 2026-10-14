@@ -202,7 +202,7 @@ artemis maintain issues pr <id> --project <p>        # publish if needed, then o
 
 `pr` takes its title and description from the Issue and targets the branch the project was imported on, falling back to `main`; override with `--title`, `--description` and `--base`. The git branch is named after the Issue's display id plus a random number, like `artemis/iss-143-04217`.
 
-A Fix in Discovery leaves no Branch on the Issue; its versions are in the Discovery run. Find the run with `artemis --output-format json maintain issues fix-runs <id> -p <p> | jq -r '[.runs[] | select(.discoveryRunId)] | last | .discoveryRunId // empty'`, pick a version with `discovery-inspect`, and open a PR from that version's `changesetId` with `artemis changeset pr <changeset-id> --project <p>`. `changeset pr` refuses a changeset that already has a PR.
+A Fix in Discovery leaves no Branch on the Issue; its versions are in the Discovery run. Find the run with `artemis --output-format json maintain issues fix-runs <id> -p <p> | jq -r '[.runs[] | select(.discoveryRunId)] | last | .discoveryRunId // empty'`, pick a version with `discovery-inspect`, and open a PR from that version's `changesetId` with `artemis changeset pr <changeset-id> --project <p>`. `changeset pr` refuses a branch that already has a PR.
 
 ## 8. Re-sync outdated Issues
 

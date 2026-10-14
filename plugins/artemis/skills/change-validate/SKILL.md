@@ -39,7 +39,7 @@ Run it from the repository root (or pass `--root <repo>`). `--from-git` saves ev
 artemis changeset save <changeset-id> --project <p> -m "<what the change does>" <path> <path> --delete <removed-path>
 ```
 
-The changeset then has two versions: the starting commit (`--version original`, the project's code) and **latest** (with the change). Tell the user the branch exists and link it (section 5).
+The branch then has two versions: the starting commit (`--version original`, the project's code) and **latest** (with the change). Tell the user the branch exists and link it (section 5).
 
 ## 2. Measure both sides the same way
 

@@ -124,7 +124,7 @@ For end-to-end verification, use `repo-command-setup` §5b to validate the proje
 
 A runner inherits the environment of whatever shell started it, and keeps it for its whole life. A runner inside a container sees only what is installed or mounted in that container, whatever the host has. Tools installed under a home directory, a version manager, or a virtual environment are routinely on the user's `PATH` and absent from the runner's, so "I can run this command" is not evidence the runner can. Check the toolchain as the runner sees it, and when a tool is only reachable by an absolute path, either start the runner from an environment that has it or make the project's commands name it explicitly.
 
-Before a project's commands are written, probe what the runner actually has, through the platform, on a changeset of that project:
+Before a project's commands are written, probe what the runner actually has, through the platform, on a branch of that project:
 
 ```bash
 artemis project scripts create --project "<project-id>" --name "toolchain-probe" \
@@ -134,7 +134,7 @@ artemis changeset validate "<changeset-id>" --project "<project-id>" --version o
 artemis changeset validation logs "<validation-id>" --project "<project-id>"
 ```
 
-Just before the `--wait` validation, post the start block (`artemis`'s *Start block*): Validation started, and say what Artemis is doing (`artemis`'s *Waiting out loud*): checking which tools the runner has. The checks are quick; a long wait here is usually the runner picking the job up. Use the changeset the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
+Just before the `--wait` validation, post the start block (`artemis`'s *Start block*): Validation started, and say what Artemis is doing (`artemis`'s *Waiting out loud*): checking which tools the runner has. The checks are quick; a long wait here is usually the runner picking the job up. Use the branch the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
 
 Report the runner name, host, and verification result, with the page where it shows as online: once a project exists, its **Runner and Scripts** settings page (above); before that, **Runners** (`<deployment-base-url>/settings/runners`), which also lists other people's runners, so keep it off a recorded screen. Do not claim success from a quiet process or log alone.
 

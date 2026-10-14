@@ -12,7 +12,7 @@ metadata:
 ## At a glance
 
 - **Problem:** Finds the task identifier, retrieves its log without runner-host access, and identifies the first concrete failure.
-- **Must be available:** An authenticated Artemis CLI and a Discovery version ID, changeset validation ID, or runner `processId`.
+- **Must be available:** An authenticated Artemis CLI and a Discovery version ID, the ID of a validation on a branch, or runner `processId`.
 - **Use / don't use:** Use only for work dispatched to a runner. A `generation_failed` Discovery version has no task log; inspect its agent narration instead.
 - **Next skill:** Return the evidence and diagnosis to `repo-command-setup`, `discovery-start`, or `discovery-inspect`.
 
@@ -34,7 +34,7 @@ Prefer the version-native shortcut:
 artemis discovery versions logs "<version-id>"
 ```
 
-For changeset validation, capture the validation `id` and `processId` from the `changeset validate` response. A Discovery version's `validationId` works the same way: `changeset validation logs "<validationId>" --project "<project-uuid>"`. Versions run before Discovery moved onto validations have no `validationId`; use their `processId` with `process logs` instead. Do not substitute a per-command `logId`.
+For a validation on a branch, capture the validation `id` and `processId` from the `changeset validate` response. A Discovery version's `validationId` works the same way: `changeset validation logs "<validationId>" --project "<project-uuid>"`. Versions run before Discovery moved onto validations have no `validationId`; use their `processId` with `process logs` instead. Do not substitute a per-command `logId`.
 
 If a runner-executed failure has neither identifier, report that logs are unavailable instead of claiming they were checked.
 
