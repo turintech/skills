@@ -269,7 +269,7 @@ For example: "Your project is in Artemis: [Open project](<link>). You'll see the
 
 | Situation | Do |
 |---|---|
-| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Say which model failed and offer one fresh run from the same branch with a model from the top tier in `artemis model groups` (or section 7's step 7 model if another was used); it spends credits again, so start it only on the user's yes. Once only, and never for a build, test or benchmark failure |
+| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Say which model failed and start one fresh run from the same branch with a model from the top tier in `artemis model groups` (or section 7's step 7 model if another was used), naming the new model in the same message. Once only, and never for a build, test or benchmark failure |
 | The project URL's deployment is not the one the CLI is signed in to | Say both, and settle it before creating anything |
 | No runner can run here, or the user does not want one | Say that nothing can be measured without a machine, and stop |
 | The user has no GitHub account, or will not connect one | Say the CLI needs a Git key even for the public demo; offer **just set me up** or their own project instead, and stop the demo |
