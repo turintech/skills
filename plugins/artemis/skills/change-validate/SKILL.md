@@ -19,7 +19,7 @@ metadata:
 ## Requirements
 
 - `artemis --version` meets `metadata.artemis-cli-min`: `artemis changeset compare --help` must work. Otherwise `cli-setup`.
-- An online runner: `artemis runner list`. Otherwise `runner-setup`.
+- One of the user's own runners, online, as `runner-setup`'s *Whose runner is that?* checks. Otherwise `runner-setup`.
 - The project id and a Script whose benchmark writes metrics: `artemis project scripts list --project <p>`. Otherwise `project-import` and `repo-command-setup`.
 - The checkout is the project's repository (`git remote get-url origin` matches the project's `gitUrl`), and its `HEAD` is the commit the project is on (`gitHash` for this project in `artemis --output-format json project list --all`). If `HEAD` differs, the saved change would carry every unrelated difference: say so and ask whether to update the checkout first.
 
@@ -46,11 +46,11 @@ The branch then has two versions: the starting commit (`--version original`, the
 Alternate the sides, so anything that drifts on the machine during the session hits both equally. One run per call, starting commit then latest, five times each:
 
 ```bash
-artemis changeset validate <changeset-id> --project <p> --version original --script <s> --runner <r> --wait
-artemis changeset validate <changeset-id> --project <p> --version latest --script <s> --runner <r> --wait
+artemis changeset validate <changeset-id> --project <p> --version original --script <s> --runner <r> --wait --timeout 9m
+artemis changeset validate <changeset-id> --project <p> --version latest --script <s> --runner <r> --wait --timeout 9m
 ```
 
-Before the first pair, post one start block for the series (`artemis`'s *Start block*): Validation started. Same runner, same script, same number of runs for both sides, always. After the first pair, say how long one pair took and roughly how long the rest will take. Stop at the first non-zero exit and report it; exit 6 means the run outlasted `--timeout`. On CLI 1.1.16 and older a network blip also ends `--wait` non-zero while the validation keeps running on the runner, so before calling a connection error a failed run, read `artemis --output-format json changeset validation get <validation-id> --project <p>`: `created` or `running` means it is still going. A run that fails is not a reading: read its log (`artemis changeset validation logs <validation-id> --project <p>`, or `execution-log-inspect`), and if the change broke the build or the tests, stop and say so. That is the answer.
+Before the first pair, post one start block for the series (`artemis`'s *Start block*): Validation started. Same runner, same script, same number of runs for both sides, always. After the first pair, say how long one pair took and roughly how long the rest will take. Stop at the first non-zero exit and report it; exit 6 means the run outlasted `--timeout`. Give each call a 10-minute shell timeout. On CLI 1.1.16 and older a network blip also ends `--wait` non-zero while the validation keeps running on the runner, so before calling a connection error a failed run, read `artemis --output-format json changeset validation get <validation-id> --project <p>`: `created` or `running` means it is still going. A run that fails is not a reading: read its log (`artemis changeset validation logs <validation-id> --project <p>`, or `execution-log-inspect`), and if the change broke the build or the tests, stop and say so. That is the answer.
 
 ## 3. Read the verdict
 
