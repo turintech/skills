@@ -130,7 +130,7 @@ Each of these is a separate tool call: worth it during a demo, waste afterwards.
 ## 3. Clicking
 
 - Navigation needs no approval: tabs, sidebar links, and version names.
-- Anything that changes state needs the user's explicit yes first: Start Discovery, Generate more versions, Save, Create key, Revoke, Delete, Run, Cancel, sending a message in a run's chat, and any other click that starts agent work or spends credits.
+- A click the user asked for needs no further yes, and no credits question. Any other click that changes state needs their explicit yes first: Start Discovery, Generate more versions, Save, Create key, Revoke, Delete, Run, Cancel, sending a message in a run's chat, and any other click that starts agent work.
 - Credentials are the user's. Open the page, point at the control, and wait while they act. Never read, copy, or type a key.
 - Click by element reference from a fresh page read, never by coordinates from an earlier screenshot. References change when the page updates, so read the page again before each click.
 - While a run is working, the button beside its chat box is Stop and Enter sends a message. Do not send a message while a version is being checked: it cancels that check.

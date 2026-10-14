@@ -35,7 +35,7 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 
 **Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix`: without `--discovery` it takes the UUID. With `--discovery`, give display ids (`ISS-n`) with `-p`; the CLI turns a UUID into its display id, since the maintain agent reads only display ids. In scripts, lift `.id`.
 
-**Credits.** Every step but triage is an agent run: a Scan, a fix (including **Fix again**), Fix in Discovery, a Re-sync and every `maintain chat` turn spend credits. Before `scans run`, `issues fix` (with or without `--discovery`), `syncs run`, `maintain chat`, a `chat send` or a `chat answer` that sets an agent going again, tell the user what it will do and that it spends credits, and run it only on their yes. Approving a question card that starts a Scan, a fix or a Discovery run spends credits too: approve a card only after the user's yes.
+**Agent runs.** Every step but triage is an agent run: a Scan, a fix (including **Fix again**), Fix in Discovery, a Re-sync and every `maintain chat` turn. Run the ones the user asked for, and the follow-ups this skill names for them, without asking about credits. Ask first only before agent work that is neither, including approving a question card that would start it.
 
 **Question cards.** When an agent run stops on a question, read it with `artemis chat messages <chat-id>` and answer with `artemis chat answer <chat-id> --answer "..."` or `--approve`. If the user says no, answer with `--reject` so the card doesn't sit waiting. Never reply to a card with `chat send`: the card stays unanswered and the agent asks again.
 
@@ -69,13 +69,13 @@ artemis maintain rules defaults --all
 artemis maintain rules import-defaults --project <p> --rule <default-id-1> --rule <default-id-2>
 ```
 
-**Author one from a prompt.** After the user's yes (each turn spends credits), the maintain agent reads the code, writes the Rule and puts it on the board:
+**Author one from a prompt.** The maintain agent reads the code, writes the Rule and puts it on the board:
 
 ```bash
 artemis maintain chat --project <p> --timeout 8m -m "create a rule that flags SQL queries built with string concatenation"
 ```
 
-Piped or with `--output-format json`, `maintain chat` takes one turn and prints the chat id. If the agent stops on a question card, answer it as above (`chat answer`); use `artemis chat send <chat-id> -m "..."` only to carry on the conversation, after the user's yes. If a turn hits `--timeout` the CLI exits 6 but the agent keeps working: follow it with `artemis chat get <chat-id>` rather than starting another turn.
+Piped or with `--output-format json`, `maintain chat` takes one turn and prints the chat id. If the agent stops on a question card, answer it as above (`chat answer`); use `artemis chat send <chat-id> -m "..."` only to carry on a conversation the user asked for. If a turn hits `--timeout` the CLI exits 6 but the agent keeps working: follow it with `artemis chat get <chat-id>` rather than starting another turn.
 
 **Author one from markdown:** `artemis maintain rules create --project <p> --markdown-file rule.md`.
 
@@ -90,7 +90,7 @@ artemis --output-format json maintain rules list --project <p> --all \
 
 ## 2. Run the Scan
 
-After the user's yes:
+Once the Rules are in place:
 
 ```bash
 artemis maintain scans run --project <p> --rule <rule-id> --count 10
@@ -139,7 +139,7 @@ artemis maintain issues archive <id>...   # off the board, triage unchanged (won
 
 ## 6. Fix
 
-Three routes. Each needs the user's yes first, except the local-agent route, which spends nothing on the platform.
+Three routes. If the user hasn't named one, offer them with a recommendation. The local-agent route spends nothing on the platform.
 
 ### The fix agent
 
@@ -156,7 +156,7 @@ artemis maintain issues fix <issue-uuid>... [--model claude-sonnet-5]
 
 ### Fix in Discovery
 
-For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The maintain agent settles the run's settings: unless it is given them, it asks for the version budget (10 by default), the model and the runner, then the script and how many times each version is benchmarked. Agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), that each version is agent work that spends credits, and that the run also scores AI Metrics. Then pass them, so the agent asks nothing it was already told:
+For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The maintain agent settles the run's settings: unless it is given them, it asks for the version budget (10 by default), the model and the runner, then the script and how many times each version is benchmarked. Agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. Then pass them, so the agent asks nothing it was already told:
 
 ```bash
 artemis maintain issues fix <ISS-n> --discovery --project <p> \
@@ -165,8 +165,8 @@ artemis maintain issues fix <ISS-n> --discovery --project <p> \
 
 - Post the start block (`artemis`'s *Start block*): Fix in Discovery started, opening the run.
 - `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
-- Fix in Discovery always scores AI Metrics: the maintain agent has no switch for them and the CLI no flag. If the user says no to them at the go-ahead, start the run with `discovery-start` instead.
-- Piped, the command takes one agent turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only after the user's yes. If the turn hits `--timeout` (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`.
+- Fix in Discovery always scores AI Metrics: the maintain agent has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
+- Piped, the command takes one agent turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only with the agreed settings. If the turn hits `--timeout` (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`.
 - Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 
 ### Your own coding agent
@@ -206,7 +206,7 @@ A Fix in Discovery leaves no Branch on the Issue; its versions are in the Discov
 
 ## 8. Re-sync outdated Issues
 
-The code moves on: an Issue may already be fixed, have moved, or no longer apply. Each Issue has a **sync status**: `current`, `outdated` (its file or its Rule changed) or `obsolete`; `issues list --sync-status` filters on it. A **Re-sync** re-checks Issues against the current code. It is an agent run, so run it after the user's yes:
+The code moves on: an Issue may already be fixed, have moved, or no longer apply. Each Issue has a **sync status**: `current`, `outdated` (its file or its Rule changed) or `obsolete`; `issues list --sync-status` filters on it. A **Re-sync** re-checks Issues against the current code. It is an agent run:
 
 ```bash
 artemis maintain syncs run --project <p>                     # every outdated Issue
@@ -220,8 +220,8 @@ Syncs run in the background like Scans. There is no `syncs get`: match the sync 
 
 - [ ] CLI at least 1.1.16; project UUID confirmed.
 - [ ] Rules in place and none still drafts.
-- [ ] The user said yes before each Scan, fix (agent, Fix again, Discovery), Re-sync, `maintain chat` turn, `chat send` or resuming `chat answer`, card approval, `issues cancel` and `rules delete`.
-- [ ] For Fix in Discovery, the yes covered the model, versions, runner and script, Benchmark runs and AI Metrics, and those settings were passed as flags.
+- [ ] Agent runs started for what the user asked, with no credits question; the user said yes before agent work they didn't ask for, `issues cancel` and `rules delete`.
+- [ ] For Fix in Discovery, the model, versions, runner and script, Benchmark runs and AI Metrics were agreed with the user and passed as flags.
 - [ ] The Scan reached `done`, and `issuesFound` is checked, not assumed.
 - [ ] Issues triaged before any fix; unrelated Issues in separate `fix` calls.
 - [ ] Waited on `fixStatus` with a bounded check, at most three runs, then checked `fix-runs` and the chat.
