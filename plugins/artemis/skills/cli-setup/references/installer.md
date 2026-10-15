@@ -5,9 +5,15 @@
 
 The installer detects the platform, installs the CLI, and configures service endpoints for the deployment named with `--base-url`. Always pass it: without it, the installer from CLI 1.1.14 on leaves any existing configuration as it is, and a fresh install points nowhere until `artemis login --url <deployment-base-url>`.
 
-**Check which version it produces before relying on it.** Its built-in download source can lag the published releases. If `artemis --version` is older than the skills' minimum, or at or above their `artemis-cli-max`, use the direct download in `SKILL.md` (*Where to download from*), then `artemis login`.
+Each release has its own folder, `https://files.artemis.turintech.ai/public/artemis-cli/<version>/`, with that version's installer, binaries and `checksums.txt`. The list of versions is `https://files.artemis.turintech.ai/public/artemis-cli/`.
 
-Take the installer from a pinned release folder, never `latest/`, and always pass `--version`. `VER` is the newest release below the skills' `artemis-cli-max`, from the listing in `SKILL.md` (*Where to download from*); 1.1.18 on 15 Oct 2026.
+1. From that list, pick `VER`: the newest version below the skills' `artemis-cli-max`. The listing command in `SKILL.md` (*Where to download from*) prints the candidates.
+2. Download the installer from `VER`'s folder. Never use `latest/`.
+3. Check the installer against that folder's `checksums.txt`.
+4. Run it with `--version "$VER"`.
+5. Check `artemis --version`. If it is below the skills' minimum, or at or above their `artemis-cli-max`, use the direct download in `SKILL.md` (*Where to download from*), then `artemis login`.
+
+The block below does steps 2 to 4:
 
 ```bash
 (
