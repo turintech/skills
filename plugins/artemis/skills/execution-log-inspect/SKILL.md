@@ -1,11 +1,11 @@
 ---
 name: execution-log-inspect
-description: Retrieve and interpret Artemis runner task logs through the platform when compile, test, benchmark, validation, or Discovery execution fails and the runner host is unavailable.
-compatibility: Production Platform 3.0.3 execution-log inspection is tested with Artemis CLI 1.0.8.
+description: Retrieve and interpret Artemis runner task logs through the platform when compile, test, benchmark, validation, or Discovery execution fails. It reads the task's own output through the platform, with or without access to the runner host.
+compatibility: Requires Artemis CLI 1.1.8+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.0.8"
-  artemis-cli-tested: "1.0.8"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.8"
+  artemis-cli-max: "1.2.0"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Inspect Artemis execution logs
@@ -13,7 +13,7 @@ metadata:
 ## At a glance
 
 - **Problem:** Finds the task identifier, retrieves its log without runner-host access, and identifies the first concrete failure.
-- **Must be available:** An authenticated Artemis CLI and a record containing `processId` or `executionLogId`.
+- **Must be available:** An authenticated Artemis CLI and a Discovery version ID, the ID of a validation on a branch, or runner `processId`.
 - **Use / don't use:** Use only for work dispatched to a runner. A `generation_failed` Discovery version has no task log; inspect its agent narration instead.
 - **Next skill:** Return the evidence and diagnosis to `repo-command-setup`, `discovery-start`, or `discovery-inspect`.
 
@@ -21,61 +21,40 @@ Platform task logs contain compile, test, benchmark, resource, and result-ingest
 
 ## 1. Find the task identifier
 
-For a Discovery candidate:
+For a Discovery version:
 
 ```bash
 artemis --output-format json discovery versions get "<version-id>"
 ```
 
-Record `processId` and `executionLogId`. If both are absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
+Read `failureReason` first when it is there: it is set when the agent set the version aside, its edits never landed, or the run stopped under it, and may make the log unnecessary. It is empty when the version's commands failed (`executionStatus` `failed`) or the user cancelled it; then the log is the reason. Then record `processId` and `validationId`. If the process ID is absent, confirm the version lifecycle. `generation_failed` means no runner task was created; use `artemis chat messages <agentRunId>` from `discovery-inspect`.
 
-For changeset validation, use `status.id` from the `changeset validate` response as the process ID. Do not substitute a per-command `logId`.
+Prefer the version-native shortcut:
+
+```bash
+artemis discovery versions logs "<version-id>"
+```
+
+For a validation on a branch, capture the validation `id` and `processId` from the `changeset validate` response. A Discovery version's `validationId` works the same way: `changeset validation logs "<validationId>" --project "<project-uuid>"`. Versions run before Discovery moved onto validations have no `validationId`; use their `processId` with `process logs` instead. Do not substitute a per-command `logId`.
 
 If a runner-executed failure has neither identifier, report that logs are unavailable instead of claiming they were checked.
 
 ## 2. Retrieve the log
 
-Feature-detect the CLI command before using it:
+Prefer the resource-native command when a validation ID is available:
+
+```bash
+artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
+```
+
+Otherwise retrieve by process:
 
 ```bash
 artemis process logs --help
 artemis process logs "<process-id>"
 ```
 
-If the installed CLI has no `process logs` command, use the authenticated compatibility request below. Pass `process` with a process ID, or `log` with an execution-log ID:
-
-```bash
-(
-set -a; . ~/.config/artemis/.env; set +a
-
-python3 - process "<process-id>" <<'PY'
-import json
-import os
-import sys
-import urllib.request
-
-kind, identifier = sys.argv[1:3]
-paths = {
-    "process": f"/turintech-falcon/api/utils/process/{identifier}/logs",
-    "log": f"/turintech-falcon/api/utils/logs/{identifier}",
-}
-if kind not in paths:
-    raise SystemExit("kind must be process or log")
-
-request = urllib.request.Request(
-    os.environ["ARTEMIS_BASE_URL"].rstrip("/") + paths[kind],
-    headers={"Authorization": f'Bearer {os.environ["ARTEMIS_API_KEY"]}'},
-)
-with urllib.request.urlopen(request) as response:
-    entries = json.load(response).get("logs", [])
-
-for entry in sorted(entries, key=lambda item: item.get("timestamp", "")):
-    print(entry.get("timestamp", ""), entry.get("level", ""), entry.get("message", ""))
-PY
-)
-```
-
-Never print the environment file, API key, request headers, or debug output. If the deployment rejects these routes, stop and direct the user to the execution log in the Web UI; do not guess API paths.
+If these commands cannot retrieve the log, say so and point the user to the execution log in the Web UI. Do not call the API directly.
 
 ## 3. Diagnose the failure
 

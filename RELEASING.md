@@ -42,19 +42,30 @@ feat(discovery-start)!: require a validation script
 1. Develop upcoming changes on `develop`.
 2. Test against the corresponding CLI and platform candidate.
 3. Merge compatible skills into `main`.
-4. Publish the stable `vX.Y.Z` tag and a GitHub Release.
+4. Publish the stable `vX.Y.Z` tag. Pushing the tag publishes the GitHub Release from the annotated tag message.
 
 ```bash
 git checkout main
 git pull
 git tag -a vX.Y.Z -m "Release vX.Y.Z"
 git push origin vX.Y.Z
-gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."
 ```
 
 Pin a release when installing:
 
 ```bash
+# Claude Code: in a session, then the same from a shell
+/plugin marketplace add turintech/skills@vX.Y.Z
+claude plugin marketplace add turintech/skills@vX.Y.Z
+
+# Cursor
+agent plugin marketplace add https://github.com/turintech/skills.git \
+  --git-ref vX.Y.Z
+
+# Codex
+codex plugin marketplace add turintech/skills --ref vX.Y.Z
+
+# GitHub Copilot
 gh skill install turintech/skills --all --pin vX.Y.Z
 ```
 

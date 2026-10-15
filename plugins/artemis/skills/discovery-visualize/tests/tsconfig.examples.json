@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "ES2022"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "paths": {
+      "cursor/canvas": [
+        "./cursor-canvas.d.ts"
+      ],
+      "react": [
+        "./react-shim.d.ts"
+      ],
+      "react/jsx-runtime": [
+        "./react-shim.d.ts"
+      ]
+    },
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "../examples/**/*.tsx",
+    "react-shim.d.ts",
+    "cursor-canvas.d.ts"
+  ]
+}

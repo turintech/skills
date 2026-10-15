@@ -1,10 +1,11 @@
 ---
 name: discovery-steer
 description: Continue, expand, or redirect an Artemis discovery run, verify its child agent run was attached, and check whether later experiments follow new guidance. Use when the user wants to add budget, steer, redirect, or change the focus of an existing discovery run.
-compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+compatibility: Requires Artemis CLI 1.1.14+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.0.7"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.14"
+  artemis-cli-max: "1.2.0"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Steer a discovery run
@@ -13,6 +14,7 @@ metadata:
 
 - **Problem:** Adds budget or changes an existing discovery agent's direction without creating a new run.
 - **Must be available:** An authenticated CLI and the discovery run ID.
+- **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.14, where a failed `continue` dispatch exits non-zero); if it is older, load the skill and follow `cli-setup` first.
 - **Use / don't use:** Use to add budget or give new guidance to an existing run; use `discovery-start` for a new run.
 - **Next skill:** Use `discovery-inspect` to evaluate the resulting experiments, versions, metrics, and diffs.
 
@@ -24,18 +26,21 @@ Successful delivery is not proof of compliance. Verify both the agent-run handof
 artemis --output-format json discovery get "<run-id>"
 ```
 
-Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions`, and `agentRunId`. Surface conflicts between the requested direction and the original task or targets; target files are guidance, not a guaranteed write boundary.
+Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions`, and `agentRunId`. Surface conflicts between the requested direction and the run's Goal (`taskDescription`) or targets; target files are guidance, not a guaranteed write boundary.
 
 ### Budget gate
 
-- Active with budget remaining: steer directly.
-- Terminal: add versions first. If an active run has exhausted its budget, wait for terminal status before continuing:
+`continue` sets the budget to the versions the run already has plus `--versions <n>`; budget it never used is not carried over. So `n` is the number of new versions, and each one spends credits.
+
+- Active with budget remaining: steer directly. If an active run has exhausted its budget, wait for it to complete first.
+- Completed, failed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
+- A failed run is not steered: from CLI 1.1.16 `steer` refuses it. The Web UI's **Retry**, which re-sends the run's chat without new budget, has no CLI equivalent, so continue it as above, naming the credit cost, then check `discovery get`.
 
 ```bash
-artemis discovery continue "<run-id>" --versions <n>
+artemis --output-format json discovery continue "<run-id>" --versions <n>
 ```
 
-Refetch until the run is active with an `agentRunId`, then steer. `continue` expands and restarts the run but cannot carry new guidance; do not reverse this order when both are needed.
+Read the response: the run should be `running` with a new `agentRunId`; post the start block (`artemis`'s *Start block*): Discovery continued. If the dispatch fails, the run stays failed and the command exits non-zero: report that and stop, don't retry in a loop. `continue` adds budget and restarts the run but cannot carry new guidance; when both are needed, continue first, then steer.
 
 ## 2. Send the instruction
 
@@ -44,9 +49,9 @@ artemis --output-format json discovery steer "<run-id>" \
   --message "<new direction>"
 ```
 
-Add `--model <catalogue-uuid-or-model-type>` only when the user chose a model. Add `--skip-interaction` only when the user wants autonomous continuation.
+Add `--model <catalogue-uuid-or-model-type>` only when the user chose a model.
 
-`discovery steer` responds to the current agent run, follows any child run returned by the platform, repoints the discovery, and verifies the new `agentRunId`. Do not substitute generic `artemis chat send`; it does not perform discovery-specific repointing.
+`discovery steer` answers the run's chat, the one the Web UI replies to (CLI 1.1.16 and newer; older CLIs respond to the current agent run), follows the child run the answer starts, repoints the discovery to it, and verifies the new `agentRunId`. Do not substitute generic `artemis chat send`; it does not perform discovery-specific repointing.
 
 ## 3. Verify delivery
 
@@ -64,15 +69,15 @@ The steering instruction should appear as the child run's user message. If respo
 After the agent has had time to propose or complete another experiment:
 
 ```bash
-artemis discovery experiments list "<run-id>"
-artemis discovery versions list "<run-id>"
+artemis discovery experiments list "<run-id>" --all
+artemis discovery versions list "<run-id>" --all
 ```
 
 Read relevant version rationales and diffs with `discovery-inspect`. In-flight work from before the steer may finish; judge uptake from subsequent experiments and code changes. If the agent repeatedly follows the old direction, report that as non-compliance rather than claiming the steer failed to deliver.
 
 ## Checklist
 
-- [ ] Original task, targets, status, and current agent run inspected
+- [ ] Goal (`taskDescription`), targets, status, and current agent run inspected
 - [ ] Budget remains, or it was expanded before steering
 - [ ] Conflict with the requested direction surfaced
 - [ ] `discovery steer` returned a resulting agent ID with `verified: true`

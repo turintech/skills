@@ -1,0 +1,15 @@
+[
+  {"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-base", "value": 10.0, "createdAt": "2026-01-01T00:00:00Z"},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-base", "value": 0.5, "createdAt": "2026-01-01T00:01:00Z"},
+  {"metricId": "m-compile", "metricName": "compile_runtime", "observationGroupId": "obs-base", "value": 2.0, "createdAt": "2026-01-01T00:02:00Z"},
+  {"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-1", "value": 8.0, "createdAt": "2026-01-01T00:03:00Z"},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-1", "value": 0.6, "createdAt": "2026-01-01T00:04:00Z"},
+  {"metricId": "m-compile", "metricName": "compile_runtime", "observationGroupId": "obs-1", "value": 2.1, "createdAt": "2026-01-01T00:05:00Z"},
+  {"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-2", "value": 6.0, "createdAt": "2026-01-01T00:06:00Z"},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-2", "value": 0.4, "createdAt": "2026-01-01T00:07:00Z"},
+  {"metricId": "m-compile", "metricName": "compile_runtime", "observationGroupId": "obs-2", "value": 2.2, "createdAt": "2026-01-01T00:08:00Z"},
+  {"metricId": "m-latency", "metricName": "latency_ms", "observationGroupId": "obs-4", "value": 7.0, "createdAt": "2026-01-01T00:09:00Z"},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-4", "value": 0.7, "createdAt": "2026-01-01T00:10:00Z"},
+  {"metricId": "m-compile", "metricName": "compile_runtime", "observationGroupId": "obs-4", "value": 2.0, "createdAt": "2026-01-01T00:11:00Z"},
+  {"metricId": "m-quality", "metricName": "quality_score", "observationGroupId": "obs-5", "value": 0.1, "createdAt": "2026-01-01T00:12:00Z"}
+]

@@ -1,224 +1,318 @@
 ---
 name: quickstart
-description: Take a user from any onboarding point to a first measured Artemis result, whether they have no setup, a repository that needs a benchmark, or an existing Artemis project URL or id. Use when the user asks to get started with Artemis, wants to prepare and optimize a repository, pastes a project link, or wants to resume an incomplete first run.
-compatibility: Production Platform 3.0.3 quickstart requires Artemis CLI 1.0.8 and runner 5.2.1; stable CLI 1.0.9 through 1.0.11 and runner 5.3.0 are not compatible with this flow.
+description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and starts the Particle Life example by default for anyone who has not run Artemis before, or stops once the CLI and a runner are ready when the user only wants setup. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
+compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
-  artemis-cli-min: "1.0.8"
-  artemis-cli-tested: "1.0.8"
-  artemis-runner-tested: "5.2.1"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.16"
+  artemis-cli-max: "1.2.0"
+  artemis-platform-min: "3.1.0"
 ---
 
-# Quickstart or resume onboarding
+# Quickstart
 
 ## At a glance
 
-- **Problem:** Finds the user's current onboarding state and completes only the missing work needed for a measured validation and first Discovery.
-- **Must be available:** A repository or existing Artemis project by the time repository setup begins, network access, and the user for credentials, machine approval, or an ambiguous optimisation goal.
-- **Use / don't use:** Use for first-time setup, an import-ready repository, a repository that still needs a harness, or an existing project that has not reached a first measured run. Route an explicit lower-level operation directly to its owning skill.
-- **Next skill:** Delegate each missing stage to `cli-setup`, `repo-prepare-fork`, `repo-command-setup`, `project-import`, `runner-setup`, `execution-log-inspect`, `discovery-start`, or `discovery-inspect`.
+- **Problem:** One skill for the whole first mile: from a pasted prompt to a setup the user has watched, a measured baseline, and a first Discovery run, resuming at whichever step is missing.
+- **Must be available:** A coding assistant with the Artemis skills installed, network access, and a user who can create an API key in the Artemis Web UI. A repository or project by the time repository setup begins.
+- **Use / don't use:** Use for both copyable prompts, for "get started" and "try Artemis", for a returning user setting up a new project, and for any request carrying a project URL or id. Don't use it when the user names a specific lower-level task and its inputs; the `artemis` router sends those to the owning skill.
+- **Next skill:** This skill runs almost nothing itself. It hands each step to `cli-setup`, `project-import`, `runner-setup`, `repo-command-setup`, `discovery-start` and `discovery-inspect`, and in the browser route to `cli-follow-along`. The two commands it owns are `changeset create` and `changeset validate`.
 
 ## Requirements
 
-- The deployment base URL, preferably from a project URL or starter prompt.
-- One of: a local repository, a repository URL and branch, an Artemis project URL, or a bare project UUID.
-- The user present for human-only credential and runner decisions.
-
-Follow along in the terminal and with links. Give a clickable project or Discovery link as soon as its UUID is known. Do not look for a browser-control skill.
+- The deployment base URL, from the prompt, a project URL, or the user.
+- One of: nothing yet, a repository URL and branch, or a project URL or id.
+- The user present at each human-only step (section 9).
 
 ## Operating rule: inspect, resume, delegate
 
-This is an orchestrator, not a second implementation of the downstream skills. Inspect the checkpoints below in order, preserve every verified value, and resume at the first incomplete checkpoint. Never redo a completed import, create a duplicate runner, replace working commands, or launch a second Discovery merely to follow the sequence.
+Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not start a second runner on a machine that has one, replace commands that already produce a number, create a second `artemis/measure` branch, or start another Discovery when one is queued, running, or has already completed for the same request. A project is the user's choice: reuse it when they are continuing that work, and import a fresh one when they want to start afresh (section 4).
 
-Carry this state between skills:
+Carry these between skills so nothing is asked twice: deployment and whether the CLI is authenticated to it; the CLI download directory, when the prompt gave one, for `cli-setup`; repository URL and branch; project id; branch id (`changesetId`) and the commit it holds; script id; runner name and what its machine has installed; validation id; run id.
 
-- deployment base URL and authenticated CLI;
-- repository URL, explicit branch, and branch-tip seed SHA;
-- project UUID and imported `gitHash`, when present;
-- literal compile, test, and benchmark commands;
-- metric name, direction, and measured baseline value;
-- selected runner and its verified toolchain;
-- validation/changeset/process IDs;
-- Discovery ID and links.
+## 0. Look before asking
 
-Ask only about facts that repository and platform inspection cannot answer. Announce what will happen before external writes. Obtain explicit permission before starting a long-lived runner. Never handle a user's API key, token, or password in chat.
+Check silently, and skip later steps that are already done. These checks only read. For a new user, the §2 welcome and the §4 plan come next, in one turn, before anything is installed or handed to another skill, including a setup-only request. A missing CLI or a folder that is not a git repository is an answer, not a failure: end each check with `|| true` so the user's first sight of Artemis is not a red error.
 
-For machine-readable CLI output, keep stdout and stderr separate and parse stdout as one complete JSON document. Progress messages are not JSON. If output is contaminated or parsing fails, run a clean read-only fetch and parse that response; do not regex-extract a JSON-looking substring from mixed output.
+| Check | How |
+|---|---|
+| Assistant host | Claude Code, Cursor, Codex, or GitHub Copilot |
+| Skills up to date | Load `cli-setup` and run its *Check versions* step 1 once, after the host is known and before the other checks, even when the CLI already works, unless the setup prompt says to use the installed skills as they are. The one check that may speak: one line before it runs, and a reload request only if it updated something, or if they were installed this session and are not loaded yet |
+| Browser control | Not checked here. Only when the user asks for the browser, section 3 hands over to `cli-follow-along` section 1 |
+| Operating system | `uname -s`, for `runner-setup`'s platform check |
+| Demo toolchain | Unless the user brought their own code, and when the runner will run on this machine: the check below. The demo builds with CMake 3.20 or newer (`ctest --test-dir`) and a C++ compiler and benchmarks with Python 3. A missing tool is the user's to install before the runner step: name it and the command, such as `brew install cmake` or `sudo apt install cmake g++ python3` |
+| CLI | `artemis --version` meets this skill's `artemis-cli-min` by `cli-setup`'s `cli_meets_min` (*Verify*; a dev build counts from its date) (1.1.16, the highest of the Artemis skills, so neither the later steps here nor a skill the user moves on to, such as `maintain`, stops for an update). Check the ceiling too, `artemis-cli-max` (1.2.0) by `cli-setup`'s *The ceiling*: at or above it, warn in one line and carry on. If it is older or missing, note it: `cli-setup` updates it in section 5, after the welcome and the plan. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds. If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
+| Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*), and that process's binary is at least `runner-setup`'s `artemis-runner-min` (5.3.0); an older one is upgraded by `runner-setup` before step 5 |
+| Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
+| Commands already stored | `artemis project scripts list --project <id>` |
+| The code, locally | `git -C . remote get-url origin` against the project's `gitUrl` |
 
-## 1. Classify the starting point
+The demo toolchain check:
 
-### Existing project
+```bash
+for t in cmake ctest c++ python3; do command -v "$t" >/dev/null || echo "missing: $t"; done
+if command -v cmake >/dev/null; then
+  set -- $(cmake --version); v=$3; major=${v%%.*}; minor=${v#*.}; minor=${minor%%.*}
+  if [ "$major" -lt 3 ] || { [ "$major" -eq 3 ] && [ "$minor" -lt 20 ]; }; then echo "too old: cmake $v, the demo needs 3.20 or newer"; fi
+fi
+if [ "$(uname -s)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then echo "missing: Xcode Command Line Tools (xcode-select --install)"; fi
+```
 
-When the request contains `https://<deployment>/projects/<project-id>`:
+## 1. Where the user is starting from
 
-1. Extract the deployment and project UUID from the URL.
-2. Confirm `artemis status` is authenticated to that deployment.
-3. Find the UUID in `artemis --output-format json project list`.
-4. Record its Git URL, branch, `gitHash`, import status, stored commands, and any queued or running Discovery.
-5. Use `artemis project compare <project-id>` to identify the current imported commit.
+Four starting points, one flow. Work out which from what arrived and what section 0 found, not by asking.
 
-A bare UUID needs a deployment. Infer it from the authenticated CLI when unambiguous; otherwise ask for the project URL. Do not import another project. Continue at repository readiness, runner verification, validation, or Discovery—whichever is first incomplete.
+**A project URL or id.** The prompt behind **Setup with a local agent** on a project's overview page. The URL carries the project id and the deployment. Confirm the CLI is signed in to that deployment before creating anything: signed in elsewhere, the project reads as missing and any branch lands on the wrong deployment. Stay in the terminal unless they ask for the browser, then section 4.
 
-Locate a local checkout whose origin matches the project's Git URL. If none is available, offer to clone the imported branch before assessing its benchmark; runner execution can validate commands, but it is not a substitute for inspecting code when commands or readiness are unknown.
+**An Artemis user with a new project.** The CLI is signed in, a runner is online, and the account already has projects. They know Artemis: skip the welcome and the demo, and stay in the terminal unless they ask. Ask only where the code lives, unless the current directory is it, then section 4.
 
-### Repository but no project
+**A repository but no project.** Treat it like the case above when the CLI is already set up; otherwise like "nothing yet", with their repository in place of the demo.
 
-Inspect the local checkout before asking questions. Record its origin, branch, clean/dirty state, branch-tip SHA, build files, CI, tests, benchmark code, results-file behavior, and README commands. If only a remote URL was supplied, offer to clone it so benchmark readiness can be assessed from code rather than guessed.
+**Nothing yet.** The prompt on the Connect your agent page, or "get started". Sections 2, 3 and 4.
 
-Do not assume the current directory is the repository. Compare its origin with the project or requested Git URL. If they differ, say so and ask which checkout to use.
+The first time you use a word the platform owns, say what it means in one short clause: a branch is Artemis's own copy of the code; a Discovery run is the agent trying versions and measuring each one.
 
-### No repository or project
+## 2. Welcome
 
-Welcome the user in four short lines:
+For a user with nothing yet, as the first part of section 3. Four short lines:
 
 1. Artemis uses AI to try improvements to real code and measures every attempt.
-2. Measurement runs on the user's own machine through a runner.
-3. Setup leads to either a guided example or their own repository.
-4. The first run uses five versions; most elapsed time is waiting for measured results.
+2. The measuring happens on the user's own machine, through a small program called a runner.
+3. Next comes a quick setup, then the Particle Life demo, run from this session with links to each page. Say "my own code", "just set me up" or "show me in the browser" at any time to change that.
+4. Setup takes a few minutes. The demo then runs 5 versions, about 15 minutes, using account credits (the balance is at the bottom of the Web UI's left sidebar).
 
-Recommend Particle Life because it is small, observable, and deliberately optimizable. Ask once whether to use it or the user's repository. Default the guided example to:
+When the request already named their own code or asked for setup only, say that in place of the demo in line 3 ("then your repository, measured on a branch" or "then stop once the CLI and a runner are ready"), and line 4 becomes just "Setup takes a few minutes." For the demo, line 4 is the welcome's only mention of credits.
 
-- repository: `https://github.com/turintech/particle-life`
-- branch: `artemis/ready`
+## 3. Defaults, stated rather than asked
 
-Honor another explicit branch, including `artemis/not-ready`; readiness must be detected, not inferred from the repository name.
+Write the section 2 welcome as reply text, all four lines, then go straight on to section 4 in the same turn. Never skip it for a new user: line 4 is where they learn the demo uses credits. Do not ask before starting: the defaults are the **Particle Life demo** and the **terminal, with links**. Switch whenever the user says so:
 
-After the repository path is chosen, say once that agent-backed operations such as Discovery use account credits and that the balance is in the Web UI header. Say this before the first potentially billed operation, not after one fails. Project import and empty-changeset validation are deterministic setup operations; do not introduce `target add` or another agent-backed detour into them. Do not repeat the notice.
+1. **Their own project:** the "A repository but no project" path in section 1.
+2. **Just set me up:** the CLI, sign-in and a runner, then stop, with no project and no run.
+3. **The browser:** computer use drives Chrome so they watch each page change, and it needs the Claude browser extension.
 
-## 2. Establish deployment and CLI state
+On a switch, rewrite the plan in the task list. A switch into the demo after setup (from **just set me up**, or a yes to the close's suggestion) first sends welcome line 4 (the credits line), then the demo's plan, before any project check. A switch after the demo run has started does not stop it: say it carries on in the platform, then continue with the new choice.
 
-Check silently:
+If they ask for the browser, load the skill and follow `cli-follow-along` section 1 for the connection, and tell it the browser is **optional** and this is a **first-run demo**. If it does not connect after its one request, say so in one line and carry on in the terminal.
 
-- `artemis --version` reports 1.0.8 exactly;
-- `artemis status` is authenticated to the intended deployment;
-- `artemis changeset create --help` succeeds;
-- `artemis discovery create --help` offers `--compile-cmd`, `--test-cmd`, and `--benchmark-cmd`;
-- `artemis changeset validate --help` offers repeatable `--command`, plus `--version`, `--runner`, and `--wait`.
+## 4. Show the plan
 
-Use `cli-setup` for missing installation or authentication. Login and API-key entry are the user's steps; give instructions and wait without asking for the secret.
+Your first action after the welcome is the plan, before any other tool call. Returning users get it once their starting point is clear.
 
-Version ordering is not a compatibility test: stable 1.0.9 through 1.0.11 lack the required changeset commands. If the version is not 1.0.8 or any required command or flag is missing, stop and use `cli-setup`. Do not fall back to `validation run`, install a dev build, or continue because some newer commands happen to exist.
+Put it in the host's task list (Claude Code's task list, Cursor's todos, Codex's plan tool; load the task tools first if they are deferred, as with the browser tools): one item per step, the finished ones already done. It stays on screen and ticks as the session goes. When a step finishes, mark it done and add its link from the "Tell them" columns to the item. Only when the host has no task list, send it as a numbered message instead, and again after setup and after the measurement.
 
-If `discovery create --help` offers `--script` and not `--compile-cmd`, stop. That CLI targets a newer platform than this production flow. Do not pass `--script`, `--source-changeset`, `--eval-mode`, `--eval-runs`, `--llm-metrics`, or `--setup-cmd`.
+Only the steps this user needs; say which are theirs and roughly how long the long ones take. At the close (section 11), send it as a numbered message, one step per line, each ticked line with its link. For a brand-new user on the demo default:
 
-## 3. Make the repository Discovery-ready
+```text
+Here's the plan:
+1. ✓ Artemis skills, already installed
+2. ○ Install the Artemis CLI
+3. ○ Sign in: you'll create an API key
+4. ○ Connect to GitHub: one click on the Git page, about a minute
+5. ○ Start a runner on this machine
+6. ○ Import Particle Life
+7. ○ Measure it on a branch, about a minute
+8. ○ Start a Discovery run, about 15 minutes
+```
 
-Use `repo-command-setup` to inspect, derive, author when needed, and verify the repository-owned compile, test, and benchmark contract. The repository is ready only when:
+At the close each ticked line ends with its link, for example `6. ✓ Particle Life imported: <project link>`. Leave out step 4 when `artemis --output-format json key list` already shows a key whose `provider` starts with `github_` (`github_oauth_token`, `github_app`, `github_pat`), or when the user continues an existing Particle Life project. Number the remaining steps in order.
 
-- compile catches invalid generated code;
-- tests protect the behavior being optimized;
-- the benchmark is headless and repeatable;
-- it removes stale results and writes fresh numeric `artemis_results.json` or `.csv` at the repository root;
-- the metric and direction match the optimization goal.
+Then the starting point decides what comes before section 7:
 
-Read the repository first. Ask once what “better” means only when the code and documentation do not answer it. If there is no meaningful, correctness-gated measurement, say so and stop rather than inventing one.
+- **The demo:** `project-import` imports `https://github.com/turintech/particle-life`, branch `main`, named `Particle Life`, then section 7 with 7a's inputs. Before importing, check for an existing project with that `gitUrl`. If there is one, ask one question, naming the newest such project, when it was created, and how many there are:
+  - **Start fresh (recommended):** `project-import` imports a new project, and a new Discovery run starts in section 7's step 7, about 15 minutes, using credits.
+  - **Continue with it:** pass its id to `project-import`. If it has a completed run, show that result with the date it ran, then offer to steer it (`discovery-steer`) or start a fresh run from its branch (it uses account credits).
+- **Their own code:** where it lives (repository URL and branch, and can Artemis reach it). `project-import` imports it as a new project, then 7b and section 7. If projects for it already exist and the user hasn't said to continue one, don't ask: import fresh and say in one line which one exists, for example "Importing a new project; `<name>` from `<date>` already exists, say 'continue' to use it instead." If they say so before section 7's step 2, switch to that project's id and tell them the new, still-empty project can be archived. A project this session created, or one named in a section 11 report being resumed, counts as continuing: use it without importing again.
+- **A project URL:** 7b, then section 7.
+- **Just set me up:** the plan is steps 1, 2, 3 and 5 only (skills, CLI, sign-in, runner). Do section 5's CLI and runner items, skip Git access and the project, then go straight to section 11.
 
-When a harness or correctness test must be added, `repo-command-setup` owns the edit and clean-checkout verification. The committed code must be on a remote Artemis can read. If the user cannot push to that remote, use `repo-prepare-fork` after obtaining explicit permission. Import or pull the verified commit before runner validation.
+## 5. Setup
 
-### Particle Life preset
+Hand each missing item to its skill. When a step is the user's, say so and show what they must do (the owning skill's boxes or link) in the same reply, then wait. Never end a turn on "the next message has the steps".
 
-Recognize Particle Life from its Git URL or repository content, but inspect the selected commit before applying the preset.
+| Item | Skill | Human part | Tell them (section 8) |
+|---|---|---|---|
+| CLI installed and signed in | `cli-setup` | Creates an API key and enters it in their own terminal | |
+| Git access | `project-import`, its section 3 only: keep the key UUID; the import itself waits for the plan's Import step | For the demo: clicks **Connect to GitHub** on the Git page if there is no `github_*` key (the CLI needs one even for the public demo). Own code: connects a key for the repository's git service if none can read it | `<deployment-base-url>/settings/git`; they say "done" when the GitHub section shows **Connected**, or when the access key is saved if the page has no Connect button |
+| Runner on this machine | `runner-setup` | Nothing: the agent downloads it and starts it with the CLI's API key | Its name, online. Once the project exists: `<deployment-base-url>/settings/project/execution?projectId=<project-id>` (**Runner and Scripts**; older deployments: `/projects/<project-id>/settings/execution`) |
+| Project imported or reused | `project-import` | Nothing | `<deployment-base-url>/projects/<project-id>`: the project's overview page |
 
-| Item | Preset |
+Whichever runner `runner-setup` reuses or starts is the one every later step uses; pass it on rather than asking.
+
+## 6. Rules for this flow
+
+- **Never ask the user to choose run settings.** Not the model, the version budget, the number of Benchmark runs, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
+- **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch.
+- **The user's credentials are theirs.** `cli-setup` owns the login step. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
+- **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
+
+## 7. The seven steps
+
+What the Web UI's setup flow does by hand: an Artemis branch, commands that produce a number, a machine, a measured run, and a Discovery started from that branch. The demo and a user's own project both follow it. Each owning skill has the commands; this section says what to pass it.
+
+| Step | Owner | What happens | For the demo | Tell them (section 8) |
+|---|---|---|---|---|
+| 1. CLI signed in | `cli-setup` | Already done in section 5 | Same | |
+| 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
+| 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | Section 0's demo toolchain check instead | |
+| 4. Commands that produce a number | `repo-command-setup` | Pass it the branch and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
+| 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (below), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
+| 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
+| 7. Discovery from that branch | `discovery-start` | Pass the branch, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Versions** and the winning version |
+
+A step is not finished until its "Tell them" line has been said.
+
+**Step 2.** Reuse the newest branch named `artemis/measure` (`changeset list --project <id> --all`) unless the project's code has moved on since (its `baseVersionSha` differs from the project's `gitHash`). Otherwise:
+
+```bash
+artemis --output-format json changeset create --project "<project-id>" --name "artemis/measure"
+```
+
+Capture its id. Read the commit it holds with `artemis changeset versions <changeset-id> --project <id>` and report that one, not the project's `gitHash`.
+
+**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a branch's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` and keep its id, then wait. Run both blocks as written, filling in only the `<...>` values; never filter the skill file to rebuild them, and never retype the loop. A validation ends `success`, `failed` or `cancelled`; a Discovery run ends `completed`, so a loop that waits for `completed` here never stops.
+
+```bash
+out=$(artemis --output-format json changeset validate "<changeset-id>" --project "<project-id>" \
+  --version original --script "<script-id>" --runner "<runner-name>") \
+  && printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
+```
+
+```bash
+for i in $(seq 16); do
+  out=$(artemis --output-format json changeset validation get "<validation-id>" \
+        --project "<project-id>") || { echo "validation get failed"; break; }
+  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status") or "")')
+  case "$s" in success|failed|cancelled) break ;; esac
+  sleep 30
+done; echo "$s"
+```
+
+Between the two, post the start block as reply text, with no other text around it: what started, and where to watch it. Every start in this flow gets one, and the Discovery run's comes from `discovery-start`. The format is `artemis`'s *Start block*, which this flow does not load:
+
+```text
+Artemis · Validation started
+Project   <project name>
+Version   original
+Script    <script name>
+Runner    <runner name>
+Open      <deployment-base-url>/projects/<project-id>/branches/<changeset-id>/validations
+```
+
+Then say what Artemis is doing, and say it again after each loop that ends unfinished. This is `artemis`'s *Waiting out loud*, carried here because this flow does not load that skill; it applies to every wait in this flow, including those `discovery-start` and `discovery-inspect` run for the demo:
+
+1. **Before the wait:** `Artemis is <doing X> on <runner>; this usually takes about <N> min. Follow it at <link>.` For this step: building, testing and benchmarking Particle Life on the runner, about a minute, at the start block's `Open` link. While the status is `created`, the runner has not picked it up yet; say so.
+2. **After a loop that ends unfinished:** `Artemis is still <doing X>, <M> min in: <status>, <count>. I'll check for up to 8 more minutes.`
+
+Take the expected time only from a measurement (the table's "About a minute" for the demo, `repo-command-setup` §5a's phases, or an earlier run in this session); with none, give the check limit instead. Never go quiet, and never paste a raw status line on its own.
+
+The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
+
+**Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
+
+**Step 7.** If a run is queued or running, give its link and hand over to `discovery-inspect`. If one has completed and the user asked for a first run, that request is met: give its result with the link and the date it ran, never as this session's result, and offer to steer it (`discovery-steer`), start a fresh run (it uses account credits), or set up their own project. Otherwise hand these to `discovery-start`:
+
+- `--source-changeset` from step 2, so the run starts from the code and numbers the user just saw
+- 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
+- model: the deployment's high-effort preset, found as `discovery-start` recommends (the model `artemis model list` marks `high`; with none, the model in the **High Effort** group of `artemis model groups`). Name it in one line. Catalogues differ per deployment, so no skill names a model
+- `--target-files` only when the repository made them obvious
+- for the demo, that these settings are fixed, so `discovery-start` does not ask. On the user's own code, pass nothing here: `discovery-start` agrees the model and version count with the user
+
+Then follow the run with `discovery-inspect`.
+
+## 7a. The demo's fixed inputs
+
+The demo is the default the user kept; that was the decision. Go through section 7 in one pass with:
+
+- compile: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel`
+- test: `ctest --test-dir build --output-on-failure`
+- benchmark: `python3 tools/benchmark.py --no-visualize`
+- target files: `src/simulation.cpp`, `src/simulation.hpp`
+- task: `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests. The tests compare floating-point results exactly, so keep the order in which forces are added.`
+
+`repo-command-setup` skips its own verification for the demo, so it does not create the script; create it here, after step 3 and before step 5, unless `project scripts list --project <project-id>` already has one with these commands (a resumed session):
+
+```bash
+artemis --output-format json project scripts create --project "<project-id>" --name "Particle Life benchmark" \
+  --setup-cmd "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel" \
+  --setup-cmd "ctest --test-dir build --output-on-failure" \
+  --benchmark-cmd "python3 tools/benchmark.py --no-visualize" --measure none
+```
+
+Capture the script's `id`: step 5 runs it with `--script` and step 7 passes it to `discovery-start`. `--measure none` because the benchmark writes `simulation_fps` itself.
+
+The model is pinned because the win this demo shows, a spatial grid replacing the all-pairs loop, depends on it. AI Metrics are off (`--llm-metrics=false`) so only the measured `simulation_fps` is on show.
+
+Do not check the credit balance or ask whether the account has credits: new accounts have them. A 402 `INSUFFICIENT_BALANCE` from the gateway is the account's credit, not a platform fault; say so and point to the balance at the bottom of the Web UI's left sidebar. `ERR_LLM_PROVIDER_INSUFFICIENT_BALANCE` is the opposite: the model provider's account behind Artemis, so never ask the user to pay; an admin checks the provider's billing, or contact support.
+
+End on the code, not a number: the run's **Versions** tab (Table, or Graphs on `simulation_fps`) to show which version won and by how much, then that version's **code change**. Say that `simulation_fps` was measured on their runner, and that the Composite score beside it is a roll-up of the metrics by importance, not a measurement.
+
+## 7b. Before section 7 on their own code
+
+**Which code.** Skip this when the project already has a script whose measured run produces metrics. Otherwise, if the current directory's origin does not match the project's `gitUrl`, say so and ask which checkout to use, or offer to clone it: writing a benchmark without the code is slower.
+
+**What "better" means.** Read the repository first (build files, CI, tests, scripts, README), then ask once only what the code cannot tell you: what "better" means, which command shows it, and roughly how long it takes. If nothing worth measuring exists, say so and stop; that is a useful result.
+
+## 8. Where to look
+
+The user should always know where the thing that just happened is. The "Tell them" columns in sections 5 and 7 say when and where; say it in one or two plain sentences: what happened, the link, and what they will see there.
+
+For example: "Your project is in Artemis: [Open project](<link>). You'll see the Particle Life overview; nothing has run yet." Link the page directly where you can (a run is `<deployment-base-url>/projects/<project-uuid>/discover/<run-id>`), and the project link if that one returns not found. In the browser route the page is already open: say what to look at, and follow `cli-follow-along`'s *Arrive before the change* table.
+
+## 9. Human-only steps
+
+| Step | Agent's job |
 |---|---|
-| Compile | `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel` |
-| Test | `ctest --test-dir build --output-on-failure` |
-| Benchmark | `python3 tools/benchmark.py --no-visualize` |
-| Metric | `simulation_fps`, higher is better |
-| Target files | `src/simulation.cpp`, `src/simulation.hpp` |
-| Task | `Maximize simulation_fps without changing simulation behavior or weakening the correctness tests.` |
+| Sign in and create an API key | `cli-setup` owns the order and the boxes. Say the step is theirs, show the boxes in the same reply, and wait |
+| Connect to GitHub (demo) or a Git provider | Give the `<deployment-base-url>/settings/git` link and wait for "done" |
 
-If `tools/benchmark.py` exists, inspect it and verify that the benchmark creates a fresh numeric `simulation_fps`; its path alone is not proof.
+## 10. When it cannot continue
 
-If it is absent—as on `artemis/not-ready`—do not run Discovery and do not pretend the preset command works. Use `repo-command-setup`'s harness workflow to wrap the existing headless timed binary, add `tools/benchmark.py`, verify it, push it, then import or pull that commit. Resume here afterward.
-
-### Other repositories
-
-Do not copy Particle Life's language, toolchain, metric, task, or target files into another repository. Derive them from that repository through `repo-command-setup`. For example, a Gradle project may need JDK 17 while an interpreted Python project may use syntax compilation without a C++ compiler.
-
-## 4. Import or verify the project
-
-If no project exists, use `project-import` with the exact remote, explicit branch, verified seed SHA, and suitable Git credential. When `importedStatus` is present, wait for `success` and stop on `failed`; when production omits it, use that skill's Git URL, branch, seed `gitHash`, and project inspection checks. Record the UUID and verify the imported `gitHash` matches the seed.
-
-If a project already exists, do not re-import it. If repository code was changed to add or repair the harness, push the change, run `artemis project compare`, then `artemis project pull`. Wait until the project's `gitHash` matches the verified commit. A pre-pull changeset remains pinned to the old code; create a new one for validation.
-
-Give `[Open project](<base-url>/projects/<project-id>)` as soon as the UUID is known.
-
-## 5. Select and verify the runner
-
-Read repository requirements before judging runner suitability. `artemis runner list` showing “online” proves connectivity, not that the machine can build this project.
-
-Production Platform 3.0.3 quickstart uses runner 5.2.1 exactly. Verify the local binary or the runner's reported version before starting or reusing it. Do not run its self-updater or accept the 5.3.0 upgrade prompt; 5.3.0 rejects this flow's ad-hoc validation payload before commands run. Match the intended runner by name and online state rather than relying on fleet totals that may include stale registrations.
-
-Reuse an already confirmed 5.2.1-compatible runner. If several are plausible, ask which to use. If none exists, use `runner-setup`; explain that it is a long-lived process executing repository code on the user's machine and obtain permission before starting it.
-
-Probe the selected runner for the repository's actual toolchain through a short validation. Name missing tools and the machine; do not rewrite correct repository commands to avoid a missing dependency.
-
-## 6. Prove the measurement on the platform
-
-Use `repo-command-setup` to create a fresh empty changeset over the project's current imported commit and run the exact compile, test, and benchmark commands through `changeset validate --version original` on the selected runner. If that command surface is unavailable, return to `cli-setup`; `validation run` is not an equivalent fallback.
-
-Every command must exit zero. Then use `execution-log-inspect` with the validation process `status.id` to confirm a fresh `artemis_results.json` or `.csv` and report the numeric metric in its own units. `changeset validation get` reports process resources and exit codes, not benchmark metrics.
-
-If the metric is missing or stale, return to `repo-command-setup` and validate again. Never start Discovery merely because the benchmark command exited zero.
-
-Store the verified commands with `artemis project commands set` when available so Web UI settings agree. Discovery does not consume those defaults; pass the same literal commands inline.
-
-## 7. Start or resume the first Discovery
-
-First inspect existing project runs. If a matching Discovery is queued, running, awaiting approval, or already completed, give its link and use `discovery-inspect`; do not create another.
-
-For a new onboarding run, supply these decisions rather than asking a new user:
-
-- versions: `5`;
-- task, metric, direction, and optional target files from repository readiness, passed inline to `discovery create` when its detected help supports them;
-- the same compile, test, and benchmark strings verified above;
-- model: inspect `artemis discovery create --help` and `artemis model list`. If this production command requires `--model`, prefer `gpt-5.6-sol`, otherwise another available preset named to the user. If the command supports a platform default, follow `discovery-start` unless the user requested a model.
-
-Do not call `artemis target add` during quickstart. It is agent-backed on this production surface, is not needed for original-code validation, and may consume credits before Discovery.
-
-Use `discovery-start`, pass the selected runner, and give `[Open Discovery](<base-url>/projects/<project-id>/discovery/<run-id>)` immediately. Wait for the baseline and at least one explored version as that skill requires, then hand off interpretation to `discovery-inspect`.
-
-Say once while the run is active:
-
-1. **Code in.** The project is pinned at the verified imported commit; the runner checks out that commit, not the user's working tree.
-2. **Run.** Compile, test, and benchmark execute on the runner in that order; the benchmark writes the metric file.
-3. **Code out.** Candidates are changesets. `discovery-inspect` reads their diffs, while remote repository updates enter through `project compare` and `project pull`.
-
-## 8. Close or pause cleanly
-
-Report:
-
-- authenticated deployment;
-- repository, branch, and imported commit;
-- project and Discovery links;
-- runner and verified toolchain;
-- exact commands;
-- validation metric and Discovery baseline/best metric when available;
-- winning diff or current run status.
-
-The run continues on the platform if the terminal closes. The runner is still running; give its stop command and say it may stay online for later work. If the user pauses earlier, report completed checkpoints and identifiers so this skill can resume from the first missing one.
-
-## Failure routing
-
-| Situation | Action |
+| Situation | Do |
 |---|---|
-| CLI missing, unauthenticated, or incompatible | `cli-setup`, then return to deployment state |
-| No meaningful benchmark or correctness gate | `repo-command-setup`; stop until the repository is ready |
-| Repository edits cannot be pushed | `repo-prepare-fork`, after explicit permission |
-| Import pending or failed | `project-import`; do not create validation yet |
-| Runner offline or missing | `runner-setup`, then re-check platform status |
-| Runner lacks the required toolchain | Name the missing dependency and machine; let the user install it or choose another runner |
-| Validation fails or emits no metrics | `execution-log-inspect`, then `repo-command-setup`; do not launch Discovery |
-| Discovery fails before baseline | `discovery-inspect`, checking Git access and runner status first |
+| The run fails before any version exists, with a model error in its narration (`Invalid request`, `ERR_LLM_GATEWAY`, `UnsupportedParamsError`, `tool_choice`) | Say which model failed and start one fresh run from the same branch with a model from the top tier in `artemis model groups` (or section 7's step 7 model if another was used), naming the new model in the same message. Once only, and never for a build, test or benchmark failure |
+| The project URL's deployment is not the one the CLI is signed in to | Say both, and settle it before creating anything |
+| No runner can run here, or the user does not want one | Say that nothing can be measured without a machine, and stop |
+| The user has no GitHub account, or will not connect one | Say the CLI needs a Git key even for the public demo; offer **just set me up** or their own project instead, and stop the demo |
+| The runner lacks the toolchain | Name the tool and the machine; installing it is the user's call |
+| Nothing worth measuring | Say so and stop |
+| A run fails within seconds with no baseline | `discovery-inspect` |
+| The user wants to stop | Give the section 11 report, with ids, so this skill can resume |
 
-## Completion checklist
+Anything else goes to the owning skill: `cli-setup`, `runner-setup`, `repo-command-setup`, `discovery-start` or `discovery-inspect`.
 
-- [ ] Starting state classified from inspected facts
-- [ ] CLI authenticated to the project or requested deployment
-- [ ] Repository goal, correctness gate, commands, metric, and direction verified
-- [ ] Project UUID and imported seed commit verified
-- [ ] Selected runner confirmed online and compatible
-- [ ] Exact commands passed on the runner and fresh numeric metrics found in the task log
-- [ ] Existing Discovery reused or a five-version run started with the verified commands
-- [ ] User received measured values, links, persistence explanation, and runner stop command
+## 11. Close
+
+Show the plan again with everything ticked, then a short readiness report, whether the session finished or stopped early. Every line comes from a check you ran:
+
+- **Agent and skills:** the host, and that the Artemis skills are installed.
+- **CLI:** version, deployment, the account when the CLI shows it, and whether it was already there, updated or new.
+- **Runner:** name and machine, and whether it was reused, started, or skipped and why.
+- **Work:** the project, the branch, the baseline with its numbers, and the Discovery run with a link. For the demo, the baseline and best measured values.
+- **Still yours to do:** anything left for the user, or "nothing".
+
+Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.
+
+Show the ticked plan and the readiness report first, as their own block; then, in the same turn, ask the next step with the host's question tool, one option per suggestion above, never as a bulleted list or a sentence a bare "yes" could answer. Only a host with no question tool gets one plain question naming the options. Any other offer, such as adding the CLI to a shell startup file, goes in its own paragraph, naming the file and the lines it would add. When an answer still fits more than one offer ("both", "yes"), ask which, and do each one separately. Choosing the demo here is a §3 switch: the credits line, then the plan.
+
+When they later make a change of their own, `change-validate` checks whether it is really faster.
+
+Say once, while the run is going, that it continues on the platform if the terminal is closed; and at the end, that the runner is still running, with its stop command.
+
+## Checklist
+
+- [ ] State checked first, and the starting point taken from what arrived
+- [ ] New users: welcome with the stated defaults and no question before setup; returning users: only where the code lives
+- [ ] A switch to own code, setup only or the browser honoured whenever the user asks
+- [ ] The plan in the host's task list before any other tool call, each item ticked with its link, and a numbered list at the close
+- [ ] Demo: an existing Particle Life project found before importing, and the user asked fresh or continue
+- [ ] Demo: a `github_*` key found, or GitHub connected, before the import
+- [ ] Own code: an existing project for the repository named in one line, without a question, before importing fresh
+- [ ] Just set me up: stopped after the runner, with no project imported and no run started
+- [ ] Each step handed to its owning skill, with the ids and settings it needs
+- [ ] Branch id captured, commands run on it, metric values seen in the logs
+- [ ] Each wait said out loud: what Artemis is doing, how long, the link, and an update after each unfinished loop
+- [ ] An `Artemis · Validation started` block before the wait, and `discovery-start`'s `Artemis · Discovery started` block after the run was created
+- [ ] A link and what they will see each time something appeared in Artemis
+- [ ] Discovery started from the branch, with settings fixed rather than asked
+- [ ] Ticked plan and readiness report sent before the next-step question, each line from a check that ran
+- [ ] Next step asked with the host's question tool, including after just set me up, not as a list in text

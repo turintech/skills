@@ -1,116 +1,305 @@
 ---
 name: cli-setup
-description: Install, update, and authenticate the supported artemis CLI through the official installer. Use when an end user needs to set up or update the artemis CLI.
-compatibility: Production Platform 3.0.3 onboarding requires the Artemis CLI 1.0.8 command surface; stable CLI 1.0.9 through 1.0.11 are not compatible.
+description: Install, update, and authenticate the Artemis CLI by direct download from the Artemis file server, then log in with an API key the user creates. Use when the CLI is missing, older than the skills' minimum, or not signed in to the target deployment, and once per session to check that the Artemis skills and CLI are current.
+compatibility: Requires Artemis CLI 1.1.8+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.0.8"
-  artemis-cli-tested: "1.0.8"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.8"
+  artemis-cli-max: "1.2.0"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Set up the artemis CLI
 
 ## At a glance
 
-- **Problem:** Installs, updates, and authenticates the Artemis CLI through the supported installer without requiring GitHub or source access.
+- **Problem:** Installs, updates, and authenticates the Artemis CLI from the public file server, with no GitHub or source access needed.
 - **Must be available:** Network access to the file server and Artemis deployment, plus an API key created in the Web UI and entered by the user in their own terminal.
-- **Use / don't use:** Use when the CLI is missing, outdated, or unauthenticated; skip it when a working authenticated CLI is already available.
-- **Next skill:** Return to `artemis` routing, usually toward `runner-setup`, `project-import`, or `repo-command-setup`.
+- **Use / don't use:** Use when the CLI is missing, outdated, or unauthenticated, and once per session for *Check versions*; when a working authenticated CLI is already available, run *Check versions* and skip the rest.
+- **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
 Use the supported distribution. This path requires no GitHub account and does not assume access to the CLI source repository.
-
-For production Platform 3.0.3, install CLI **1.0.8 exactly**. Do not infer compatibility from semver: the required `changeset create` and `changeset validate` surface exists in 1.0.8 but is absent from stable 1.0.9 through 1.0.11. Do not substitute `latest`, `--nightly`, or `--dev`.
 
 ## Requirements
 
 - Network access to `files.artemis.turintech.ai` and the deployment's base URL.
-- An API key for the target deployment — created by the user in the Web UI (`https://artemis.turintech.ai/settings/api-keys` for hosted, the same path on an on-prem deployment's base URL). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
+- An API key for the target deployment, created by the user in the Web UI (`<deployment-base-url>/settings/api-keys`). The agent cannot create one, and it must be entered by the user in their own terminal, never in chat.
 
-## Install with the official installer
+## Check versions
 
-1. Open https://artemis.turintech.ai/settings/cli. The Web UI is the source of truth; if the download, credentials, flags, or artifact below differ or fail, use the command currently published there.
-2. Confirm whether this is hosted Artemis or an on-prem deployment with a custom base URL — it selects which invocation below to use.
+The skills, the CLI and the platform are released separately, so a returning user can have any mix of them. Check once per session, before the first task, even when the CLI already works.
 
-The installer detects the platform, installs the CLI, and configures service endpoints. The commands below are the direct supported route and avoid unnecessary navigation when they still match the published setup flow.
+**1. The skills.** If the skills were installed earlier in this session, skip the update and do only *Asking for a reload*'s install check, below. Skip this step entirely if this session has already run an Artemis command that changes something (import, branch, validation, Discovery), or if the setup prompt says to use the installed skills as they are. Otherwise tell the user in one line ("Checking for Artemis skills updates.") and update only the Artemis skills:
 
-For hosted (SaaS) Artemis:
+- **Claude Code:** run `claude plugin marketplace update skills`, then `claude plugin update artemis@skills --json`. An `outcome` of `up_to_date` means current and `updated` means the skills changed; any other outcome means the check could not run (below).
+- **Cursor, Codex, GitHub Copilot:** run `npx skills list -g`. If it lists the Artemis skills (the setup prompt installs them with `npx skills add --global`), run `npx skills update -g -y <names>`, naming only those, because with no names it updates every skill on the machine. "All global skills are up to date" means current; "Updated N skill(s)" means they changed. If it does not list them, they came from the host's own installer (`agent plugin marketplace add`, `codex plugin marketplace add` or `gh skill install`, usually pinned to a release) or were copied into the host's skills directory: run nothing, and tell the user in one line to update them the way they installed them.
 
-```bash
-(
-  set -e
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fL \
-    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
-    -o "$TMP/installer.sh"
-  chmod +x "$TMP/installer.sh"
-  if ! "$TMP/installer.sh" --version 1.0.8; then
-    # Some installer revisions return non-zero after placing the binary but
-    # before authentication has been configured. Verify the payload itself.
-    export PATH="$HOME/.local/bin:$PATH"
-    artemis --version 2>/dev/null | grep -q '1\.0\.8' || exit 1
-  fi
-)
+Then:
+
+- **Nothing changed:** say nothing more and carry on.
+- **Something changed:** the copy already read is the old one, so ask the user once to reload (*Asking for a reload*, below), wait, then invoke the skill you were following again. Other hosts: usually a new chat, where they paste their request again. Do not repeat this step in the same chat; in a new chat it reports current.
+- **The check could not run:** if a command fails, Claude Code finds no Artemis plugin, or this skill was not loaded from the installed plugin (in Claude Code its base directory is not under the plugins directory, `~/.claude/plugins/` by default, as with `--plugin-dir`), install nothing, say in one line that the skills could not be checked, and continue.
+
+**Asking for a reload.** After an install, first check whether the Artemis skills are already usable in this session: if `artemis:quickstart` is among your available skills, or the Skill tool loads it, carry on without asking. After an update, or when they are not usable, show the request in the same reply as its own group, the two numbered boxes, each fence exactly as shown and no text between them (Claude Code shown):
+
+````text
+```
+┌──────────────────────────────────────────────────────────┐
+│  1  TYPE THIS HERE IN THIS CHAT                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-For on-prem Artemis, add the deployment's base URL:
-
-```bash
-(
-  set -e
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fL \
-    "https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-installer.sh" \
-    -o "$TMP/installer.sh"
-  chmod +x "$TMP/installer.sh"
-  if ! "$TMP/installer.sh" --version 1.0.8 \
-      --base-url https://your-custom.artemis.turintech.ai; then
-    export PATH="$HOME/.local/bin:$PATH"
-    artemis --version 2>/dev/null | grep -q '1\.0\.8' || exit 1
-  fi
-)
+```
+/reload-plugins
 ```
 
-The `latest/` path above fetches the current **installer script**, not the CLI payload. `--version 1.0.8` pins the payload. The deployment remains a separate choice: hosted production is the default, while on-prem uses `--base-url`.
+```
+┌──────────────────────────────────────────────────────────┐
+│  2  THEN SAY "DONE"                                      │
+└──────────────────────────────────────────────────────────┘
+```
+````
 
-The download credentials above are the published shared ones from the Web UI and the docs, not per-user secrets, so they can be used directly. Any *API key* is still a secret and must never enter the conversation.
+If it warns about the cache, `/reload-plugins --force`, or restart Claude Code. If the user pastes a shell command or other text meant for step 1 instead, answer in one line that points back to step 1 and wait; don't explain the reload again.
 
-Do not guess installer flags or switch channels. If the installer no longer accepts `--version 1.0.8`, stop and report that the production-compatible CLI cannot be installed through the published route.
+**2. The CLI.** It must meet the skills' minimum and should be below their ceiling: see *Verify*, and *Update* if it is older.
+
+**3. The platform.** Skills declare `metadata.artemis-platform-min`, but the CLI cannot report the platform's version, so do not guess it. If a command that `--help` lists fails with an unknown route, or with a 404 for an id you have just seen in a list on this deployment, say the deployment may be older than these skills need or the id may not be visible to this login, rather than retrying.
+
+## Check what is already there
+
+Before installing anything, look at the CLI that is already on this machine:
+
+```bash
+artemis --version
+artemis status
+artemis runner list
+```
+
+`status` exits 3 when the deployment rejects the key, and `runner list` succeeding proves it; a `401` there means log in again. If the version meets the skills' minimum (see *Verify*), `status` names the target deployment and `runner list` succeeds, there is nothing to install or log in. If it is installed but older, this is an update, not a fresh install. If it is authenticated to a different deployment, say which one and ask before logging it in elsewhere: the user may still be using that login.
+
+## Install the CLI
+
+Start here when there is no CLI, or it needs replacing. The deployment's **Connect Your Agent** page at `<deployment-base-url>/settings/connect-agent` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
+
+Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always check a downloaded build's version before it replaces anything, and fall back to the newest versioned release below the skills' `artemis-cli-max` when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
+
+### Where to download from
+
+**If the setup prompt or the user gave a CLI download directory, start there.** It is the deployment's own choice of build, and it holds the binaries directly under the names below, with a `checksums.txt`. Check what it serves before it replaces anything: this downloads into a temporary directory, checks the checksum and the version there, and installs only a build that passes both:
+
+```bash
+cli_meets_min() {  # $1: an `artemis --version` line, $2: the minimum release. Prints ok, old or unknown.
+  d="$(printf '%s' "$1" | grep -oE 'dev-[0-9]{8}' | cut -c5-)"
+  if [ -n "$d" ]; then   # a dev build counts from its date: on or after the day the minimum was published
+    r="$(curl -fsSI "https://files.artemis.turintech.ai/public/artemis-cli/$2/checksums.txt" | awk \
+      'tolower($1)=="last-modified:" {m=index("JanFebMarAprMayJunJulAugSepOctNovDec",$4); printf "%s%02d%s", $5, (m+2)/3, $3}')"
+    if [ -z "$r" ]; then echo unknown; elif [ "$d" -ge "$r" ]; then echo ok; else echo old; fi
+  else
+    v="$(printf '%s' "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    if [ -n "$v" ] && [ "$(printf '%s\n' "$2" "$v" | sort -V | head -1)" = "$2" ]; then echo ok; else echo old; fi
+  fi
+}
+DIR="<the CLI download directory from the prompt>"
+PLATFORM="linux-amd64"   # see the table below
+MIN="1.1.16"             # the highest artemis-cli-min of the skills in use
+TMP="$(mktemp -d)"; F="$TMP/artemis-cli-$PLATFORM"
+if ! curl -fsSL "$DIR/artemis-cli-$PLATFORM" -o "$F"; then
+  echo "NO BUILD: $DIR has no artemis-cli-$PLATFORM"
+elif ! ( cd "$TMP" && curl -fsSLO "$DIR/checksums.txt" \
+     && grep " artemis-cli-$PLATFORM\$" checksums.txt > sum.txt && [ -s sum.txt ] \
+     && { sha256sum -c sum.txt 2>/dev/null || shasum -a 256 -c sum.txt; } ); then
+  echo "INSTALL FAILED: checksum"
+elif ! V="$(chmod +x "$F" && "$F" --version)"; then
+  echo "WON'T RUN: the downloaded build did not start"
+elif R="$(cli_meets_min "$V" "$MIN")"; [ "$R" = old ]; then
+  echo "TOO OLD: the directory's build reports \"$V\", below $MIN"
+elif [ "$R" = unknown ]; then
+  echo "DEV UNCHECKED: \"$V\" is a dev build, and the $MIN release date could not be read"
+elif [ "$R" != ok ]; then
+  echo "CHECK FAILED: cli_meets_min did not run; paste the whole block"
+else
+  { mkdir -p ~/.local/bin && install -m 755 "$F" ~/.local/bin/artemis && ~/.local/bin/artemis --version; } \
+    || echo "INSTALL FAILED: could not write ~/.local/bin/artemis"
+fi
+rm -rf "$TMP"
+```
+
+Nothing is replaced unless the last branch runs. `cli_meets_min` is the version rule (see *Verify*): a development build (`dev-<date>-<time>-<sha>`) meets a minimum only if it was built on or after the day that release was published. `DEV UNCHECKED` means that date could not be read: say so, and install it only on the user's yes. Never replace a dev build with a release: when the directory serves dev builds (a dev deployment), a release is no fallback, so on `NO BUILD` there stop and say which build is missing. Otherwise, on `TOO OLD` or `NO BUILD`, install the newest release below the skills' `artemis-cli-max` from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
+
+The public download paths need no login, so send no credentials.
+
+**Match the build to this machine.** Read `uname -s` and `uname -m` (on Windows, the processor architecture), and pick the file:
+
+| Machine | File |
+|---|---|
+| Linux, `x86_64` | `artemis-cli-linux-amd64` |
+| Linux, `aarch64` or `arm64` | `artemis-cli-linux-arm64` |
+| macOS, Apple silicon (`arm64`) | `artemis-cli-darwin-arm64` |
+| macOS, Intel (`x86_64`) | `artemis-cli-darwin-amd64` |
+| Windows, x64 | `artemis-cli-windows-amd64.exe` |
+| Windows, ARM64 | `artemis-cli-windows-arm64.exe` |
+
+If the directory has no file for this machine, never install a different architecture's build in its place: it either fails to start or runs under emulation and misbehaves later. Try the newest versioned release below the skills' `artemis-cli-max` (the listing below), which carries all six, and if that has none either, tell the user no build exists for this machine and stop. Channels can differ in which builds they carry, so read the listing rather than assuming.
+
+Without a directory from the prompt, install from the public path, which carries current releases. Check the listing first and take the newest below the skills' `artemis-cli-max` (1.2.0, exclusive; *Verify*), rather than trusting a version named here:
+
+```bash
+curl -s "https://files.artemis.turintech.ai/public/artemis-cli/" \
+  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV \
+  | while read -r v; do if [ "$v" != 1.2.0 ] && [ "$(printf '%s\n' "$v" 1.2.0 | sort -V | head -1)" = "$v" ]; then echo "$v"; fi; done | tail -5
+```
+
+Then fetch that version for the platform, check it against the release's `checksums.txt`, and only then put it on `PATH`:
+
+```bash
+VER=<the newest version the listing above printed>
+PLATFORM="linux-amd64"   # from the table above
+BASE="https://files.artemis.turintech.ai/public/artemis-cli/$VER"
+TMP="$(mktemp -d)"
+( cd "$TMP" \
+  && curl -fLO "$BASE/artemis-cli-$PLATFORM" && curl -fLO "$BASE/checksums.txt" \
+  && grep " artemis-cli-$PLATFORM\$" checksums.txt > sum.txt && [ -s sum.txt ] \
+  && { sha256sum -c sum.txt 2>/dev/null || shasum -a 256 -c sum.txt; } \
+  && mkdir -p ~/.local/bin && install -m 755 "artemis-cli-$PLATFORM" ~/.local/bin/artemis \
+  && ~/.local/bin/artemis --version ) || echo "INSTALL FAILED: checksum or download"
+rm -rf "$TMP"
+```
+
+The same lines work on Linux (`sha256sum`) and macOS (`shasum`). On `INSTALL FAILED`, stop and tell the user: never run a binary that doesn't match its checksum, and don't trust an older `artemis` already on `PATH`.
+
+A direct download configures no endpoints, so follow it with `artemis login --url <deployment-base-url>`. Check that the user's own shell finds it with `bash -lc 'command -v artemis'`. If not, before the login box, offer to add `~/.local/bin` to PATH, naming the startup file and the line you would add, and wait for the answer, so the login command can be plain `artemis login ...`. If they decline, use the absolute path in the box. On Windows, download the `.exe` and ask the user where to put it on PATH.
+
+An *API key* is a secret and must never enter the conversation.
 
 ## Authenticate
 
-The installer configures endpoints but the CLI still needs the API key described in Requirements. Have the user run the interactive login themselves:
+A direct download configures nothing, so the CLI needs a login with the API key described in Requirements.
+
+One invariant decides the order here: **the key is the last thing the user copies.** Anything they have to copy after it overwrites it on the clipboard.
+
+1. **In the browser route, open the API keys page first**, with `cli-follow-along`, pointer on the control that creates a key. Navigating costs the user nothing and touches no clipboard. Being shown where to go is most of the value of that route, so do not settle for printing a link until you have checked properly: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser (load the skill and follow `cli-follow-along` section 1).
+2. **Then show the step in the same reply**, straight after whatever came before it (the plan, a status line), as its own group: the three numbered boxes, each fence exactly as shown and no text between them. Never promise it for a "next message", and never end your turn before the user can see what they must do.
+3. **The user acts:** they paste the command, create the key on the page already in front of them, and paste it at the waiting `API key:` prompt.
+
+Never read, type or copy a key, and never ask for one in the chat.
+
+````text
+```
+┌──────────────────────────────────────────────────────────┐
+│  1  PASTE THIS INTO YOUR OWN TERMINAL                    │
+└──────────────────────────────────────────────────────────┘
+```
 
 ```bash
-artemis login --url prod
+artemis login --url <deployment-base-url>
 ```
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  2  OPEN THIS PAGE TO CREATE AN API KEY                  │
+└──────────────────────────────────────────────────────────┘
+```
+
+<deployment-base-url>/settings/api-keys
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  3  PASTE THE KEY INTO THAT TERMINAL                     │
+└──────────────────────────────────────────────────────────┘
+```
+
+At the waiting `API key:` prompt, not here in the chat.
+````
+
+Rules for that group:
+
+- **Nothing else in it.** No docs links, no status lines (not even "the deployment answers"), no version notes, no "and next I will". Those go before or after the group. The user is about to act, and every extra sentence is something to read past.
+- **One command, short lines.** Up to about 80 characters, keep it on one line. Longer (a `--ssl-cert-file`, an absolute path), split it before each flag with a trailing ` \`, one flag per line, so a narrow terminal's wrapping cannot break the paste. If an environment variable is genuinely needed for an already-open terminal, put it on the first line so it is still a single copy.
+- **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
+- **Three boxes, one per user action:** run the command, create the key, paste the key. The line under box 3 says where it goes: the waiting prompt, not the chat.
+- Put any follow-up question after the group, never stacked under the command.
+
+Keep the surrounding chatter short. At this step the user needs the command, where to click, and nothing else: status reports, version notes and next-step previews all belong before or after, never wrapped around the one thing they must act on.
 
 For on-prem, use the base URL accepted by `artemis login --help`. Do not set individual service URLs unless the current CLI explicitly requires it; the base URL normally derives them.
 
-Config precedence is `./.env` before `~/.config/artemis/.env`. Keep keys in the home config: a project-local `.env` is easy to leak and shadows the home config.
+From CLI 1.1.16 the CLI merges a `./.artemis.env` in the current folder over `~/.config/artemis/.env` and never reads `./.env`; a `./.env` that names another deployment stops every command except setup and diagnostics (`login`, `config`, `env`, `status`, `version`, `logout`), which only warn. The fix is to delete it, rename it to `.artemis.env`, or pick the deployment with `artemis login` or `--config`. Before 1.1.16, `./.env` comes before the home config. Keep keys in the home config: a project-local file is easy to leak.
+
+**On CLIs before 1.1.16 this is the usual cause of a CLI that was working a minute ago.** When `artemis status` reports `USER_MGMT_URL: required but not set` and friends, look for a `.env` in the current directory before concluding the user is logged out: many repositories ship one for their own app, and working inside such a repository silently replaces the CLI's config. The fix is to run from elsewhere or pass `--config`, not to log in again. From 1.1.16 the CLI ignores that file, noting once ".env is no longer read as Artemis configuration".
+
+**A deployment URL in the environment needs its own key.** From CLI 1.1.15, if `ARTEMIS_BASE_URL` (or a service URL) is set in the shell to a different deployment from the one the config file's key belongs to, commands that reach the deployment are refused: "the stored key would be sent to a deployment it was not issued for". The user is not logged out. Unset the variable, set `ARTEMIS_API_KEY` beside it, or log in to that deployment with `artemis login` (a named `artemis env` keeps both).
+
+### Deployments with a self-signed certificate
+
+Only when TLS has actually failed: `artemis login` or `artemis status` reports `x509` or "unknown authority". Ask the user where the deployment's CA bundle is. Never fetch a bundle they did not name, and never turn certificate verification off.
+
+On CLI 1.1.9 and newer, add the bundle for the CLI only:
+
+```bash
+export ARTEMIS_SSL_CERT_FILE=/absolute/path/to/ca-bundle.pem
+```
+
+It is trusted in addition to the system roots, so other deployments keep working, and it affects nothing but the CLI. `--ssl-cert-file <path>` does the same for a single command. CLI 1.1.8 has neither; update it rather than set `SSL_CERT_FILE`, which changes certificate trust for every program in that shell.
+
+- **The path is the user's, and absolute.** Never `~` or `$HOME` in a command they paste, because your `HOME` and their shell's need not match.
+- **It only lasts for that shell.** Making it permanent means editing their shell startup file, so say which file and why, and ask before writing to it. A login shell reads `~/.bash_profile` or `~/.profile` and ignores `~/.bashrc` unless one sources the other.
+- **The runner has its own setting**, `--ssl-verify <path>`. See `runner-setup`.
+
+Verify in a fresh login shell rather than the one where you just exported it:
+
+```bash
+bash -lc 'artemis status'
+```
 
 ## Verify
 
+Compare the installed CLI with the skills you are about to use. Each skill declares its minimum in its frontmatter as `metadata.artemis-cli-min`. Read `artemis --version`: a release reports a version such as `1.1.8`; a development build reports `dev-<timestamp>-<sha>`. A dev build meets a minimum only if it was built on or after the day that release was published, which is the `Last-Modified` date of `checksums.txt` in the release's folder on the download server (`.../public/artemis-cli/<version>/checksums.txt`). Check with `cli_meets_min` (the same function as in *Where to download from*), in one shell call, for the highest minimum required:
+
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
+cli_meets_min() {  # $1: an `artemis --version` line, $2: the minimum release. Prints ok, old or unknown.
+  d="$(printf '%s' "$1" | grep -oE 'dev-[0-9]{8}' | cut -c5-)"
+  if [ -n "$d" ]; then   # a dev build counts from its date: on or after the day the minimum was published
+    r="$(curl -fsSI "https://files.artemis.turintech.ai/public/artemis-cli/$2/checksums.txt" | awk \
+      'tolower($1)=="last-modified:" {m=index("JanFebMarAprMayJunJulAugSepOctNovDec",$4); printf "%s%02d%s", $5, (m+2)/3, $3}')"
+    if [ -z "$r" ]; then echo unknown; elif [ "$d" -ge "$r" ]; then echo ok; else echo old; fi
+  else
+    v="$(printf '%s' "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    if [ -n "$v" ] && [ "$(printf '%s\n' "$2" "$v" | sort -V | head -1)" = "$2" ]; then echo ok; else echo old; fi
+  fi
+}
+cli_below_max() {  # $1: an `artemis --version` line, $2: the exclusive maximum. Prints ok or above.
+  v="$(printf '%s' "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+  if [ -z "$v" ]; then echo ok   # a dev build has no release number to compare
+  elif [ "$v" != "$2" ] && [ "$(printf '%s\n' "$v" "$2" | sort -V | head -1)" = "$v" ]; then echo ok
+  else echo above; fi
+}
+cli_meets_min "$(artemis --version)" "1.1.16"   # ok, old or unknown
+cli_below_max "$(artemis --version)" "1.2.0"    # ok or above
+```
+
+`old`: update the CLI before continuing (on a dev deployment, from its dev directory, never a release). `unknown`: a dev build whose minimum's date could not be read; say so and offer the update.
+
+**The ceiling.** Each skill also declares `metadata.artemis-cli-max`, exclusive: `1.2.0` is the first CLI line these skills were not tested with. `above` is a warning, not a stop. Say in one line: "These skills are tested up to CLI 1.1.x; your CLI <version> may not work with them. Update the skills, or install the newest 1.1.x CLI." Then carry on. If a command later fails in a way its `--help` does not explain, offer that 1.1.x install (*Where to download from*, the newest version below the ceiling). Other skills point here rather than repeating this rule.
+
+```bash
 artemis --version || artemis version
 artemis status
-artemis changeset create --help
-artemis changeset validate --help
+artemis runner list   # proves the key
+```
+
+Confirm the build carries the command groups the task needs. For Discovery on current deployments, the CLI must expose:
+
+```bash
+artemis project scripts --help
 artemis discovery create --help
 ```
 
-Confirm the version is 1.0.8 and the build carries:
+`discovery create` must accept `--script` and `--llm-metrics`. If either flag is missing, update the CLI by direct download (*Where to download from*).
 
-- `changeset create`;
-- `changeset validate` with repeatable `--command`, `--version`, `--runner`, and `--wait`;
-- `discovery create` with `--compile-cmd`, `--test-cmd`, and `--benchmark-cmd`.
-
-If any check is missing, stop. `validation run`, a dev build, and a newer stable CLI are not substitutes for this production flow.
+To repeat a benchmark when checking a change on a runner, `artemis changeset validate --help` must list `--eval-mode`, `--eval-runs` and `--max-runs` (CLI 1.1.17+). If they are missing, update the CLI the same way.
 
 Report the installed version, base URL, and authenticated user. Do not report success if `status` shows missing endpoints or an unauthenticated session.
 
 ## Update
 
-Record the current version and command surface. For Platform 3.0.3, reinstall 1.0.8 exactly and repeat authentication and verification. Do not follow an upgrade prompt, switch to `latest`, or change deployment while repairing this production setup.
+Record the current version, download the newer build the same way as a fresh install (*Where to download from*), and repeat status verification. An update replaces the binary only, so the existing login normally survives; log in again only if `status` says so. Report the version before and after. Do not change deployment while performing an update.
