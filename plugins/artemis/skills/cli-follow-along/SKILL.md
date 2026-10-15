@@ -30,7 +30,7 @@ metadata:
    ```
 
    Only if that returns nothing is there no browser control: print the Web UI link and continue.
-2. **Ask once, plainly.** Only the user can type `/chrome`, and every new session needs it, even when their extension works elsewhere; it is not a fault. Probe with `tabs_context_mcp`, and if nothing is connected, send the request as its own message, boxed and alone, the way `cli-setup` sends the login step:
+2. **Ask once, plainly.** Only the user can type `/chrome`, and every new session needs it, even when their extension works elsewhere; it is not a fault. Probe with `tabs_context_mcp`, and if nothing is connected, show the request in the same reply as its own block, boxed and alone, the way `cli-setup` shows the login step:
 
    ````text
    ```
