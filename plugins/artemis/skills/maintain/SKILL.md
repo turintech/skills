@@ -144,7 +144,7 @@ Three routes. If the user hasn't named one, offer them with a recommendation. Th
 ### The fix agent
 
 ```bash
-artemis maintain issues fix <issue-uuid>... [--model claude-sonnet-5]
+artemis maintain issues fix <issue-uuid>... [--model <model>]
 ```
 
 - All the Issues in one call land in **one Branch** and one fix chat. Group related Issues; put unrelated ones in separate calls so each gets its own Branch and PR. They can't be split afterwards.

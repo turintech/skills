@@ -212,7 +212,7 @@ The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds betw
 
 - `--source-changeset` from step 2, so the run starts from the code and numbers the user just saw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
-- model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
+- model: the deployment's high-effort preset, found as `discovery-start` recommends (the model `artemis model list` marks `high`; with none, the model in the **High Effort** group of `artemis model groups`). Name it in one line. Catalogues differ per deployment, so no skill names a model
 - `--target-files` only when the repository made them obvious
 - for the demo, that these settings are fixed, so `discovery-start` does not ask. On the user's own code, pass nothing here: `discovery-start` agrees the model and version count with the user
 
