@@ -10,7 +10,7 @@ The canonical source is this repository. One skill directory is the source of tr
 
 ## Installation
 
-The skill format is shared. How you install it depends on the agent. Pin a released tag such as [v1.0.1](https://github.com/turintech/skills/releases/tag/v1.0.1) when you need production-compatible skills. `develop` is the next CLI and platform release and is not a pin.
+The skill format is shared. How you install it depends on the agent. Pin a released tag such as [v2.0.0](https://github.com/turintech/skills/releases/tag/v2.0.0) when you need production-compatible skills: a client on Platform 3.1.0 then stays on the skills released for it, while `develop` moves on. `develop` is the next CLI and platform release and is not a pin.
 
 ### Claude Code
 
@@ -19,13 +19,19 @@ The skill format is shared. How you install it depends on the agent. Pin a relea
 /plugin install artemis@skills
 ```
 
-Update with `/plugin marketplace update skills`.
+Update with `/plugin marketplace update skills`. To pin a release, add the marketplace at its tag instead:
+
+```bash
+/plugin marketplace add turintech/skills@v2.0.0
+```
+
+From a shell, the same is `claude plugin marketplace add turintech/skills@v2.0.0`, then `claude plugin install artemis@skills`.
 
 ### Cursor
 
 ```bash
 agent plugin marketplace add https://github.com/turintech/skills.git \
-  --git-ref v1.0.1
+  --git-ref v2.0.0
 ```
 
 Then install `artemis` from the marketplace. Copying `plugins/artemis/skills/<skill-name>/` into `.agents/skills/`, `.cursor/skills/`, or `.claude/skills/` still works when you need a project-local checkout.
@@ -33,13 +39,13 @@ Then install `artemis` from the marketplace. Copying `plugins/artemis/skills/<sk
 ### Codex
 
 ```bash
-codex plugin marketplace add turintech/skills --ref v1.0.1
+codex plugin marketplace add turintech/skills --ref v2.0.0
 ```
 
 ### GitHub Copilot / VS Code
 
 ```bash
-gh skill install turintech/skills --all --pin v1.0.1
+gh skill install turintech/skills --all --pin v2.0.0
 ```
 
 Or copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.claude/skills/` in the workspace.
