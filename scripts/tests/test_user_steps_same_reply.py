@@ -24,6 +24,8 @@ class UserStepsSameReply(unittest.TestCase):
         step = text[start:text.index("````text", start)]
         self.assertIn("in the same reply", step)
         self.assertIn("never end your turn before the user can see what they must do", step)
+        # "Its own block" read as one fence merges box and command, and the command loses its copy button.
+        self.assertIn("each fence exactly as shown and no text between them", step)
 
     def test_quickstart_shows_a_users_step_before_waiting(self):
         text = skill("quickstart")

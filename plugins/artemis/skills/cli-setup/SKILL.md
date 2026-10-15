@@ -38,7 +38,7 @@ Then:
 - **Something changed:** the copy already read is the old one, so ask the user once to reload (*Asking for a reload*, below), wait, then invoke the skill you were following again. Other hosts: usually a new chat, where they paste their request again. Do not repeat this step in the same chat; in a new chat it reports current.
 - **The check could not run:** if a command fails, Claude Code finds no Artemis plugin, or this skill was not loaded from the installed plugin (in Claude Code its base directory is not under the plugins directory, `~/.claude/plugins/` by default, as with `--plugin-dir`), install nothing, say in one line that the skills could not be checked, and continue.
 
-**Asking for a reload.** After an install, first check whether the Artemis skills are already usable in this session: if `artemis:quickstart` is among your available skills, or the Skill tool loads it, carry on without asking. After an update, or when they are not usable, show the request in the same reply as its own block, two numbered boxes and nothing inside it (Claude Code shown):
+**Asking for a reload.** After an install, first check whether the Artemis skills are already usable in this session: if `artemis:quickstart` is among your available skills, or the Skill tool loads it, carry on without asking. After an update, or when they are not usable, show the request in the same reply as its own group, the two numbered boxes, each fence exactly as shown and no text between them (Claude Code shown):
 
 ````text
 ```
@@ -176,7 +176,7 @@ A direct download configures nothing, so the CLI needs a login with the API key 
 One invariant decides the order here: **the key is the last thing the user copies.** Anything they have to copy after it overwrites it on the clipboard.
 
 1. **In the browser route, open the API keys page first**, with `cli-follow-along`, pointer on the control that creates a key. Navigating costs the user nothing and touches no clipboard. Being shown where to go is most of the value of that route, so do not settle for printing a link until you have checked properly: on hosts where the browser tools are deferred they must be loaded before they can be seen at all, so a missing tool is not the same as a missing browser (load the skill and follow `cli-follow-along` section 1).
-2. **Then show the step in the same reply**, straight after whatever came before it (the plan, a status line), as its own block: three numbered boxes and nothing inside it. Never promise it for a "next message", and never end your turn before the user can see what they must do.
+2. **Then show the step in the same reply**, straight after whatever came before it (the plan, a status line), as its own group: the three numbered boxes, each fence exactly as shown and no text between them. Never promise it for a "next message", and never end your turn before the user can see what they must do.
 3. **The user acts:** they paste the command, create the key on the page already in front of them, and paste it at the waiting `API key:` prompt.
 
 Never read, type or copy a key, and never ask for one in the chat.
@@ -209,13 +209,13 @@ artemis login --url <deployment-base-url>
 At the waiting `API key:` prompt, not here in the chat.
 ````
 
-Rules for that block:
+Rules for that group:
 
-- **Nothing else in it.** No docs links, no status lines (not even "the deployment answers"), no version notes, no "and next I will". Those go before or after the block. The user is about to act, and every extra sentence is something to read past.
+- **Nothing else in it.** No docs links, no status lines (not even "the deployment answers"), no version notes, no "and next I will". Those go before or after the group. The user is about to act, and every extra sentence is something to read past.
 - **One command, short lines.** Up to about 80 characters, keep it on one line. Longer (a `--ssl-cert-file`, an absolute path), split it before each flag with a trailing ` \`, one flag per line, so a narrow terminal's wrapping cannot break the paste. If an environment variable is genuinely needed for an already-open terminal, put it on the first line so it is still a single copy.
 - **Absolute paths only. Never `~` or `$HOME` in a command the user pastes.** Your `HOME` and the user's shell `HOME` can differ, and the same string then points at two different files. The failure looks like a certificate or credential problem, not a path problem, so it costs a full cycle to find. Expand every path yourself before showing it, and verify the file exists at the expanded path first.
 - **Three boxes, one per user action:** run the command, create the key, paste the key. The line under box 3 says where it goes: the waiting prompt, not the chat.
-- Put any follow-up question after the block, never stacked under the command.
+- Put any follow-up question after the group, never stacked under the command.
 
 Keep the surrounding chatter short. At this step the user needs the command, where to click, and nothing else: status reports, version notes and next-step previews all belong before or after, never wrapped around the one thing they must act on.
 
