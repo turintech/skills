@@ -81,7 +81,7 @@ artemis runner list
 
 Start here when there is no CLI, or it needs replacing. The deployment's **Connect Your Agent** page at `<deployment-base-url>/settings/connect-agent` is the source of truth for credentials and flags, and if anything below differs from it, follow the page.
 
-Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always check a downloaded build's version before it replaces anything, and fall back to the newest versioned release when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
+Install by direct download. The installer script and the `latest/` directory can serve a build older than the skills' minimum, so always check a downloaded build's version before it replaces anything, and fall back to the newest versioned release below the skills' `artemis-cli-max` when it is too old. The installer is described in [references/installer.md](references/installer.md) for when a deployment's page asks for it.
 
 ### Where to download from
 
@@ -124,7 +124,7 @@ fi
 rm -rf "$TMP"
 ```
 
-Nothing is replaced unless the last branch runs. `cli_meets_min` is the version rule (see *Verify*): a development build (`dev-<date>-<time>-<sha>`) meets a minimum only if it was built on or after the day that release was published. `DEV UNCHECKED` means that date could not be read: say so, and install it only on the user's yes. Never replace a dev build with a release: when the directory serves dev builds (a dev deployment), a release is no fallback, so on `NO BUILD` there stop and say which build is missing. Otherwise, on `TOO OLD` or `NO BUILD`, install the newest release from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
+Nothing is replaced unless the last branch runs. `cli_meets_min` is the version rule (see *Verify*): a development build (`dev-<date>-<time>-<sha>`) meets a minimum only if it was built on or after the day that release was published. `DEV UNCHECKED` means that date could not be read: say so, and install it only on the user's yes. Never replace a dev build with a release: when the directory serves dev builds (a dev deployment), a release is no fallback, so on `NO BUILD` there stop and say which build is missing. Otherwise, on `TOO OLD` or `NO BUILD`, install the newest release below the skills' `artemis-cli-max` from the public listing below instead, and say in one line which directory was out of date or missing this machine's build. On `INSTALL FAILED` or `WON'T RUN`, stop as below.
 
 The public download paths need no login, so send no credentials.
 
@@ -139,7 +139,7 @@ The public download paths need no login, so send no credentials.
 | Windows, x64 | `artemis-cli-windows-amd64.exe` |
 | Windows, ARM64 | `artemis-cli-windows-arm64.exe` |
 
-If the directory has no file for this machine, never install a different architecture's build in its place: it either fails to start or runs under emulation and misbehaves later. Try the newest versioned release, which carries all six, and if that has none either, tell the user no build exists for this machine and stop. Channels can differ in which builds they carry, so read the listing rather than assuming.
+If the directory has no file for this machine, never install a different architecture's build in its place: it either fails to start or runs under emulation and misbehaves later. Try the newest versioned release below the skills' `artemis-cli-max` (the listing below), which carries all six, and if that has none either, tell the user no build exists for this machine and stop. Channels can differ in which builds they carry, so read the listing rather than assuming.
 
 Without a directory from the prompt, install from the public path, which carries current releases. Check the listing first and take the newest below the skills' `artemis-cli-max` (1.2.0, exclusive; *Verify*), rather than trusting a version named here:
 
