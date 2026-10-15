@@ -20,6 +20,16 @@ class ReadmePins(unittest.TestCase):
         self.assertRegex(readme, r"/plugin marketplace add turintech/skills@v\d+\.\d+\.\d+")
         self.assertRegex(readme, r"claude plugin marketplace add turintech/skills@v\d+\.\d+\.\d+")
 
+    def test_releasing_pins_a_release_for_all_four_hosts(self):
+        text = (ROOT / "RELEASING.md").read_text()
+        pins = text[text.index("Pin a release when installing:"):]
+        pins = pins[:pins.index("\n## ")]
+        for command in ("/plugin marketplace add turintech/skills@vX.Y.Z",
+                        "claude plugin marketplace add turintech/skills@vX.Y.Z",
+                        "--git-ref vX.Y.Z", "codex plugin marketplace add turintech/skills --ref vX.Y.Z",
+                        "gh skill install turintech/skills --all --pin vX.Y.Z"):
+            self.assertIn(command, pins)
+
 
 if __name__ == "__main__":
     unittest.main()

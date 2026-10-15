@@ -54,6 +54,10 @@ git push origin vX.Y.Z
 Pin a release when installing:
 
 ```bash
+# Claude Code: in a session, then the same from a shell
+/plugin marketplace add turintech/skills@vX.Y.Z
+claude plugin marketplace add turintech/skills@vX.Y.Z
+
 # Cursor
 agent plugin marketplace add https://github.com/turintech/skills.git \
   --git-ref vX.Y.Z
