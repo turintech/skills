@@ -28,11 +28,19 @@ artemis --output-format json discovery get "<run-id>"
 
 Confirm `status`, `taskDescription`, `targetFiles`, `versionCount`, `numVersions`, and `agentRunId`. Surface conflicts between the requested direction and the run's Goal (`taskDescription`) or targets; target files are guidance, not a guaranteed write boundary.
 
+### Preserve active execution
+
+Before steering, inspect active version validations and runner tasks. Steering starts a new agent run; it is not a documented drain or “finish the current task, then stop” operation. A delivery response with `verified: true` confirms repointing, not preservation of the previous execution. On a deployment where the parent run is cancelled during steering, associated validations and runner cleanup can be affected even if the message asks the agent to leave them running.
+
+If current work must finish uninterrupted, use an explicitly supported drain mechanism or wait for execution to finish before steering. Do not invent a pause API or assume wording in the message controls platform cancellation. Recheck the queue before reallocating hardware, because another version may already have started.
+
+After an unexpected cancellation, compare platform state with actual host process, child-process, output and device state. A detached worker can survive while its checkout is removed. Do not restart from a cancelled validation alone or treat its GPU as free. Preserve bounded live work and durable evidence; recover missing pinned source paths only after verifying the exact checkout and without overwriting results. Outputs recovered outside a cancelled validation need their own provenance, not a platform-success label.
+
 ### Budget gate
 
 `continue` sets the budget to the versions the run already has plus `--versions <n>`; budget it never used is not carried over. So `n` is the number of new versions, and each one spends credits.
 
-- Active with budget remaining: steer directly. If an active run has exhausted its budget, wait for it to complete first.
+- Active with budget remaining: steer after checking the active-execution constraints above. If an active run has exhausted its budget, wait for it to complete first.
 - Completed, failed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
 - A failed run is not steered: from CLI 1.1.16 `steer` refuses it. The Web UI's **Retry**, which re-sends the run's chat without new budget, has no CLI equivalent, so continue it as above, naming the credit cost, then check `discovery get`.
 
@@ -78,6 +86,7 @@ Read relevant version rationales and diffs with `discovery-inspect`. In-flight w
 ## Checklist
 
 - [ ] Goal (`taskDescription`), targets, status, and current agent run inspected
+- [ ] Active validations/tasks inspected; steering is not being used as an unverified graceful drain
 - [ ] Budget remains, or it was expanded before steering
 - [ ] Conflict with the requested direction surfaced
 - [ ] `discovery steer` returned a resulting agent ID with `verified: true`
