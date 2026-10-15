@@ -13,6 +13,15 @@ for dir in "$SKILLS"/*/; do
     echo "FAIL $name: missing metadata.artemis-cli-min"
     fail=1
   fi
+  min="$(echo "$frontmatter" | sed -nE 's/^  artemis-cli-min: "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p')"
+  max="$(echo "$frontmatter" | sed -nE 's/^  artemis-cli-max: "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p')"
+  if [ -z "$max" ]; then
+    echo "FAIL $name: missing metadata.artemis-cli-max"
+    fail=1
+  elif [ -n "$min" ] && { [ "$min" = "$max" ] || [ "$(printf '%s\n' "$min" "$max" | sort -V | head -1)" != "$min" ]; }; then
+    echo "FAIL $name: artemis-cli-min $min is not below artemis-cli-max $max"
+    fail=1
+  fi
   if ! echo "$frontmatter" \
       | grep -qE '^  artemis-platform-min: "[0-9]+\.[0-9]+\.[0-9]+"$'; then
     echo "FAIL $name: missing metadata.artemis-platform-min"

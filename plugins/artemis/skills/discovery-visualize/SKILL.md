@@ -1,9 +1,10 @@
 ---
 name: discovery-visualize
 description: Collect a normalized Artemis discovery snapshot and render it as a host-native chart or report. Use when the user wants to graph, chart, plot, compare, visualize, or build a discovery report, canvas, or artifact from a discovery run, or chart a project's Maintain issues by severity and triage.
-compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.14"
+  artemis-cli-min: "1.1.16"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -19,7 +20,7 @@ metadata:
 ## Requirements
 
 - `artemis status` succeeds on the run's deployment.
-- `artemis --version` is at least `artemis-cli-min` (1.1.14, which has `discovery compare`); if it is older, load the skill and follow `cli-setup` first.
+- `artemis --version` is at least `artemis-cli-min` (1.1.16, which has `project get`, on top of 1.1.14's `discovery compare`); if it is older, load the skill and follow `cli-setup` first.
 - A `run_id`, or a project id to compare its runs. If unknown, ask for the Web UI URL and extract IDs using the router: load the skill and follow `artemis` §2.
 - Python 3, stdlib only, to run [scripts/collect_discovery.py](scripts/collect_discovery.py).
 
