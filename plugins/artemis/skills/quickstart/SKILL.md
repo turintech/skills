@@ -26,7 +26,7 @@ metadata:
 
 Never redo a step that is done. Check the state first, start at the first thing missing, and hand each step to the skill that owns it. Do not start a second runner on a machine that has one, replace commands that already produce a number, create a second `artemis/measure` branch, or start another Discovery when one is queued, running, or has already completed for the same request. A project is the user's choice: reuse it when they are continuing that work, and import a fresh one when they want to start afresh (section 4).
 
-Carry these between skills so nothing is asked twice: deployment and whether the CLI is authenticated to it; the CLI download directory, when the prompt gave one, for `cli-setup`; repository URL and branch; project id; changeset id and the commit it holds; script id; runner name and what its machine has installed; validation id; run id.
+Carry these between skills so nothing is asked twice: deployment and whether the CLI is authenticated to it; the CLI download directory, when the prompt gave one, for `cli-setup`; repository URL and branch; project id; branch id (`changesetId`) and the commit it holds; script id; runner name and what its machine has installed; validation id; run id.
 
 ## 0. Look before asking
 
@@ -40,7 +40,7 @@ Check silently, and skip later steps that are already done. These checks only re
 | Operating system | `uname -s`, for `runner-setup`'s platform check |
 | Demo toolchain | Unless the user brought their own code, and when the runner will run on this machine: the check below. The demo builds with CMake 3.20 or newer (`ctest --test-dir`) and a C++ compiler and benchmarks with Python 3. A missing tool is the user's to install before the runner step: name it and the command, such as `brew install cmake` or `sudo apt install cmake g++ python3` |
 | CLI | `artemis --version` meets this skill's `artemis-cli-min` by `cli-setup`'s `cli_meets_min` (*Verify*; a dev build counts from its date) (1.1.16, the highest of the Artemis skills, so neither the later steps here nor a skill the user moves on to, such as `maintain`, stops for an update). If it is older or missing, note it: `cli-setup` updates it in section 5, after the welcome and the plan. Then `artemis status` names the deployment in hand, and `artemis runner list` succeeds. If they fail with `x509` or "unknown authority", follow `cli-setup`'s *Deployments with a self-signed certificate*: `ARTEMIS_SSL_CERT_FILE`, never `SSL_CERT_FILE` |
-| Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*) |
+| Runner | `artemis runner list` shows one online whose name matches a local `artemis-runner start` process (`runner-setup`, *Whose runner is that?*), and that process's binary is at least `runner-setup`'s `artemis-runner-min` (5.3.0); an older one is upgraded by `runner-setup` before step 5 |
 | Projects | `artemis --output-format json project list --all`. **`--all` matters**: the default is one page of 20. Match a given project id here and keep its `gitUrl`, `gitBranch` and `gitHash` |
 | Commands already stored | `artemis project scripts list --project <id>` |
 | The code, locally | `git -C . remote get-url origin` against the project's `gitUrl` |
@@ -153,14 +153,14 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 1. CLI signed in | `cli-setup` | Already done in section 5 | Same | |
 | 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
 | 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | Section 0's demo toolchain check instead | |
-| 4. Commands that produce a number | `repo-command-setup` | Pass it the changeset and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
+| 4. Commands that produce a number | `repo-command-setup` | Pass it the branch and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
 | 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (below), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
 | 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
-| 7. Discovery from that branch | `discovery-start` | Pass the changeset, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Versions** and the winning version |
+| 7. Discovery from that branch | `discovery-start` | Pass the branch, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Versions** and the winning version |
 
 A step is not finished until its "Tell them" line has been said.
 
-**Step 2.** Reuse the newest changeset named `artemis/measure` (`changeset list --project <id> --all`) unless the project's code has moved on since (its `baseVersionSha` differs from the project's `gitHash`). Otherwise:
+**Step 2.** Reuse the newest branch named `artemis/measure` (`changeset list --project <id> --all`) unless the project's code has moved on since (its `baseVersionSha` differs from the project's `gitHash`). Otherwise:
 
 ```bash
 artemis --output-format json changeset create --project "<project-id>" --name "artemis/measure"
@@ -168,7 +168,7 @@ artemis --output-format json changeset create --project "<project-id>" --name "a
 
 Capture its id. Read the commit it holds with `artemis changeset versions <changeset-id> --project <id>` and report that one, not the project's `gitHash`.
 
-**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a changeset's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` and keep its id, then wait. Run both blocks as written, filling in only the `<...>` values; never filter the skill file to rebuild them, and never retype the loop. A validation ends `success`, `failed` or `cancelled`; a Discovery run ends `completed`, so a loop that waits for `completed` here never stops.
+**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a branch's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` and keep its id, then wait. Run both blocks as written, filling in only the `<...>` values; never filter the skill file to rebuild them, and never retype the loop. A validation ends `success`, `failed` or `cancelled`; a Discovery run ends `completed`, so a loop that waits for `completed` here never stops.
 
 ```bash
 out=$(artemis --output-format json changeset validate "<changeset-id>" --project "<project-id>" \
@@ -212,7 +212,7 @@ The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds betw
 
 - `--source-changeset` from step 2, so the run starts from the code and numbers the user just saw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
-- model `gpt-6-sol`. This is the one place the model is named; change it here. If the catalogue lacks it, pick a model from the top tier in `artemis model groups` and name it in one line
+- model: the deployment's high-effort preset, found as `discovery-start` recommends (the model `artemis model list` marks `high`; with none, the model in the **High Effort** group of `artemis model groups`). Name it in one line. Catalogues differ per deployment, so no skill names a model
 - `--target-files` only when the repository made them obvious
 - for the demo, that these settings are fixed, so `discovery-start` does not ask. On the user's own code, pass nothing here: `discovery-start` agrees the model and version count with the user
 
@@ -308,7 +308,7 @@ Say once, while the run is going, that it continues on the platform if the termi
 - [ ] Own code: an existing project for the repository named in one line, without a question, before importing fresh
 - [ ] Just set me up: stopped after the runner, with no project imported and no run started
 - [ ] Each step handed to its owning skill, with the ids and settings it needs
-- [ ] Changeset id captured, commands run on the branch, metric values seen in the logs
+- [ ] Branch id captured, commands run on it, metric values seen in the logs
 - [ ] Each wait said out loud: what Artemis is doing, how long, the link, and an update after each unfinished loop
 - [ ] An `Artemis · Validation started` block before the wait, and `discovery-start`'s `Artemis · Discovery started` block after the run was created
 - [ ] A link and what they will see each time something appeared in Artemis

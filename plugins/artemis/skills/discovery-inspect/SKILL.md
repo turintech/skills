@@ -71,7 +71,7 @@ artemis --output-format json chat messages <agent-run-id> \
 
 Repeated status text or repeated `propose`/`conclude` calls can be normal while the agent drafts and revises experiments. Evidence of a stall is stronger when the run record stops updating, a version remains pending, narration emits no new calls, and the runner is idle. Check `discovery versions get <version-id>`, chat events, and runner activity together before concluding that work has stopped.
 
-`discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `processId`, and `observationGroupId`. Read the actual discovery changeset with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
+`discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `processId`, and `observationGroupId`. Read the version's branch with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
 
 Every answer about a run or version ends with clickable Web UI links to the run, to the version it reports on when there is one (the winning one, or the best one when none won) and to the run's Versions page, even when the answer is a single number. Build them from `cli-follow-along` §2's table as the start block does (newer deployments shown):
 
@@ -142,7 +142,7 @@ artemis changeset diff <changeset-id> --project <project-uuid>          # full d
 artemis changeset diff <changeset-id> --project <project-uuid> --stat   # file summary
 ```
 
-`changesetId` comes from `discovery versions get`; `--project` is required. The Web UI shows the same changeset.
+`changesetId` comes from `discovery versions get`; `--project` is required. The Web UI shows it as a **Branch**.
 
 ## When the agent stops, not the runner
 

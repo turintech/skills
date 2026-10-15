@@ -29,7 +29,7 @@ When the user names a downstream task and supplies its inputs, route directly to
 
 Artemis evaluates repository code on a user-supplied runner by running a project Script: root-level commands in `setup`, `benchmark` and `teardown` phases. The platform requires no particular commands; for Discovery these skills put a build and a correctness test in setup, so a version that doesn't compile or is wrong fails before it is measured. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
 
-A **project** imports a repository branch at a specific commit; a **changeset** (shown as a **branch** in the Web UI) holds versions of that code, each a commit; a **Validation** is one run of a Script on a branch version (listed under **Script runs**); a **Discovery run** generates and evaluates versions against a metric, and its **versions** are the code variants its **Experiments** produce, each a real commit with its own metric values.
+A **project** imports a repository branch at a specific commit; a **branch** (the CLI's `changeset`) holds versions of that code, each a commit; a **Validation** is one run of a Script on a branch version (listed under **Script runs**); a **Discovery run** generates and evaluates versions against a metric, and its **versions** are the code variants its **Experiments** produce, each a real commit with its own metric values.
 
 ### Official docs
 
