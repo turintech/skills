@@ -1,11 +1,11 @@
 ---
 name: artemis
 description: Classify an Artemis request, check workflow readiness, surface consequential choices before long-running work begins, and route to the appropriate task-specific skills. Use whenever a user wants to set up, run, resume, inspect, validate, optimize, or maintain code with Artemis.
-compatibility: Production Platform 3.0.3 workflows are tested with Artemis CLI 1.0.8; do not infer compatibility from newer stable version numbers.
+compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.0.8"
-  artemis-cli-tested: "1.0.8"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.16"
+  artemis-cli-max: "1.2.0"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Start an Artemis workflow
@@ -15,7 +15,7 @@ metadata:
 - **Problem:** Classifies the user's goal, identifies blocking decisions before long-running work, and routes to the appropriate task-specific skill.
 - **Must be available:** Enough context to determine the intended workflow and inspect any relevant repository, deployment, project, runner, commands, or existing run.
 - **Use / don't use:** Use for any new Artemis setup, discovery, validation, maintain, resume, or inspection request; skip it when the requested downstream step is already explicit.
-- **Next skill:** There is no fixed next skill. Route onboarding at any stage to `quickstart`, and every explicit lower-level request to the setup, repository-preparation, import, discovery, inspection, or maintain skill selected by the workflow.
+- **Next skill:** There is no fixed next skill; route to the setup, import, discovery, inspection, or maintain skill selected by the workflow.
 
 ## Requirements
 
@@ -28,9 +28,9 @@ When the user names a downstream task and supplies its inputs, route directly to
 
 ## Operating context
 
-Artemis evaluates repository code on a user-supplied runner with root-level `compile`, `test`, and `benchmark` commands. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
+Artemis evaluates repository code on a user-supplied runner by running a project Script: root-level commands in `setup`, `benchmark` and `teardown` phases. The platform requires no particular commands; for Discovery these skills put a build and a correctness test in setup, so a version that doesn't compile or is wrong fails before it is measured. `repo-command-setup` owns that execution and numeric-results contract. When a clean rebuild is prohibitively expensive, `workspace-setup` owns the persistent cache those commands use.
 
-A **project** imports a repository branch at a specific commit; a **version** is the baseline or an AI-generated candidate; a **discovery run** generates and evaluates versions against a metric.
+A **project** imports a repository branch at a specific commit; a **branch** (the CLI's `changeset`) holds versions of that code, each a commit; a **Validation** is one run of a Script on a branch version (listed under **Script runs**); a **Discovery run** generates and evaluates versions against a metric, and its **versions** are the code variants its **Experiments** produce, each a real commit with its own metric values.
 
 ### Official docs
 
@@ -51,33 +51,32 @@ Give a clickable Markdown link with a short label:
 
 ## 1. Classify the workflow
 
-If the user is onboarding to a first measured result, route to `quickstart` regardless of whether they have no setup, a repository that needs preparing or importing, or an existing project URL or id. That skill inspects the current state and resumes from the first incomplete checkpoint.
+If the user is onboarding, route to `quickstart` instead of classifying further. That covers a brand-new user (they pasted the Quickstart prompt from the Connect your agent page, ask to get started or try Artemis, or have no authenticated CLI and no concrete task), a repository that is not yet a project, and a request to set up a project from its URL or id (the prompt behind **Setup with a local agent** on a project's overview page). A URL given only to inspect or resume existing work stays here (section 2). `quickstart` works out which of those it is from what arrived and resumes at the first missing step.
 
-A starter prompt that names `cli-setup` or `artemis` is still a quickstart request. Load `quickstart` first and let it call those skills in order.
+**This applies even when the request names other skills.** A starter prompt that says "use the `artemis` router and `cli-setup`" is describing the setup it expects, not opting out of onboarding. Load `quickstart` first and let it call those skills in order. Once routed to `quickstart`, sections 3 to 5 below do not apply: it fixes the run settings and announces its steps instead of asking. Skipping it drops the browser option, the demo default, and the demo's fixed settings, and the user is then asked to choose things a first-time user has no basis to answer.
 
 | Workflow | Intended outcome | Required infrastructure |
 |---|---|---|
-| Quickstart | Take a user from any onboarding state to a first measured result | None yet; may begin with a repository or project id |
+| Quickstart | Take a user from any starting point to a first measured result | None yet; may begin with a repository or a project id |
 | Discovery | Generate and benchmark alternatives to improve a metric | Runner, repository commands, model, version budget |
 | Validation | Build, test, and benchmark known code without searching | Runner and repository commands |
-| Maintain | Scan, triage, fix, or publish code-health issues | Rules, scope, and push access when publishing |
+| Maintain | Scan, triage, fix (including Fix in Discovery), or publish code-health issues | Rules, scope, and push access when publishing; a runner and a script for Fix in Discovery |
 | Setup | Install or repair a CLI, runner, repository, credential, or harness | Depends on the component |
 | Inspection | Resume, monitor, diagnose, or summarize existing work | Existing project or run identifiers |
+| Visualization | Chart or report an existing discovery run | Authenticated CLI and run ID |
 
 If the intent is ambiguous, explain the smallest relevant distinction and ask one focused question.
 
 ## 2. Inspect current state
 
-Use available local and Artemis state to inspect the repository and its documentation, remote, branch, seed SHA, ownership, working tree, deployment, authentication, imported projects, runners, commands, metrics, and existing run IDs. Do not make external changes during readiness inspection.
+Use available local and Artemis state to inspect the repository and its documentation, remote, branch, imported commit, ownership, working tree, deployment, authentication, imported projects, runners, commands, metrics, and existing run IDs. Do not make external changes during readiness inspection.
 
 ### Recover IDs from the Web UI
 
 When resuming existing work, ask the user to paste the URL of the most specific entity they are viewing. Artemis URLs expose the required UUIDs:
 
 - `/projects/<project-id>/...`
-- `/projects/<project-id>/discovery/<discovery-id>`
-- `/projects/<project-id>/discovery/<discovery-id>/versions/<version-id>`
-- `/projects/<project-id>/changesets/<changeset-id>/...`
+- anything deeper (a run, its versions, a branch) follows that segment; `cli-follow-along` §2 has the path shapes
 
 Extract all available IDs from that URL; do not ask for each separately. Use the deployment base URL shown by the user.
 
@@ -85,10 +84,8 @@ Extract all available IDs from that URL; do not ask for each separately. Use the
 
 After creating, importing, or reporting a user-visible resource, give the user a clickable Web UI link immediately. Build it from the authenticated deployment base URL and the captured UUIDs:
 
-- project: `<base-url>/projects/<project-id>`
-- discovery: `<base-url>/projects/<project-id>/discovery/<discovery-id>`
-- discovery version: `<base-url>/projects/<project-id>/discovery/<discovery-id>/versions/<version-id>`
-- changeset: `<base-url>/projects/<project-id>/changesets/<changeset-id>`
+- project: `<deployment-base-url>/projects/<project-id>`
+- anything inside a project: give the project link and name the page to open, because path shapes differ between deployments
 
 Use Markdown links with a short label such as `Open project` or `Open Discovery`. Keep using UUIDs for CLI commands; a link is a user handoff, not a substitute for verified identifiers.
 
@@ -98,13 +95,13 @@ Raise only rows required by the selected workflow:
 
 | What | Resolve before proceeding | Skill |
 |---|---|---|
-| CLI | Target deployment and authenticated `artemis status` | `cli-setup` |
+| CLI | `cli-setup`'s *Check versions* run once per session, even when the CLI already works; then the target deployment and an authenticated `artemis status` | `cli-setup` |
 | Runner | Approved machine, required toolchain and resources, and availability | `runner-setup` |
-| Repository | Importable user-controlled remote, or permission to create a fork or mirror | `repo-prepare-fork` |
+| Repository | A remote that one of the user's Git keys can read | `project-import` |
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
-| Commands | Exact verified commands and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
+| Commands | Exact verified commands, stored as a Script, and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
 
-Maintain needs no runner or benchmark. Inspection normally needs only the authenticated CLI and identifiers.
+Maintain needs no runner or benchmark, except Fix in Discovery, which needs a runner and a script. Inspection normally needs only the authenticated CLI and identifiers.
 
 ## 4. Present the readiness brief
 
@@ -113,7 +110,7 @@ Before setup that changes external state or any long-running operation, give the
 ```text
 Workflow:
 Target deployment:
-Repository / branch / seed:
+Repository / branch / commit:
 Goal and success metric:
 Ready:
 Missing prerequisites:
@@ -122,33 +119,57 @@ Expected runtime and persistence:
 External changes requiring approval:
 ```
 
-Omit fields that do not apply. A missing prerequisite is not a user choice. The **seed** is the exact imported commit later checked against a discovery's `baselineVersionSha`.
+Omit fields that do not apply. A missing prerequisite is not a user choice. The **commit** is the exact imported commit (`gitHash`) later checked against a discovery's `baselineVersionSha`.
 
-For discovery or validation, settle the correctness gate, metric and direction, runner, and stopping boundary; for discovery also settle the task, optional model, and version budget. For Maintain, settle scan/fix scope, model when overriding the default, and whether fixes stop at changesets, branches, or pull requests.
+For discovery or validation, settle the correctness gate, metric and direction, runner, and stopping boundary; for discovery also settle the task, model, and version budget. For Maintain, settle scan/fix scope, model when overriding the default, and whether fixes stop at a Branch in Artemis, a pushed git branch, or a pull request.
 
 ## 5. Make long-running work deliberate
 
 Before launching discovery, validation, or Maintain:
 
-1. Estimate runtime from command timings and scope, and confirm the runner or service can remain available.
+1. Estimate runtime from command timings and scope, and confirm the runner or service can remain available. When that is longer than the user wants to wait, `discovery-start` offers Fast-track Discovery.
 2. Check queued or running work that could conflict with or delay the operation.
 3. Agree on the stopping boundary.
 4. Capture project, run, scan, chat, and agent IDs as they are created.
 5. Explain what continues platform-side after the interactive session ends and what still requires monitoring.
 
+### Start block
+
+Right after a command starts work in Artemis, post one block so a watcher sees what started and where to click. The rows for each kind, and where the values and the link come from, are in [references/start-block.md](references/start-block.md).
+
+```text
+Artemis · Discovery started
+Project   <project name>
+Goal      <taskDescription>
+Versions  <n> · model <model> · LLM council <review models>
+Open      <link>
+```
+
+### Waiting out loud
+
+While Artemis works, never go quiet and never paste a raw status line on its own. Each wait gets two kinds of line:
+
+1. **Before the wait:** what Artemis is doing, where, how long it should take, and the start block's `Open` link. Shape: `Artemis is <doing X> on <runner>; this usually takes about <N> min. Follow it at <link>.`
+2. **After each check loop that ends unfinished:** the time since the start block, the status and any count the response gives, and how much longer you will check. Shape: `Artemis is still <doing X>, <M> min in: <status>, <count>. I'll check for up to 8 more minutes.`
+
+Take the expected time only from a measurement: the phase durations `repo-command-setup` §5a records, or an earlier run of the same script in this session. With none, say there's no typical time yet and give the check limit instead (`I'll check for up to 8 min`); never invent a figure.
+
 ## 6. Route to the owning skill
 
-- New users, repository onboarding, and existing projects that have not reached a first measured result: `quickstart`
+- Onboarding at any stage: new users, open-ended "get started" requests, a repository to import, and a request to set up a project from its URL or id, as from **Setup with a local agent** on a project's overview page: `quickstart`
+- Showing the matching Web UI page when the user follows along in their browser: `cli-follow-along`
+- Asking to be shown in the browser ("show me in my browser", "use computer use", a tour of the platform): `platform-tour`. A plain "how do I" is answered in the terminal by the task skill
 - CLI: `cli-setup`
 - Runner: `runner-setup`
-- Repository ownership: `repo-prepare-fork`
-- Repository commands, Discovery-ready harness authoring, and validation: `repo-command-setup`
+- Repository commands, Scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
 - Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`
-- Discovery launch: `discovery-start`
+- Discovery launch, including `discovery create --script` and guided `--setup`: `discovery-start`
 - Discovery continuation, budget expansion, steering, or redirection: `discovery-steer`
 - Discovery interpretation: `discovery-inspect`
+- "Is my change faster?", a before/after benchmark of a local change on a runner: `change-validate`
+- Discovery charts, canvases, artifacts, or visual reports: `discovery-visualize`
 - Runner task diagnostics without host access: `execution-log-inspect`
-- Maintain: use the `maintain` skill when present; otherwise inspect `artemis maintain --help` before any mutation
+- Maintain: `maintain`, which ships alongside this skill
 
 Proceed when every required fact is verified or explicitly chosen. Ask for unresolved choices together and do not re-ask facts the user supplied.

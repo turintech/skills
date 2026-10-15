@@ -1,11 +1,11 @@
 ---
 name: project-import
 description: Import an existing remote Git repository into Artemis as a fresh project, using an explicit branch and reusable Git credential, then capture and verify the project UUID. Use when a repository is ready for a new unit of Artemis work, even if other projects already exist for the same repository.
-compatibility: Production Platform 3.0.3 project import is tested with Artemis CLI 1.0.8.
+compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.0.8"
-  artemis-cli-tested: "1.0.8"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.16"
+  artemis-cli-max: "1.2.0"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Import a project into Artemis
@@ -15,7 +15,7 @@ metadata:
 - **Problem:** Registers a remote Git repository and explicit branch as a fresh Artemis project and captures its verified project UUID.
 - **Must be available:** An authenticated CLI, a reachable remote and branch, a Git credential configured in Artemis that can read the repository, and verified commands unless runner-side verification will follow import.
 - **Use / don't use:** Use whenever an importable remote exists and a new unit of work is needed; don't use it to create a fork, derive commands, or silently reuse an earlier project.
-- **Next skill:** Return to `repo-command-setup` §5b if runner-side command verification or validation remains; otherwise pass the project UUID to `discovery-start`.
+- **Next skill:** When a calling skill invoked this one, return the project UUID to it. Otherwise return to `repo-command-setup` §5b if runner-side verification remains, or pass the UUID to `discovery-start`.
 
 ## Requirements
 
@@ -25,25 +25,24 @@ metadata:
 - Compile, test, and benchmark commands are either verified locally through `repo-command-setup`, or explicitly deferred until this project can be verified on the runner.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option — any JSON filter works (e.g. `python3 -c`).
 
-When consuming `--output-format json`, keep stderr separate and parse stdout as one complete JSON document. If progress text contaminates stdout or parsing fails, repeat a clean read-only list call; do not regex-extract a JSON-looking substring from mixed output.
-
 ## 1. Resolve and verify inputs
 
 Record:
 
 - repository URL for `--git-url`;
 - exact branch for `--branch`;
-- exact branch-tip commit as the seed;
+- exact branch-tip commit, which becomes the imported commit (`gitHash`);
 - meaningful project name for `--name`.
 
 Resolve and record the branch tip before import:
 
 ```bash
-SEED_SHA="$(git ls-remote --exit-code --heads \
-  "<git-url>" "refs/heads/<branch>" | cut -f1)"
-test -n "$SEED_SHA"
+SEED_SHA="$(GIT_TERMINAL_PROMPT=0 git ls-remote --exit-code --heads \
+  "<git-url>" "refs/heads/<branch>" | cut -f1)" || true
 printf '%s\n' "$SEED_SHA"
 ```
+
+If it is empty, set `SEED_SHA` to the imported project's `gitHash` and say so.
 
 Always pass `--branch`. Import may accept a typo and fail only when Artemis later attempts checkout. Carry `SEED_SHA` through verification and handoff.
 
@@ -51,10 +50,10 @@ Always pass `--branch`. Import may accept a typo and fail only when Artemis late
 
 ```bash
 artemis project list --help
-artemis --output-format json project list
+artemis --output-format json project list --all
 ```
 
-Default to importing a new project even if one already represents this repository and branch — separate projects are how work stays decoupled. Skim the existing list only to pick a project `--name` that won't be confused with another project against the same repository (e.g. suffix it with the task, target, or feature being optimised).
+When a calling skill passes an existing project, skip sections 3 and 4: confirm its `importedStatus` is `success` and its `gitUrl`/`gitBranch`, then return its UUID. Otherwise default to importing a new project even if one already represents this repository and branch: separate projects keep work decoupled. Skim the existing list only to pick a project `--name` that won't be confused with another project against the same repository (e.g. suffix it with the task, target, or feature being optimised). Use only ASCII letters, digits, spaces and plain hyphens in the name: a dash like `–` or any other non-ASCII character makes every Maintain scan of the project fail.
 
 Reuse an existing project's UUID instead of importing again only when the user explicitly asks to continue that same prior work. Project names are labels, not stable identifiers; use UUIDs in every later command regardless.
 
@@ -67,18 +66,22 @@ artemis key list --help
 artemis --output-format json key list
 ```
 
-Reuse a credential that can read the repository. Check the provider values returned by the installed CLI rather than assuming they match the values accepted by `key add`.
+Reuse a credential that can read the repository. Check the provider values the installed CLI returns rather than assuming them.
 
-If no suitable credential exists, present **both** setup routes and let the user choose. For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
+Use a key for the repository's git service even when the repository is public. Without one, Artemis reads it from GitHub unauthenticated, which GitHub rate-limits, and later checks such as the upstream check on `changeset create` start failing.
 
-1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account in the Artemis Web UI at [https://artemis.turintech.ai/settings/git](https://artemis.turintech.ai/settings/git) (same path on an on-prem deployment's base URL). Then re-run `artemis key list` — a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
-2. **PAT via CLI:** have the user run `artemis key add` interactively in their own terminal (for GitHub, typically `--provider github --token <pat>`) so the secret never enters chat.
+If no suitable credential exists, present **both** setup routes and let the user choose, except for `quickstart`'s public demo (below). For GitHub, the OAuth / GitHub App route is often easier than minting a PAT:
 
-Prefer an existing GitHub OAuth credential over adding a new PAT when both would work. For GitLab, Bitbucket, or Azure DevOps, use the provider-specific `artemis key add` flow unless the Web UI offers an equivalent connect path. Record the selected key UUID.
+1. **GitHub OAuth (often easier):** ask the user to connect their GitHub account on the Git page of their deployment (`<deployment-base-url>/settings/git`). Then re-run `artemis key list`: a `github_oauth_token` (or similar) entry should appear. Do not ask them to paste OAuth tokens into chat.
+2. **Access key in the Web UI:** ask the user to add it on `<deployment-base-url>/settings/git/create-key` (**Add access key**: a GitHub, GitLab or Azure DevOps personal access token, a Bitbucket API token or app password, or an SSH key). They paste the secret into that page, never into chat or a command line, where `ps` and shell history can see it. Then re-run `artemis key list` and take the new key's UUID.
+
+Prefer an existing GitHub OAuth credential over adding a new access key when both would work. Record the selected key UUID.
+
+When `quickstart` is importing its public demo, offer only the GitHub OAuth route (1): one click on **Connect to GitHub**, nothing to paste. Ask the user to say "done" when the GitHub section shows **Connected**, then re-run `artemis key list`. If the user says the Git page has no **Connect to GitHub** button, fall back to route 2: a GitHub personal access token with read access to public repositories.
 
 ## 4. Import once
 
-Confirm the URL, branch, project name, and key UUID before creating the project:
+State the URL, branch, project name and key you are using. Wait for confirmation only when the user is driving this skill directly and one of them was guessed:
 
 ```bash
 artemis project import --help
@@ -89,34 +92,27 @@ artemis --output-format json project import \
   --branch "<branch>"
 ```
 
+The Web UI imports with auto-sync off. CLI 1.1.16 and older turn it on by default, so on those add `--auto-sync=false`; 1.1.17 and newer import with it off and hide the flag.
+
 Capture the project UUID from the response immediately.
 
 Give the user a clickable link as soon as the UUID is known:
 
 ```text
-[Open project](<base-url>/projects/<project-uuid>)
+[Open project](<deployment-base-url>/projects/<project-uuid>)
 ```
 
 Use the authenticated deployment base URL, including for on-prem deployments. Repeat the link after import verification so the user can inspect the project in the Web UI.
 
-**Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes.
+**Import is asynchronous.** The command returns once the import is queued, while Artemis is still cloning the repository, and the project cannot be used until that finishes. `importedStatus` reports where it is: `importing`, `success`, or `failed`.
 
-Some production responses include `importedStatus` (`importing`, `success`, or `failed`), while others omit it. Poll the project record by UUID. When the field is present, stop on `failed` and wait for `success`:
+Wait for it with one command that fits a 10-minute tool timeout:
 
 ```bash
-artemis --output-format json project list | jq -r '.docs[]? | select(.id=="<project-uuid>") | .importedStatus'
+artemis project get <project-uuid> --wait --timeout 9m
 ```
 
-When the field exists, wait for `success` before running anything against the project.
-
-When `importedStatus` is absent, do not poll a missing field forever and do not assume that omission means failure. Treat the import as ready only after all of these hold:
-
-- the captured project UUID appears in a fresh project list;
-- Git URL and explicit branch match the requested import;
-- `gitHash` is non-empty and exactly matches `SEED_SHA`;
-- `artemis project compare "<project-uuid>"` succeeds against that imported project.
-
-If the record has no `gitHash` yet, continue bounded polling. If its hash differs from the seed, stop and report that the branch moved or the wrong revision was imported.
+Exit 0 means the import succeeded. Exit 6 means it is still importing after 9 minutes: give the user the project link, say the import is still running, and stop. Otherwise read the error. One starting "the import of <name> failed;" means the import failed, and the CLI suggests `artemis project delete <project-uuid> --force`: ask the user before deleting it, since `--force` skips the confirmation. Then check the key can read the repo and the branch exists, and import once more; don't loop. Any other error, including "waiting for the import of <name>: …", is a CLI or connection problem: report it.
 
 ## 5. Verify and hand off
 
@@ -128,22 +124,18 @@ List or inspect the project using the installed CLI and confirm:
 - selected Git credential is correct;
 - project is on the intended Artemis deployment.
 
-An explicit `importedStatus: failed` always wins over matching metadata. Surface the failure rather than accepting the hash checks.
+If the imported commit differs because the branch moved, stop and record the new state rather than treating the recorded commit as valid. Use the UUID rather than the project name for validation, command configuration, and discovery.
 
-If the imported commit differs because the branch moved, stop and record the new state rather than treating the original seed as valid. Use the UUID rather than the project name for validation, command configuration, and discovery.
-
-Follow `repo-command-setup`'s workflow path: verify locally before import, or return to §5b after import for runner verification.
-
-Project command defaults are optional for Web UI validation; discovery receives its commands inline through `discovery-start`.
+When a calling skill invoked this one, return the project UUID to it. Otherwise follow `repo-command-setup`'s workflow path: verify locally before import, or return to `repo-command-setup` §5b after import for runner verification.
 
 ## Checklist
 
 - [ ] Authenticated deployment confirmed.
-- [ ] Remote URL, explicit branch, and seed SHA recorded.
+- [ ] Remote URL, explicit branch, and branch-tip commit (`SEED_SHA`) recorded.
 - [ ] Project name is distinct enough to avoid confusion with other projects against the same repository.
 - [ ] Existing readable Git credential reused when possible (GitHub OAuth preferred over a new PAT).
-- [ ] If no credential existed, both OAuth (Web UI) and `key add` (PAT) routes were offered; any new secret entered by the user outside chat.
+- [ ] If no credential existed, both Web UI routes (GitHub connect, Add access key) were offered, or only GitHub connect for `quickstart`'s demo; the user entered any new secret in the browser, never in chat or a command line.
 - [ ] Import performed once with confirmed inputs.
-- [ ] Project UUID captured and imported `gitHash` verified against the seed SHA.
+- [ ] Project UUID captured and imported `gitHash` verified against `SEED_SHA`.
 - [ ] Clickable project link returned to the user.
-- [ ] UUID and seed handed to `repo-command-setup` §5b or `discovery-start`.
+- [ ] UUID and imported commit handed to `repo-command-setup` §5b or `discovery-start`.

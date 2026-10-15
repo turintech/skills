@@ -1,6 +1,8 @@
 # TurinTech AI Skills
 
-A Claude Code plugin marketplace by [TurinTech AI](https://www.turintech.ai).
+A portable [Agent Skills](https://agentskills.io) marketplace by [TurinTech AI](https://www.turintech.ai).
+
+The canonical source is this repository. One skill directory is the source of truth; do not fork copies per agent.
 
 ## Plugins
 
@@ -8,24 +10,78 @@ A Claude Code plugin marketplace by [TurinTech AI](https://www.turintech.ai).
 
 ## Installation
 
-Add the marketplace:
+The skill format is shared. How you install it depends on the agent. Pin a released tag such as [v2.0.0](https://github.com/turintech/skills/releases/tag/v2.0.0) when you need production-compatible skills: a client on Platform 3.1.0 then stays on the skills released for it, while `develop` moves on. `develop` is the next CLI and platform release and is not a pin.
 
-```
+### Claude Code
+
+```bash
 /plugin marketplace add turintech/skills
-```
-
-Install a plugin:
-
-```
 /plugin install artemis@skills
 ```
 
-## Updating
+Update with `/plugin marketplace update skills`. To pin a release, add the marketplace at its tag instead:
 
+```bash
+/plugin marketplace add turintech/skills@v2.0.0
 ```
-/plugin marketplace update skills
+
+From a shell, the same is `claude plugin marketplace add turintech/skills@v2.0.0`, then `claude plugin install artemis@skills`.
+
+### Cursor
+
+```bash
+agent plugin marketplace add https://github.com/turintech/skills.git \
+  --git-ref v2.0.0
 ```
+
+Then install `artemis` from the marketplace. Copying `plugins/artemis/skills/<skill-name>/` into `.agents/skills/`, `.cursor/skills/`, or `.claude/skills/` still works when you need a project-local checkout.
+
+### Codex
+
+```bash
+codex plugin marketplace add turintech/skills --ref v2.0.0
+```
+
+### GitHub Copilot / VS Code
+
+```bash
+gh skill install turintech/skills --all --pin v2.0.0
+```
+
+Or copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.claude/skills/` in the workspace.
 
 ## Releasing
 
 Skills are versioned independently of the Artemis CLI and platform. Commits use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). See [RELEASING.md](RELEASING.md).
+
+## Artemis skills
+
+| Skill | Use when |
+|---|---|
+| `quickstart` | Take a user from any starting point to a first measured result, in the terminal by default or the browser if they choose |
+| `cli-follow-along` | Show the matching Artemis Web UI page while work happens |
+| `platform-tour` | Show how a task is done in the Web UI by doing it in the user's Chrome, no CLI |
+| `artemis` | Classify a request and route to the right skill |
+| `cli-setup` | Install or authenticate the CLI |
+| `runner-setup` | Install, register, or start a runner |
+| `repo-command-setup` | Derive, verify, and store compile/test/benchmark commands as a validation script |
+| `workspace-setup` | Persistent incremental build cache |
+| `project-import` | Import a branch as an Artemis project |
+| `discovery-start` | Create a discovery run |
+| `discovery-inspect` | Interpret status, versions, metrics, and diffs |
+| `discovery-visualize` | Chart or report a discovery run on Cursor, Claude Code, or Copilot |
+| `discovery-steer` | Continue, expand, or redirect a live run |
+| `change-validate` | Check whether a local change is really faster: original vs change, same runner, the platform's verdict |
+| `execution-log-inspect` | Read runner task logs |
+| `maintain` | Scan, triage, fix, and ship code-health issues |
+
+## Versioning
+
+Each skill declares the oldest Artemis CLI it works with, using the Agent Skills spec's fields:
+
+    compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
+    metadata:
+      artemis-cli-min: "1.1.8"
+      artemis-platform-min: "3.1.0"
+
+Raise `artemis-cli-min` or `artemis-platform-min` in the same commit that makes a skill depend on a newer CLI or platform feature. Run `scripts/check-skills.sh` before pushing; it requires both metadata fields and checks that the router only names skills that exist.

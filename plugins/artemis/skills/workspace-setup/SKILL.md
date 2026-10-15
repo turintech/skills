@@ -1,17 +1,25 @@
 ---
 name: workspace-setup
-description: Prepare and verify a runner-owned persistent build workspace for Artemis. Use when clean candidate builds are prohibitively expensive, a repository needs incremental builds, or compile/test/benchmark commands must bridge Artemis task checkouts into a stable cache.
-compatibility: Requires Artemis CLI 1.0.7+ and Artemis Platform 3.0.3+.
+description: Prepare and verify a runner-owned persistent build workspace for Artemis. Use when a clean build of each version is prohibitively expensive, a repository needs incremental builds, or compile/test/benchmark commands must bridge Artemis task checkouts into a stable cache.
+compatibility: Requires Artemis CLI 1.1.8+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.0.7"
-  artemis-platform-min: "3.0.3"
+  artemis-cli-min: "1.1.8"
+  artemis-cli-max: "1.2.0"
+  artemis-platform-min: "3.1.0"
 ---
 
 # Set up a persistent Artemis workspace
 
-Every Artemis version arrives in a fresh checkout, so large projects lose incremental build state and pay a full rebuild for each candidate.
+## At a glance
 
-Keep a dedicated built tree on the runner, seeded at the same commit as the project on the platform. The compile command syncs the candidate's changes into that tree and rebuilds incrementally. Test and benchmark use the same tree; the benchmark still publishes results back to the working directory (`$PWD`).
+- **Problem:** Keeps one prebuilt tree on the runner so each version rebuilds only what changed, for projects whose clean build is too slow to repeat for every version.
+- **Must be available:** A runner you can reach, disk for the cached tree, and the project's verified build commands.
+- **Use / don't use:** Use when compile takes more than about 5 minutes on the runner, since every Discovery version repeats it. Skip it for projects that build in a minute or two.
+- **Next skill:** Return to `repo-command-setup` to store the commands that use the workspace.
+
+Every Artemis version arrives in a fresh checkout, so large projects lose incremental build state and pay a full rebuild for each one.
+
+Keep a dedicated built tree on the runner, seeded at the same commit as the project on the platform. The compile command syncs the version's changes into that tree and rebuilds incrementally. Test and benchmark use the same tree; the benchmark still publishes results back to the working directory (`$PWD`).
 
 This skill explains the requirements. It does not prescribe a helper-script layout. Return to `repo-command-setup` to record and verify the command triple.
 
@@ -19,25 +27,26 @@ See [WORKSPACE.md](WORKSPACE.md) for optional shell sketches.
 
 ## Requirements
 
-- Create a dedicated directory on the runner host and build the project there. Do not use a developer's active checkout.
-- Seed that tree at the same commit as the project on the platform (`gitHash`, or Discovery `baselineVersionSha` when a run exists). If they differ, stop and resolve that before creating a cache.
-- In the Artemis compile command, sync candidate changes into the tree and rebuild incrementally. Sync every path the agent may change; an incomplete copy silently measures old code.
+- Create a dedicated directory on the runner host and build the project there. Do not use a developer's active checkout. Mark it (for example a `.artemis-managed-workspace` file) and refuse any destructive cleanup where the marker is missing.
+- Seed that tree at the same commit as the project on the platform (`gitHash`, or Discovery `baselineVersionSha` when a run exists). If they differ, stop and resolve that before creating a cache. Seed it on the runner host with `git clone --branch <branch> <git-url> <workspace>/source && git -C <workspace>/source checkout <gitHash>`, as the user who runs the runner.
+- In the Artemis compile command, sync the version's changes into the tree and rebuild incrementally. Sync every path the agent may change; an incomplete copy silently measures old code.
 - Run test and benchmark against that same built tree.
 - Publish `artemis_results.json` or `.csv` back to the working directory (`$PWD`). Artemis does not read results from the cache.
-- If candidates share one tree, serialize compile through benchmark so another candidate cannot overwrite the binary mid-transaction.
+- If versions share one tree, serialize compile through benchmark so another version cannot overwrite the binary mid-transaction.
 - Start a new cache when the seed commit, toolchain, or incompatible build options change.
 - A failed sync or build must not leave a previous binary or stale results file looking current.
+- Now and then, reproduce a result with a clean build.
 
 ## Examples
 
 These sketches show one way to meet the requirements. Adapt them to the repository's build system.
 
-Compile syncs the candidate into the built tree and rebuilds:
+Compile syncs the version into the built tree and rebuilds:
 
 ```bash
-set -euo pipefail
+set -eu
 ORIG="$PWD"
-WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
+WORKSPACE="/absolute/path/on/runner/artemis-workspaces/<project>"   # literal path; the runner sees only env exported before artemis-runner start
 # confirm the workspace is seeded at the platform commit, then:
 # sync every path the agent may change from "$ORIG" into "$WORKSPACE"
 # rebuild incrementally in "$WORKSPACE"
@@ -46,16 +55,16 @@ WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
 Benchmark measures that tree and copies results back to `$PWD`:
 
 ```bash
-set -euo pipefail
+set -eu
 ORIG="$PWD"
-WORKSPACE="${ARTEMIS_CACHE_ROOT:?set ARTEMIS_CACHE_ROOT to the runner cache}"
+WORKSPACE="/absolute/path/on/runner/artemis-workspaces/<project>"   # literal path; the runner sees only env exported before artemis-runner start
 rm -f "$ORIG/artemis_results.json" "$ORIG/artemis_results.csv"
 # run the headless benchmark against "$WORKSPACE"
 # copy the fresh numeric results file back to "$ORIG"
 test -f "$ORIG/artemis_results.json" || test -f "$ORIG/artemis_results.csv"
 ```
 
-## Prove the candidate rebuilt
+## Prove the version rebuilt
 
 A passing exit code is not enough if the cache rebuilt the seed tree or benchmarked a stale binary. After a representative source edit, the sync should pick it up and the rebuild should change the expected artifact. Restore the edit before recording commands. A representative semantic fault should still fail the test command.
 
