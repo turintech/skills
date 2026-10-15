@@ -27,6 +27,15 @@ class InstallBelowCeiling(unittest.TestCase):
                     found.append(f"{path.relative_to(SKILLS)}:{n}: {NEWEST_CLI.search(line).group(0)}")
         self.assertEqual(found, [], "say the newest CLI below the skills' `artemis-cli-max`")
 
+    def test_the_installer_comes_from_a_pinned_release_with_a_version(self):
+        # latest/ is frozen at an old installer, and without --version it takes the newest release.
+        text = (SKILLS / "cli-setup/references/installer.md").read_text()
+        block = text[text.index("```bash"):]
+        self.assertNotIn("artemis-cli/latest", text)
+        self.assertIn('/public/artemis-cli/$VER"', block)
+        self.assertIn(" artemis-cli-installer.sh\\$\" checksums.txt", block)
+        self.assertIn('--version "$VER"', block)
+
 
 if __name__ == "__main__":
     unittest.main()
