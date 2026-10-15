@@ -126,7 +126,7 @@ Then the starting point decides what comes before section 7:
 
 ## 5. Setup
 
-Hand each missing item to its skill. Say plainly when a step is the user's, and wait.
+Hand each missing item to its skill. When a step is the user's, say so and show what they must do (the owning skill's boxes or link) in the same reply, then wait. Never end a turn on "the next message has the steps".
 
 | Item | Skill | Human part | Tell them (section 8) |
 |---|---|---|---|
@@ -141,7 +141,7 @@ Whichever runner `runner-setup` reuses or starts is the one every later step use
 
 - **Never ask the user to choose run settings.** Not the model, the version budget, the number of Benchmark runs, the target files, or the task wording. They are fixed in section 7's step 7 and 7a; pass them to the owning skills.
 - **Announce, do not ask,** for anything long-lived or external: starting a runner, creating a project or branch.
-- **The user's credentials are theirs.** `cli-setup` owns the login message. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
+- **The user's credentials are theirs.** `cli-setup` owns the login step. Never read, type or handle a key, never ask for one in chat, and never put one on a command line.
 - **Stop cleanly rather than inventing.** If nothing is measurable, say so; never fabricate a metric.
 
 ## 7. The seven steps
@@ -261,7 +261,7 @@ For example: "Your project is in Artemis: [Open project](<link>). You'll see the
 
 | Step | Agent's job |
 |---|---|
-| Sign in and create an API key | `cli-setup` owns the order and the message. Say the step is theirs, and wait |
+| Sign in and create an API key | `cli-setup` owns the order and the boxes. Say the step is theirs, show the boxes in the same reply, and wait |
 | Connect to GitHub (demo) or a Git provider | Give the `<deployment-base-url>/settings/git` link and wait for "done" |
 
 ## 10. When it cannot continue
@@ -291,7 +291,7 @@ Show the plan again with everything ticked, then a short readiness report, wheth
 
 Suggest three next steps: steer the run (`discovery-steer`), chart the results (`discovery-visualize`), or try their own project. After **just set me up**, there is no work line; suggest the Particle Life demo or their own project instead, either of which starts from this skill again.
 
-Send the ticked plan and the readiness report first, as their own message; only then ask the next step with the host's question tool, one option per suggestion above, never as a bulleted list or a sentence a bare "yes" could answer. Only a host with no question tool gets one plain question naming the options. Any other offer, such as adding the CLI to a shell startup file, goes in its own message, naming the file and the lines it would add. When an answer still fits more than one offer ("both", "yes"), ask which, and do each one separately. Choosing the demo here is a §3 switch: the credits line, then the plan.
+Show the ticked plan and the readiness report first, as their own block; then, in the same turn, ask the next step with the host's question tool, one option per suggestion above, never as a bulleted list or a sentence a bare "yes" could answer. Only a host with no question tool gets one plain question naming the options. Any other offer, such as adding the CLI to a shell startup file, goes in its own paragraph, naming the file and the lines it would add. When an answer still fits more than one offer ("both", "yes"), ask which, and do each one separately. Choosing the demo here is a §3 switch: the credits line, then the plan.
 
 When they later make a change of their own, `change-validate` checks whether it is really faster.
 
