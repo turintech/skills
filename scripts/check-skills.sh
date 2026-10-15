@@ -40,7 +40,7 @@ done
 python3 "$ROOT/scripts/check_frontmatter.py" || fail=1
 python3 "$ROOT/scripts/check_refs.py" || fail=1
 
-# Commands and flags against a real CLI, when one is given (CI downloads the newest release).
+# Commands and flags against a real CLI, when one is given (CI downloads the pinned release, ARTEMIS_CLI_PINNED).
 if [ -n "${ARTEMIS_CLI:-}" ]; then
   python3 "$ROOT/scripts/check_cli.py" "$ARTEMIS_CLI" || fail=1
 else

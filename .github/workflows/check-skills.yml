@@ -10,6 +10,10 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # The exact CLI release the skills are checked against. Raise it by hand after testing a newer release;
+      # check_cli_pin.py fails it if it falls outside the skills' artemis-cli-min / artemis-cli-max range.
+      ARTEMIS_CLI_PINNED: "1.1.18"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -17,19 +21,24 @@ jobs:
           python-version: "3.12"
       - name: Install PyYAML for the front-matter check
         run: python3 -m pip install pyyaml==6.0.2
-      - name: Download the Artemis CLI
+      - name: Download the pinned Artemis CLI
         env:
           # Repository secret ARTEMIS_FILES_AUTH ("user:password"), only if the file server needs auth again.
           FILES_AUTH: ${{ secrets.ARTEMIS_FILES_AUTH }}
         run: |
-          base=https://files.artemis.turintech.ai/public/artemis-cli
+          python3 scripts/check_cli_pin.py "$ARTEMIS_CLI_PINNED"
+          base="https://files.artemis.turintech.ai/public/artemis-cli/$ARTEMIS_CLI_PINNED"
           auth=()
           if [ -n "$FILES_AUTH" ]; then auth=(--anyauth -u "$FILES_AUTH"); fi
-          ver=$(curl -fsS "${auth[@]}" "$base/" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV | tail -1)
-          curl -fsSL "${auth[@]}" "$base/$ver/artemis-cli-linux-amd64" -o "$RUNNER_TEMP/artemis"
-          chmod +x "$RUNNER_TEMP/artemis"
-          echo "ARTEMIS_CLI=$RUNNER_TEMP/artemis" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/cli" && cd "$RUNNER_TEMP/cli"
+          curl -fsSL "${auth[@]}" -O "$base/artemis-cli-linux-amd64" -O "$base/checksums.txt"
+          grep " artemis-cli-linux-amd64\$" checksums.txt | sha256sum -c -
+          chmod +x artemis-cli-linux-amd64
+          echo "ARTEMIS_CLI=$RUNNER_TEMP/cli/artemis-cli-linux-amd64" >> "$GITHUB_ENV"
       - name: Check skill metadata, references and CLI commands
+        env:
+          # A skill that needs a newer CLI than the pin fails here rather than being skipped.
+          ARTEMIS_CLI_STRICT: "1"
         run: scripts/check-skills.sh
       - name: Check each skill against the CLI it declares as its minimum
         env:
@@ -49,14 +58,3 @@ jobs:
         run: python3 -m unittest discover -s scripts/tests -p "test_*.py" -v
       - name: Report where skills could be shorter
         run: python3 scripts/skill_length_report.py
-      # Last, so a failing release gate does not hide the other results.
-      - name: Check main against the CLI production installs (latest/)
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        env:
-          FILES_AUTH: ${{ secrets.ARTEMIS_FILES_AUTH }}
-        run: |
-          auth=()
-          if [ -n "$FILES_AUTH" ]; then auth=(--anyauth -u "$FILES_AUTH"); fi
-          curl -fsSL "${auth[@]}" https://files.artemis.turintech.ai/public/artemis-cli/latest/artemis-cli-linux-amd64 -o "$RUNNER_TEMP/artemis-latest"
-          chmod +x "$RUNNER_TEMP/artemis-latest"
-          ARTEMIS_CLI_STRICT=1 ARTEMIS_CLI="$RUNNER_TEMP/artemis-latest" scripts/check-skills.sh
