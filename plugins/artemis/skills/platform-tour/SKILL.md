@@ -4,6 +4,7 @@ description: Show someone how to do a task on the Artemis platform by doing it i
 compatibility: Requires Artemis Platform 3.1.0+ and a browser-control tool such as Claude in Chrome. Uses no CLI.
 metadata:
   artemis-cli-min: "1.1.8"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 

@@ -1,9 +1,10 @@
 ---
 name: cli-setup
 description: Install, update, and authenticate the Artemis CLI by direct download from the Artemis file server, then log in with an API key the user creates. Use when the CLI is missing, older than the skills' minimum, or not signed in to the target deployment, and once per session to check that the Artemis skills and CLI are current.
-compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.8+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 
@@ -60,7 +61,7 @@ Then:
 
 If it warns about the cache, `/reload-plugins --force`, or restart Claude Code. If the user pastes a shell command or other text meant for step 1 instead, answer in one line that points back to step 1 and wait; don't explain the reload again.
 
-**2. The CLI.** It must meet the skills' minimum: see *Verify*, and *Update* if it is older.
+**2. The CLI.** It must meet the skills' minimum and should be below their ceiling: see *Verify*, and *Update* if it is older.
 
 **3. The platform.** Skills declare `metadata.artemis-platform-min`, but the CLI cannot report the platform's version, so do not guess it. If a command that `--help` lists fails with an unknown route, or with a 404 for an id you have just seen in a list on this deployment, say the deployment may be older than these skills need or the id may not be visible to this login, rather than retrying.
 
@@ -140,17 +141,18 @@ The public download paths need no login, so send no credentials.
 
 If the directory has no file for this machine, never install a different architecture's build in its place: it either fails to start or runs under emulation and misbehaves later. Try the newest versioned release, which carries all six, and if that has none either, tell the user no build exists for this machine and stop. Channels can differ in which builds they carry, so read the listing rather than assuming.
 
-Without a directory from the prompt, install from the public path, which carries current releases. Check the listing first and take the newest, rather than trusting a version named here:
+Without a directory from the prompt, install from the public path, which carries current releases. Check the listing first and take the newest below the skills' `artemis-cli-max` (1.2.0, exclusive; *Verify*), rather than trusting a version named here:
 
 ```bash
 curl -s "https://files.artemis.turintech.ai/public/artemis-cli/" \
-  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV | tail -5
+  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -uV \
+  | while read -r v; do if [ "$v" != 1.2.0 ] && [ "$(printf '%s\n' "$v" 1.2.0 | sort -V | head -1)" = "$v" ]; then echo "$v"; fi; done | tail -5
 ```
 
 Then fetch that version for the platform, check it against the release's `checksums.txt`, and only then put it on `PATH`:
 
 ```bash
-VER=<the newest version in the listing above>
+VER=<the newest version the listing above printed>
 PLATFORM="linux-amd64"   # from the table above
 BASE="https://files.artemis.turintech.ai/public/artemis-cli/$VER"
 TMP="$(mktemp -d)"
@@ -265,10 +267,19 @@ cli_meets_min() {  # $1: an `artemis --version` line, $2: the minimum release. P
     if [ -n "$v" ] && [ "$(printf '%s\n' "$2" "$v" | sort -V | head -1)" = "$2" ]; then echo ok; else echo old; fi
   fi
 }
+cli_below_max() {  # $1: an `artemis --version` line, $2: the exclusive maximum. Prints ok or above.
+  v="$(printf '%s' "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+  if [ -z "$v" ]; then echo ok   # a dev build has no release number to compare
+  elif [ "$v" != "$2" ] && [ "$(printf '%s\n' "$v" "$2" | sort -V | head -1)" = "$v" ]; then echo ok
+  else echo above; fi
+}
 cli_meets_min "$(artemis --version)" "1.1.16"   # ok, old or unknown
+cli_below_max "$(artemis --version)" "1.2.0"    # ok or above
 ```
 
 `old`: update the CLI before continuing (on a dev deployment, from its dev directory, never a release). `unknown`: a dev build whose minimum's date could not be read; say so and offer the update.
+
+**The ceiling.** Each skill also declares `metadata.artemis-cli-max`, exclusive: `1.2.0` is the first CLI line these skills were not tested with. `above` is a warning, not a stop. Say in one line: "These skills are tested up to CLI 1.1.x; your CLI <version> may not work with them. Update the skills, or install the newest 1.1.x CLI." Then carry on. If a command later fails in a way its `--help` does not explain, offer that 1.1.x install (*Where to download from*, the newest version below the ceiling). Other skills point here rather than repeating this rule.
 
 ```bash
 artemis --version || artemis version

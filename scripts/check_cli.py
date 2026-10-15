@@ -12,7 +12,7 @@ import subprocess
 import sys
 import tempfile
 
-SKILLS = pathlib.Path(__file__).resolve().parent.parent / "plugins/artemis/skills"
+SKILLS = pathlib.Path(os.environ.get("ARTEMIS_SKILLS_DIR") or pathlib.Path(__file__).resolve().parent.parent / "plugins/artemis/skills")
 CLI = sys.argv[1] if len(sys.argv) > 1 else "artemis"
 HOME = tempfile.mkdtemp()
 _help = {}
@@ -99,6 +99,18 @@ def version_tuple(text):
     return tuple(int(n) for n in m.groups()) if m else None
 
 
+def files_of(skill):
+    """The skill's own Markdown, plus Markdown in other skills that it links to."""
+    own = sorted(skill.rglob("*.md"))
+    linked = set()
+    for f in own:
+        for target in re.findall(r"\]\((\.\./[^)#\s]+\.md)", f.read_text()):
+            path = (f.parent / target).resolve()
+            if path.is_file() and skill.resolve() not in path.parents:
+                linked.add(path)
+    return own + sorted(linked)
+
+
 def cli_min(skill):
     """metadata.artemis-cli-min as a (major, minor, patch) tuple, or None."""
     path = skill / "SKILL.md"
@@ -124,11 +136,12 @@ for skill in sorted(SKILLS.iterdir()):
             print(f"SKIP {skill.name}: needs CLI {'.'.join(map(str, need))}, checking against {version}")
             skipped.append(skill.name)
             continue
-    for f in sorted(skill.rglob("*.md")):
+    for f in files_of(skill):
+        where = f.relative_to(SKILLS.resolve()) if f.is_absolute() else f.relative_to(SKILLS)
         for cmd in set(commands(f.read_text())):
             checked.append(cmd)
             for flag in check(cmd):
-                failures.append(f"{f.relative_to(SKILLS)}: {flag} unknown in: {cmd[:90]}")
+                failures.append(f"{skill.name} ({where}): {flag} unknown in: {cmd[:90]}")
 
 for f in sorted(set(failures)):
     print("FAIL", f)

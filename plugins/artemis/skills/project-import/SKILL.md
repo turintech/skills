@@ -1,9 +1,10 @@
 ---
 name: project-import
 description: Import an existing remote Git repository into Artemis as a fresh project, using an explicit branch and reusable Git credential, then capture and verify the project UUID. Use when a repository is ready for a new unit of Artemis work, even if other projects already exist for the same repository.
-compatibility: Requires Artemis CLI 1.1.16+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.16"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 

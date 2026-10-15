@@ -31,6 +31,18 @@ jobs:
           echo "ARTEMIS_CLI=$RUNNER_TEMP/artemis" >> "$GITHUB_ENV"
       - name: Check skill metadata, references and CLI commands
         run: scripts/check-skills.sh
+      - name: Check each skill against the CLI it declares as its minimum
+        env:
+          FILES_AUTH: ${{ secrets.ARTEMIS_FILES_AUTH }}
+        run: |
+          base=https://files.artemis.turintech.ai/public/artemis-cli
+          auth=()
+          if [ -n "$FILES_AUTH" ]; then auth=(--anyauth -u "$FILES_AUTH"); fi
+          for ver in $(sed -nE 's/^  artemis-cli-min: "([0-9.]+)"$/\1/p' plugins/artemis/skills/*/SKILL.md | sort -uV); do
+            curl -fsSL "${auth[@]}" "$base/$ver/artemis-cli-linux-amd64" -o "$RUNNER_TEMP/artemis-$ver"
+            chmod +x "$RUNNER_TEMP/artemis-$ver"
+            python3 scripts/check_cli.py "$RUNNER_TEMP/artemis-$ver"
+          done
       - name: Test the discovery-visualize collector, report kit and checker
         run: python3 -m unittest discover -s plugins/artemis/skills/discovery-visualize/tests -p "test_*.py" -v
       - name: Test the skill checks
