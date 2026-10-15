@@ -1,9 +1,10 @@
 ---
 name: cli-follow-along
 description: While the CLI does the work, show the user the Artemis Web UI page that matches each step, in one browser tab, navigating only. Use when the user has chosen to follow along in their browser and a browser-control tool such as Claude in Chrome is connected. Do not use it to change settings or start work without the user's explicit approval. To teach a task through the Web UI itself, without the CLI, use platform-tour.
-compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+, plus a browser-control tool such as Claude in Chrome. Without one, print links instead. Page paths differ between deployments, so the skill follows the app's own navigation.
+compatibility: Requires Artemis CLI 1.1.8+ (below 1.2.0) and Artemis Platform 3.1.0+, plus a browser-control tool such as Claude in Chrome. Without one, print links instead. Page paths differ between deployments, so the skill follows the app's own navigation.
 metadata:
   artemis-cli-min: "1.1.8"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 

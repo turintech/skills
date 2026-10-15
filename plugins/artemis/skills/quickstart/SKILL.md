@@ -1,9 +1,10 @@
 ---
 name: quickstart
 description: Take a user to a first measured Artemis result from wherever they are starting, whether a machine with nothing installed, a returning user with a new project, a repository that is not yet a project, or an existing project URL or id. Works in the terminal by default, offers to show each step in the browser instead, and starts the Particle Life example by default for anyone who has not run Artemis before, or stops once the CLI and a runner are ready when the user only wants setup. Use when the user pasted either Artemis Quickstart prompt, asks to get started with or try Artemis, gives a project URL or id to set up, or asks for a project to be set up and measured.
-compatibility: Requires Artemis CLI 1.1.16+ and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
+compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+. The browser route needs a browser-control tool such as Claude in Chrome.
 metadata:
   artemis-cli-min: "1.1.16"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 

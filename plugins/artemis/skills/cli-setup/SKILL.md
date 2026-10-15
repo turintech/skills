@@ -1,9 +1,10 @@
 ---
 name: cli-setup
 description: Install, update, and authenticate the Artemis CLI by direct download from the Artemis file server, then log in with an API key the user creates. Use when the CLI is missing, older than the skills' minimum, or not signed in to the target deployment, and once per session to check that the Artemis skills and CLI are current.
-compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.8+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.8"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 

@@ -1,8 +1,15 @@
-"""Every SKILL.md front matter parses as YAML, as strict skill loaders parse it, with a non-empty name and description."""
+"""Every SKILL.md front matter parses as YAML, as strict skill loaders parse it, with a non-empty name and description,
+and a CLI range whose ceiling is above its floor."""
 import pathlib
+import re
 import sys
 
 import yaml
+
+
+def version_tuple(text):
+    m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", str(text))
+    return tuple(int(n) for n in m.groups()) if m else None
 
 SKILLS = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[1] / "plugins/artemis/skills"
 
@@ -24,4 +31,10 @@ for path in sorted(SKILLS.glob("*/SKILL.md")):
         if not front[key].strip():
             print(f"FAIL {name}: front matter {key} is empty")
             fail = True
+    meta = front.get("metadata") if isinstance(front.get("metadata"), dict) else {}
+    low, high = version_tuple(meta.get("artemis-cli-min", "")), version_tuple(meta.get("artemis-cli-max", ""))
+    # The ceiling is exclusive: the skills work with every CLI from min up to, but not including, max.
+    if low and high and high <= low:
+        print(f"FAIL {name}: artemis-cli-max {meta['artemis-cli-max']} must be above artemis-cli-min {meta['artemis-cli-min']}")
+        fail = True
 sys.exit(fail)

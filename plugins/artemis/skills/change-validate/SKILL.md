@@ -1,9 +1,10 @@
 ---
 name: change-validate
 description: Check whether a local code change really makes a project faster (or better on any metric), measured on an Artemis runner. Puts the uncommitted change on a new Artemis branch, measures the starting commit and the change the same number of times on the same runner and script, and reports the platform's verdict per metric with its interval and a link to the branch's Scripts tab. Use when the user asks whether their change or their agent's change is faster, wants a before/after benchmark, or wants to validate a local change on a runner.
-compatibility: Requires Artemis CLI 1.1.14+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.14+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.14"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 

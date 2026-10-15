@@ -14,6 +14,11 @@ for dir in "$SKILLS"/*/; do
     fail=1
   fi
   if ! echo "$frontmatter" \
+      | grep -qE '^  artemis-cli-max: "[0-9]+\.[0-9]+\.[0-9]+"$'; then
+    echo "FAIL $name: missing metadata.artemis-cli-max"
+    fail=1
+  fi
+  if ! echo "$frontmatter" \
       | grep -qE '^  artemis-platform-min: "[0-9]+\.[0-9]+\.[0-9]+"$'; then
     echo "FAIL $name: missing metadata.artemis-platform-min"
     fail=1

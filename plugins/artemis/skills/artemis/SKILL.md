@@ -1,9 +1,10 @@
 ---
 name: artemis
 description: Classify an Artemis request, check workflow readiness, surface consequential choices before long-running work begins, and route to the appropriate task-specific skills. Use whenever a user wants to set up, run, resume, inspect, validate, optimize, or maintain code with Artemis.
-compatibility: Requires Artemis CLI 1.1.15+ and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.15+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.15"
+  artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
 

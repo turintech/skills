@@ -43,5 +43,20 @@ class EmptyFields(unittest.TestCase):
         self.assertIn("needs a name and a description string", r.stdout)
 
 
+class CliRange(unittest.TestCase):
+    FRONT = 'name: demo\ndescription: Shows the check.\nmetadata:\n  artemis-cli-min: "{low}"\n  artemis-cli-max: "{high}"\n'
+
+    def test_a_ceiling_above_the_floor_passes(self):
+        r = check(self, self.FRONT.format(low="1.1.16", high="1.2.0"))
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_a_ceiling_at_or_below_the_floor_fails(self):
+        for high in ("1.1.16", "1.1.9", "1.0.0"):
+            with self.subTest(high):
+                r = check(self, self.FRONT.format(low="1.1.16", high=high))
+                self.assertEqual(r.returncode, 1, r.stdout)
+                self.assertIn("must be above artemis-cli-min", r.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

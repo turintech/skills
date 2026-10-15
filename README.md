@@ -71,11 +71,14 @@ Skills are versioned independently of the Artemis CLI and platform. Commits use 
 
 ## Versioning
 
-Each skill declares the oldest Artemis CLI it works with, using the Agent Skills spec's fields:
+Each skill declares the range of Artemis CLI releases it works with, and the oldest platform, using the Agent Skills spec's fields:
 
-    compatibility: Requires Artemis CLI 1.1.8+ and Artemis Platform 3.1.0+.
+    compatibility: Requires Artemis CLI 1.1.8+ (below 1.2.0) and Artemis Platform 3.1.0+.
     metadata:
       artemis-cli-min: "1.1.8"
+      artemis-cli-max: "1.2.0"
       artemis-platform-min: "3.1.0"
 
-Raise `artemis-cli-min` or `artemis-platform-min` in the same commit that makes a skill depend on a newer CLI or platform feature. Run `scripts/check-skills.sh` before pushing; it requires both metadata fields and checks that the router only names skills that exist.
+`artemis-cli-min` is the oldest CLI the skill works with. `artemis-cli-max` is exclusive: the first CLI release the skill is not known to work with. The CLI never installs from `latest/`, which different deployments can't share, so a set of skills works with the CLIs from the highest `artemis-cli-min` up to, but not including, the lowest `artemis-cli-max`.
+
+Raise `artemis-cli-min` or `artemis-platform-min` in the same commit that makes a skill depend on a newer CLI or platform feature. Raise `artemis-cli-max` once the skills are checked against the next CLI line. Run `scripts/check-skills.sh` before pushing; it requires all three metadata fields, checks that each ceiling is above its floor, and checks that the router only names skills that exist.
