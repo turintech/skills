@@ -39,6 +39,12 @@ Only listed models can be used by agents. When the user has not named one, recom
 
 **When a calling skill supplies the model, version budget or measurement count, use them and do not re-ask.** `quickstart` fixes all of these for its demo so a first-time user is never asked to choose between things they have not seen yet. When the user is driving the run themselves and has not said what they want, recommend the high-effort model and 5 versions instead of asking, and let them change either in their reply to the question below.
 
+### Agent budget and contributed versions
+
+Check `artemis discovery versions create --help` for the installed CLI. Where it states that user-created versions do not count against the agent's budget, track those contributions separately from agent-generated versions. A total row count in the UI or `versions list` is not the remaining agent budget, and a registered row is not proof of a completed measurement. If the user capped total attempts across both sources, enforce that combined limit separately; adding contributions does not authorize extra work.
+
+Before registering or executing a contribution, check the existing experiment, version and execution IDs. Reuse an already registered attempt rather than creating a duplicate run or repeating a timed-out dispatch whose execution may still be live.
+
 ## 1. Create the run
 
 **When a calling skill has already chosen the runner, use it and do not re-ask**, the same as the model and budget above. `quickstart` picks one for its demo so a first-time user is never asked to choose between machines they have not heard of.
@@ -180,6 +186,12 @@ Use **`discovery baseline set`** only with a hand-authored schema whose `metricI
 artemis discovery baseline set "<run_id>" --metrics-schema "<path-to-schema.json>"
 ```
 
+### Verify the ranking schema
+
+After the baseline, read back `metricsSchema` and match each metric's `metricId`, `higherIsBetter`, and `importance` to the agreed objective. Keep diagnostic measurements available without necessarily weighting them. If the frozen benchmark defines one penalized loss to minimize, weight that objective in the agreed tier, set `higherIsBetter=false`, and leave diagnostics at `importance=none`; retain multiple weighted metrics when the agreed objective requires them. For guided setup, verify this before `setup complete` and confirm the final readback afterward.
+
+Do not assume a successful schema write applied its direction: the setter may inherit direction from the project metric definition. Read back the effective schema after any change. If a project definition needs repair, first preserve the schema, raw metrics and version rankings, then inventory the other runs using that metric and establish the intended scope. Repair only the necessary definition within the authorized scope; confirm affected run schemas afterward. Treat changed Composite scores as a ranking correction, not a new measurement or improvement.
+
 ## 3. Verify exploration started
 
 A finalized baseline does not prove that the run explored a version. Check the same way, one shell call of at most 8 minutes with a 10-minute shell timeout, until at least one version appears or the run becomes terminal. Before the loop, say what Artemis is doing (`artemis`'s *Waiting out loud*): its agent is planning experiments and writing the first version, then measuring it. There's no typical time for this yet, so give the limit (up to 16 minutes, or 24 for a long benchmark, below) and the run link. After a loop, give the printed status, `versionCount` and `experimentCount`:
@@ -211,4 +223,5 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Fast-track offered when the estimate was longer than the user wanted to wait; if used, its [checklist](FAST_TRACK.md#checklist) completed
 - [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (`baselineVersionSha` + schema non-null; schema only for `--execution-mode skip`) before walking away
+- [ ] Effective metric directions and importance tiers read back and matched to the agreed objective; diagnostic metrics weighted only when intended
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`

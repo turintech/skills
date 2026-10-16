@@ -39,6 +39,8 @@ For a validation on a branch, capture the validation `id` and `processId` from t
 
 If a runner-executed failure has neither identifier, report that logs are unavailable instead of claiming they were checked.
 
+A dispatch timeout or `scoring_failed` version with no validation/process ID is not proof that no task was accepted. The backend may accept a request after its caller times out. Before retrying, correlate the exact version, runner, request time and any available task identifiers with platform state and host activity. Distinguish “no task observed” from “no task created”; unrelated nearby server log lines do not establish correlation. Preserve the failed attempt and resolve possible late or orphan admissions before launching a replacement. A pre-worker failure provides no evidence about the candidate's model quality.
+
 ## 2. Retrieve the log
 
 Prefer the resource-native command when a validation ID is available:
