@@ -38,10 +38,10 @@ After an unexpected cancellation, compare platform state with actual host proces
 
 ### Budget gate
 
-`continue` sets the budget to the versions the run already has plus `--versions <n>`; budget it never used is not carried over. So `n` is the number of new versions, and each one spends credits.
+`continue` sets the budget to the versions the run already has plus `--versions <n>`; budget it never used is not carried over. So `n` is the requested additional agent budget; executing it can spend credits. Check the installed `discovery versions create --help`: where user-created versions are excluded from that budget, do not infer exhaustion from the total version rows in the UI. Separate agent-generated, contributed, in-flight and completed measured versions before deciding whether continuation is needed.
 
 - Active with budget remaining: steer after checking the active-execution constraints above. If an active run has exhausted its budget, wait for it to complete first.
-- Completed, failed or cancelled: ask how many versions to add, offering `numVersions - versionCount` (the budget it didn't use) as the default, and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
+- Completed, failed or cancelled: ask how many versions to add, using the verified unused agent budget as the default (use `numVersions - versionCount` only when that count has the matching agent-budget semantics), and name that number and its credit cost in the question. On the user's yes, `continue --versions <n>` with `n` at least 1. (`--versions 0` on a cancelled run only lets versions already in flight finish, which is what the Web UI's **Continue** defaults to.)
 - A failed run is not steered: from CLI 1.1.16 `steer` refuses it. The Web UI's **Retry**, which re-sends the run's chat without new budget, has no CLI equivalent, so continue it as above, naming the credit cost, then check `discovery get`.
 
 ```bash

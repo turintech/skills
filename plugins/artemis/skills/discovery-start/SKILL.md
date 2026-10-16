@@ -39,6 +39,12 @@ Only listed models can be used by agents. When the user has not named one, recom
 
 **When a calling skill supplies the model, version budget or measurement count, use them and do not re-ask.** `quickstart` fixes all of these for its demo so a first-time user is never asked to choose between things they have not seen yet. When the user is driving the run themselves and has not said what they want, recommend the high-effort model and 5 versions instead of asking, and let them change either in their reply to the question below.
 
+### Agent budget and contributed versions
+
+Check `artemis discovery versions create --help` for the installed CLI. Where it states that user-created versions do not count against the agent's budget, track those contributions separately from agent-generated versions. A total row count in the UI or `versions list` is not the remaining agent budget, and a registered row is not proof of a completed measurement. If the user capped total attempts across both sources, enforce that combined limit separately; adding contributions does not authorize extra work.
+
+Before registering or executing a contribution, check the existing experiment, version and execution IDs. Reuse an already registered attempt rather than creating a duplicate run or repeating a timed-out dispatch whose execution may still be live.
+
 ## 1. Create the run
 
 **When a calling skill has already chosen the runner, use it and do not re-ask**, the same as the model and budget above. `quickstart` picks one for its demo so a first-time user is never asked to choose between machines they have not heard of.

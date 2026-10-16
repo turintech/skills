@@ -40,6 +40,8 @@ Run it from the repository root (or pass `--root <repo>`). `--from-git` saves ev
 artemis changeset save <changeset-id> --project <p> -m "<what the change does>" <path> <path> --delete <removed-path>
 ```
 
+If the workflow instead downloads a Branch and overlays prepared source into that workspace, preserve the fresh download's `.artemis/changeset.json`. It records CLI transport provenance, including the origin used for stale-save protection; copying an older workspace's file over it can make the save refer to the wrong origin. Copy only the intended source changes, leaving that transport file intact. Do not generalize this into excluding unrelated source/configuration files from review or validation. On a stale-origin refusal, inspect and reconcile the actual Branch versions; do not use `--force` merely to bypass the provenance check.
+
 The branch then has two versions: the starting commit (`--version original`, the project's code) and **latest** (with the change). Tell the user the branch exists and link it (section 5).
 
 ## 2. Measure both sides the same way
