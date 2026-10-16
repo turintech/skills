@@ -110,6 +110,8 @@ artemis --output-format json discovery get <run-id>
 
 Look at `status`, `executionMode`, `versionCount`, `experimentCount`, `baselineVersionSha`, `metricsSchema`. A run past its baseline has a non-null `baselineVersionSha` + `metricsSchema` (a run still in `setup` can too, before any version); `baselineGroupId` is set as soon as a baseline is dispatched or adopted, before it finishes, so it proves nothing. **`baselineVersionSha` must match the commit you intended to run** — this is how you confirm the run is on the right code (a project pins `gitHash` at import, so a stale project runs old code). An `executionMode` of `skip` ("Assess only") runs nothing, so it never has a `baselineVersionSha`: for those, `metricsSchema` plus a rising `versionCount` show the run started, and there is no baseline commit to compare.
 
+Before interpreting rankings or directional verdicts, verify the effective metric directions and importance tiers against the agreed objective; a non-null schema is not enough. Diagnostics need not all contribute to Composite score. If the schema disagrees with the frozen benchmark, report the discrepancy and raw values, preserve the original rankings, and follow [ranking-schema verification and scoped repair](../discovery-start/SKILL.md#verify-the-ranking-schema). Distinguish the Web UI's current Best from a candidate that actually meets the intended objective and validation gates.
+
 ### 2. What did the agent try? (experiments)
 
 ```bash

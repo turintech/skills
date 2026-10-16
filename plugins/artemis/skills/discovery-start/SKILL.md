@@ -180,6 +180,12 @@ Use **`discovery baseline set`** only with a hand-authored schema whose `metricI
 artemis discovery baseline set "<run_id>" --metrics-schema "<path-to-schema.json>"
 ```
 
+### Verify the ranking schema
+
+After the baseline, read back `metricsSchema` and match each metric's `metricId`, `higherIsBetter`, and `importance` to the agreed objective. Keep diagnostic measurements available without necessarily weighting them. If the frozen benchmark defines one penalized loss to minimize, weight that objective in the agreed tier, set `higherIsBetter=false`, and leave diagnostics at `importance=none`; retain multiple weighted metrics when the agreed objective requires them. For guided setup, verify this before `setup complete` and confirm the final readback afterward.
+
+Do not assume a successful schema write applied its direction: the setter may inherit direction from the project metric definition. Read back the effective schema after any change. If a project definition needs repair, first preserve the schema, raw metrics and version rankings, then inventory the other runs using that metric and establish the intended scope. Repair only the necessary definition within the authorized scope; confirm affected run schemas afterward. Treat changed Composite scores as a ranking correction, not a new measurement or improvement.
+
 ## 3. Verify exploration started
 
 A finalized baseline does not prove that the run explored a version. Check the same way, one shell call of at most 8 minutes with a 10-minute shell timeout, until at least one version appears or the run becomes terminal. Before the loop, say what Artemis is doing (`artemis`'s *Waiting out loud*): its agent is planning experiments and writing the first version, then measuring it. There's no typical time for this yet, so give the limit (up to 16 minutes, or 24 for a long benchmark, below) and the run link. After a loop, give the printed status, `versionCount` and `experimentCount`:
@@ -211,4 +217,5 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Fast-track offered when the estimate was longer than the user wanted to wait; if used, its [checklist](FAST_TRACK.md#checklist) completed
 - [ ] Clickable Discovery link returned to the user
 - [ ] Baseline finalized (`baselineVersionSha` + schema non-null; schema only for `--execution-mode skip`) before walking away
+- [ ] Effective metric directions and importance tiers read back and matched to the agreed objective; diagnostic metrics weighted only when intended
 - [ ] At least one version appeared, or a zero-version terminal run was confirmed through `discovery-inspect`
