@@ -74,13 +74,15 @@ Repeated status text or repeated `propose`/`conclude` calls can be normal while 
 
 `discovery versions get` returns `changesetId`, `versionSha`, `llmRationale`, `processId`, and `observationGroupId`. Read the version's branch with `artemis changeset diff <changeset-id> --project <project-uuid>`, or in the Web UI; `versionSha` belongs to the project's platform mirror, not the local clone.
 
-Every answer about a run or version ends with clickable Web UI links to the run, to the version it reports on when there is one (the winning one, or the best one when none won) and to the run's Versions page, even when the answer is a single number. Build them from `cli-follow-along` §2's table as the start block does (newer deployments shown):
+Every answer about a run or version ends with clickable Web UI links to the run's Versions page, to the version it reports on when there is one (the winning one, or the best one when none won) and to the run, even when the answer is a single number. Build them from `cli-follow-along` §2's table as the start block does (newer deployments shown):
 
 ```text
-[Open the run](<deployment-base-url>/projects/<project-id>/discover/<run-id>)
 [Open the run's versions](<deployment-base-url>/projects/<project-id>/discover/<run-id>/versions)
 [Open the version](<deployment-base-url>/projects/<project-id>/discover/<run-id>/versions/<version-id>)
+[Open the run](<deployment-base-url>/projects/<project-id>/discover/<run-id>)
 ```
+
+Results live on the Versions tab; the run link opens the Overview tab. When the user asks for results or what a run found, lead with the Versions and version links, even while the run is still going.
 
 When the deployment's path shape isn't known, link the project (`<deployment-base-url>/projects/<project-id>`) and name the page to open: Discover, the run, its Versions tab.
 

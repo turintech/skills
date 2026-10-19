@@ -87,6 +87,8 @@ After creating, importing, or reporting a user-visible resource, give the user a
 - project: `<deployment-base-url>/projects/<project-id>`
 - anything inside a project: give the project link and name the page to open, because path shapes differ between deployments
 
+For a Discovery run's results (what it found, show me results, which versions won), give the links `discovery-inspect` names (or its fallback when the path shape isn't known): the run's Versions tab and the version it reports on. A bare run link opens the run's Overview tab, so list it after those, and give it alone only when the user asks to open the run.
+
 Use Markdown links with a short label such as `Open project` or `Open Discovery`. Keep using UUIDs for CLI commands; a link is a user handoff, not a substitute for verified identifiers.
 
 ## 3. Resolve blocking decisions
