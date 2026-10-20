@@ -102,6 +102,7 @@ Measure the requested optimization target directly.
 - Warm up runtimes or kernels where required.
 - Use deterministic, representative inputs.
 - Emit the metric that should rank versions, with stable units and direction.
+- Start with the manifest check and verify every output inside the timed run ([benchmark review](HARNESS.md#pre-discovery-benchmark-review), steps 3-4).
 - Keep diagnostic output concise enough to avoid delaying task-log upload.
 
 ## 3. Make environment requirements explicit
