@@ -27,7 +27,7 @@ If the repository lacks a suitable benchmark and correctness gate, follow [HARNE
 
 When benchmark stages have been chosen for Fast-track Discovery, follow [benchmark tiers](HARNESS.md#long-benchmarks-small-medium-and-full-tiers) even if a harness already exists, then verify and save each tier's commands through the steps below.
 
-Before the first Discovery on a benchmark, new or existing, run the [pre-Discovery benchmark review](HARNESS.md#pre-discovery-benchmark-review) once its Script passes on the runner; it checks that the benchmark represents the user's problem, not only that it runs. Skipping command verification does not skip it; only a calling skill that supplies a known-good benchmark, such as the demo's, may.
+Before the first Discovery on a benchmark, new or existing, run the [pre-Discovery benchmark review](HARNESS.md#pre-discovery-benchmark-review) while writing or adopting the harness, even when no runner is set up; it checks that the benchmark represents the user's problem, not only that it runs. Skipping command verification does not skip it; only a calling skill that supplies a known-good benchmark, such as the demo's, may.
 
 Use the path supported by the available environment:
 
@@ -102,7 +102,7 @@ Measure the requested optimization target directly.
 - Warm up runtimes or kernels where required.
 - Use deterministic, representative inputs.
 - Emit the metric that should rank versions, with stable units and direction.
-- Start with the manifest check and verify every output inside the timed run ([benchmark review](HARNESS.md#pre-discovery-benchmark-review), steps 3-4).
+- Start with the manifest check, use fresh input each run, and verify outputs in a separate process ([benchmark review](HARNESS.md#pre-discovery-benchmark-review), steps 3-5).
 - Keep diagnostic output concise enough to avoid delaying task-log upload.
 
 ## 3. Make environment requirements explicit
@@ -268,4 +268,4 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
 - [ ] Validation and discovery use the same verified commands, stored as a Script.
-- [ ] Pre-Discovery benchmark review passed, or skipped by a calling skill.
+- [ ] Pre-Discovery benchmark review passed with its holdout, manifest and reviewer verdict recorded, or skipped by a calling skill.

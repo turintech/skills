@@ -17,27 +17,27 @@ Stdout is for diagnostics. Metrics come only from the results file. See SKILL.md
 
 ## Pre-Discovery benchmark review
 
-Run this once the Script has passed on the intended runner, before the first Discovery on that benchmark. A benchmark that runs is not yet one that represents the user's problem, and a Discovery agent will exploit any gap in it. Report pass or block to the user, with the evidence for each step.
+Run this while writing or adopting the harness, before any Discovery on it, whether or not a runner is set up yet; repeat step 8 on the runner once the Script passes there. A Discovery agent will exploit any gap, and a benchmark's author rarely finds the gaps that win. Report pass or block to the user, with evidence for each step.
 
-1. **Objective and cases.** Write down the user's objective, constraints and priority cases. Map each case to fixed inputs that reach the optimized path at the sizes and shapes the user runs most, plus one pathological size. Draw inputs from more than one distribution, and avoid cases whose output is nearly constant. Add missing cases, or agree exclusions with the user.
-2. **Complete objectives.** Ask the user what could get worse while the target improves, starting from the domain table below, and measure it or say why it cannot change. Record each metric's unit and direction.
-3. **The scored run checks itself.** The benchmark command verifies every output it times (round trip, or expected output within a stated tolerance) and exits non-zero on a mismatch, so a fast wrong answer scores nothing. The harness computes every metric from what the code produced (output sizes, decoded output, time measured outside the code); never record a number the code under test reports about itself.
-4. **Tamper guard.** Write `bench/manifest.sha256` over the harness, inputs, expected outputs and tests, and start the benchmark command with `sha256sum -c bench/manifest.sha256 || exit 1` (`shasum -a 256 -c` on macOS). Do not pass those files to `discovery create --target-files`. Only a new review rewrites the manifest.
-5. **Per-case results.** Write each case's metric as well as the aggregate (geometric mean across cases), in absolute units, so a regression on one case shows.
-6. **Selection and holdout.** Freeze the selection inputs. Keep a fixed holdout from the user's real data, not the same generator, to check shortlisted versions after Discovery with a holdout Script in place of the tier Script, as in [Compare outside a run](../discovery-start/FAST_TRACK.md#compare-outside-a-run). Never tune against holdout scores.
-7. **Baseline and noise.** Repeat the unchanged code with `--eval-runs` (SKILL.md §5b), in fresh processes with consistent warmup, and compute the target's coefficient of variation (CV). Block if the CV is above half the smallest gain the user cares about: add runs or steady the runner ([ADVANCED.md](ADVANCED.md)). Record the runner, CPU, OS and toolchain.
-8. **Independent adversarial review.** Give a separate reviewer (a subagent or a fresh session) the harness and the brief "raise the score without doing the work", with this list: skip work, return cached or reference outputs, lose quality, break the timing, edit inputs or tests, produce empty or NaN output. Each attempt must fail the gate or lose score. If one wins, fix the harness and repeat steps 7 and 8.
-9. **Scoring tiers.** Agree with the user which metrics are scored: the target `high`, few others, because the composite score is a weighted sum. Gated guard metrics and per-case metrics stay measured but unscored (`none`). `discovery-start` sets them with `discovery metrics-schema set`.
+1. **Objective and cases.** Write down the user's objective, constraints and priority cases, at the sizes and shapes they run most, plus one pathological size. Floors are what the user needs, never "today minus a margin": a broken baseline must fail them. Add missing cases, or agree exclusions with the user.
+2. **Complete objectives.** Ask the user what could get worse while the target improves, starting from the table below, and measure it or say why it cannot change. Record each metric's unit and direction.
+3. **Fresh input every scored run.** Generate each case's content from a seed chosen at run time, at a new path, with fixed sizes and distributions; log the seed. Check the output against a reference computed in that run (a round trip, or the unchanged reference code), not a stored hash, so caches and answers keyed on the input fail.
+4. **Verify apart, time from outside.** Verify the produced artefact in a separate clean process that sees only the artefact, never the repo's models, data or reference outputs. Time the whole child process from outside until its output exists. Check the output on every timed repetition, and report the first or slowest beside the median. The harness computes every metric; never record a number the code reports about itself. Include adversarial input in the gate (malformed, negative, infinite, empty), not only realistic input.
+5. **Tamper guard.** Write `bench/manifest.sha256` over the harness, generators, references and tests, and start the benchmark command with `sha256sum -c bench/manifest.sha256 || exit 1` (`shasum -a 256 -c` on macOS). Do not pass those files to `discovery create --target-files`. Only a new review rewrites the manifest.
+6. **Per-case results.** Write each case's metric beside the aggregate (geometric mean), in absolute units, so one case's regression shows.
+7. **Holdout.** Keep a holdout from the user's real data, not the same generator, and gate shortlisted versions on it after Discovery with a holdout Script in place of the tier Script, as in [Compare outside a run](../discovery-start/FAST_TRACK.md#compare-outside-a-run). Never tune against it.
+8. **Baseline and noise.** Repeat the unchanged code (`--eval-runs` on the runner, SKILL.md §5b) and compute the target's coefficient of variation (CV). Block if it is above half the smallest gain the user cares about: add runs or steady the runner ([ADVANCED.md](ADVANCED.md)). Record runner, CPU, OS and toolchain.
+9. **Independent adversarial review.** A separate reviewer (a subagent or fresh session), allowed to edit only the code under optimization, gets the brief "raise the score without doing the work" and must try each of: in-process and on-disk caches; answers keyed on the input's name, size, shape or hash; reading the repo's models, data or reference outputs; work deferred past the timer (lazy results, import time); looser handling of input the gate lacks; tuning to the selection inputs; empty or NaN output. Each must fail the gate or lose score. If one wins, fix the harness and repeat steps 8 and 9.
+10. **Scoring tiers.** Agree with the user: the target `high`, few others (the composite is a weighted sum); gated guards and per-case metrics `none`. `discovery-start` sets them with `discovery metrics-schema set`.
 
-Write `bench/REVIEW.md` (objective, cases, metrics with unit, direction and tier, gates, CV, holdout) and cover it with the manifest. Start the Discovery only after every step passes. Record the pass in the Script's description so later sessions can reuse it: read it with `artemis project scripts get <script-id> --project <p>`, then append `Benchmark review passed <date> at <gitHash>` with `project scripts update <script-id> --project <p> --description "..."`, which replaces the description but leaves the commands. Any later change to the benchmark, its inputs or the gate needs a new review.
+Write `bench/REVIEW.md`, outside the manifest: objective, cases, metrics (unit, direction, tier), floors, CV, the holdout's path, the manifest's sha256, and the reviewer's verdict with each attempt's result. The review passes only when every step passed and those three items are filled in. Then read the Script's description with `artemis project scripts get <script-id> --project <p>` and append `Benchmark review passed <date> at <gitHash>: holdout <path>, manifest <sha256>, reviewer <verdict>` with `project scripts update <script-id> --project <p> --description "..."`, which replaces the description but leaves the commands. Otherwise append `Benchmark review open: steps <n>` and do not start a Discovery. Any change to the harness, inputs or gate needs a new review.
 
 | Domain | Gate (in the scored run) | Ranked | Recorded only |
 |---|---|---|---|
-| Lossless compression | decompressed output equals the input, byte for byte | ratio; compression and decompression speed | peak memory, per-file ratio |
-| Lossy compression | quality at or above the agreed floor on two metrics, one perceptual | size at fixed quality, or quality at fixed size, at 2-3 operating points | per-input quality |
-| ML training | held-out accuracy at or above the target | time to target | final loss |
+| Lossless compression | fresh input decompresses to itself, byte for byte | ratio; compression and decompression speed | peak memory, per-file ratio |
+| Lossy compression | quality at or above the user's floor on two metrics, one perceptual (for a model: agreement with the original's decisions) | size at fixed quality, at 2-3 operating points | per-input quality |
+| ML training | held-out quality at or above the target | time to target | final loss |
 | Kernels | outputs within tolerance across shapes and distributions | time at the user's shapes | time per shape |
-| Query engine | result sets equal the reference | latency over the user's query mix at real data scale | cold versus warm cache |
 
 ## Authoring steps
 
@@ -58,7 +58,7 @@ rm -f artemis_results.json artemis_results.csv
 test -f artemis_results.json || test -f artemis_results.csv
 ```
 
-Confirm the results file contains every intended metric as a number. Then return to SKILL.md §2–§6 to record the build, test and benchmark in a Script and complete runner verification when available; run the [pre-Discovery benchmark review](#pre-discovery-benchmark-review) once that Script passes on the runner.
+Confirm the results file contains every intended metric as a number. Then return to SKILL.md §2–§6 to record the build, test and benchmark in a Script and complete runner verification when available.
 
 ## Long benchmarks: small, medium and full tiers
 
