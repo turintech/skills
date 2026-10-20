@@ -188,6 +188,15 @@ fi
 
 Do not overwrite a real checkout's Git metadata.
 
+## Benchmark review how-tos
+
+For [HARNESS.md](HARNESS.md#pre-discovery-benchmark-review):
+
+- **Hack list for the reviewer:** in-process and on-disk caches; answers keyed on the input's name, size, shape or hash; reading the repo's models, data or references; work deferred past the timer (lazy results, import time); fast paths for the benchmark's exact shapes; looser handling of input the gate lacks; tuning to the selection inputs; a process that outlives the gate and rewrites the results; empty or NaN output.
+- **Verify apart:** start the check in an empty temporary directory holding only the output and its decoder or scorer: decompress and compare, load the weights and score fresh data, or recompute with the reference code.
+- **Isolation:** a container, or `bwrap`/`unshare` with dropped privileges, so the code under test cannot read the repo's data or touch the results file.
+- **Cost:** a tested review took several times as long as setup without it. Time-box the reviewer and agree steps 1, 2 and 11 with the user first; a second round runs only after a win.
+
 ## Troubleshooting
 
 - **Works in an IDE but not on the runner:** make runtime activation and tool paths explicit.

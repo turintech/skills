@@ -101,7 +101,7 @@ Measure the requested optimization target directly.
 - Keep unrelated startup, downloads, compilation, and data generation outside the timed region.
 - Warm up runtimes or kernels where required.
 - Emit the metric that should rank versions, with stable units and direction.
-- Start with the manifest check, use fresh input each run, and verify outputs in a separate process ([benchmark review](HARNESS.md#pre-discovery-benchmark-review), steps 3-5).
+- Follow the [benchmark review](HARNESS.md#pre-discovery-benchmark-review) rules for inputs, isolation and the manifest check (steps 3-6).
 - Keep diagnostic output concise enough to avoid delaying task-log upload.
 
 ## 3. Make environment requirements explicit
@@ -244,7 +244,7 @@ When something fails, distinguish command-string issues from repository code or 
 
 `discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis --output-format json discovery setup trial-run "<run-id>"`: without `--wait` it returns at once with the check's id in `.validation.id`; wait for it with the loop above. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. When you replace benchmark commands with `--benchmark-cmd` on a script that measures something, add `--measure` (`none`, or what it measured); with `--file`, set `measureRuntime`, `measureCpu` and `measureMemory` in the file instead. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
 
-Once the Script passes on the runner, finish [benchmark review](HARNESS.md#pre-discovery-benchmark-review) step 8 there and record the review.
+Once the Script passes on the runner, finish [benchmark review](HARNESS.md#pre-discovery-benchmark-review) step 9 there and record the review.
 
 ## 6. Configure Artemis
 
