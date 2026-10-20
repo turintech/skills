@@ -167,7 +167,7 @@ artemis maintain issues fix <ISS-n> --discovery --project <p> \
 - It prints the `Discovery Run ID` straight away (`discoveryRunId` with `--output-format json`). Post the start block (`artemis`'s *Start block*): Fix in Discovery started, opening the run.
 - `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
 - Fix in Discovery always scores AI Metrics: the board's endpoint has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
-- A refusal starts nothing and says why: no default script or runner on the project (name one), an Issue that already has a fix running, or more than 5 Issues. Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
+- A refusal starts nothing and says why: no default script or runner on the project (name one), an Issue the board can't fix right now (a fix already running, out of date: resync it first, no longer matching the code, archived or dismissed), or more than 5 Issues. Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 
 ### Your own coding agent
 
