@@ -27,7 +27,7 @@ If the repository lacks a suitable benchmark and correctness gate, follow [HARNE
 
 When benchmark stages have been chosen for Fast-track Discovery, follow [benchmark tiers](HARNESS.md#long-benchmarks-small-medium-and-full-tiers) even if a harness already exists, then verify and save each tier's commands through the steps below.
 
-Before the first Discovery on a benchmark, new or existing, run the [pre-Discovery benchmark review](HARNESS.md#pre-discovery-benchmark-review) while writing or adopting the harness, even when no runner is set up; it checks that the benchmark represents the user's problem, not only that it runs. Skipping command verification does not skip it; only a calling skill that supplies a known-good benchmark, such as the demo's, may.
+Before the first Discovery on any benchmark, new or existing, run the [pre-Discovery benchmark review](HARNESS.md#pre-discovery-benchmark-review), even with no runner yet. Skipping command verification does not skip it; only a calling skill with a known-good benchmark, such as the demo's, may.
 
 Use the path supported by the available environment:
 
@@ -100,7 +100,6 @@ Measure the requested optimization target directly.
 
 - Keep unrelated startup, downloads, compilation, and data generation outside the timed region.
 - Warm up runtimes or kernels where required.
-- Use deterministic, representative inputs.
 - Emit the metric that should rank versions, with stable units and direction.
 - Start with the manifest check, use fresh input each run, and verify outputs in a separate process ([benchmark review](HARNESS.md#pre-discovery-benchmark-review), steps 3-5).
 - Keep diagnostic output concise enough to avoid delaying task-log upload.
@@ -244,6 +243,8 @@ When something fails, distinguish command-string issues from repository code or 
 - **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit (one shell call: 30 seconds between checks, at most 8 minutes, with a 10-minute shell timeout; after a second loop, stop and report), create a **new** empty branch, and validate again. Do not reuse the pre-pull branch's `original`: it stays on the old SHA.
 
 `discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis --output-format json discovery setup trial-run "<run-id>"`: without `--wait` it returns at once with the check's id in `.validation.id`; wait for it with the loop above. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. When you replace benchmark commands with `--benchmark-cmd` on a script that measures something, add `--measure` (`none`, or what it measured); with `--file`, set `measureRuntime`, `measureCpu` and `measureMemory` in the file instead. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
+
+Once the Script passes on the runner, finish [benchmark review](HARNESS.md#pre-discovery-benchmark-review) step 8 there and record the review.
 
 ## 6. Configure Artemis
 

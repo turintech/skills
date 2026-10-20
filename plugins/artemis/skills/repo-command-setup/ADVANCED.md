@@ -100,7 +100,7 @@ Keep each version's source and generated binaries in a dedicated workspace, whil
 
 - Pin model and dataset versions or checksums in the repository.
 - Record GPU model, driver, runtime, framework, thread settings, and precision.
-- Seed random number generators and use representative fixed inputs.
+- Seed random number generators, log the seed, and keep input sizes fixed.
 - Warm up kernels before timing.
 - Scope cleanup to processes owned by this runner task; never kill every process reported by `nvidia-smi`.
 - Reset mutable model state, caches, and output directories between versions.
