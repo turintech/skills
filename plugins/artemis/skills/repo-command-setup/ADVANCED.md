@@ -193,7 +193,7 @@ Do not overwrite a real checkout's Git metadata.
 - **Hack list for the reviewer:** in-process and on-disk caches; answers keyed on the input's name, size, shape or hash; reading the repo's models, data or references; work deferred past the timer (lazy results, import time); fast paths for the benchmark's exact shapes; looser handling of input the gate lacks; tuning to the selection inputs; a process that outlives the gate and rewrites the results; state shared between outputs or repetitions; empty or NaN output.
 - **Verify apart:** decompress and compare, load the weights and score fresh data, or recompute with the reference code.
 - **Isolation:** a container, or `bwrap`/`unshare` with dropped privileges, so the code under test cannot read the repo's data or the holdout, or touch the results file.
-- **Cost:** the review takes several times as long as setup alone. Time-box only the second reviewer round; agree steps 1, 2 and 11 with the user first.
+- **Cost:** the review takes several times as long as setup alone. Time-box only the second reviewer round.
 
 ## Troubleshooting
 
