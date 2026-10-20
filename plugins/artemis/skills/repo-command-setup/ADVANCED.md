@@ -100,7 +100,7 @@ Keep each version's source and generated binaries in a dedicated workspace, whil
 
 - Pin model and dataset versions or checksums in the repository.
 - Record GPU model, driver, runtime, framework, thread settings, and precision.
-- Seed random number generators, log the seed, and keep input sizes fixed.
+- Seed random number generators, log the seed, and vary sizes (HARNESS step 3).
 - Warm up kernels before timing.
 - Scope cleanup to processes owned by this runner task; never kill every process reported by `nvidia-smi`.
 - Reset mutable model state, caches, and output directories between versions.
@@ -190,12 +190,10 @@ Do not overwrite a real checkout's Git metadata.
 
 ## Benchmark review how-tos
 
-For [HARNESS.md](HARNESS.md#pre-discovery-benchmark-review):
-
 - **Hack list for the reviewer:** in-process and on-disk caches; answers keyed on the input's name, size, shape or hash; reading the repo's models, data or references; work deferred past the timer (lazy results, import time); fast paths for the benchmark's exact shapes; looser handling of input the gate lacks; tuning to the selection inputs; a process that outlives the gate and rewrites the results; empty or NaN output.
 - **Verify apart:** start the check in an empty temporary directory holding only the output and its decoder or scorer: decompress and compare, load the weights and score fresh data, or recompute with the reference code.
-- **Isolation:** a container, or `bwrap`/`unshare` with dropped privileges, so the code under test cannot read the repo's data or touch the results file.
-- **Cost:** a tested review took several times as long as setup without it. Time-box the reviewer and agree steps 1, 2 and 11 with the user first; a second round runs only after a win.
+- **Isolation:** a container, or `bwrap`/`unshare` with dropped privileges, so the code under test cannot read the repo's data or the holdout, or touch the results file.
+- **Cost:** the review takes several times as long as setup alone. Time-box the reviewer; agree steps 1, 2 and 11 with the user first.
 
 ## Troubleshooting
 
