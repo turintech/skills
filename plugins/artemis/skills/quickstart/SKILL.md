@@ -154,7 +154,7 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 1. CLI signed in | `cli-setup` | Already done in section 5 | Same | |
 | 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
 | 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | Section 0's demo toolchain check instead | |
-| 4. Commands that produce a number | `repo-command-setup` | Pass it the branch and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again | Commands fixed in 7a; tell it to skip its own verification | |
+| 4. Commands that produce a number | `repo-command-setup` | Pass it the branch and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again. Its benchmark review follows step 5, before step 7 | Commands fixed in 7a; tell it to skip its own verification and its benchmark review, since the demo's benchmark is known-good | |
 | 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (below), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
 | 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
 | 7. Discovery from that branch | `discovery-start` | Pass the branch, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Versions** and the winning version |
@@ -215,7 +215,7 @@ The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds betw
 - 5 versions, `--eval-mode fixed --eval-runs 3`, `--llm-metrics=false`
 - model: the deployment's high-effort preset, found as `discovery-start` recommends (the model `artemis model list` marks `high`; with none, the model in the **High Effort** group of `artemis model groups`). Name it in one line. Catalogues differ per deployment, so no skill names a model
 - `--target-files` only when the repository made them obvious
-- for the demo, that these settings are fixed, so `discovery-start` does not ask. On the user's own code, pass nothing here: `discovery-start` agrees the model and version count with the user
+- for the demo, that these settings are fixed and its benchmark is known-good, so `discovery-start` neither asks nor requires the benchmark review. On the user's own code, pass nothing here: `discovery-start` agrees the model and version count with the user
 
 Then follow the run with `discovery-inspect`.
 

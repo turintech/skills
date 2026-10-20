@@ -15,6 +15,18 @@ From the repository root, a validation runs the setup commands (build, then test
 
 Stdout is for diagnostics. Metrics come only from the results file. See SKILL.md §4 for accepted JSON/CSV shapes.
 
+## Pre-Discovery benchmark review
+
+Run this once the Script has passed on the intended runner, before the first Discovery on that benchmark: a benchmark that runs is not yet one that represents the user's problem. Report pass or block to the user, with the evidence for each step.
+
+1. **Objective and cases.** Write down the user's objective, constraints and priority cases. Map each case to fixed inputs and check that they reach the optimized path at realistic sizes, hard cases included. Add missing cases, or agree exclusions with the user.
+2. **Missing outcomes.** Ask the user what could get worse while the ranking metrics improve, and measure each essential outcome or say why it cannot change. Lossy compression needs output quality against the original as well as size or speed, with an agreed quality floor when quality is a constraint. Record each metric's unit, direction and how readings are aggregated.
+3. **Gate versus ranking.** Correctness tests and quality floors belong in the build/test gate: failing rejects a version, passing earns nothing. Rank valid versions only by benchmark metrics. Keep the inputs that choose a version apart from those that judge it: freeze the selection inputs, and keep a fixed holdout of the user's cases to check shortlisted versions after Discovery with a holdout Script in place of the tier Script, as in [Compare outside a run](../discovery-start/FAST_TRACK.md#compare-outside-a-run). Never tune against holdout scores or change either set to favor a version. Never pass harness, input or gate files to `discovery create --target-files`.
+4. **Real baseline and noise.** Run the unchanged code repeatedly on the fixed inputs on the intended runner, in fresh processes with consistent warmup (`--eval-runs`, SKILL.md §5b). Record each reading, the spread and the runner conditions; investigate drift rather than keep a favorable reading.
+5. **Adversarial try.** Try at least one shortcut: skipped work, cached answers, lost quality, or an empty, failed or NaN result. Confirm the gate rejects it or the metrics expose it. If it would win, fix the benchmark and repeat steps 4 and 5.
+
+Start the Discovery only after every step passes. Record the pass in the Script's description so later sessions can reuse it: read it with `artemis project scripts get <script-id> --project <p>`, then append `Benchmark review passed <date> at <gitHash>` with `project scripts update <script-id> --project <p> --description "..."`, which replaces the description but leaves the commands. Any later change to the benchmark, its inputs or the gate needs a new review.
+
 ## Authoring steps
 
 1. **Choose the metric and direction** with the user when unclear (for example maximize `simulation_fps`, minimize `median_ms`).
@@ -34,7 +46,7 @@ rm -f artemis_results.json artemis_results.csv
 test -f artemis_results.json || test -f artemis_results.csv
 ```
 
-Confirm the results file contains the ranking metric as a number. Then return to SKILL.md §2–§6 to record the build, test and benchmark in a Script and complete runner verification when available.
+Confirm the results file contains every intended metric as a number. Then return to SKILL.md §2–§6 to record the build, test and benchmark in a Script and complete runner verification when available; run the [pre-Discovery benchmark review](#pre-discovery-benchmark-review) once that Script passes on the runner.
 
 ## Long benchmarks: small, medium and full tiers
 
@@ -56,4 +68,4 @@ Do not put strings, booleans, nested objects, or identifiers in the results file
 
 ## Out of scope here
 
-Language-specific framework tutorials, statistical methodology beyond a stable ranking metric, and Discovery task/budget design belong in product docs or a worked example—not in the wiring skill.
+Language-specific framework tutorials and Discovery task/budget design belong in product docs or a worked example, not in the wiring skill.

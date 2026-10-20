@@ -27,6 +27,8 @@ If the repository lacks a suitable benchmark and correctness gate, follow [HARNE
 
 When benchmark stages have been chosen for Fast-track Discovery, follow [benchmark tiers](HARNESS.md#long-benchmarks-small-medium-and-full-tiers) even if a harness already exists, then verify and save each tier's commands through the steps below.
 
+Before the first Discovery on a benchmark, new or existing, run the [pre-Discovery benchmark review](HARNESS.md#pre-discovery-benchmark-review) once its Script passes on the runner; it checks that the benchmark represents the user's problem, not only that it runs. Skipping command verification does not skip it; only a calling skill that supplies a known-good benchmark, such as the demo's, may.
+
 Use the path supported by the available environment:
 
 - **No project or runner yet:** derive and verify locally in a disposable clean checkout, then use `project-import`.
@@ -265,3 +267,4 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
 - [ ] Validation and discovery use the same verified commands, stored as a Script.
+- [ ] Pre-Discovery benchmark review passed, or skipped by a calling skill.
