@@ -22,7 +22,7 @@ metadata:
 - `artemis status` succeeds on the target deployment.
 - An imported project UUID from `project-import`.
 - Verified, self-contained root-level commands from `repo-command-setup`, stored as a project Script.
-- Its [pre-Discovery benchmark review](../repo-command-setup/HARNESS.md#pre-discovery-benchmark-review) passed: the Script description's latest review line says passed and names the holdout, manifest sha256 and verdict (`project scripts get <script-id> --project <p>`); anything else blocks, unless a calling skill supplied a known-good benchmark. Set the tiers from its `bench/REVIEW.md` with `discovery metrics-schema set`.
+- Its [pre-Discovery benchmark review](../repo-command-setup/HARNESS.md#pre-discovery-benchmark-review) passed: the Script description's latest review line says passed and names the holdout, manifest sha256 and verdict (`project scripts get <script-id> --project <p>`); anything else blocks, unless a calling skill supplied a known-good benchmark. Finish an open review with `benchmark-review`. Set the tiers from its `bench/REVIEW.md` with `discovery metrics-schema set`.
 - A benchmark that writes numeric `artemis_results.json` or `.csv` as defined in `repo-command-setup` §4, unless qualitative-only optimization is deliberate.
 - An online runner compatible with those commands, confirmed by the user or supplied by the calling skill.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option; any JSON filter works (e.g. `python3 -c`).

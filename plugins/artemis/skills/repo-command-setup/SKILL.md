@@ -15,7 +15,7 @@ metadata:
 - **Problem:** Derives, verifies, and records a project Script's self-contained root-level commands: the build and test that gate Discovery, and the benchmark that reports numbers.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
 - **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
-- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then continue to `discovery-start` or validation.
+- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification. Before a Discovery, the benchmark review hands off to `benchmark-review`; then continue to `discovery-start` or validation.
 
 ## Requirements
 
@@ -269,4 +269,4 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
 - [ ] Validation and discovery use the same verified commands, stored as a Script.
-- [ ] Pre-Discovery benchmark review passed with its holdout, manifest and reviewer verdict recorded, or skipped by a calling skill.
+- [ ] Pre-Discovery benchmark review passed, with `benchmark-review`'s verdict, the holdout and the manifest recorded, or skipped by a calling skill.
