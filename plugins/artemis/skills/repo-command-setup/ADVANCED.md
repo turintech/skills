@@ -119,6 +119,8 @@ Statistic selection and noise-floor measurement belong to the benchmark harness'
 - When NUMA placement matters, set `OMP_PROC_BIND=close` and `OMP_PLACES=cores`.
 - Discard warm-up iterations affected by JIT compilation, kernel selection, page-in, or cache population.
 - Keep runner load and resource limits consistent across baseline and generated versions.
+- Pin the benchmark child to the agreed cores (`taskset -c 0-3 <command>`), so a version cannot win by starting more workers than the baseline.
+- Measure peak memory across the child's whole process tree: run it in its own cgroup v2 and read `memory.peak`, or sample every descendant's RSS. `ru_maxrss` for children reports only the largest single process.
 
 Run the complete benchmark repeatedly in fresh processes after changing runner controls. Do not tune the environment or statistic after seeing which version wins.
 
