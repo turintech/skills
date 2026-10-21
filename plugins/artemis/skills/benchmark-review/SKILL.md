@@ -87,7 +87,7 @@ A safety check, a missing subagent tool or a stopped session can end the reviewe
 Use the Artemis benchmark-review skill on <checkout path> for Script <script-id> in project <project-id>. This session is the reviewer.
 ```
 
-A session started from that line did not build the benchmark, so it is the separate reviewer: it runs sections 2-4 itself, then section 6.
+A session started from that line did not build the benchmark, so it is the separate reviewer: it runs sections 2 and 3 itself, then section 6. If it then fixes a win, the second round needs another subagent or another session from that line.
 
 ## 6. Verdict
 
@@ -97,7 +97,7 @@ Write the verdict for this attempt in `bench/REVIEW.md`, with the date, the mani
 - `reused <date>`: section 1;
 - `open: <reason>`: anything else.
 
-Then follow the closing paragraph of `repo-command-setup`'s [benchmark review](../repo-command-setup/HARNESS.md#pre-discovery-benchmark-review), with the evidence for steps 1-9 from `bench/REVIEW.md`. Only `passed` or `reused` lets it write the passed line; for `open`, it writes `Benchmark review open: steps 1,10` after a floor miss and `steps 10` otherwise, and `discovery-start` blocks.
+Then follow the closing paragraph of `repo-command-setup`'s [benchmark review](../repo-command-setup/HARNESS.md#pre-discovery-benchmark-review), with the evidence for steps 1-9 from `bench/REVIEW.md`. Only `passed` or `reused` lets it write the passed line; for `open`, it writes `Benchmark review open: steps 1,10, manifest <sha256>` after a floor miss and `steps 10, manifest <sha256>` otherwise, and `discovery-start` blocks.
 
 ## Checklist
 

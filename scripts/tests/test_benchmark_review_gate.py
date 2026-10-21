@@ -27,6 +27,8 @@ class BenchmarkReviewGate(unittest.TestCase):
         text = (SKILLS / "repo-command-setup/HARNESS.md").read_text()
         self.assertIn("`Benchmark review passed <date>", text)
         self.assertIn("`benchmark-review`'s verdict is passed or reused", text)
+        # Reuse picks the latest line naming the manifest, so an open line must name it too.
+        self.assertIn("`Benchmark review open: steps <n>, manifest <sha256>`", text)
 
     def test_the_harness_review_hands_the_reviewer_to_benchmark_review(self):
         review = section((SKILLS / "repo-command-setup/HARNESS.md").read_text(), "Pre-Discovery benchmark review")
@@ -59,6 +61,16 @@ class BenchmarkReviewSkill(unittest.TestCase):
         self.assertIn("Use the Artemis benchmark-review skill on <checkout path>", blocked)
         self.assertIn("is the separate reviewer", blocked)
 
+    def test_a_second_round_needs_a_reviewer_that_did_not_fix(self):
+        self.assertIn("never the one that fixed it", section(self.text, "Fix, then a second round"))
+        self.assertIn("the second round needs another subagent", section(self.text, "When the reviewer cannot run"))
+
+    def test_the_floor_set_is_not_the_holdout(self):
+        self.assertIn("It is separate from the holdout", section(self.text, "Check the floors"))
+
+    def test_missing_or_early_open_reviews_go_to_the_harness_review(self):
+        self.assertIn("A missing review, or one open on steps 1-9, goes to `repo-command-setup`", section(self.text, "At a glance"))
+
     def test_reuse_needs_the_same_pinned_manifest(self):
         reuse = section(self.text, "Reuse an unchanged review")
         self.assertIn("the latest review line naming the manifest sha256 this Script's benchmark command pins says passed", reuse)
@@ -66,7 +78,7 @@ class BenchmarkReviewSkill(unittest.TestCase):
 
     def test_its_verdicts_are_the_ones_the_harness_line_accepts(self):
         verdict = section(self.text, "Verdict")
-        for value in ("- `passed`:", "- `reused <date>`:", "- `open: <reason>`:", "`Benchmark review open: steps 1,10` after a floor miss"):
+        for value in ("- `passed`:", "- `reused <date>`:", "- `open: <reason>`:", "`Benchmark review open: steps 1,10, manifest <sha256>`"):
             self.assertIn(value, verdict)
 
     def test_the_router_and_readme_name_it(self):

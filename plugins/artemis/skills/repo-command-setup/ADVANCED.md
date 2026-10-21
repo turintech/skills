@@ -120,7 +120,7 @@ Statistic selection and noise-floor measurement belong to the benchmark harness'
 - Discard warm-up iterations affected by JIT compilation, kernel selection, page-in, or cache population.
 - Keep runner load and resource limits consistent across baseline and generated versions.
 - Cap the child's cores with a cpuset: `docker run --cpuset-cpus=0-3 ...`, or, with root on the runner, `systemd-run --scope -p AllowedCPUs=0-3 setpriv --reuid=<user> --regid=<user> --init-groups <command>` (never run the child as root). `taskset` is no cap: the code can widen it.
-- Measure memory across the child's process tree, not `ru_maxrss` (the largest child only): `systemd-run --user --scope -q sh -c '"$@"; s=$?; cat /sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)/memory.peak; exit $s' sh <command>` (Linux 5.19+, a user session), or `/sys/fs/cgroup/memory.peak` in a container. It includes page cache.
+- Measure memory across the child's process tree, not `ru_maxrss` (the largest child only): `systemd-run --user --scope -q sh -c '"$@"; s=$?; cat /sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)/memory.peak; exit $s' sh <command>` (Linux 5.19+, a user session; without one, the root scope above). Pass a compound command as `sh -c '...'` or a script. In a container, read `/sys/fs/cgroup/memory.peak`. It includes page cache, so compare it only between versions that touch the same files.
 
 Run the complete benchmark repeatedly in fresh processes after changing runner controls. Do not tune the environment or statistic after seeing which version wins.
 
