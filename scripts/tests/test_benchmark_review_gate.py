@@ -9,7 +9,9 @@ SKILLS = ROOT / "plugins/artemis/skills"
 
 def section(text, title):
     """The `## ` section with this title, numbered or not."""
-    start = re.search(rf"^## (?:\d+\. )?{re.escape(title)}$", text, re.M).start()
+    match = re.search(rf"^## (?:\d+\. )?{re.escape(title)}$", text, re.M)
+    assert match, f"no section titled {title!r}"
+    start = match.start()
     end = text.find("\n## ", start + 1)
     return text[start:end if end != -1 else len(text)]
 
@@ -30,6 +32,8 @@ class BenchmarkReviewGate(unittest.TestCase):
         review = section((SKILLS / "repo-command-setup/HARNESS.md").read_text(), "Pre-Discovery benchmark review")
         self.assertRegex(review, r"10\. \*\*Independent review\.\*\* Hand off to `benchmark-review`")
         self.assertNotIn("Hack list", (SKILLS / "repo-command-setup/ADVANCED.md").read_text())
+        self.assertIn("../benchmark-review/SKILL.md#2-check-the-floors", review)
+        self.assertRegex((SKILLS / "benchmark-review/SKILL.md").read_text(), r"(?m)^## 2\. Check the floors$")
 
 
 class BenchmarkReviewSkill(unittest.TestCase):
@@ -62,9 +66,8 @@ class BenchmarkReviewSkill(unittest.TestCase):
 
     def test_its_verdicts_are_the_ones_the_harness_line_accepts(self):
         verdict = section(self.text, "Verdict")
-        for value in ("- `passed`:", "- `reused <date>`:", "- `open: <reason>`:", "`Benchmark review open: steps 10`"):
+        for value in ("- `passed`:", "- `reused <date>`:", "- `open: <reason>`:", "`Benchmark review open: steps 1,10` after a floor miss"):
             self.assertIn(value, verdict)
-        self.assertIn("verdict is passed or reused", (SKILLS / "repo-command-setup/HARNESS.md").read_text())
 
     def test_the_router_and_readme_name_it(self):
         router = section((SKILLS / "artemis/SKILL.md").read_text(), "Route to the owning skill")

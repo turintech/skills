@@ -21,8 +21,8 @@ metadata:
 
 - `artemis --version` meets `metadata.artemis-cli-min`. Otherwise `cli-setup`.
 - The harness checkout, with `bench/REVIEW.md` holding the objective, floors, cases, metrics and the evidence for steps 1-9.
-- The Script's commands and description: `artemis project scripts get <script-id> --project <p>`. With no Script yet (a local review before import), skip section 1 and keep the verdict in `bench/REVIEW.md`; `repo-command-setup` writes the line once the Script exists.
-- A separate reviewer: a subagent, or this session when it was started fresh from section 5's line. Without one, the review stays open (section 5).
+- The Script's commands and description: `artemis project scripts get <script-id> --project <p>`. With no Script yet (a local review before import), skip section 1, brief the reviewer with the local benchmark command behind the step 6 guard, leave the Script out of section 5's line, and stop section 6 at `bench/REVIEW.md`; `repo-command-setup` writes the line once the Script exists.
+- A separate reviewer: a subagent, or this session when started from section 5's line. Without one, see section 5.
 
 ## 1. Reuse an unchanged review
 
@@ -42,7 +42,7 @@ Before the reviewer starts, check that the gate holds each floor in three ways:
 - **Inputs the code cannot rebuild.** Every run also scores the floor on a set the Discovery agent never sees: data, or a generator's parameters, kept on the runner outside the repository and read by the harness by absolute path. Report only pass or fail for it. The repo's generator and samples are readable, so they cannot be the only check.
 - **Every class stays.** Every class or output kind the original produces must remain producible, with a per-class floor and no minimum sample count.
 
-If any is missing, record `open: floors` and stop. Fix the harness with `repo-command-setup`, then run this skill again.
+If any is missing, the verdict is `open: floors`: go to section 6, then fix the harness with `repo-command-setup` and run this skill again.
 
 ## 3. Brief the reviewer
 
@@ -77,7 +77,7 @@ Record every row in `bench/REVIEW.md`. A pass that skips an item or ends early i
 
 ## 4. Fix, then a second round
 
-Each win is a hole in the harness. Fix it with `repo-command-setup`, which rewrites the manifest and the pinned hash and repeats HARNESS step 9, then come back here. After any fix, a fresh reviewer runs a second round within a time box agreed with the user, aimed at the fixes and at the items the first round tested least. A win in the second round keeps the review open: record `open: win in round <n>`, then fix it and run another round, or stop.
+Each win is a hole in the harness. Fix it with `repo-command-setup`, which rewrites the manifest and the pinned hash and repeats HARNESS step 9, then come back here. After any fix, a fresh reviewer runs a second round within a time box agreed with the user, aimed at the fixes and at the items the first round tested least. A win in the second round keeps the review open: record `open: win in round <n>`, then fix it and run another round, or go to section 6.
 
 ## 5. When the reviewer cannot run
 
@@ -97,7 +97,7 @@ Write the verdict for this attempt in `bench/REVIEW.md`, with the date, the mani
 - `reused <date>`: section 1;
 - `open: <reason>`: anything else.
 
-Then follow the closing paragraph of `repo-command-setup`'s [benchmark review](../repo-command-setup/HARNESS.md#pre-discovery-benchmark-review), with the evidence for steps 1-9 from `bench/REVIEW.md`. Only `passed` or `reused` lets it write the passed line; for `open`, it writes `Benchmark review open: steps 10`, and `discovery-start` blocks.
+Then follow the closing paragraph of `repo-command-setup`'s [benchmark review](../repo-command-setup/HARNESS.md#pre-discovery-benchmark-review), with the evidence for steps 1-9 from `bench/REVIEW.md`. Only `passed` or `reused` lets it write the passed line; for `open`, it writes `Benchmark review open: steps 1,10` after a floor miss and `steps 10` otherwise, and `discovery-start` blocks.
 
 ## Checklist
 
