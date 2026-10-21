@@ -77,9 +77,9 @@ If no suitable credential exists, present **both** setup routes and let the user
 
 Prefer an existing GitHub OAuth credential over adding a new access key when both would work. Record the selected key UUID.
 
-`--key-id` takes only a UUID that `key list` returned. Never pass a placeholder or made-up value such as `<key-uuid>` or `UNKNOWN-KEY`. If `key list` is still empty after the user has tried a route above, stop: tell the user the import waits for a Git credential, and do not import.
-
 When `quickstart` is importing its public demo, offer only the GitHub OAuth route (1): one click on **Connect to GitHub**, nothing to paste. Ask the user to say "done" when the GitHub section shows **Connected**, then re-run `artemis key list`. If the user says the Git page has no **Connect to GitHub** button, fall back to route 2: a GitHub personal access token with read access to public repositories.
+
+`--key-id` takes only a UUID that `key list` returned. Never pass a placeholder or made-up value such as `<key-uuid>` or `UNKNOWN-KEY`. If `key list` still has no key that can read the repository after the user has tried the routes above, including the demo's fallback, do not import: tell the user the import waits for a Git credential, ask them to say "done" once one is saved, then re-run `artemis key list`. If they stop there, return to any calling skill without a project UUID.
 
 ## 4. Import once
 
@@ -136,7 +136,7 @@ When a calling skill invoked this one, return the project UUID to it. Otherwise 
 - [ ] Remote URL, explicit branch, and branch-tip commit (`SEED_SHA`) recorded.
 - [ ] Project name is distinct enough to avoid confusion with other projects against the same repository.
 - [ ] Existing readable Git credential reused when possible (GitHub OAuth preferred over a new PAT).
-- [ ] `--key-id` is a UUID from `key list`, never a placeholder; with no key, the import stopped.
+- [ ] `--key-id` is a UUID from `key list`, never a placeholder; with no key that can read the repository, nothing was imported.
 - [ ] If no credential existed, both Web UI routes (GitHub connect, Add access key) were offered, or only GitHub connect for `quickstart`'s demo; the user entered any new secret in the browser, never in chat or a command line.
 - [ ] Import performed once with confirmed inputs.
 - [ ] Project UUID captured and imported `gitHash` verified against `SEED_SHA`.

@@ -11,7 +11,8 @@ class ImportKeyId(unittest.TestCase):
         credential = text[text.index("## 3. Select a Git credential"):text.index("## 4. Import once")]
         self.assertIn("`--key-id` takes only a UUID that `key list` returned", credential)
         self.assertIn("Never pass a placeholder or made-up value", credential)
-        self.assertIn("If `key list` is still empty after the user has tried a route above, stop", credential)
+        self.assertIn("return to any calling skill without a project UUID", credential)
+        self.assertIn("If `key list` still has no key that can read the repository after the user has tried the routes above, including the demo's fallback, do not import", credential)
 
 
 if __name__ == "__main__":
