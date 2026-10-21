@@ -44,14 +44,9 @@ The branch then has two versions: the starting commit (`--version original`, the
 
 ## 2. Measure both sides the same way
 
-Alternate the sides, so anything that drifts on the machine during the session hits both equally. One run per call, starting commit then latest, five times each:
+Alternate the sides, so anything that drifts on the machine during the session hits both equally. One run at a time with `script-run`, starting commit (`--version original`) then latest (`--version latest`), five times each, on one runner with one script; start the next run only when the last has finished.
 
-```bash
-artemis changeset validate <changeset-id> --project <p> --version original --script <s> --runner <r> --wait --timeout 9m
-artemis changeset validate <changeset-id> --project <p> --version latest --script <s> --runner <r> --wait --timeout 9m
-```
-
-Before the first pair, post one start block for the series (`artemis`'s *Start block*): Validation started. Same runner, same script, same number of runs for both sides, always. After the first pair, say how long one pair took and roughly how long the rest will take. Stop at the first non-zero exit and report it; exit 6 means the run outlasted `--timeout`. Give each call a 10-minute shell timeout. On CLI 1.1.16 and older a network blip also ends `--wait` non-zero while the validation keeps running on the runner, so before calling a connection error a failed run, read `artemis --output-format json changeset validation get <validation-id> --project <p>`: `created` or `running` means it is still going. A run that fails is not a reading: read its log (`artemis changeset validation logs <validation-id> --project <p>`, or `execution-log-inspect`), and if the change broke the build or the tests, stop and say so. That is the answer.
+Before the first pair, post one start block for the series ([start block](../artemis/references/waiting.md#start-block)): Validation started. Same runner, same script, same number of runs for both sides, always. After the first pair, say how long one pair took and roughly how long the rest will take. Stop at the first run that fails and report it. A run that fails is not a reading: read its log (`artemis changeset validation logs <validation-id> --project <p>`, or `execution-log-inspect`), and if the change broke the build or the tests, stop and say so. That is the answer.
 
 ## 3. Read the verdict
 

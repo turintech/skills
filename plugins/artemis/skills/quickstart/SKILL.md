@@ -15,7 +15,7 @@ metadata:
 - **Problem:** One skill for the whole first mile: from a pasted prompt to a setup the user has watched, a measured baseline, and a first Discovery run, resuming at whichever step is missing.
 - **Must be available:** A coding assistant with the Artemis skills installed, network access, and a user who can create an API key in the Artemis Web UI. A repository or project by the time repository setup begins.
 - **Use / don't use:** Use for both copyable prompts, for "get started" and "try Artemis", for a returning user setting up a new project, and for any request carrying a project URL or id. Don't use it when the user names a specific lower-level task and its inputs; the `artemis` router sends those to the owning skill.
-- **Next skill:** This skill runs almost nothing itself. It hands each step to `cli-setup`, `project-import`, `runner-setup`, `repo-command-setup`, `discovery-start` and `discovery-inspect`, and in the browser route to `cli-follow-along`. The two commands it owns are `changeset create` and `changeset validate`.
+- **Next skill:** This skill runs almost nothing itself. It hands each step to `cli-setup`, `project-import`, `runner-setup`, `repo-command-setup`, `script-run`, `discovery-start` and `discovery-inspect`, and in the browser route to `cli-follow-along`. The one command it owns is `changeset create`.
 
 ## Requirements
 
@@ -155,8 +155,8 @@ What the Web UI's setup flow does by hand: an Artemis branch, commands that prod
 | 2. A branch over the current code | this skill | `changeset create`, below | Same | The project, then **Branches**: a branch named `artemis/measure` |
 | 3. A runner that can build it | `runner-setup` | Reuse or start one; for an own project, its toolchain probe | Section 0's demo toolchain check instead | |
 | 4. Commands that produce a number | `repo-command-setup` | Pass it the branch and runner from steps 2 and 3. Its `repo-command-setup` §5b run on them is step 5; do not run it again. Its benchmark review runs before step 7 | Commands fixed in 7a; tell it to skip its own verification and its benchmark review, since the demo's benchmark is known-good | |
-| 5. A measured run on the branch | this skill | `changeset validate` on the runner, post the start block (below), then wait in one bounded loop (`repo-command-setup` §5b) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
-| 6. Metrics confirmed | this skill | Read the values from `changeset validation logs`, not `validation get` | `simulation_fps` near 32 | The same run, with its number |
+| 5. A measured run on the branch | `script-run` | One run on the runner, with its start block and a bounded wait (below) | About a minute | The branch's **Scripts** tab, under **Script runs**: one run, passed |
+| 6. Metrics confirmed | `script-run` | The metric values it reports | `simulation_fps` near 32 | The same run, with its number |
 | 7. Discovery from that branch | `discovery-start` | Pass the branch, script, runner, task and the settings below | Settings and target files from 7a | The project, then **Discover**, then the run: experiments filling in; later the run's **Versions** and the winning version |
 
 A step is not finished until its "Tell them" line has been said.
@@ -169,43 +169,7 @@ artemis --output-format json changeset create --project "<project-id>" --name "a
 
 Capture its id. Read the commit it holds with `artemis changeset versions <changeset-id> --project <id>` and report that one, not the project's `gitHash`.
 
-**Step 5.** Run it on the runner, never locally. When resuming, run it again: the CLI cannot list a branch's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Say how long you expect it to take. Start it without `--wait` and keep its id, then wait. Run both blocks as written, filling in only the `<...>` values; never filter the skill file to rebuild them, and never retype the loop. A validation ends `success`, `failed` or `cancelled`; a Discovery run ends `completed`, so a loop that waits for `completed` here never stops.
-
-```bash
-out=$(artemis --output-format json changeset validate "<changeset-id>" --project "<project-id>" \
-  --version original --script "<script-id>" --runner "<runner-name>") \
-  && printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
-```
-
-```bash
-for i in $(seq 16); do
-  out=$(artemis --output-format json changeset validation get "<validation-id>" \
-        --project "<project-id>") || { echo "validation get failed"; break; }
-  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status") or "")')
-  case "$s" in success|failed|cancelled) break ;; esac
-  sleep 30
-done; echo "$s"
-```
-
-Between the two, post the start block as reply text, with no other text around it: what started, and where to watch it. Every start in this flow gets one, and the Discovery run's comes from `discovery-start`. The format is `artemis`'s *Start block*, which this flow does not load:
-
-```text
-Artemis · Validation started
-Project   <project name>
-Version   original
-Script    <script name>
-Runner    <runner name>
-Open      <deployment-base-url>/projects/<project-id>/branches/<changeset-id>/validations
-```
-
-Then say what Artemis is doing, and say it again after each loop that ends unfinished. This is `artemis`'s *Waiting out loud*, carried here because this flow does not load that skill; it applies to every wait in this flow, including those `discovery-start` and `discovery-inspect` run for the demo:
-
-1. **Before the wait:** `Artemis is <doing X> on <runner>; this usually takes about <N> min. Follow it at <link>.` For this step: building, testing and benchmarking Particle Life on the runner, about a minute, at the start block's `Open` link. While the status is `created`, the runner has not picked it up yet; say so.
-2. **After a loop that ends unfinished:** `Artemis is still <doing X>, <M> min in: <status>, <count>. I'll check for up to 8 more minutes.`
-
-Take the expected time only from a measurement (the table's "About a minute" for the demo, `repo-command-setup` §5a's phases, or an earlier run in this session); with none, give the check limit instead. Never go quiet, and never paste a raw status line on its own.
-
-The loop is `repo-command-setup` §5b's. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`); never start another validation.
+**Step 5.** Run it with `script-run`: the branch from step 2, `--version original`, the script from step 4 and the runner from step 3, on the runner, never locally. When resuming, run it again: the CLI cannot list a branch's validations, so an earlier measurement cannot be found, and it costs runner time, not credits. Its start block, the lines that say what Artemis is doing, and the wait follow [waiting.md](../artemis/references/waiting.md), as does every wait in this flow, including those `discovery-start` and `discovery-inspect` run for the demo. For the demo, Artemis is building, testing and benchmarking Particle Life on the runner, which takes about a minute.
 
 **Step 6.** If the benchmark passed but wrote no metrics, fix the script with `repo-command-setup` and run step 5 again before going near Discovery. Report the value in the repository's own units. If compile took more than about 5 minutes on the runner, every version pays it again: set up a build cache with `workspace-setup`, measure again, then go to step 7.
 

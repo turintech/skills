@@ -136,26 +136,7 @@ Before launching discovery, validation, or Maintain:
 4. Capture project, run, scan, chat, and agent IDs as they are created.
 5. Explain what continues platform-side after the interactive session ends and what still requires monitoring.
 
-### Start block
-
-Right after a command starts work in Artemis, post one block so a watcher sees what started and where to click. The rows for each kind, and where the values and the link come from, are in [references/start-block.md](references/start-block.md).
-
-```text
-Artemis · Discovery started
-Project   <project name>
-Goal      <taskDescription>
-Versions  <n> · model <model> · LLM council <review models>
-Open      <link>
-```
-
-### Waiting out loud
-
-While Artemis works, never go quiet and never paste a raw status line on its own. Each wait gets two kinds of line:
-
-1. **Before the wait:** what Artemis is doing, where, how long it should take, and the start block's `Open` link. Shape: `Artemis is <doing X> on <runner>; this usually takes about <N> min. Follow it at <link>.`
-2. **After each check loop that ends unfinished:** the time since the start block, the status and any count the response gives, and how much longer you will check. Shape: `Artemis is still <doing X>, <M> min in: <status>, <count>. I'll check for up to 8 more minutes.`
-
-Take the expected time only from a measurement: the phase durations `repo-command-setup` §5a records, or an earlier run of the same script in this session. With none, say there's no typical time yet and give the check limit instead (`I'll check for up to 8 min`); never invent a figure.
+Then post the start block, say what Artemis is doing while it works, and wait in bounded loops, as [references/waiting.md](references/waiting.md) says. Callers read that page by path, without loading this skill.
 
 ## 6. Route to the owning skill
 
@@ -164,7 +145,8 @@ Take the expected time only from a measurement: the phase durations `repo-comman
 - Asking to be shown in the browser ("show me in my browser", "use computer use", a tour of the platform): `platform-tour`. A plain "how do I" is answered in the terminal by the task skill
 - CLI: `cli-setup`
 - Runner: `runner-setup`
-- Repository commands, Scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
+- Writing or fixing a Script's commands, and Discovery-ready harness authoring: `repo-command-setup`
+- Running a Script on a branch version on a runner and reading its numbers (the Validation workflow): `script-run`
 - Checking a benchmark for ways to game it before Discovery (step 10 of `repo-command-setup`'s benchmark review): `benchmark-review`
 - Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`

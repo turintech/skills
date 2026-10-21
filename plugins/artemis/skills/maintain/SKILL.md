@@ -42,7 +42,7 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 
 **`--model`** is optional on `scans run`, `issues fix` and `maintain chat`; omit it and the backend chooses. It takes a catalogue UUID or a model-type code (`artemis model list`).
 
-**Waiting.** Never loop without a limit, and don't sleep between tool calls. Check in one shell command with the sleep inside, run with a 10-minute tool timeout (or in the background; lower the loop count if your shell limit is shorter). If it is still running, run the same command again, at most three times in all. The pattern, for a fix:
+**Waiting.** Wait as [bounded waits](../artemis/references/waiting.md#bounded-waits) says, except that a Maintain wait may run the same command three times in all. The pattern, for a fix:
 
 ```bash
 for i in $(seq 16); do   # about 8 minutes
@@ -55,7 +55,7 @@ done; echo "fixStatus=$s"
 
 After three runs with no change, stop waiting and look at why. For a fix, `artemis --output-format json maintain issues fix-runs <id> -p <p>` lists `.runs[]` with `isActive` and `agentRunStatus`: a failed fix run is not written back, so `fixStatus` can sit at `in_progress` for good. If `agentRunStatus` is `failed` or `cancelled`, or the run's chat (`artemis chat messages <chat-id>`) is waiting on a question card, stop and tell the user; with their yes, a fix that is still running can be stopped (§6). Scans and Re-syncs get the same three-run limit.
 
-Before each wait, and after each run of the loop that ends unfinished, say what Artemis is doing (`artemis`'s *Waiting out loud*): a Scan reads the code against its Rules (link: the Maintain page), a fix writes the change on a Branch (link: the Issue's page), a Re-sync re-checks Issues against the current code (link: the Maintain page). There's no typical time for these yet, so give the limit: about 8 minutes a run, three runs at most. For a Scan, add `issuesFound` when `scans get` shows it.
+Before each wait, and after each run of the loop that ends unfinished, say what Artemis is doing ([waiting out loud](../artemis/references/waiting.md#waiting-out-loud)): a Scan reads the code against its Rules (link: the Maintain page), a fix writes the change on a Branch (link: the Issue's page), a Re-sync re-checks Issues against the current code (link: the Maintain page). There's no typical time for these yet, so give the limit: about 8 minutes a run, three runs at most. For a Scan, add `issuesFound` when `scans get` shows it.
 
 ---
 
@@ -98,7 +98,7 @@ artemis maintain scans run --project <p> --rule <rule-id> --count 10
 ```
 
 - `--rule` is required and repeatable, up to 20 Rules per Scan.
-- Once it starts, post the start block (`artemis`'s *Start block*): Scan started.
+- Once it starts, post the start block ([start block](../artemis/references/waiting.md#start-block)): Scan started.
 - `--count` is about how many Issues to surface (default 5), the Web UI's "Approximate number of issues": a target, not a guarantee. It takes 1-100, and `--no-limit`, instead of `--count` (the two can't be combined), asks for no limit, as the Web UI does, using more tokens.
 - `--focus "<text>"` points the Scan at part of the code, like the Web UI's "What to focus on". `--commit <sha>` scans that commit instead of the project head. There is no `--path`.
 
@@ -149,7 +149,7 @@ artemis maintain issues fix <issue-uuid>... [--model <model>]
 ```
 
 - All the Issues in one call land in **one Branch** and one fix chat. Group related Issues; put unrelated ones in separate calls so each gets its own Branch and PR. They can't be split afterwards.
-- It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background; post the start block (`artemis`'s *Start block*): Fix started, opening the Issue's page (`<deployment-base-url>/projects/<project-uuid>/maintain/issues/id/<issue-uuid>`, the link `maintain issues get` prints). Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
+- It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background; post the start block ([start block](../artemis/references/waiting.md#start-block)): Fix started, opening the Issue's page (`<deployment-base-url>/projects/<project-uuid>/maintain/issues/id/<issue-uuid>`, the link `maintain issues get` prints). Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
 - The terminal `fixStatus` values are `done`, `failed` and `cancelled`. There is no `fixed` or `complete`.
 - `done` can still be an empty Branch. Check `artemis changeset diff <changeset-id> --project <p>` before shipping, and give the user the Branch link (`<deployment-base-url>/projects/<project-uuid>/branches/<changeset-id>/changes`, `cli-follow-along` §2) once it has changes; don't judge by `publish`/`pr` output, which reads empty for every unpublished fix. If the diff is empty, **Fix again** (run `fix` on the Issue again); if it is still empty, the Issue is probably already fixed, so re-sync it (§8).
 - Stop a running fix, after the user's yes, with `artemis maintain issues cancel <ISS-n> -p <p> --force` (the Web UI's Stop). It reports `not_running` when nothing is running, and refuses a local attempt.
@@ -164,7 +164,7 @@ artemis maintain issues fix <ISS-n> --discovery --project <p> \
   --model <model> --versions <n> --runner <runner> --script <script> --repeats <runs> --timeout 8m
 ```
 
-- Post the start block (`artemis`'s *Start block*): Fix in Discovery started, opening the run.
+- Post the start block ([start block](../artemis/references/waiting.md#start-block)): Fix in Discovery started, opening the run.
 - `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
 - Fix in Discovery always scores AI Metrics: the maintain agent has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
 - Piped, the command takes one agent turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only with the agreed settings. If the turn hits `--timeout` (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`.

@@ -15,7 +15,7 @@ metadata:
 - **Problem:** Derives, verifies, and records a project Script's self-contained root-level commands: the build and test that gate Discovery, and the benchmark that reports numbers.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
 - **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
-- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification. Before a Discovery, the benchmark review hands off to `benchmark-review`; then continue to `discovery-start` or validation.
+- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification. Before a Discovery, the benchmark review hands off to `benchmark-review`; then continue to `discovery-start` or `script-run`.
 
 ## Requirements
 
@@ -56,7 +56,7 @@ Each command runs in its own shell, so nothing carries over between commands exc
 - **truthful**: return non-zero when its phase fails;
 - **runner-compatible**: use tools and paths that exist on the selected runner, in POSIX shell.
 
-The benchmark reports its metrics in a results file (section 4), not on stdout, and a passing benchmark does not mean anything was measured: confirm the values in `changeset validation logs` (§5b).
+The benchmark reports its metrics in a results file (section 4), not on stdout, and a passing benchmark does not mean anything was measured: confirm the values `script-run` reports (§5b).
 
 Do not configure Artemis with unverified commands unless verification was skipped under the rule above; then record them as unverified.
 
@@ -188,61 +188,29 @@ Record the literal commands and measured duration of each phase.
 
 ### 5b. Verify via the runner
 
-Runs the commands through the platform on the real runner. Needs an imported project (`project-import`) and an online runner. **`artemis changeset validate`** is the same primitive Discovery uses for the baseline and every version:
+Runs the commands through the platform on the real runner. Needs an imported project (`project-import`) and an online runner. Store the commands as a Script:
 
 ```bash
-artemis changeset validate --help
-
 artemis --output-format json project scripts create \
   --project "<project-uuid>" --name "Command verification" \
   --setup-cmd "<compile-command>" \
   --setup-cmd "<test-command>" \
   --benchmark-cmd "<benchmark-command>" \
   --measure none
-
-# Skip this when a calling skill supplied a changeset and runner: validate on theirs.
-artemis --output-format json changeset create \
-  --project "<project-uuid>" --name "Command verification"
-# an empty changeset; its one version is the project's current original code
-
-artemis --output-format json changeset validate "<changeset-id>" \
-  --project "<project-uuid>" --version original \
-  --script "<script-id>" \
-  --runner "<runner-name>"
-# no --wait: the response carries the validation's "id" straight away
-
-for i in $(seq 16); do
-  out=$(artemis --output-format json changeset validation get "<validation-id>" \
-        --project "<project-uuid>") || { echo "validation get failed"; break; }
-  s=$(printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status") or "")')
-  case "$s" in success|failed|cancelled) break ;; esac
-  sleep 30
-done; echo "$s"
 ```
 
-Run the loop as written. A validation ends `success`, not `completed` (that is a Discovery run's word), so a retyped loop that waits for `completed` polls for the full 8 minutes after a pass.
+`--measure none` keeps command-runtime metrics out unless runtime is the target. Then run it with `script-run` on the starting commit (`--version original`): on the branch and runner a calling skill supplied, or else on a new branch over the project's code. Expect about as long as the §5a run took.
 
-To repeat the benchmark inside one validation (CLI 1.1.17+), add `--eval-runs <n>` (1 to 500), or `--max-runs <n>` to repeat until the results stabilise, at most n times (it implies `--eval-mode until_stable`). Without them the server's defaults apply. If `changeset validate --help` doesn't list them, update the CLI with `cli-setup`.
-
-Once the validation starts, post the start block (`artemis`'s *Start block*): Validation started, then say what Artemis is doing (`artemis`'s *Waiting out loud*): running the build, tests and benchmark on that runner, about as long as the §5a run took, followed on the branch's Scripts tab (`cli-follow-along` §2). While it is `created`, it is waiting for the runner to pick it up; say so. The script holds the commands; validation runs it with `--script`. `--measure none` keeps command-runtime metrics out unless runtime is the target; `--version original` resolves the branch's original code. Start the validation without `--wait` so its id is printed at once, then run the loop above. Wait in one shell call: 30 seconds between checks, at most 8 minutes. Give that shell call a 10-minute timeout, or run it in the background. If the CLI call fails, the loop stops and says so instead of waiting out the 8 minutes. If it is still `created` or `running` after a second loop, stop and report it with `execution-log-inspect` (a validation behind an offline runner stays `created`, and so can one whose commands ran but recorded nothing, so check `artemis process status "<processId>"`, with `processId` from `validation get`, before blaming the runner); never start another validation. Then read the result:
-
-```bash
-artemis changeset validation get "<validation-id>" --project "<project-uuid>"
-artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
-```
-
-Confirm every command shows `exitCode: 0` and that the intended runner and toolchain were used. If compile takes more than about 5 minutes, every Discovery version repeats it: use `workspace-setup` for an incremental build before Discovery. `validation get` and `validation logs` both read through the platform; no access to the runner host is needed.
-
-`validation get` reports only `exitCode`, `runtime`, `cpu` and `memory`, never metric values. The values are in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Read command output there, or with `execution-log-inspect` and the validate response's `processId`, not a per-command `logId`.
+Confirm every command passed on the intended runner and toolchain, and that `script-run` reports the benchmark's metric values: a pass that wrote none measured nothing. If compile takes more than about 5 minutes, every Discovery version repeats it: use `workspace-setup` for an incremental build before Discovery.
 
 For a discovery run the equivalent is `artemis discovery metrics "<run-id>" --all`, or `--stats` for mean, standard deviation and sample count across repeated measurements.
 
 When something fails, distinguish command-string issues from repository code or script issues:
 
-- **Command-string failure:** fix the script's commands (see below), and re-run `changeset validate --script` on the same empty branch (`--version original` still resolves that original code).
-- **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit (one shell call: 30 seconds between checks, at most 8 minutes, with a 10-minute shell timeout; after a second loop, stop and report), create a **new** empty branch, and validate again. Do not reuse the pre-pull branch's `original`: it stays on the old SHA.
+- **Command-string failure:** fix the script's commands (see below), and run it again with `script-run` on the same empty branch (`--version original` still resolves that original code).
+- **Repository script or source failure:** edit in Git, push to the project's remote, run `artemis project compare` then `artemis project pull` (not `project sync`), wait until the project's `gitHash` matches the fix commit (a [bounded wait](../artemis/references/waiting.md#bounded-waits)), create a **new** empty branch, and validate again. Do not reuse the pre-pull branch's `original`: it stays on the old SHA.
 
-`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis --output-format json discovery setup trial-run "<run-id>"`: without `--wait` it returns at once with the check's id in `.validation.id`; wait for it with the loop above. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. When you replace benchmark commands with `--benchmark-cmd` on a script that measures something, add `--measure` (`none`, or what it measured); with `--file`, set `measureRuntime`, `measureCpu` and `measureMemory` in the file instead. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
+`discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis --output-format json discovery setup trial-run "<run-id>"`: without `--wait` it returns at once with the check's id in `.validation.id`; wait for it with `script-run`'s loop. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. When you replace benchmark commands with `--benchmark-cmd` on a script that measures something, add `--measure` (`none`, or what it measured); with `--file`, set `measureRuntime`, `measureCpu` and `measureMemory` in the file instead. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
 
 Once the Script passes on the runner, finish [benchmark review](HARNESS.md#pre-discovery-benchmark-review) step 9 there and record the review.
 

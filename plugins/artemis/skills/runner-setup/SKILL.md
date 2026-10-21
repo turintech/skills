@@ -119,7 +119,7 @@ artemis --output-format json runner list
 
 Confirm the intended runner appears online. If the command fails or omits the runner, check `runner.log`. A project's runner is set on the project's **Runner and Scripts** settings page (`<deployment-base-url>/settings/project/execution?projectId=<project-id>`; on older deployments `<deployment-base-url>/projects/<project-id>/settings/execution`).
 
-For end-to-end verification, use `repo-command-setup` §5b to validate the project's starting commit (`--version original`) and confirm its commands execute on the intended runner.
+For end-to-end verification, run the project's Script with `script-run` on the starting commit (`--version original`) and confirm its commands execute on the intended runner.
 
 ### The runner's environment is not the user's shell
 
@@ -130,12 +130,9 @@ Before a project's commands are written, probe what the runner actually has, thr
 ```bash
 artemis project scripts create --project "<project-id>" --name "toolchain-probe" \
   --setup-cmd 'for t in python3 node cargo uv poetry cmake; do command -v "$t" >/dev/null && echo "$t: $("$t" --version 2>&1 | head -n1)" || echo "$t: MISSING"; done' --measure none
-artemis changeset validate "<changeset-id>" --project "<project-id>" --version original \
-  --script "<probe-script-id>" --runner "<runner-name>" --wait --timeout 9m
-artemis changeset validation logs "<validation-id>" --project "<project-id>"
 ```
 
-Just before the `--wait` validation, post the start block (`artemis`'s *Start block*): Validation started, and say what Artemis is doing (`artemis`'s *Waiting out loud*): checking which tools the runner has. The checks are quick; a long wait here is usually the runner picking the job up. Give that call a 10-minute shell timeout; exit 6 means it outlasted `--timeout`, so read `changeset validation get` before calling it failed. Use the branch the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
+Run it with `script-run` (`--version original`, the probe's script id) and read the probe's output in the run's logs. Say it is checking which tools the runner has; the probe writes no metrics, so a pass with none is expected. The checks are quick; a long wait here is usually the runner picking the job up. Use the branch the caller passed (quickstart's `artemis/measure`). Probe for the tools this repository needs. If one is missing, say which tool on which machine and let the user choose between installing it there and using another machine. Do not rewrite the project's commands to dodge it.
 
 Report the runner name, host, and verification result, with the page where it shows as online: once a project exists, its **Runner and Scripts** settings page (above); before that, **Runners** (`<deployment-base-url>/settings/runners`), which also lists other people's runners, so keep it off a recorded screen. Do not claim success from a quiet process or log alone.
 
