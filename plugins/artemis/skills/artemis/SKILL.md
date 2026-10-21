@@ -60,7 +60,7 @@ If the user is onboarding, route to `quickstart` instead of classifying further.
 | Quickstart | Take a user from any starting point to a first measured result | None yet; may begin with a repository or a project id |
 | Discovery | Generate and benchmark alternatives to improve a metric | Runner, repository commands, model, version budget |
 | Validation | Build, test, and benchmark known code without searching | Runner and repository commands |
-| Maintain | Scan, triage, fix (including Fix in Discovery), or publish code-health issues | Rules, scope, and push access when publishing; a runner and a script for Fix in Discovery |
+| Maintain | Scan, triage, fix (including Fix in Discovery), publish or chart code-health issues | Rules, scope, and push access when publishing; a runner and a script for Fix in Discovery |
 | Setup | Install or repair a CLI, runner, repository, credential, or harness | Depends on the component |
 | Inspection | Resume, monitor, diagnose, or summarize existing work | Existing project or run identifiers |
 | Visualization | Chart or report an existing discovery run | Authenticated CLI and run ID |

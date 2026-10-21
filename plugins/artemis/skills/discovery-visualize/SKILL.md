@@ -1,6 +1,6 @@
 ---
 name: discovery-visualize
-description: Collect a normalized Artemis discovery snapshot and render it as a host-native chart or report. Use when the user wants to graph, chart, plot, compare, visualize, or build a discovery report, canvas, or artifact from a discovery run, or chart a project's Maintain issues by severity and triage.
+description: Collect a normalized Artemis discovery snapshot and render it as a host-native chart or report. Use when the user wants to graph, chart, plot, compare, visualize, or build a discovery report, canvas, or artifact from a discovery run.
 compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.16"
@@ -14,7 +14,7 @@ metadata:
 
 - **Problem:** Turns a Discovery run into a report someone can take a conclusion away from: one normalized snapshot, then figures that each answer a question and state the answer, on the current agent host.
 - **Must be available:** An authenticated CLI for the run's deployment and the discovery run ID.
-- **Use / don't use:** Use for graphs, charts, canvases, artifacts, or visual discovery reports, for one run or for comparing every run in a project, and for charting a project's Maintain issues ([references/maintain-report.md](references/maintain-report.md)). Use `discovery-inspect` to diagnose a run, read diffs, or decide what the numbers mean before drawing them.
+- **Use / don't use:** Use for graphs, charts, canvases, artifacts, or visual discovery reports, for one run or for comparing every run in a project. Use `maintain` to chart a project's Maintain issues. Use `discovery-inspect` to diagnose a run, read diffs, or decide what the numbers mean before drawing them.
 - **Next skill:** None required. Return to `discovery-inspect` for rationale/diff review, or `discovery-steer` for more versions.
 
 ## Requirements
