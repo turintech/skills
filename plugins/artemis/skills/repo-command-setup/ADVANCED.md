@@ -119,8 +119,8 @@ Statistic selection and noise-floor measurement belong to the benchmark harness'
 - When NUMA placement matters, set `OMP_PROC_BIND=close` and `OMP_PLACES=cores`.
 - Discard warm-up iterations affected by JIT compilation, kernel selection, page-in, or cache population.
 - Keep runner load and resource limits consistent across baseline and generated versions.
-- Pin the benchmark child to the agreed cores (`taskset -c 0-3 <command>`), so a version cannot win by starting more workers than the baseline.
-- Measure peak memory across the child's whole process tree: run it in its own cgroup v2 and read `memory.peak`, or sample every descendant's RSS. `ru_maxrss` for children reports only the largest single process.
+- Cap the benchmark child at the agreed cores with a cpuset, so a version cannot win by starting more workers than the baseline: `docker run --cpuset-cpus=0-3 ...`, or `systemd-run --scope -p AllowedCPUs=0-3 <command>` from the system manager. `taskset` alone is not a cap: the code can widen its own affinity, and a user scope without the cpuset controller ignores `AllowedCPUs`.
+- Measure peak memory across the child's whole process tree from its own cgroup (Linux 5.19+), read before the cgroup ends: `systemd-run --user --scope -q sh -c '<command>; cat /sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)/memory.peak'`, or `/sys/fs/cgroup/memory.peak` inside a container. It includes page cache, which is the same for versions reading the same inputs. `ru_maxrss` for children reports only the largest single process.
 
 Run the complete benchmark repeatedly in fresh processes after changing runner controls. Do not tune the environment or statistic after seeing which version wins.
 
@@ -193,7 +193,7 @@ Do not overwrite a real checkout's Git metadata.
 ## Benchmark review how-tos
 
 - **Verify apart:** decompress and compare, load the weights and score fresh data, or recompute with the reference code.
-- **Isolation:** check from inside that the code under test cannot read the repo's data or the holdout, or touch the results file.
+- **Isolation:** check from inside that the code under test cannot read the repo's data or the holdout, or touch the results file, and that widening its CPU affinity still leaves only the agreed cores.
 
 ## Troubleshooting
 
