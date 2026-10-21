@@ -102,7 +102,7 @@ Raise only rows required by the selected workflow:
 | Repository | A remote that one of the user's Git keys can read | `project-import` |
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
 | Commands | Exact verified commands, stored as a Script, and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |
-| Benchmark review | For Discovery, the Script's latest benchmark review line says passed | `benchmark-review` |
+| Benchmark review | For Discovery, the Script's latest benchmark review line says passed | `repo-command-setup`, then `benchmark-review` for its step 10 |
 
 Maintain needs no runner or benchmark, except Fix in Discovery, which needs a runner and a script. Inspection normally needs only the authenticated CLI and identifiers.
 
@@ -165,7 +165,7 @@ Take the expected time only from a measurement: the phase durations `repo-comman
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository commands, Scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
-- Checking a benchmark for ways to game it before Discovery, or finishing an open benchmark review: `benchmark-review`
+- Checking a benchmark for ways to game it before Discovery (step 10 of `repo-command-setup`'s benchmark review): `benchmark-review`
 - Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`
 - Discovery launch, including `discovery create --script` and guided `--setup`: `discovery-start`

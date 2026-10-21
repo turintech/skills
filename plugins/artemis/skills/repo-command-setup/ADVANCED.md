@@ -119,8 +119,8 @@ Statistic selection and noise-floor measurement belong to the benchmark harness'
 - When NUMA placement matters, set `OMP_PROC_BIND=close` and `OMP_PLACES=cores`.
 - Discard warm-up iterations affected by JIT compilation, kernel selection, page-in, or cache population.
 - Keep runner load and resource limits consistent across baseline and generated versions.
-- Cap the benchmark child at the agreed cores with a cpuset, so a version cannot win by starting more workers than the baseline: `docker run --cpuset-cpus=0-3 ...`, or `sudo systemd-run --scope -p AllowedCPUs=0-3 setpriv --reuid=<bench user> --regid=<bench user> --init-groups <command>`. The child must not run as root, which could leave its cgroup. `taskset` alone is not a cap: the code can widen its own affinity, and a user scope without the cpuset controller ignores `AllowedCPUs`.
-- Measure peak memory across the child's whole process tree from its own cgroup (Linux 5.19+), read before the cgroup ends: `systemd-run --user --scope -q sh -c '<command>; s=$?; cat /sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)/memory.peak; exit $s'` (it needs a user session; without one, use the system scope above), or `/sys/fs/cgroup/memory.peak` inside a container. It includes page cache, which is the same only for versions reading and writing the same files. `ru_maxrss` for children reports only the largest single process.
+- Cap the child's cores with a cpuset: `docker run --cpuset-cpus=0-3 ...`, or, with root on the runner, `systemd-run --scope -p AllowedCPUs=0-3 setpriv --reuid=<user> --regid=<user> --init-groups <command>` (never run the child as root). `taskset` is no cap: the code can widen it.
+- Measure memory across the child's process tree, not `ru_maxrss` (the largest child only): `systemd-run --user --scope -q sh -c '"$@"; s=$?; cat /sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)/memory.peak; exit $s' sh <command>` (Linux 5.19+, a user session), or `/sys/fs/cgroup/memory.peak` in a container. It includes page cache.
 
 Run the complete benchmark repeatedly in fresh processes after changing runner controls. Do not tune the environment or statistic after seeing which version wins.
 

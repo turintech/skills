@@ -1,6 +1,6 @@
 ---
 name: benchmark-review
-description: "Have a separate reviewer try to game a Discovery benchmark before any Discovery runs: checks the quality floors, then attacks the benchmark from a fixed hack list, with a second round after fixes, and reuses a passed review while the pinned manifest is unchanged. Use at step 10 of repo-command-setup's benchmark review, to finish an open review, or when asked whether a benchmark can be gamed or reward-hacked. Not for a known-good benchmark a calling skill supplies, such as the demo's."
+description: "Have a separate reviewer try to game a Discovery benchmark before any Discovery runs: checks the quality floors, then attacks the benchmark from a fixed hack list, with a second round after fixes, and reuses a passed review while the pinned manifest is unchanged. Use at step 10 of repo-command-setup's benchmark review, to rerun an open step 10, or when asked whether a benchmark can be gamed or reward-hacked. Not for a known-good benchmark a calling skill supplies, such as the demo's."
 compatibility: Requires Artemis CLI 1.1.14+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.14"
@@ -14,7 +14,7 @@ metadata:
 
 - **Problem:** Discovery optimizes whatever the benchmark rewards, including ways to score better without a real gain. A reviewer who did not build the benchmark looks for those ways first.
 - **Must be available:** A harness that passes steps 1-9 of `repo-command-setup`'s [benchmark review](../repo-command-setup/HARNESS.md#pre-discovery-benchmark-review), with their evidence in `bench/REVIEW.md`.
-- **Use / don't use:** Use for step 10 of that review, to finish an open review, or to answer "can this benchmark be gamed?". To build or fix the harness, use `repo-command-setup`.
+- **Use / don't use:** Use for step 10 of that review, or to answer "can this benchmark be gamed?" once steps 1-9 pass. A missing review, or one open on steps 1-9, goes to `repo-command-setup`, which also builds and fixes the harness.
 - **Next skill:** `repo-command-setup` writes the Script's review line from this skill's verdict; then `discovery-start`.
 
 ## Requirements
@@ -28,7 +28,7 @@ metadata:
 
 Reuse a passed review only when all of these hold:
 
-- a `Benchmark review passed` line, on this Script or another Script in the project with the same commands, names the manifest sha256 that this Script's benchmark command pins;
+- the latest review line naming the manifest sha256 this Script's benchmark command pins says passed; it may be on this Script or another one in the project with the same commands (`artemis project scripts list --project <p>`);
 - this Script's own guard passes in the checkout: `echo "<pinned sha256>  bench/manifest.sha256" | sha256sum -c --quiet - && sha256sum -c --quiet bench/manifest.sha256` (`shasum -a 256 -c` on macOS);
 - the objective and floors in `bench/REVIEW.md` equal those recorded beside that passed verdict.
 
@@ -39,7 +39,7 @@ Then the verdict is `reused <that line's date>`: go to section 6. A different co
 Before the reviewer starts, check that the gate holds each floor in three ways:
 
 - **Margin.** The gate demands a margin above the user's floor, agreed with the user and recorded, so a version cannot win by sitting just above it.
-- **Inputs the code cannot rebuild.** Every run also scores the floor on a set the Discovery agent never sees: data, or a generator's parameters, kept on the runner outside the repository and read by the harness by absolute path. Report only pass or fail for it. The repo's generator and samples are readable, so they cannot be the only check.
+- **Inputs the code cannot rebuild.** Every run also scores the floor on a floor set the Discovery agent never sees: data, or a generator's parameters, kept on the runner outside the repository and read by the harness by absolute path, reporting only pass or fail. It is separate from the holdout, which only gates after Discovery. The repo's generator and samples are readable, so they cannot be the only check. A local reviewer's benchmark run gets a copy at the same path.
 - **Every class stays.** Every class or output kind the original produces must remain producible, with a per-class floor and no minimum sample count.
 
 If any is missing, the verdict is `open: floors`: go to section 6, then fix the harness with `repo-command-setup` and run this skill again.
@@ -50,7 +50,7 @@ Warn the user first: this is the slow part of setup. Give the reviewer a scratch
 
 ```text
 Try to make this benchmark score better without a real gain. Edit only <files under optimization>
-in <scratch copy>; never the harness, bench/ or tests. Run the benchmark exactly as the Script
+in <scratch copy>; never the harness, bench/ or tests, and never read the floor set or holdout. Run the benchmark exactly as the Script
 does: <benchmark command>. A win is a change that passes the gate and scores better while doing
 the job worse for the user. Complete one full pass: try every item on the hack list below and
 report each as item, what you tried, and the result (gate failed, score fell, or win).
@@ -77,7 +77,7 @@ Record every row in `bench/REVIEW.md`. A pass that skips an item or ends early i
 
 ## 4. Fix, then a second round
 
-Each win is a hole in the harness. Fix it with `repo-command-setup`, which rewrites the manifest and the pinned hash and repeats HARNESS step 9, then come back here. After any fix, a fresh reviewer runs a second round within a time box agreed with the user, aimed at the fixes and at the items the first round tested least. A win in the second round keeps the review open: record `open: win in round <n>`, then fix it and run another round, or go to section 6.
+Each win is a hole in the harness. Fix it with `repo-command-setup`, which rewrites the manifest and the pinned hash and repeats HARNESS step 9, then come back here. After any fix, a fresh reviewer (a new subagent, or a new session from section 5's line, never the one that fixed it) runs a second round within a time box agreed with the user, aimed at the fixes and at the items the first round tested least. A win in the second round keeps the review open: record `open: win in round <n>`, then fix it and run another round, or go to section 6.
 
 ## 5. When the reviewer cannot run
 

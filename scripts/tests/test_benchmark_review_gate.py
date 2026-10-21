@@ -21,7 +21,7 @@ class BenchmarkReviewGate(unittest.TestCase):
         requirements = section((SKILLS / "discovery-start/SKILL.md").read_text(), "Requirements")
         self.assertIn("HARNESS.md#pre-discovery-benchmark-review) passed", requirements)
         self.assertIn("anything else blocks", requirements)
-        self.assertIn("`benchmark-review`", requirements)
+        self.assertIn("Finish a missing or open review with `repo-command-setup`'s benchmark review", requirements)
 
     def test_the_review_writes_the_line_discovery_start_reads(self):
         text = (SKILLS / "repo-command-setup/HARNESS.md").read_text()
@@ -61,7 +61,7 @@ class BenchmarkReviewSkill(unittest.TestCase):
 
     def test_reuse_needs_the_same_pinned_manifest(self):
         reuse = section(self.text, "Reuse an unchanged review")
-        self.assertIn("names the manifest sha256 that this Script's benchmark command pins", reuse)
+        self.assertIn("the latest review line naming the manifest sha256 this Script's benchmark command pins says passed", reuse)
         self.assertIn('echo "<pinned sha256>  bench/manifest.sha256" | sha256sum -c --quiet -', reuse)
 
     def test_its_verdicts_are_the_ones_the_harness_line_accepts(self):
@@ -72,6 +72,8 @@ class BenchmarkReviewSkill(unittest.TestCase):
     def test_the_router_and_readme_name_it(self):
         router = section((SKILLS / "artemis/SKILL.md").read_text(), "Route to the owning skill")
         self.assertIn("`benchmark-review`", router)
+        readiness = (SKILLS / "artemis/SKILL.md").read_text()
+        self.assertIn("| Benchmark review | For Discovery, the Script's latest benchmark review line says passed | `repo-command-setup`, then `benchmark-review`", readiness)
         self.assertIn("| `benchmark-review` |", (ROOT / "README.md").read_text())
 
 
