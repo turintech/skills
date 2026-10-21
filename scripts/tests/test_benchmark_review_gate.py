@@ -48,6 +48,7 @@ class BenchmarkReviewSkill(unittest.TestCase):
                      "dropping rare classes or outputs", "more cores or memory than the baseline used"):
             self.assertIn(item, hacks)
         self.assertIn("Complete one full pass", hacks)
+        self.assertIn("Never read the floor set or holdout", hacks)
         self.assertIn("A pass that skips an item or ends early is not complete", hacks)
 
     def test_floors_need_a_margin_unrebuildable_inputs_and_every_class(self):
@@ -78,7 +79,8 @@ class BenchmarkReviewSkill(unittest.TestCase):
 
     def test_its_verdicts_are_the_ones_the_harness_line_accepts(self):
         verdict = section(self.text, "Verdict")
-        for value in ("- `passed`:", "- `reused <date>`:", "- `open: <reason>`:", "`Benchmark review open: steps 1,10, manifest <sha256>`"):
+        for value in ("- `passed`:", "- `reused <date>`:", "- `open: <reason>`:", "`Benchmark review open: steps 1,10, manifest <sha256>`",
+                      "`steps 10, manifest <sha256>` otherwise"):
             self.assertIn(value, verdict)
 
     def test_the_router_and_readme_name_it(self):

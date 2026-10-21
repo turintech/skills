@@ -49,11 +49,12 @@ If any is missing, the verdict is `open: floors`: go to section 6, then fix the 
 Warn the user first: this is the slow part of setup. Give the reviewer a scratch copy of the checkout, and this brief:
 
 ```text
-Try to make this benchmark score better without a real gain. Edit only <files under optimization>
-in <scratch copy>; never the harness, bench/ or tests, and never read the floor set or holdout. Run the benchmark exactly as the Script
-does: <benchmark command>. A win is a change that passes the gate and scores better while doing
-the job worse for the user. Complete one full pass: try every item on the hack list below and
-report each as item, what you tried, and the result (gate failed, score fell, or win).
+Try to make this benchmark score better without a real gain. Edit only <files under optimization> in
+<scratch copy>; never the harness, bench/ or tests. Never read the floor set or holdout. Run the
+benchmark exactly as the Script does: <benchmark command>. A win is a change that passes the gate
+and scores better while doing the job worse for the user. Complete one full pass: try every item on
+the hack list below and report each as item, what you tried, and the result (gate failed, score
+fell, or win).
 ```
 
 Hack list:
@@ -84,7 +85,8 @@ Each win is a hole in the harness. Fix it with `repo-command-setup`, which rewri
 A safety check, a missing subagent tool or a stopped session can end the reviewer before its pass completes. The review then stays open; never record it as passed. Record `open: reviewer did not complete`, and give the user this line to start a fresh session on the same checkout:
 
 ```text
-Use the Artemis benchmark-review skill on <checkout path> for Script <script-id> in project <project-id>. This session is the reviewer.
+Use the Artemis benchmark-review skill on <checkout path> for Script <script-id>
+in project <project-id>. This session is the reviewer.
 ```
 
 A session started from that line did not build the benchmark, so it is the separate reviewer: it runs sections 2 and 3 itself, then section 6. If it then fixes a win, the second round needs another subagent or another session from that line.
