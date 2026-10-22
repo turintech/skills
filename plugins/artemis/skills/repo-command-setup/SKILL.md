@@ -198,10 +198,10 @@ artemis --output-format json project scripts create \
   --benchmark-cmd "<benchmark-command>" \
   --measure none
 
-# Skip this when a calling skill supplied a changeset and runner: validate on theirs.
+# Skip this when a calling skill supplied a Branch and runner: validate on theirs.
 artemis --output-format json changeset create \
   --project "<project-uuid>" --name "Command verification"
-# an empty changeset; its one version is the project's current original code
+# an empty Branch; its one version is the project's starting commit
 
 artemis --output-format json changeset validate "<changeset-id>" \
   --project "<project-uuid>" --version original \
