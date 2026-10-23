@@ -242,7 +242,7 @@ export ARTEMIS_SSL_CERT_FILE=/absolute/path/to/ca-bundle.pem
 It is trusted in addition to the system roots, so other deployments keep working, and it affects nothing but the CLI. `--ssl-cert-file <path>` does the same for a single command. CLI 1.1.8 has neither; update it rather than set `SSL_CERT_FILE`, which changes certificate trust for every program in that shell.
 
 - **The path is the user's, and absolute.** Never `~` or `$HOME` in a command they paste, because your `HOME` and their shell's need not match.
-- **It only lasts for that shell.** Making it permanent means editing their shell startup file, so say which file and why, and ask before writing to it. A login shell reads `~/.bash_profile` or `~/.profile` and ignores `~/.bashrc` unless one sources the other.
+- **It only lasts for that shell.** A CLI that has `artemis auth token` keeps it for good with `artemis config set network.ca_cert /absolute/path/to/ca-bundle.pem`, which needs no shell file. On older CLIs, making it permanent means editing their shell startup file, so say which file and why, and ask before writing to it. A login shell reads `~/.bash_profile` or `~/.profile` and ignores `~/.bashrc` unless one sources the other.
 - **The runner has its own setting**, `--ssl-verify <path>`. See `runner-setup`.
 
 Verify in a fresh login shell rather than the one where you just exported it:

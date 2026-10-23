@@ -60,7 +60,7 @@ When this adds a runner to work that already has one, get the user's approval fi
 
 State before starting: the runner is a long-lived process that executes this repository's commands on this machine, and it keeps running until stopped. Start it, and only once the check below passes, report the name, the PID, the log path, and the exact stop command. If the user would rather it were not running, they can stop it with that command.
 
-On every start the runner signs in with an API key and appears in the fleet under the name it is given. When adding approved capacity to an existing group, pass its exact name as `<unique-name>`. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, read from the CLI's config file inside the shell: never print the file or the key, so it stays out of the conversation, the command line and `ps`. The config file is the one the CLI is using. On CLI 1.1.16 and newer, `artemis --output-format json config show` lists it in `.sourceFiles`, nearest first (a `.artemis.env` in the folder where the user's `artemis` commands run, then the user or environment file): take the first that sets `ARTEMIS_API_KEY`. A `./.env` is not one of them. On older CLIs:
+On every start the runner signs in with an API key and appears in the fleet under the name it is given. When adding approved capacity to an existing group, pass its exact name as `<unique-name>`. Use the CLI's key, so the agent needs nothing from the user. Export only `ARTEMIS_API_KEY`, inside the shell: never print the key, so it stays out of the conversation, the command line and `ps`. A CLI that has `artemis auth token` (`artemis auth token --help` succeeds) prints the key for the deployment it uses, so capture it with `"$(artemis auth token)"` and skip the config file. Older CLIs keep the key in a config file: read it from the one the CLI is using. On CLI 1.1.16 and newer, `artemis --output-format json config show` lists it in `.sourceFiles`, nearest first (a `.artemis.env` in the folder where the user's `artemis` commands run, then the user or environment file): take the first that sets `ARTEMIS_API_KEY`. A `./.env` is not one of them. On older CLIs:
 
 - a `.env` in the folder where the user's `artemis` commands run (usually the repository, not this runner folder), if there is one;
 - otherwise, when `artemis env current` names an environment other than `default`, `envs/<name>.env` in the CLI's config folder;
@@ -71,9 +71,13 @@ Pass the deployment that key belongs to as `<deployment-base-url>`. If the file 
 ```bash
 cd <absolute-home>/artemis-runner
 RUNNER=<absolute-home>/artemis-runner/artemis-runner   # Python package: <absolute-home>/artemis-runner/artemis-runner-<version>-wheels/.venv/bin/artemis-runner
-CLI_ENV="<the CLI's config file, from the list above>"
+CLI_ENV="<the CLI's config file, from the list above; unused when the CLI has auth token>"
 (
-  export ARTEMIS_API_KEY="$(sed -n 's/^\(export \)\{0,1\}ARTEMIS_API_KEY=//p' "$CLI_ENV" | tail -n 1 | tr -d "\r\"'" | sed 's/[[:space:]].*$//')"
+  if artemis auth token --help >/dev/null 2>&1; then
+    export ARTEMIS_API_KEY="$(artemis auth token)"
+  else
+    export ARTEMIS_API_KEY="$(sed -n 's/^\(export \)\{0,1\}ARTEMIS_API_KEY=//p' "$CLI_ENV" | tail -n 1 | tr -d "\r\"'" | sed 's/[[:space:]].*$//')"
+  fi
   [ -n "$ARTEMIS_API_KEY" ] || { echo "No ARTEMIS_API_KEY in $CLI_ENV" >&2; exit 1; }
   nohup "$RUNNER" start --runner-name <unique-name> --url <deployment-base-url> > runner.log 2>&1 &
   echo $! > runner.pid   # stop: kill "$(cat runner.pid)"
