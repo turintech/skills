@@ -1,6 +1,6 @@
 ---
 name: maintain
-description: Run Artemis Maintain end to end on a project. Author or import Rules, Scan the code for Issues, triage them, fix them with the fix agent, in Discovery or with your own coding agent, ship each fix as a branch or PR, and re-sync outdated Issues as the code moves on. Use when the user wants to scan a project for code-health Issues, set up Rules, or triage, fix or ship Issues.
+description: Run Artemis Maintain end to end on a project. Author or import Rules, Scan the code for Issues, triage them, fix them with the fix agent, in Discovery or with your own coding agent, ship each fix as a branch or PR, and re-sync outdated Issues as the code moves on. Use when the user wants to scan a project for code-health Issues, set up Rules, triage, fix or ship Issues, or summarise, chart or graph the Maintain board by severity and lane.
 compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.16"
@@ -13,9 +13,9 @@ metadata:
 ## At a glance
 
 - **Problem:** Finds code-health Issues against a project's Rules, then triages them, fixes them and ships each fix as a branch or pull request.
-- **Must be available:** An authenticated CLI and an imported project. No runner, except for Fix in Discovery.
+- **Must be available:** An authenticated CLI and an imported project. No runner, except for Fix in Discovery. The board chart also needs `discovery-visualize` installed beside this skill; without it, answer in text.
 - **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.16, which has `issues cancel` and display ids for `fix --discovery`, on top of 1.1.15's `scans get`, `scans cancel`, `--no-limit` and `--lane`); if it is older, load `cli-setup` first.
-- **Use / don't use:** Use to scan for Issues, manage Rules, or triage, fix and ship Issues. Not for Discovery runs (load `discovery-start`) or browser walkthroughs (load `platform-tour`).
+- **Use / don't use:** Use to scan for Issues, manage Rules, triage, fix and ship Issues, or chart the board. Not for Discovery runs (load `discovery-start`) or browser walkthroughs (load `platform-tour`).
 - **Next skill:** None required. Return to `artemis` routing for other work.
 
 Maintain audits a project against its **Rules**, records each violation as an **Issue** on a board, and helps you triage and fix them:
@@ -114,7 +114,7 @@ The Scan runs in the background; capture its `id`. Check on it with `scans get <
 
 ## 4. Read the board
 
-The board in the Web UI: `<deployment-base-url>/projects/<project-id>/maintain/issues`. Give the user that link with your summary, and draw the board's chart with it without being asked: severity, and severity by lane (the Maintain issues report in `discovery-visualize`, `references/maintain-report.md`). With no open issues, or one, answer in text and offer the chart.
+The board in the Web UI: `<deployment-base-url>/projects/<project-id>/maintain/issues`. Give the user that link with your summary, and without being asked, draw the board's chart: severity, and severity by lane ([references/board-report.md](references/board-report.md)). With no open issues, or one, answer in text and offer the chart.
 
 ```bash
 artemis maintain issues list --project <p> --severity high                       # open, high severity

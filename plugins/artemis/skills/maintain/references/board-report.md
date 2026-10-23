@@ -1,6 +1,6 @@
 # Maintain issues report
 
-For a summary of a project's Maintain board, and for "chart", "graph" or "visualise" its issues: `maintain` draws this page by default when it summarises the board. Same kit, template and checker as the Discovery report ([report-kit.md](report-kit.md)); only the data and the figures differ.
+For a summary of a project's Maintain board, and for "chart", "graph" or "visualise" its issues: draw this page by default when you summarise the board (§4 in SKILL.md). It uses the Discovery report's kit, template and checker by path, from `discovery-visualize` installed beside this skill ([report-kit.md](../../discovery-visualize/references/report-kit.md)); only the data and the figures differ. Here `<maintain-dir>` is the folder that holds maintain's SKILL.md. If `<maintain-dir>/../discovery-visualize/scripts/build_report.py` does not exist, answer in text and say the chart needs `discovery-visualize` installed too.
 
 ## Collect
 
@@ -10,12 +10,12 @@ python3 - <<'PY'
 import json
 issues = json.load(open("/tmp/maintain-issues.json")).get("docs") or []
 json.dump({"projectId": "<project-id>", "projectName": "<project name>",
-           "webUrl": "<deployment-base-url>/projects/<project-id>/maintain", "issues": issues},
+           "webUrl": "<deployment-base-url>/projects/<project-id>/maintain/issues", "issues": issues},
           open("/tmp/maintain-snapshot.json", "w"))
 PY
 ```
 
-The deployment base URL is the one `artemis status` reports. Each issue has `severity` (critical, high, medium, low, info), `lane` (untriaged, triaged, in_progress, done), `validity` (true_positive, false_positive, not_set) and `status` (open, or closed when archived).
+The deployment base URL is the one `artemis status` reports, and the project name is the one `artemis project get <project-id>` shows. Each issue has `severity` (critical, high, medium, low, info), `lane` (untriaged, triaged, in_progress, done), `validity` (true_positive, false_positive, not_set) and `status` (open, or closed when archived).
 
 ## The default page
 
@@ -76,7 +76,16 @@ f2.bullets([
 R.footer(page, { prov: ['project ' + S.projectId.slice(0, 8), 'source: Maintain issues, every page'], link: { href: S.webUrl } });
 ```
 
-Build and check it like the Discovery report, with `--snapshot /tmp/maintain-snapshot.json`, then hand it over the same way (*Hand it over* in SKILL.md), with the project's Maintain page as the Artemis link.
+Save it as `/tmp/maintain-page.js`, then build and check it:
+
+```bash
+KIT="<maintain-dir>/../discovery-visualize/scripts"
+python3 "$KIT/build_report.py" --snapshot /tmp/maintain-snapshot.json --page /tmp/maintain-page.js \
+  --title "<project name> Maintain" --output /tmp/maintain-report.html
+python3 "$KIT/check_report.py" /tmp/maintain-report.html
+```
+
+Fix everything the checker reports. Publish or open the page as `discovery-visualize`'s workflow step 6 says for your host (Claude Code: [claude-code.md](../../discovery-visualize/references/claude-code.md)). Then hand it over in the shape of its [Hand it over](../../discovery-visualize/SKILL.md#8-hand-it-over): at most four lines (open issues, critical and high, untriaged), then the link in the box, with the board, `<deployment-base-url>/projects/<project-id>/maintain/issues`, as the Artemis link.
 
 ## Truth rules
 

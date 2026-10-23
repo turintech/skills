@@ -438,11 +438,11 @@ class RecipeRenderTests(unittest.TestCase):
 
 
 class MaintainReportTests(unittest.TestCase):
-    """maintain-report.md's page, on a small synthetic board."""
+    """maintain's board-report.md page, drawn with this kit on a small synthetic board."""
 
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
     def test_maintain_page_renders(self) -> None:
-        page = (ROOT / "references" / "maintain-report.md").read_text(encoding="utf-8").split("```js\n", 1)[1].split("\n```", 1)[0]
+        page = (ROOT.parent / "maintain" / "references" / "board-report.md").read_text(encoding="utf-8").split("```js\n", 1)[1].split("\n```", 1)[0]
         lanes = ["untriaged", "triaged", "in_progress", "done"]
         issues = [{"status": "open", "severity": sev, "lane": lanes[i % 4], "validity": "not_set"}
                   for i, sev in enumerate(["critical", "high", "high", "medium", "low", "low", "low"])]
@@ -456,7 +456,7 @@ class MaintainReportTests(unittest.TestCase):
     # Only High issues: the first line already names them, so the count isn't repeated as a bare "1 high".
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
     def test_the_count_is_not_repeated_when_the_first_line_says_it(self) -> None:
-        page = (ROOT / "references" / "maintain-report.md").read_text(encoding="utf-8").split("```js\n", 1)[1].split("\n```", 1)[0]
+        page = (ROOT.parent / "maintain" / "references" / "board-report.md").read_text(encoding="utf-8").split("```js\n", 1)[1].split("\n```", 1)[0]
         snapshot = {"projectId": "p1234567", "projectName": "Smoke", "webUrl": "#",
                     "issues": [{"status": "open", "severity": "high", "lane": "untriaged", "validity": "not_set"}]}
         severe = RecipeRenderTests.page_text(build_report.build(snapshot, page, "Maintain")).split("How severe are the open issues?")[1].split("Where do they sit")[0]
