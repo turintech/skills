@@ -157,18 +157,17 @@ artemis maintain issues fix <issue-uuid>... [--model <model>]
 
 ### Fix in Discovery
 
-For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The maintain agent settles the run's settings: unless it is given them, it asks for the version budget (10 by default), the model and the runner, then the script and how many times each version is benchmarked. Agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. Then pass them, so the agent asks nothing it was already told:
+For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The command starts the run in one call, from the board: each Issue gets a fix attempt and moves to In Progress. Nothing asks about settings: whatever is left unset takes the project's default script and runner and the backend's default version budget. So agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. Then pass them all:
 
 ```bash
 artemis maintain issues fix <ISS-n> --discovery --project <p> \
-  --model <model> --versions <n> --runner <runner> --script <script> --repeats <runs> --timeout 8m
+  --model <model> --versions <n> --runner <runner> --script <script> --repeats <runs>
 ```
 
-- Post the start block (`artemis`'s *Start block*): Fix in Discovery started, opening the run.
+- It prints the `Discovery Run ID` straight away (`discoveryRunId` with `--output-format json`). Post the start block (`artemis`'s *Start block*): Fix in Discovery started, opening the run.
 - `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
-- Fix in Discovery always scores AI Metrics: the maintain agent has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
-- Piped, the command takes one agent turn; if it stops on a question card, answer with `chat answer` (§ Question cards), and approve a card that starts the run only with the agreed settings. If the turn hits `--timeout` (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`.
-- Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
+- Fix in Discovery always scores AI Metrics: the board's endpoint has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
+- A refusal starts nothing and says why: no default script or runner on the project (name one), an Issue the board can't fix right now (a fix already running, out of date: resync it first, no longer matching the code, archived or dismissed), or more than 5 Issues. Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 
 ### Your own coding agent
 
