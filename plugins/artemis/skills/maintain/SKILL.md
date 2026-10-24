@@ -25,7 +25,7 @@ Rules --scan--> Issues (Untriaged) --triage--> Triaged --fix--> Branch --publish
                                                    re-sync keeps outdated Issues honest as the code changes
 ```
 
-The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A fix's code changes are a **Branch** in the Web UI; the CLI calls it a **changeset** (`artemis changeset diff <id>`, `Changeset ID` in output).
+The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A fix's code changes are a **Branch** in the Web UI; the CLI calls it a **changeset** in its commands and JSON (`artemis changeset diff <id>`, `changesetId`).
 
 ## Requirements
 
@@ -149,7 +149,7 @@ artemis maintain issues fix <issue-uuid>... [--model <model>]
 ```
 
 - All the Issues in one call land in **one Branch** and one fix chat. Group related Issues; put unrelated ones in separate calls so each gets its own Branch and PR. They can't be split afterwards.
-- It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background; post the start block (`artemis`'s *Start block*): Fix started, opening the Issue's page (`<deployment-base-url>/projects/<project-uuid>/maintain/issues/id/<issue-uuid>`, the link `maintain issues get` prints). Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
+- It returns a `Branch ID` (`Changeset ID` on older CLIs) and a `Fix Chat ID` straight away and works in the background; post the start block (`artemis`'s *Start block*): Fix started, opening the Issue's page (`<deployment-base-url>/projects/<project-uuid>/maintain/issues/id/<issue-uuid>`, the link `maintain issues get` prints). Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
 - The terminal `fixStatus` values are `done`, `failed` and `cancelled`. There is no `fixed` or `complete`.
 - `done` can still be an empty Branch. Check `artemis changeset diff <changeset-id> --project <p>` before shipping, and give the user the Branch link (`<deployment-base-url>/projects/<project-uuid>/branches/<changeset-id>/changes`, `cli-follow-along` §2) once it has changes; don't judge by `publish`/`pr` output, which reads empty for every unpublished fix. If the diff is empty, **Fix again** (run `fix` on the Issue again); if it is still empty, the Issue is probably already fixed, so re-sync it (§8).
 - Stop a running fix, after the user's yes, with `artemis maintain issues cancel <ISS-n> -p <p> --force` (the Web UI's Stop). It reports `not_running` when nothing is running, and refuses a local attempt.
