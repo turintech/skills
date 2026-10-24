@@ -65,6 +65,7 @@ Skills are versioned independently of the Artemis CLI and platform. Commits use 
 | `cli-setup` | Install or authenticate the CLI |
 | `runner-setup` | Install, register, or start a runner |
 | `repo-command-setup` | Derive, verify, and store compile/test/benchmark commands as a validation script |
+| `benchmark-review` | Check a benchmark for ways to game it before Discovery: floors, an independent reviewer, reuse while unchanged |
 | `workspace-setup` | Persistent incremental build cache |
 | `project-import` | Import a branch as an Artemis project |
 | `discovery-start` | Create a discovery run |

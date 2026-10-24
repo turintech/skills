@@ -26,7 +26,7 @@ class NoCreditGates(unittest.TestCase):
         text = skill("quickstart")
         for heading in ("## 6. Rules for this flow", "## Checklist"):
             self.assertNotRegex(section(text, heading).lower(), r"credit", f"quickstart {heading} gates on credits")
-        self.assertRegex(text, r"for the demo, that these settings are fixed, so `discovery-start` does not ask")
+        self.assertRegex(text, r"for the demo, that these settings are fixed.*so `discovery-start` neither asks")
 
 
 if __name__ == "__main__":

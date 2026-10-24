@@ -15,7 +15,7 @@ metadata:
 - **Problem:** Derives, verifies, and records a project Script's self-contained root-level commands: the build and test that gate Discovery, and the benchmark that reports numbers.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
 - **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
-- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then continue to `discovery-start` or validation.
+- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification. Before a Discovery, the benchmark review hands off to `benchmark-review`; then continue to `discovery-start` or validation.
 
 ## Requirements
 
@@ -26,6 +26,8 @@ A local checkout with the runner's toolchain, or an online runner and a project 
 If the repository lacks a suitable benchmark and correctness gate, follow [HARNESS.md](HARNESS.md) to author one, verify it locally, then continue here.
 
 When benchmark stages have been chosen for Fast-track Discovery, follow [benchmark tiers](HARNESS.md#long-benchmarks-small-medium-and-full-tiers) even if a harness already exists, then verify and save each tier's commands through the steps below.
+
+Before the first Discovery on any benchmark, new or existing, run the [pre-Discovery benchmark review](HARNESS.md#pre-discovery-benchmark-review), even with no runner yet. Skipping command verification does not skip it; only a calling skill with a known-good benchmark, such as the demo's, may.
 
 Use the path supported by the available environment:
 
@@ -98,8 +100,8 @@ Measure the requested optimization target directly.
 
 - Keep unrelated startup, downloads, compilation, and data generation outside the timed region.
 - Warm up runtimes or kernels where required.
-- Use deterministic, representative inputs.
 - Emit the metric that should rank versions, with stable units and direction.
+- Follow the [benchmark review](HARNESS.md#pre-discovery-benchmark-review) rules for inputs, isolation and the manifest check (steps 3-6).
 - Keep diagnostic output concise enough to avoid delaying task-log upload.
 
 ## 3. Make environment requirements explicit
@@ -242,6 +244,8 @@ When something fails, distinguish command-string issues from repository code or 
 
 `discovery-start` selects this verified script with `discovery create --script`. Guided setup can check it again with `artemis --output-format json discovery setup trial-run "<run-id>"`: without `--wait` it returns at once with the check's id in `.validation.id`; wait for it with the loop above. On a command-string failure, fix the script in place with `artemis project scripts update <script-id> --project <p>` (CLI 1.1.13+): it keeps its id, so runs that use it follow, and commands you pass replace the whole list, so pass every phase again. When you replace benchmark commands with `--benchmark-cmd` on a script that measures something, add `--measure` (`none`, or what it measured); with `--file`, set `measureRuntime`, `measureCpu` and `measureMemory` in the file instead. Older CLIs have no `update`; create a replacement script instead. Do not invent compatibility flags.
 
+Once the Script passes on the runner, finish [benchmark review](HARNESS.md#pre-discovery-benchmark-review) step 9 there and record the review.
+
 ## 6. Configure Artemis
 
 Use the verified commands unchanged:
@@ -265,3 +269,4 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
 - [ ] Validation and discovery use the same verified commands, stored as a Script.
+- [ ] Pre-Discovery benchmark review passed, with `benchmark-review`'s verdict, the holdout and the manifest recorded, or skipped by a calling skill.
