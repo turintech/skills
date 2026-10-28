@@ -34,7 +34,7 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 - For **publish / pr** only: the project's git connection must have push access. Maintain's `publish` and `pr` push to GitHub.
 - Optionally `jq`; the snippets use it, but any JSON filter works.
 
-**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix`: without `--discovery` it takes the UUID. With `--discovery`, give UUIDs, or display ids with `-p`; `-p` is also needed when `--script` is a name. In scripts, lift `.id`.
+**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a UUID, or a display id with `-p <project>` (`fix` from CLI 1.1.18; before that, give it the UUID). With `fix --discovery`, `-p` is also needed when `--script` is a name. In scripts, lift `.id`.
 
 **Agent runs.** Every step but triage is an agent run: a Scan, a fix (including **Fix again**), Fix in Discovery, a Re-sync and every `maintain chat` turn. Run the ones the user asked for, and the follow-ups this skill names for them, without asking about credits. Ask first only before agent work that is neither, including approving a question card that would start it.
 
@@ -145,19 +145,19 @@ Three routes. If the user hasn't named one, offer them with a recommendation. Th
 ### The fix agent
 
 ```bash
-artemis maintain issues fix <issue-uuid>... [--model <model>]
+artemis maintain issues fix <issue-id>... [--model <model>]
 ```
 
 - All the Issues in one call land in **one Branch** and one fix chat. Group related Issues; put unrelated ones in separate calls so each gets its own Branch and PR. They can't be split afterwards.
 - It returns a `Changeset ID` and a `Fix Chat ID` straight away and works in the background; post the start block (`artemis`'s *Start block*): Fix started, opening the Issue's page (`<deployment-base-url>/projects/<project-uuid>/maintain/issues/id/<issue-uuid>`, the link `maintain issues get` prints). Follow it with `artemis chat messages <fix-chat-id>`, and wait on `fixStatus` with the pattern above.
 - The terminal `fixStatus` values are `done`, `failed` and `cancelled`. There is no `fixed` or `complete`.
 - `done` can still be an empty Branch. Check `artemis changeset diff <changeset-id> --project <p>` before shipping, and give the user the Branch link (`<deployment-base-url>/projects/<project-uuid>/branches/<changeset-id>/changes`, `cli-follow-along` §2) once it has changes; don't judge by `publish`/`pr` output, which reads empty for every unpublished fix. If the diff is empty, **Fix again** (run `fix` on the Issue again); if it is still empty, the Issue is probably already fixed, so re-sync it (§8).
-- Stop a running fix, after the user's yes, with `artemis maintain issues cancel <ISS-n> -p <p> --force` (the Web UI's Stop). It reports `not_running` when nothing is running, and refuses a local attempt.
+- Stop a running fix, after the user's yes, with `artemis maintain issues cancel <ISS-n> -p <p> --force` (the Web UI's Stop). It reports `not_running` when nothing is running, and refuses a local attempt and a Fix in Discovery (cancel its run instead).
 - Every attempt is kept: `artemis maintain issues fix-runs <id> -p <p>` lists them, and the Issue reflects the latest. Trying a different `--model` on a second attempt loses nothing.
 
 ### Fix in Discovery
 
-For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The command starts the run in one call, from the board: each Issue gets a fix attempt and moves to In Progress. Nothing asks about settings: whatever is left unset takes the project's own settings (script, runner, model, Benchmark runs) and a budget of 10 versions. So agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. Then pass them all:
+For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The command starts the run in one call, from the board: each Issue gets a fix attempt and moves to In Progress. Nothing asks about settings: whatever is left unset takes the project's own settings (execution mode, script, runner, model, Benchmark runs) and a budget of 10 versions. So agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. Then pass them all:
 
 ```bash
 artemis maintain issues fix <ISS-n> --discovery --project <p> \
@@ -168,7 +168,8 @@ artemis maintain issues fix <ISS-n> --discovery --project <p> \
 - `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
 - Fix in Discovery always scores AI Metrics: the board's endpoint has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
 - If it warns the runner is offline, the run has started anyway: get the runner up within about 5 minutes (`runner-setup`) or the baseline fails.
-- A refusal starts nothing and says why. No default script or runner on the project: pass `--script` or `--runner` as the CLI says, and use `--execution-mode skip` only if the user agreed to an unmeasured run. One Issue the board can't fix refuses the whole call (409, "Nothing was started"): a fix already running, wait for it or stop it (§6) with the user's yes; out of date, re-sync it (§8); no longer matching the code, archived or dismissed, drop it. Then run the rest again.
+- A refusal starts nothing and says why. With no default script or runner on the project (422), pass `--script` or `--runner` as the CLI says; use `--execution-mode skip` only if the user agreed to an unmeasured run.
+- One Issue the board can't fix refuses the whole call (409, "Nothing was started"). A fix already running: wait for it, or with the user's yes stop it (`issues cancel`, §6, or for a Fix in Discovery `artemis discovery cancel <run-id>`). Out of date: re-sync it (§8). Archived: `unarchive` it if the user wants it fixed. No longer matching the code, or dismissed: drop it. Then run the rest again.
 - Up to 5 Issues per run, all from one project, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 
 ### Your own coding agent
