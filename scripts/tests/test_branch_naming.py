@@ -14,10 +14,8 @@ def prose_lines(path):
         if line.lstrip().startswith("```"):
             fenced = not fenced
             continue
-        if not fenced:
-            yield number, re.sub(r"<[^>]*>", "", re.sub(r"`[^`]*`", "", line)), line
-        elif line.lstrip().startswith("#"):
-            # A comment in a command block is prose too; the command lines are not.
+        # A comment in a command block is prose too; the command lines are not.
+        if not fenced or line.lstrip().startswith("#"):
             yield number, re.sub(r"<[^>]*>", "", re.sub(r"`[^`]*`", "", line)), line
 
 
@@ -33,11 +31,16 @@ class BranchNaming(unittest.TestCase):
 
     def test_maintain_names_the_branch_id_the_fix_prints(self):
         text = (SKILLS / "maintain/SKILL.md").read_text()
-        self.assertIn("It returns a `Branch ID`", text, "maintain no longer names the Branch ID `issues fix` prints")
+        # The minimum CLI still prints the older label, so the skill names both.
+        self.assertIn("It returns a `Branch ID` (`Changeset ID` on older CLIs)", text, "maintain no longer names both labels `issues fix` prints")
+        self.assertNotIn("`Changeset ID` in output", text)
+        self.assertEqual(text.count("`Changeset ID`"), text.count("`Changeset ID` on older CLIs"))
 
     def test_setup_says_starting_commit(self):
         text = (SKILLS / "repo-command-setup/SKILL.md").read_text()
-        self.assertNotIn("original code", text, "setup says original code where the CLI says starting commit")
+        self.assertNotIn("original code", text, "setup says original code where the Web UI and CLI say starting commit")
+        self.assertIn("resolves the branch's starting commit", text)
+        self.assertIn("still resolves that starting commit", text)
 
 
 if __name__ == "__main__":
