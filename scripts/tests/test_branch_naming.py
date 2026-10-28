@@ -38,6 +38,7 @@ class BranchNaming(unittest.TestCase):
     def test_setup_says_starting_commit(self):
         text = (SKILLS / "repo-command-setup/SKILL.md").read_text()
         self.assertNotIn("original code", text, "setup says original code where the Web UI and CLI say starting commit")
+        self.assertIn("supplied a branch and runner", text)
         self.assertEqual(text.count("starting commit"), 3, "setup says starting commit for the empty branch and both --version original lines")
 
 
