@@ -31,8 +31,9 @@ class FixInDiscovery(unittest.TestCase):
     def test_each_refusal_has_a_way_out(self):
         section = fix_in_discovery()
         for remedy in ("`--script` or `--runner`", "`artemis discovery cancel <run-id>`",
-                       "`.runs[] | select(.isActive) | .discoveryRunId`", "stops it for every Issue in that run",
-                       "wait for it", "re-sync it (§8)", "`unarchive` it", "dismissed as a false positive, drop it",
+                       "`.runs[] | select(.isActive) | .discoveryRunId` from `artemis --output-format json maintain issues fix-runs",
+                       "stops it for every Issue in that run", "wait for it", "re-sync it (§8)", "`unarchive` it",
+                       "(its `Validity`)", "dismissed as a false positive, drop it",
                        "No longer matching the code (`obsolete`): drop it", "Out of date (`outdated`)",
                        "runner-setup", "only if the user agreed to an unmeasured run"):
             self.assertIn(remedy, section)
@@ -54,7 +55,7 @@ class FixInDiscovery(unittest.TestCase):
 
     def test_issues_cancel_points_a_discovery_fix_at_its_run(self):
         text = (SKILLS / "maintain/SKILL.md").read_text()
-        self.assertIn("refuses a local attempt and a Fix in Discovery (cancel its run instead)", text)
+        self.assertIn("Don't use it on a Fix in Discovery: it stops only the run's chat, so cancel the run instead", text)
 
 
 if __name__ == "__main__":
