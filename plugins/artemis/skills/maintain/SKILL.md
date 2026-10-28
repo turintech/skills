@@ -34,7 +34,7 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 - For **publish / pr** only: the project's git connection must have push access. Maintain's `publish` and `pr` push to GitHub.
 - Optionally `jq`; the snippets use it, but any JSON filter works.
 
-**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix`: without `--discovery` it takes the UUID. With `--discovery`, give display ids (`ISS-n`) with `-p`; the CLI turns a UUID into its display id, since the maintain agent reads only display ids. In scripts, lift `.id`.
+**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a display id with `-p <project>`, except `fix`: without `--discovery` it takes the UUID. With `--discovery`, give UUIDs, or display ids with `-p`; `-p` is also needed when `--script` is a name. In scripts, lift `.id`.
 
 **Agent runs.** Every step but triage is an agent run: a Scan, a fix (including **Fix again**), Fix in Discovery, a Re-sync and every `maintain chat` turn. Run the ones the user asked for, and the follow-ups this skill names for them, without asking about credits. Ask first only before agent work that is neither, including approving a question card that would start it.
 
@@ -157,7 +157,7 @@ artemis maintain issues fix <issue-uuid>... [--model <model>]
 
 ### Fix in Discovery
 
-For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The command starts the run in one call, from the board: each Issue gets a fix attempt and moves to In Progress. Nothing asks about settings: whatever is left unset takes the project's default script and runner and the backend's default version budget. So agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. Then pass them all:
+For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The command starts the run in one call, from the board: each Issue gets a fix attempt and moves to In Progress. Nothing asks about settings: whatever is left unset takes the project's own settings (script, runner, model, Benchmark runs) and a budget of 10 versions. So agree them with the user first, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. Then pass them all:
 
 ```bash
 artemis maintain issues fix <ISS-n> --discovery --project <p> \
@@ -167,7 +167,9 @@ artemis maintain issues fix <ISS-n> --discovery --project <p> \
 - It prints the `Discovery Run ID` straight away (`discoveryRunId` with `--output-format json`). Post the start block (`artemis`'s *Start block*): Fix in Discovery started, opening the run.
 - `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
 - Fix in Discovery always scores AI Metrics: the board's endpoint has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
-- A refusal starts nothing and says why: no default script or runner on the project (name one), an Issue the board can't fix right now (a fix already running, out of date: resync it first, no longer matching the code, archived or dismissed), or more than 5 Issues. Up to 5 Issues per run, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
+- If it warns the runner is offline, the run has started anyway: get the runner up within about 5 minutes (`runner-setup`) or the baseline fails.
+- A refusal starts nothing and says why. No default script or runner on the project: pass `--script` or `--runner` as the CLI says, and use `--execution-mode skip` only if the user agreed to an unmeasured run. One Issue the board can't fix refuses the whole call (409, "Nothing was started"): a fix already running, wait for it or stop it (§6) with the user's yes; out of date, re-sync it (§8); no longer matching the code, archived or dismissed, drop it. Then run the rest again.
+- Up to 5 Issues per run, all from one project, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 
 ### Your own coding agent
 
