@@ -18,7 +18,7 @@ def prose_lines(path):
             yield number, re.sub(r"<[^>]*>", "", re.sub(r"`[^`]*`", "", line)), line
         elif line.lstrip().startswith("#"):
             # A comment in a command block is prose too; the command lines are not.
-            yield number, re.sub(r"<[^>]*>", "", line), line
+            yield number, re.sub(r"<[^>]*>", "", re.sub(r"`[^`]*`", "", line)), line
 
 
 class BranchNaming(unittest.TestCase):
@@ -33,7 +33,11 @@ class BranchNaming(unittest.TestCase):
 
     def test_maintain_names_the_branch_id_the_fix_prints(self):
         text = (SKILLS / "maintain/SKILL.md").read_text()
-        self.assertTrue("It returns a `Branch ID`" in text, "maintain no longer names the Branch ID `issues fix` prints")
+        self.assertIn("It returns a `Branch ID`", text, "maintain no longer names the Branch ID `issues fix` prints")
+
+    def test_setup_says_starting_commit(self):
+        text = (SKILLS / "repo-command-setup/SKILL.md").read_text()
+        self.assertNotIn("original code", text, "setup says original code where the CLI says starting commit")
 
 
 if __name__ == "__main__":
