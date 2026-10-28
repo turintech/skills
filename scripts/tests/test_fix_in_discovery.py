@@ -31,9 +31,10 @@ class FixInDiscovery(unittest.TestCase):
     def test_each_refusal_has_a_way_out(self):
         section = fix_in_discovery()
         for remedy in ("`--script` or `--runner`", "`artemis discovery cancel <run-id>`",
-                       "`.runs[].discoveryRunId` from `artemis --output-format json",
+                       "`.runs[] | select(.isActive) | .discoveryRunId`", "stops it for every Issue in that run",
                        "wait for it", "re-sync it (§8)", "`unarchive` it", "dismissed as a false positive, drop it",
-                       "No longer matching the code: drop it", "runner-setup", "only if the user agreed to an unmeasured run"):
+                       "No longer matching the code (`obsolete`): drop it", "Out of date (`outdated`)",
+                       "runner-setup", "only if the user agreed to an unmeasured run"):
             self.assertIn(remedy, section)
 
     def test_section_refs_name_real_headings(self):
@@ -46,6 +47,9 @@ class FixInDiscovery(unittest.TestCase):
         self.assertNotIn("the maintain agent reads only display ids", text)
         self.assertIn("Every `issues` command accepts a UUID, or a display id", text)
         self.assertIn("`-p` is also needed when `--script` is a name", text)
+        # Goes with the artemis-cli-min bump, when no supported CLI is older than 1.1.18.
+        self.assertIn("(a plain `fix` from CLI 1.1.18; before that, give it the UUID)", text)
+        self.assertIn("`submit-local-fix` need `-p` either way, as does `list`", text)
         self.assertIn("artemis maintain issues fix <issue-id>...", text)
 
     def test_issues_cancel_points_a_discovery_fix_at_its_run(self):
