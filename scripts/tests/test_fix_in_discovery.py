@@ -23,14 +23,17 @@ class FixInDiscovery(unittest.TestCase):
     def test_states_what_the_backend_does(self):
         section = fix_in_discovery()
         for fact in ("a budget of 10 versions", "(execution mode, script, runner, model, Benchmark runs)",
-                     "once the `Discovery Run ID` prints", "about 5 minutes", "refuses the whole call (409",
+                     "once the `Discovery Run ID` prints", "given only for a `--runner` you name",
+                     "moves to the `in_progress` lane", "about 5 minutes", "refuses the whole call (409",
                      "Then run the rest again", "Up to 5 Issues per run, all from one project", "(422)"):
             self.assertIn(fact, section)
 
     def test_each_refusal_has_a_way_out(self):
         section = fix_in_discovery()
-        for remedy in ("`--script` or `--runner`", "`artemis discovery cancel <run-id>`", "`discoveryRunId` from `issues fix-runs`",
-                       "wait for it", "re-sync it (§8)", "`unarchive` it", "dismissed as a false positive drop it", "runner-setup", "only if the user agreed to an unmeasured run"):
+        for remedy in ("`--script` or `--runner`", "`artemis discovery cancel <run-id>`",
+                       "`.runs[].discoveryRunId` from `artemis --output-format json",
+                       "wait for it", "re-sync it (§8)", "`unarchive` it", "dismissed as a false positive, drop it",
+                       "No longer matching the code: drop it", "runner-setup", "only if the user agreed to an unmeasured run"):
             self.assertIn(remedy, section)
 
     def test_section_refs_name_real_headings(self):
