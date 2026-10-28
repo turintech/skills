@@ -16,6 +16,9 @@ def prose_lines(path):
             continue
         if not fenced:
             yield number, re.sub(r"<[^>]*>", "", re.sub(r"`[^`]*`", "", line)), line
+        elif line.lstrip().startswith("#"):
+            # A comment in a command block is prose too; the command lines are not.
+            yield number, re.sub(r"<[^>]*>", "", line), line
 
 
 class BranchNaming(unittest.TestCase):
@@ -27,6 +30,10 @@ class BranchNaming(unittest.TestCase):
             if re.search(r"\bchangesets?\b", prose, re.I) and not any(a in line for a in ALLOWED)
         ]
         self.assertEqual(found, [], "prose says changeset where the Web UI says Branch")
+
+    def test_maintain_names_the_branch_id_the_fix_prints(self):
+        text = (SKILLS / "maintain/SKILL.md").read_text()
+        self.assertTrue("It returns a `Branch ID`" in text, "maintain no longer names the Branch ID `issues fix` prints")
 
 
 if __name__ == "__main__":
