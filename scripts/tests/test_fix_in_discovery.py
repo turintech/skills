@@ -6,6 +6,10 @@ import unittest
 SKILLS = pathlib.Path(__file__).resolve().parents[2] / "plugins/artemis/skills"
 
 
+# The one line for CLIs whose Fix in Discovery is still an agent turn (before artemis-cli #284).
+OLDER_CLI = "- On CLI 1.1.18 and older"
+
+
 def maintain():
     return (SKILLS / "maintain/SKILL.md").read_text()
 
@@ -27,12 +31,23 @@ REFUSALS = (("(422)", "`--script` or `--runner`"), ("A fix already running", "wa
 
 class FixInDiscovery(unittest.TestCase):
     def test_no_agent_turn(self):
-        section = fix_in_discovery()
+        # The agent turn belongs only to the one line for CLIs without the one-call start.
+        section = "\n".join(line for line in fix_in_discovery().splitlines() if not line.startswith(OLDER_CLI))
         for stale in ("--timeout", "question card", "chat answer", "exit 6"):
             self.assertNotIn(stale, section, f"Fix in Discovery still describes the agent turn ({stale})")
         for fact in ("`Discovery Run ID`", "`discoveryRunId`", "10 versions", "`--focus`", "`in_progress`",
                      "/discover/<run-id>`", "`Status: closed`", "`--model`"):
             self.assertIn(fact, section)
+
+    def test_older_clis_keep_the_agent_turn(self):
+        older = [line for line in fix_in_discovery().splitlines() if line.startswith(OLDER_CLI)]
+        self.assertEqual(len(older), 1, "one line tells a CLI without the one-call start what to do")
+        for fact in ("`--timeout", "**Question cards**", "exit 6", "`artemis chat get <chat-id>`",
+                     "It prints `Discovery run <id>` once the turn starts the run; with JSON output or after exit 6 it prints none, so read the id with the `fix-runs` jq in the running-fix bullet below"):
+            self.assertIn(fact, older[0])
+        # artemis-cli-min stays at a CLI that this line covers until the bump.
+        minimum = tuple(int(n) for n in re.search(r'artemis-cli-min: "([\d.]+)"', maintain()).group(1).split("."))
+        self.assertLessEqual(minimum, (1, 1, 18), "artemis-cli-min is past 1.1.18, so drop the older-CLI line")
 
     def test_each_refusal_has_a_way_out(self):
         section = fix_in_discovery()

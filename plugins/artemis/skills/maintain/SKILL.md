@@ -164,6 +164,7 @@ artemis maintain issues fix <ISS-n> --discovery --project <p> \
   --model <model> --versions <n> --runner <runner> --script <script> --repeats <runs> [--focus "<metric or approach>"]
 ```
 
+- On CLI 1.1.18 and older the start is one agent turn instead, so also pass `--timeout 8m`. If the turn stops on a question card, answer it as in **Question cards** above, approving a card that starts the run only with the agreed settings; if it hits the timeout (exit 6), the agent keeps going: follow it with `artemis chat get <chat-id>`. It prints `Discovery run <id>` once the turn starts the run; with JSON output or after exit 6 it prints none, so read the id with the `fix-runs` jq in the running-fix bullet below. Then post the start block.
 - It prints the `Discovery Run ID` straight away (`discoveryRunId` with `--output-format json`). Post the start block (`artemis`'s *Start block*): Fix in Discovery started, opening the run (`<deployment-base-url>/projects/<project-uuid>/discover/<run-id>`); the `Web UI` lines the command prints are the Issues' pages.
 - `--repeats` sets the run's Benchmark runs per version. With `--execution-mode skip` (no runner) nothing is measured: leave out `--runner`, `--script` and `--repeats`.
 - Fix in Discovery always scores AI Metrics: the board's endpoint has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
