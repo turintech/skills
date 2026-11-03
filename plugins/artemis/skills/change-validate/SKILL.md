@@ -20,7 +20,7 @@ metadata:
 ## Requirements
 
 - `artemis --version` meets `metadata.artemis-cli-min`: `artemis changeset compare --help` must work. Otherwise `cli-setup`.
-- One of the user's own runners, online, as `runner-setup`'s *Whose runner is that?* checks. Otherwise `runner-setup`.
+- One of the user's own runners, online and of the project's runner kind (`runnerKind` in `project get`), as `runner-setup`'s *Whose runner is that?* checks. Otherwise `runner-setup`.
 - The project id and a Script whose benchmark writes metrics: `artemis project scripts list --project <p>`. Otherwise `project-import` and `repo-command-setup`.
 - The checkout is the project's repository (`git remote get-url origin` matches the project's `gitUrl`), and its `HEAD` is the commit the project is on (`gitHash` for this project in `artemis --output-format json project list --all`). If `HEAD` differs, the saved change would carry every unrelated difference: say so and ask whether to update the checkout first.
 

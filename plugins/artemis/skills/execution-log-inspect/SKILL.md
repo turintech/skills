@@ -35,13 +35,13 @@ Prefer the version-native shortcut:
 artemis discovery versions logs "<version-id>"
 ```
 
-For a validation on a branch, capture the validation `id` and `processId` from the `changeset validate` response. A Discovery version's `validationId` works the same way: `changeset validation logs "<validationId>" --project "<project-uuid>"`. Versions run before Discovery moved onto validations have no `validationId`; use their `processId` with `process logs` instead. Do not substitute a per-command `logId`.
+For a validation on a branch, capture the validation `id` and `processId` from the `changeset validate` response. A Discovery version's `validationId` works the same way: `changeset validation logs "<validationId>" --project "<project-uuid>"`. `discovery versions logs` reads the version's validation the same way when it has one. For a project whose runner kind is `go`, always go by the validation: a Go runner writes nothing to the process log, only each command's output per repetition, so `process logs` comes back empty, and so does `discovery versions logs` on CLIs older than that. When a Go runner's run fails outside its commands, such as a workspace it could not prepare, the reason is the validation's `error`: the last line of its logs and `Error` in `changeset validation get`. A version with no `validationId` has only its process log; use its `processId` with `process logs`. Process logs go away when the Python runner is retired. Do not substitute a per-command `logId`.
 
 If a runner-executed failure has neither identifier, report that logs are unavailable instead of claiming they were checked.
 
 ## 2. Retrieve the log
 
-Prefer the resource-native command when a validation ID is available:
+Prefer the resource-native command when a validation ID is available. It prints the process's own log, then each command's output under a `<command>  #<repetition>` heading; on CLIs older than that, it shows the process log alone, which is empty for a Go runner's work:
 
 ```bash
 artemis changeset validation logs "<validation-id>" --project "<project-uuid>"

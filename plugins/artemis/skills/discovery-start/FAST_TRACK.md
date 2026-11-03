@@ -89,7 +89,9 @@ The output has a row only for the version: the project code's readings are on an
 
 Extra runners shorten the search, not the measurement. Run independent Discoveries or stages on separate runners, for example two small runs exploring different directions. Each run measures its baseline and versions on its own runner, so its verdicts hold, but verdicts from different runs are not comparable. When several small runs ran in parallel, take each run's seed and choose between them with [Compare outside a run](#compare-outside-a-run) on one runner.
 
-Several machines can serve one Discovery when they register with the same runner name and the same user's API key; another user's key makes a separate group. The run's baseline and versions can then land on different machines, and `artemis runner list` does not show which. Share a name only for accuracy-only benchmarks, or for machines the user confirms are identical in hardware, OS, toolchain and load.
+Several machines can serve one Discovery when they register as Python runners with the same runner name and the same user's API key; another user's key makes a separate group. The run's baseline and versions can then land on different machines, and `artemis runner list` does not show which. Share a name only for accuracy-only benchmarks, or for machines the user confirms are identical in hardware, OS, toolchain and load.
+
+Go runners never share a name, and a Go project's run is bound to one runner by its id, so a run's baseline and versions always measure on the same machine. Independent runs can still go to separate Go runners. One Go runner takes several validations at once with `runner.concurrent_validations` above 1; by default it keeps them to one Discovery run at a time and runs each benchmark command alone (`runner-setup`, *Go runner*).
 
 Before starting or reusing another runner, get the user's approval as SKILL.md ยง1 describes, then follow `runner-setup`. A group showing online does not mean every machine takes work: check the run's executions with `discovery-inspect`.
 
@@ -101,4 +103,4 @@ Before starting or reusing another runner, get the user's approval as SKILL.md ย
 - [ ] Medium run pinned with `--source-sha`; `baselineVersionSha` checked
 - [ ] Shortlisted and final versions compared with `changeset compare --baseline <project-sha>`, both sides on one runner with that runner's copy of the tier Script
 - [ ] Verdicts, improvements and intervals quoted from `compare`, nothing computed; identical readings flagged, not reported
-- [ ] Every extra runner approved by the user; same-name groups used only for accuracy-only benchmarks or confirmed-identical machines
+- [ ] Every extra runner approved by the user and of the project's runner kind; same-name Python groups used only for accuracy-only benchmarks or confirmed-identical machines

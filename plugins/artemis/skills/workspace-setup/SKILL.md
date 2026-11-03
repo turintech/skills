@@ -14,10 +14,12 @@ metadata:
 
 - **Problem:** Keeps one prebuilt tree on the runner so each version rebuilds only what changed, for projects whose clean build is too slow to repeat for every version.
 - **Must be available:** A runner you can reach, disk for the cached tree, and the project's verified build commands.
-- **Use / don't use:** Use when compile takes more than about 5 minutes on the runner, since every Discovery version repeats it. Skip it for projects that build in a minute or two.
+- **Use / don't use:** Use when compile takes more than about 5 minutes on a Python runner, since every Discovery version repeats it. Skip it for projects that build in a minute or two, and on a Go runner, which keeps incremental build directories itself.
 - **Next skill:** Return to `repo-command-setup` to store the commands that use the workspace.
 
-Every Artemis version arrives in a fresh checkout, so large projects lose incremental build state and pay a full rebuild for each one.
+Every Artemis version arrives in a fresh checkout on a Python runner, so large projects lose incremental build state and pay a full rebuild for each one.
+
+A Go runner does this itself: it keeps `runner.build_dirs_per_project` build directories per project (4 by default, with `git` on its `PATH`) and brings each version into one in place, rewriting only what changed, so the build output from the last version is still there. Use this skill on a Go runner only when the build keeps state outside the repository's own folder, or with build directories turned off.
 
 Keep a dedicated built tree on the runner, seeded at the same commit as the project on the platform. The compile command syncs the version's changes into that tree and rebuilds incrementally. Test and benchmark use the same tree; the benchmark still publishes results back to the working directory (`$PWD`).
 
@@ -46,7 +48,7 @@ Compile syncs the version into the built tree and rebuilds:
 ```bash
 set -eu
 ORIG="$PWD"
-WORKSPACE="/absolute/path/on/runner/artemis-workspaces/<project>"   # literal path; the runner sees only env exported before artemis-runner start
+WORKSPACE="/absolute/path/on/runner/artemis-workspaces/<project>"   # literal path; the runner sees only env exported before artemis-runner start (or artemis runner start)
 # confirm the workspace is seeded at the platform commit, then:
 # sync every path the agent may change from "$ORIG" into "$WORKSPACE"
 # rebuild incrementally in "$WORKSPACE"
@@ -57,7 +59,7 @@ Benchmark measures that tree and copies results back to `$PWD`:
 ```bash
 set -eu
 ORIG="$PWD"
-WORKSPACE="/absolute/path/on/runner/artemis-workspaces/<project>"   # literal path; the runner sees only env exported before artemis-runner start
+WORKSPACE="/absolute/path/on/runner/artemis-workspaces/<project>"   # literal path; the runner sees only env exported before artemis-runner start (or artemis runner start)
 rm -f "$ORIG/artemis_results.json" "$ORIG/artemis_results.csv"
 # run the headless benchmark against "$WORKSPACE"
 # copy the fresh numeric results file back to "$ORIG"

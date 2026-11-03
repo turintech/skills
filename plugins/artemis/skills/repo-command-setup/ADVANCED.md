@@ -126,7 +126,7 @@ Run the complete benchmark repeatedly in fresh processes after changing runner c
 
 ### Problem
 
-The runner uploads each task log before the platform finalizes the observation. Large compile logs directly add wall-clock latency and can make a completed benchmark look stuck.
+A Python runner uploads each task log before the platform finalizes the observation. Large compile logs directly add wall-clock latency and can make a completed benchmark look stuck. A Go runner streams each command's output while it runs, so log size adds no wait after the command exits, and none of this section applies to it.
 
 Measure before changing verbosity. Useful rough observations from prior runs were:
 
