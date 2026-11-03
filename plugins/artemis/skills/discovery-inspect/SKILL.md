@@ -88,12 +88,12 @@ When the deployment's path shape isn't known, link the project (`<deployment-bas
 
 ## Inspect runner output
 
-Use `artemis discovery versions logs <version-id>` or `execution-log-inspect` with the version's `processId` to diagnose compile, test, benchmark, and result-ingestion failures. A `generation_failed` version was never dispatched and has no runner task log; inspect its agent narration instead.
+Use `artemis discovery versions logs <version-id>` or `execution-log-inspect` with the version's `processId` to diagnose compile, test, benchmark, and result-ingestion failures. On a project whose runner kind is `go`, use the version's `validationId` with `changeset validation logs` instead: a Go runner writes command output per repetition, not to the process log those two read. A `generation_failed` version was never dispatched and has no runner task log; inspect its agent narration instead.
 
 Host-local runner daemon output is separate evidence for connection, polling, dispatch, and process-lifecycle problems. When shell access exists, its location depends on how the runner was started:
 
 - Started in the background with its output redirected: the file is wherever that redirect pointed, which `runner-setup` reports as the log path when it starts one.
-- Under a systemd unit — `journalctl -u artemis-runner --follow`.
+- Under a systemd unit — `journalctl -u <unit> --follow`, usually `artemis-runner` for a Python runner.
 - Foreground in a terminal — it's already in view.
 
 ### Baseline and evaluation delays

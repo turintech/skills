@@ -4,7 +4,7 @@ These sketches illustrate the requirements in [SKILL.md](SKILL.md). Adapt them t
 
 ## Cache location
 
-Use a literal absolute path on the runner host. The runner sees only environment exported before `artemis-runner start`, so a variable set in your shell is not there.
+Use a literal absolute path on the runner host. The runner sees only environment exported before `artemis-runner start` (or `artemis runner start` for a Go runner), so a variable set in your shell is not there.
 
 ```bash
 ARTEMIS_CACHE_ROOT="/absolute/path/on/runner/artemis-workspaces/<project>"

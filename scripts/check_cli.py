@@ -44,6 +44,13 @@ def alias_of(path, word):
     return m.group(1).split(",")[0].strip()
 
 
+def hidden(path, word):
+    """Whether `word` is a hidden subcommand under `path`: one --help documents but the listing leaves out."""
+    out = subprocess.run([CLI, *path, word, "--help"], capture_output=True, text=True,
+                         env={**os.environ, "HOME": HOME}).stdout
+    return re.search(r"^Usage:\n\s+artemis " + re.escape(" ".join([*path, word])) + r"\b", out, re.M) is not None
+
+
 def commands(text):
     """Yield `artemis ...` invocations from fenced code blocks and inline code."""
     for block in re.findall(r"```[a-z]*\n(.*?)```", text, re.S):
@@ -82,6 +89,8 @@ def check(cmd):
             path.append(t)
         elif not t.startswith("-") and subs and alias_of(path, t):
             path.append(alias_of(path, t))
+        elif not t.startswith("-") and subs and re.fullmatch(r"[a-z][a-z-]+", t) and hidden(path, t):
+            path.append(t)
         elif path and subs and re.fullmatch(r"[a-z][a-z-]+", t) and not toks[i - 1].startswith("-"):
             # A word where the CLI expects one of its subcommands, not a value or a placeholder.
             problems.append(f"command {' '.join(path + [t])!r}")
