@@ -98,7 +98,7 @@ Raise only rows required by the selected workflow:
 | What | Resolve before proceeding | Skill |
 |---|---|---|
 | CLI | `cli-setup`'s *Check versions* run once per session, even when the CLI already works; then the target deployment and an authenticated `artemis status` | `cli-setup` |
-| Runner | Approved machine, required toolchain and resources, and availability | `runner-setup` |
+| Runner | Approved machine of the project's runner kind (`python` or `go`), required toolchain and resources, and availability | `runner-setup` |
 | Repository | A remote that one of the user's Git keys can read | `project-import` |
 | Project | Fresh project for new work, or explicit reuse of the same prior work | `project-import` |
 | Commands | Exact verified commands, stored as a Script, and a suitable correctness-gated benchmark; use `workspace-setup` first when those commands need a persistent cache | `repo-command-setup` |

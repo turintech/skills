@@ -1,6 +1,6 @@
 ---
 name: runner-setup
-description: Install, register, start, update, and verify a supported Artemis custom runner. Use when an end user needs to set up or manage a runner.
+description: Install, register, start, update, and verify an Artemis runner of the kind a project needs, a Python Artemis Runner or a Go runner (the Artemis CLI run as one). Use when an end user needs to set up or manage a runner.
 compatibility: Requires Artemis CLI 1.1.14+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.14"
@@ -13,12 +13,26 @@ metadata:
 
 ## At a glance
 
-- **Problem:** Downloads, registers, starts, updates and verifies an Artemis runner on this machine, and checks it has the toolchain a project needs.
-- **Must be available:** A safe machine with the repository's toolchains and adequate resources, a unique runner-group name, and an authenticated CLI, whose API key registers the runner.
+- **Problem:** Sets up, starts, updates and verifies an Artemis runner of the project's runner kind on this machine, and checks it has the toolchain the project needs.
+- **Must be available:** A safe machine with the repository's toolchains and adequate resources, the project's runner kind (or the kind it will be imported with), a runner name, and an authenticated CLI, whose login the runner uses.
 - **Use / don't use:** Use when a runner is missing, offline, outdated, or unverified; skip it when a suitable runner is already online, confirmed to be polling, and at least `artemis-runner-min`.
 - **Next skill:** Return to the calling skill, or to `artemis` routing when invoked directly.
 
 A runner executes a project's Script commands on the user's machine; for Discovery, these skills use a build, a test and a benchmark. Treat it as a machine-level service, not a project dependency.
+
+## Which runner
+
+There are two kinds of runner, and a project runs on one kind only:
+
+- **`python`**, the Artemis Runner (`artemis-runner`): a separate download that signs in with the CLI's key. The sections from *Get the runner* to *Update or restart* set it up.
+- **`go`**, the Artemis CLI itself run as a runner (`artemis runner start`). *Go runner* sets it up.
+
+A project's runner kind is fixed when it is imported, and a runner of the other kind never takes its work: `changeset validate`, `discovery create` and `project runner set` refuse a runner name of the wrong kind as unknown. So settle the kind before starting anything:
+
+- **The project exists:** read `runnerKind` from `artemis --output-format json project get <project-uuid>`.
+- **It is about to be imported:** the kind is the user's. Use `go` only when they ask for Go runners, or when `artemis --output-format json config show` sets `project.runner_kind` to `go`; otherwise `python`, the CLI's default. Pass the same kind to `project-import`, so the project and its runner agree.
+
+`artemis runner list` shows each runner's `KIND`. Report the kind with the runner's name, and carry it to the skills that follow.
 
 ## Requirements
 
@@ -104,11 +118,11 @@ Ask separately before creating an operating-system service, even if the user alr
 
 ### Shared names add capacity
 
-Several machines can serve one Discovery when they register with the same runner name and the same user's API key; another user's key makes a separate group. `artemis runner list` shows a group's online count, not its machines, so check the run's executions with `discovery-inspect` before relying on the extra capacity. For speed or memory benchmarks, share a name only as [Fast-track Discovery](../discovery-start/FAST_TRACK.md#parallel-runners) describes.
+Python runners only. Several machines can serve one Discovery when they register with the same runner name and the same user's API key; another user's key makes a separate group. `artemis runner list` shows a group's online count, not its machines, so check the run's executions with `discovery-inspect` before relying on the extra capacity. For speed or memory benchmarks, share a name only as [Fast-track Discovery](../discovery-start/FAST_TRACK.md#parallel-runners) describes.
 
 ## Whose runner is that?
 
-`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so only reuse a runner you can show belongs to **this** machine: read the running process (`--runner-name` on the local `artemis-runner start` command) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online. A local match is reused only when its binary is at least `artemis-runner-min` (5.3.0): run the binary from that process's command line with `--version`. Older runners, such as the 5.2.1 that earlier skills pinned, fail every validation on Platform 3.1.0 with `404`s, so upgrade one first (*Update or restart*). For approved extra capacity, confirm the other machines and the group with the user; a local process match does not show who owns every machine sharing its name.
+`runner list` shows every runner on the deployment, including other people's. Reusing one means running this repository's commands on a colleague's machine, so only reuse a runner you can show belongs to **this** machine and is of the project's kind: read the running process (`--runner-name` on the local `artemis-runner start` command, or a Go runner as *Go runner* describes) and match that name against the list. If nothing local matches, start one here rather than borrowing a name that happens to be online. A local Python runner is reused only when its binary is at least `artemis-runner-min` (5.3.0): run the binary from that process's command line with `--version`. Older runners, such as the 5.2.1 that earlier skills pinned, fail every validation on Platform 3.1.0 with `404`s, so upgrade one first (*Update or restart*). For approved extra capacity, confirm the other machines and the group with the user; a local process match does not show who owns every machine sharing its name.
 
 `runner list --output-format json` carries a `userId` per runner, but `artemis status` does not report who you are and there is no identity command, so that field cannot be compared against the current user. The local-process check is what works.
 
@@ -121,7 +135,7 @@ artemis runner list --help
 artemis --output-format json runner list
 ```
 
-Confirm the intended runner appears online. If the command fails or omits the runner, check `runner.log`. A project's runner is set on the project's **Runner and Scripts** settings page (`<deployment-base-url>/settings/project/execution?projectId=<project-id>`; on older deployments `<deployment-base-url>/projects/<project-id>/settings/execution`).
+Confirm the intended runner appears online, with the project's `KIND`. If the command fails or omits the runner, check `runner.log`. A project's runner is set on the project's **Runner and Scripts** settings page (`<deployment-base-url>/settings/project/execution?projectId=<project-id>`; on older deployments `<deployment-base-url>/projects/<project-id>/settings/execution`).
 
 For end-to-end verification, use `repo-command-setup` §5b to validate the project's starting commit (`--version original`) and confirm its commands execute on the intended runner.
 
@@ -143,6 +157,55 @@ Just before the `--wait` validation, post the start block (`artemis`'s *Start bl
 
 Report the runner name, host, and verification result, with the page where it shows as online: once a project exists, its **Runner and Scripts** settings page (above); before that, **Runners** (`<deployment-base-url>/settings/runners`), which also lists other people's runners, so keep it off a recorded screen. Do not claim success from a quiet process or log alone.
 
+## Go runner
+
+A Go runner is the Artemis CLI run as a runner: no download, no separate key, and its settings are the CLI's.
+
+**Check it is available.** `artemis runner start` and `artemis runner configure` are hidden from `artemis runner --help` until the platform runs its work on the runner gateway, so check for them directly: if `artemis runner start --help` fails, the CLI predates Go runners, so update it with `cli-setup`. The runner signs in with the deployment and key from `artemis login`, the ones `artemis status` names, so there is nothing to export. It needs `git` on `PATH` to keep a code cache and incremental build directories; without `git` it warns and downloads each version's code whole, which works but builds from scratch every time.
+
+**One name per runner.** A Go runner's name is unique among the user's runners, so Go runners never share a name, and *Shared names add capacity* does not apply to them: a name another of their runners holds stops `start` with `the name "<name>" is taken`, and starting the same runner twice stops with `this machine's runner is already running`. `start --name <other-name>` runs a second runner on the same machine, with its own folder, only when the user asks for one. Before starting, check `artemis runner list` and the local processes, as for a Python runner; a running one shows as an `artemis runner start` process.
+
+**Name and register it** before the first start, which also makes it show on the platform:
+
+```bash
+artemis runner configure --non-interactive --name <unique-name>
+```
+
+The name is kept in the CLI's settings (`runner.name`); without one the runner registers under the hostname. Run without `--non-interactive`, `configure` opens an editor for every runner setting, which needs the user's own terminal. The settings, each also a `start` flag that applies to one start only (`artemis runner start --help`):
+
+| Setting | Default | What it does |
+|---|---|---|
+| `runner.shell` | `sh` (`cmd` on Windows) | The shell commands run in |
+| `runner.ram_limit_mb` | none | Memory cap for each command |
+| `runner.build_dirs_per_project` | 4 | Build directories kept per project, so builds are incremental; 0 turns them off |
+| `runner.concurrent_validations` | 1 | Validations it runs at once |
+| `runner.isolate_validations_by_discovery_run` | true | With more than one at once, only one Discovery run's validations at a time |
+| `runner.isolate_benchmark_commands` | true | Each benchmark command runs with nothing else running on the runner |
+| `runner.keep_workspaces` | false | Leaves each validation's folder on disk afterwards, for host-local diagnosis |
+
+Leave them at their defaults unless the user asks. Concurrency is how one Go runner takes more work; benchmark isolation keeps the measurements clean while it does.
+
+**Start it** in the background from its own folder, and report the name, kind, PID, log path and stop command once it says it is connected:
+
+```bash
+mkdir -p <absolute-home>/artemis-runner && cd <absolute-home>/artemis-runner
+nohup artemis runner start > runner.log 2>&1 &
+echo $! > runner.pid   # stop: kill "$(cat runner.pid)"
+i=0
+while [ $i -lt 60 ] && kill -0 "$(cat runner.pid)" 2>/dev/null && ! grep -q "connected; waiting for work" runner.log; do sleep 1; i=$((i+1)); done
+if grep -q "connected; waiting for work" runner.log; then echo "runner connected"; else echo "runner did not start:"; tail -n 20 runner.log; fi
+```
+
+The log is what the runner writes to stderr; it keeps no other. It reconnects by itself when the deployment restarts or the network drops, so `not connected; retrying` followed by `connected` is not a fault. When it never connects and the log repeats `the runner gateway refused the connection`, the deployment does not run Go runners: stop it and tell the user.
+
+**Trust** for a self-signed deployment is the CLI's: `network.ca_cert` or `--ssl-cert-file` (`cli-setup`), not the Python runner's `--ssl-verify <path>`.
+
+**Reuse** a running one only when it is this machine's: its name is the `--name` on the local `artemis runner start` process, else `runner.name` in `artemis config show`, else the hostname; match that against a `go` runner in `artemis runner list`.
+
+**Update** it by updating the CLI (`cli-setup`), then stopping and starting it again; the version is `artemis --version`.
+
 ## Update or restart
 
-Stop the running process cleanly, run `"$RUNNER" upgrade` (or download the newest build as in *Get the runner*). The standalone executable upgrades to the latest without a prompt. On the Python package, `upgrade` asks **Proceed?** and has no flag to skip it, so the user runs it themselves. Then start it again from the same directory with the same command, and repeat *Verify*. Report the version before and after. A human at a browser can use the Web UI's updater instead.
+A Go runner updates with the CLI (*Go runner*).
+
+For a Python runner, stop the running process cleanly, run `"$RUNNER" upgrade` (or download the newest build as in *Get the runner*). The standalone executable upgrades to the latest without a prompt. On the Python package, `upgrade` asks **Proceed?** and has no flag to skip it, so the user runs it themselves. Then start it again from the same directory with the same command, and repeat *Verify*. Report the version before and after. A human at a browser can use the Web UI's updater instead.

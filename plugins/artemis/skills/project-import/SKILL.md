@@ -15,7 +15,7 @@ metadata:
 - **Problem:** Registers a remote Git repository and explicit branch as a fresh Artemis project and captures its verified project UUID.
 - **Must be available:** An authenticated CLI, a reachable remote and branch, a Git credential configured in Artemis that can read the repository, and verified commands unless runner-side verification will follow import.
 - **Use / don't use:** Use whenever an importable remote exists and a new unit of work is needed; don't use it to create a fork, derive commands, or silently reuse an earlier project.
-- **Next skill:** When a calling skill invoked this one, return the project UUID to it. Otherwise return to `repo-command-setup` §5b if runner-side verification remains, or pass the UUID to `discovery-start`.
+- **Next skill:** When a calling skill invoked this one, return the project UUID and its runner kind to it. Otherwise return to `repo-command-setup` §5b if runner-side verification remains, or pass the UUID to `discovery-start`.
 
 ## Requirements
 
@@ -32,7 +32,8 @@ Record:
 - repository URL for `--git-url`;
 - exact branch for `--branch`;
 - exact branch-tip commit, which becomes the imported commit (`gitHash`);
-- meaningful project name for `--name`.
+- meaningful project name for `--name`;
+- runner kind for `--runner-kind`, `python` or `go`: the runners the project will run on, fixed once it is created. A calling skill passes it; otherwise settle it as `runner-setup`'s *Which runner* says (`python` unless the user asks for Go runners or has set `project.runner_kind`).
 
 Resolve and record the branch tip before import:
 
@@ -91,8 +92,11 @@ artemis --output-format json project import \
   --git-url "<git-url>" \
   --key-id "<key-uuid>" \
   --name "<project-name>" \
-  --branch "<branch>"
+  --branch "<branch>" \
+  --runner-kind "<python|go>"
 ```
+
+`--runner-kind` needs a CLI whose `project import --help` lists it. On an older CLI leave that line out: it imports every project as `python` and cannot make a `go` one, so update it with `cli-setup` before importing a project for Go runners. The kind cannot be changed afterwards: a project imported with the wrong kind is imported again.
 
 The Web UI imports with auto-sync off. CLI 1.1.16 and older turn it on by default, so on those add `--auto-sync=false`; 1.1.17 and newer import with it off and hide the flag.
 
@@ -123,12 +127,13 @@ List or inspect the project using the installed CLI and confirm:
 - UUID matches the import response;
 - Git URL and branch match the intended remote;
 - imported `gitHash` matches `SEED_SHA`;
+- `runnerKind` is the kind you passed;
 - selected Git credential is correct;
 - project is on the intended Artemis deployment.
 
 If the imported commit differs because the branch moved, stop and record the new state rather than treating the recorded commit as valid. Use the UUID rather than the project name for validation, command configuration, and discovery.
 
-When a calling skill invoked this one, return the project UUID to it. Otherwise follow `repo-command-setup`'s workflow path: verify locally before import, or return to `repo-command-setup` §5b after import for runner verification.
+When a calling skill invoked this one, return the project UUID and its runner kind to it. Otherwise follow `repo-command-setup`'s workflow path: verify locally before import, or return to `repo-command-setup` §5b after import for runner verification.
 
 ## Checklist
 
@@ -139,6 +144,6 @@ When a calling skill invoked this one, return the project UUID to it. Otherwise 
 - [ ] `--key-id` is a UUID from `key list`, never a placeholder; with no key that can read the repository, nothing was imported.
 - [ ] If no credential existed, both Web UI routes (GitHub connect, Add access key) were offered, or only GitHub connect for `quickstart`'s demo; the user entered any new secret in the browser, never in chat or a command line.
 - [ ] Import performed once with confirmed inputs.
-- [ ] Project UUID captured and imported `gitHash` verified against `SEED_SHA`.
+- [ ] Project UUID captured, imported `gitHash` verified against `SEED_SHA`, and `runnerKind` the kind agreed for its runner.
 - [ ] Clickable project link returned to the user.
 - [ ] UUID and imported commit handed to `repo-command-setup` §5b or `discovery-start`.
