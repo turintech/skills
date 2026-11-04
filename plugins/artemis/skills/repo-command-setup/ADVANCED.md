@@ -100,7 +100,7 @@ Keep each version's source and generated binaries in a dedicated workspace, whil
 
 - Pin model and dataset versions or checksums in the repository.
 - Record GPU model, driver, runtime, framework, thread settings, and precision.
-- Seed random number generators and use representative fixed inputs.
+- Seed random number generators, log the seed, and vary sizes (HARNESS review step 3).
 - Warm up kernels before timing.
 - Scope cleanup to processes owned by this runner task; never kill every process reported by `nvidia-smi`.
 - Reset mutable model state, caches, and output directories between versions.
@@ -119,6 +119,8 @@ Statistic selection and noise-floor measurement belong to the benchmark harness'
 - When NUMA placement matters, set `OMP_PROC_BIND=close` and `OMP_PLACES=cores`.
 - Discard warm-up iterations affected by JIT compilation, kernel selection, page-in, or cache population.
 - Keep runner load and resource limits consistent across baseline and generated versions.
+- Cap the child's cores with a cpuset: `docker run --cpuset-cpus=0-3 ...`, or, with root on the runner, `systemd-run --scope -p AllowedCPUs=0-3 setpriv --reuid=<user> --regid=<user> --init-groups --reset-env <command>` (never run the child as root). `taskset` is no cap: the code can widen it. A `--user` scope ignores `AllowedCPUs` unless cpuset is delegated to it.
+- Measure memory across the child's process tree, not `ru_maxrss` (the largest child only): `systemd-run --user --scope -q sh -c '"$@"; s=$?; cat /sys/fs/cgroup$(grep "^0::" /proc/self/cgroup | cut -d: -f3)/memory.peak; exit $s' sh <command>` (Linux 5.19+, a user session; without one, the root scope above). Pass a compound command as `sh -c '...'` or a script. In a container, read `/sys/fs/cgroup/memory.peak`. It includes page cache, so compare it only between versions that touch the same files.
 
 Run the complete benchmark repeatedly in fresh processes after changing runner controls. Do not tune the environment or statistic after seeing which version wins.
 
@@ -187,6 +189,13 @@ fi
 ```
 
 Do not overwrite a real checkout's Git metadata.
+
+## Benchmark review how-tos
+
+- **Verify apart:** decompress and compare, load the weights and score fresh data, or recompute with the reference code.
+- **Write the manifest** with paths as `find` prints them (no `./`), no bytecode, and neither itself nor `REVIEW.md`: `m=$(mktemp) && find bench tests -name __pycache__ -type d -prune -exec rm -rf {} + && { find bench tests ! -type d ! -name REVIEW.md ! -name manifest.sha256; for f in conftest.py pytest.toml .pytest.toml pytest.ini tox.ini; do [ ! -e "$f" ] || echo "$f"; done; } | LC_ALL=C sort | while read -r f; do sha256sum "$f"; done > "$m" && mv "$m" bench/manifest.sha256` (name the harness and test directories you have). List any other harness files the same way, and for tests inside a package every `conftest.py` and pytest config file from the root down to them.
+- **Unlisted files:** after the manifest check, delete the bytecode earlier phases wrote, so the harness never loads a planted file: `find bench tests -name __pycache__ -type d -prune -exec rm -rf {} +`. Then fail on any unlisted file or link: `find bench tests ! -type d ! -name REVIEW.md ! -name manifest.sha256 | while read -r f; do cut -c67- bench/manifest.sha256 | grep -qxF "$f" || exit 1; done || exit 1` (name the harness and test directories the manifest covers). For root test config, listed or new: `for f in conftest.py pytest.toml .pytest.toml pytest.ini tox.ini; do [ ! -e "$f" ] || cut -c67- bench/manifest.sha256 | grep -qxF "$f" || exit 1; done`. With pytest, write a root `pytest.ini` even if empty (only a `pytest.toml` or `.pytest.toml`, from pytest 9, outranks it) and list it.
+- **Isolation:** check from inside that the code under test cannot read the repo's data, the floor set or the holdout, or touch the results file, and that widening its CPU affinity still leaves only the agreed cores.
 
 ## Troubleshooting
 

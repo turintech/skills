@@ -13,7 +13,7 @@ metadata:
 ## At a glance
 
 - **Problem:** Finds code-health Issues against a project's Rules, then triages them, fixes them and ships each fix as a branch or pull request.
-- **Must be available:** An authenticated CLI and an imported project. No runner, except for Fix in Discovery. The board chart also needs `discovery-visualize` installed beside this skill; without it, answer in text.
+- **Must be available:** An authenticated CLI and an imported project. No runner, except for Fix in Discovery; one that scores the benchmark needs its script's benchmark review passed, as `discovery-start` requires; finish a missing or open one with `repo-command-setup`. The board chart also needs `discovery-visualize` installed beside this skill; without it, answer in text.
 - **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.16, which has `issues cancel` and display ids for `fix --discovery`, on top of 1.1.15's `scans get`, `scans cancel`, `--no-limit` and `--lane`); if it is older, load `cli-setup` first.
 - **Use / don't use:** Use to scan for Issues, manage Rules, triage, fix and ship Issues, or chart the board. Not for Discovery runs (load `discovery-start`) or browser walkthroughs (load `platform-tour`).
 - **Next skill:** None required. Return to `artemis` routing for other work.
@@ -223,6 +223,7 @@ Syncs run in the background like Scans. There is no `syncs get`: match the sync 
 - [ ] Rules in place and none still drafts.
 - [ ] Agent runs started for what the user asked, with no credits question; the user said yes before agent work they didn't ask for, `issues cancel` and `rules delete`.
 - [ ] For Fix in Discovery, the model, versions, runner and script, Benchmark runs and AI Metrics were agreed with the user and passed as flags.
+- [ ] For a Fix in Discovery that scores the benchmark, its script's review line for its pinned manifest says passed.
 - [ ] The Scan reached `done`, and `issuesFound` is checked, not assumed.
 - [ ] Issues triaged before any fix; unrelated Issues in separate `fix` calls.
 - [ ] Waited on `fixStatus` with a bounded check, at most three runs, then checked `fix-runs` and the chat.

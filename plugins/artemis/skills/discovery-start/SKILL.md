@@ -22,6 +22,7 @@ metadata:
 - `artemis status` succeeds on the target deployment.
 - An imported project UUID from `project-import`.
 - Verified, self-contained root-level commands from `repo-command-setup`, stored as a project Script.
+- For a run that scores the benchmark (`--execution-mode benchmark`, the default; `test` and `skip` score none), its [pre-Discovery benchmark review](../repo-command-setup/HARNESS.md#pre-discovery-benchmark-review) passed: in the Script's description (`project scripts get <script-id> --project <p>`), the latest review line naming the manifest sha256 its benchmark command pins says passed and names the holdout and verdict; anything else blocks, unless a calling skill supplied a known-good benchmark. Finish a missing or open review with `repo-command-setup`'s benchmark review, which hands step 10 to `benchmark-review`. Once the baseline has finalized (section 2), set the tiers from its `bench/REVIEW.md` with `discovery metrics-schema set <run-id> --file <schema.json>`.
 - A benchmark that writes numeric `artemis_results.json` or `.csv` as defined in `repo-command-setup` §4, unless qualitative-only optimization is deliberate.
 - An online runner compatible with those commands, confirmed by the user or supplied by the calling skill.
 - Optionally `jq`. Snippets below use it to filter `--output-format json`, but it is just one option; any JSON filter works (e.g. `python3 -c`).
@@ -174,6 +175,8 @@ A `skip` run executes nothing, so it never gets a `baselineVersionSha`; the loop
 
 If baseline finalization is delayed, use `discovery-inspect` to compare the run record with runner activity. Large task logs can delay ingestion; see [advanced log control](../repo-command-setup/ADVANCED.md#control-log-volume).
 
+With a passed benchmark review, set its scoring tiers once the baseline has finalized. The file replaces the whole schema, so start from the run's own: take `metricsSchema` from `artemis --output-format json discovery get "<run_id>"`, match each entry's `metricId` to its name with `artemis --output-format json discovery metrics "<run_id>" --all`, change only its `importance` to that name's tier in `bench/REVIEW.md`, and set it back with `artemis discovery metrics-schema set "<run_id>" --file <schema.json>`.
+
 Use **`discovery baseline set`** only with a hand-authored schema whose `metricId` values are real project metric UUIDs, never placeholders:
 
 ```bash
@@ -206,6 +209,7 @@ Occasionally a failed baseline leaves the project in a bad state on the Web UI. 
 - [ ] Explicit model choice recorded as a catalogue UUID or model-type code
 - [ ] Model and version count agreed with the user before the run was dispatched (`discovery create`, or `setup complete` for a setup run), unless a calling skill passed fixed settings
 - [ ] Script created or reused; `--script` passed (or a project default confirmed)
+- [ ] For a run that scores the benchmark, the Script's review line for its pinned manifest says passed, or a calling skill supplied a known-good benchmark
 - [ ] `--llm-metrics=false` unless AI Metrics were requested; create response checked for `scriptId` and `useLlmMetrics`
 - [ ] Benchmark runs per version chosen deliberately against the benchmark's duration, and `evaluationRepetitions` on the create response matches it
 - [ ] Fast-track offered when the estimate was longer than the user wanted to wait; if used, its [checklist](FAST_TRACK.md#checklist) completed
