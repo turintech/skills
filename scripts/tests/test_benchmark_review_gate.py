@@ -1,4 +1,4 @@
-"""repo-command-setup reviews a benchmark before Discovery, and benchmark-review owns the reviewer."""
+"""discovery-start blocks a Discovery until the benchmark review has passed, and benchmark-review owns the reviewer."""
 import pathlib
 import re
 import subprocess
@@ -19,6 +19,25 @@ def section(text, title):
 
 
 class BenchmarkReviewGate(unittest.TestCase):
+    def test_discovery_start_requires_a_passed_review(self):
+        requirements = section((SKILLS / "discovery-start/SKILL.md").read_text(), "Requirements")
+        self.assertRegex(requirements, r"(?m)^- For a run that scores the benchmark \(`--execution-mode benchmark`, the default; `test` and `skip` score none\), its \[pre-Discovery benchmark review\]\(\.\./repo-command-setup/HARNESS\.md#pre-discovery-benchmark-review\) passed")
+        self.assertIn("the latest review line naming the manifest sha256 its benchmark command pins says passed", requirements)
+        self.assertIn("names the holdout and verdict", requirements)
+        self.assertIn("anything else blocks", requirements)
+        checklist = section((SKILLS / "discovery-start/SKILL.md").read_text(), "Checklist")
+        self.assertIn("For a run that scores the benchmark, the Script's review line for its pinned manifest says passed", checklist)
+        self.assertIn("Once the baseline has finalized (section 2), set the tiers", requirements)
+        self.assertIn("`discovery metrics-schema set <run-id> --file <schema.json>`", requirements)
+        self.assertIn("Finish a missing or open review with `repo-command-setup`'s benchmark review", requirements)
+        self.assertIn("The file replaces the whole schema, so start from the run's own", (SKILLS / "discovery-start/SKILL.md").read_text())
+        self.assertIn("match each entry's `metricId` to its name with `artemis --output-format json discovery metrics \"<run_id>\" --all`", (SKILLS / "discovery-start/SKILL.md").read_text())
+
+    def test_fix_in_discovery_needs_the_same_review(self):
+        text = (SKILLS / "maintain/SKILL.md").read_text()
+        self.assertIn("except for Fix in Discovery; one that scores the benchmark needs its script's benchmark review passed, as `discovery-start` requires", text)
+        self.assertIn("For a Fix in Discovery that scores the benchmark, its script's review line for its pinned manifest says passed", section(text, "Checklist"))
+
     def test_the_review_writes_the_line_discovery_start_reads(self):
         text = (SKILLS / "repo-command-setup/HARNESS.md").read_text()
         self.assertRegex(text, r"`Benchmark review passed <date> at <harness gitHash>: holdout <holdout-script-id>, manifest <sha256>, reviewer <verdict>`")
