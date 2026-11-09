@@ -56,9 +56,11 @@ class CliCeiling(unittest.TestCase):
         self.assertIn("FAIL maintain: missing metadata.artemis-cli-max", r.stdout)
 
     def test_check_skills_requires_min_below_max(self):
-        r = self.check_skills_with('artemis-cli-max: "1.2.0"', 'artemis-cli-max: "1.1.16"')
+        skill = (ROOT / "plugins/artemis/skills/maintain/SKILL.md").read_text()
+        low = re.search(r'artemis-cli-min: "([\d.]+)"', skill).group(1)
+        r = self.check_skills_with('artemis-cli-max: "1.2.0"', f'artemis-cli-max: "{low}"')
         self.assertEqual(r.returncode, 1)
-        self.assertIn("FAIL maintain: artemis-cli-min 1.1.16 is not below artemis-cli-max 1.1.16", r.stdout)
+        self.assertIn(f"FAIL maintain: artemis-cli-min {low} is not below artemis-cli-max {low}", r.stdout)
 
 
 if __name__ == "__main__":

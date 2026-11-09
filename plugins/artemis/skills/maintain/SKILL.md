@@ -1,9 +1,9 @@
 ---
 name: maintain
 description: Run Artemis Maintain end to end on a project. Author or import Rules, Scan the code for Issues, triage them, fix them with the fix agent, in Discovery or with your own coding agent, ship each fix as a branch or PR, and re-sync outdated Issues as the code moves on. Use when the user wants to scan a project for code-health Issues, set up Rules, triage, fix or ship Issues, or summarise, chart or graph the Maintain board by severity and lane.
-compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+.
+compatibility: Requires Artemis CLI 1.1.20+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
-  artemis-cli-min: "1.1.16"
+  artemis-cli-min: "1.1.20"
   artemis-cli-max: "1.2.0"
   artemis-platform-min: "3.1.0"
 ---
@@ -14,7 +14,7 @@ metadata:
 
 - **Problem:** Finds code-health Issues against a project's Rules, then triages them, fixes them and ships each fix as a branch or pull request.
 - **Must be available:** An authenticated CLI and an imported project. No runner, except for Fix in Discovery. The board chart also needs `discovery-visualize` installed beside this skill; without it, answer in text.
-- **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.16, which has `issues cancel` and display ids for `fix --discovery`, on top of 1.1.15's `scans get`, `scans cancel`, `--no-limit` and `--lane`); if it is older, load `cli-setup` first.
+- **Requirements:** `artemis --version` is at least `artemis-cli-min` (1.1.20, which starts Fix in Discovery in one call, on top of 1.1.16's `issues cancel` and 1.1.15's `scans get`, `scans cancel`, `--no-limit` and `--lane`); if it is older, load `cli-setup` first.
 - **Use / don't use:** Use to scan for Issues, manage Rules, triage, fix and ship Issues, or chart the board. Not for Discovery runs (load `discovery-start`) or browser walkthroughs (load `platform-tour`).
 - **Next skill:** None required. Return to `artemis` routing for other work.
 
@@ -34,7 +34,7 @@ The board has four **lanes**: `untriaged`, `triaged`, `in_progress`, `done`. A f
 - For **publish / pr** only: the project's git connection must have push access. Maintain's `publish` and `pr` push to GitHub.
 - Optionally `jq`; the snippets use it, but any JSON filter works.
 
-**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a UUID, or a display id with `-p <project>` (a plain `fix` from CLI 1.1.18; before that, give it the UUID); `prompt`, `publish`, `pr` and `submit-local-fix` need `-p` either way, as does `list`. With `fix --discovery`, a `--script` name is looked up in the Issues' own project. In scripts, lift `.id`.
+**Ids.** Rules, Issues and Fixes carry display ids (`RUL-12`, `ISS-143`, `FIX-7`). Every `issues` command accepts a UUID, or a display id with `-p <project>`; `prompt`, `publish`, `pr` and `submit-local-fix` need `-p` either way, as does `list`. With `fix --discovery`, a `--script` name is looked up in the Issues' own project. In scripts, lift `.id`.
 
 **Agent runs.** Every step but triage is an agent run: a Scan, a fix (including **Fix again**), Fix in Discovery, a Re-sync and every `maintain chat` turn. Run the ones the user asked for, and the follow-ups this skill names for them, without asking about credits. Ask first only before agent work that is neither, including approving a question card that would start it.
 
@@ -222,7 +222,7 @@ Syncs run in the background like Scans. There is no `syncs get`: match the sync 
 
 ## Checklist
 
-- [ ] CLI at least 1.1.16; project UUID confirmed.
+- [ ] CLI at least 1.1.20; project UUID confirmed.
 - [ ] Rules in place and none still drafts.
 - [ ] Agent runs started for what the user asked, with no credits question; the user said yes before agent work they didn't ask for, `issues cancel`, `discovery cancel` and `rules delete`.
 - [ ] For Fix in Discovery, the model, versions, runner and script, Benchmark runs and AI Metrics were agreed with the user and passed as flags.

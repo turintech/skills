@@ -82,12 +82,7 @@ class FixInDiscovery(unittest.TestCase):
         self.assertIn("accepts a UUID", ids)
         self.assertIn("a `--script` name is looked up in the Issues' own project", text)
         self.assertIn("need `-p` either way", ids)
-        # 1.1.16 and 1.1.17 refuse -p on a plain `fix`; 1.1.18 (artemis-cli #256) takes it. The caveat goes with the min bump.
-        minimum = tuple(int(n) for n in re.search(r'artemis-cli-min: "([\d.]+)"', text).group(1).split("."))
-        if minimum < (1, 1, 18):
-            self.assertIn("a plain `fix` from CLI 1.1.18", ids)
-        else:
-            self.assertNotIn("from CLI 1.1.18", ids, "artemis-cli-min is past 1.1.18, so drop the caveat")
+        self.assertNotIn("from CLI 1.1.18", ids, "every supported CLI takes -p on a plain `fix`, so no caveat")
         self.assertIn("artemis maintain issues fix <issue-id>...", text)
 
 

@@ -101,7 +101,7 @@ cli_meets_min() {  # $1: an `artemis --version` line, $2: the minimum release. P
 }
 DIR="<the CLI download directory from the prompt>"
 PLATFORM="linux-amd64"   # see the table below
-MIN="1.1.16"             # the highest artemis-cli-min of the skills in use
+MIN="1.1.20"             # the highest artemis-cli-min of the skills in use
 TMP="$(mktemp -d)"; F="$TMP/artemis-cli-$PLATFORM"
 if ! curl -fsSL "$DIR/artemis-cli-$PLATFORM" -o "$F"; then
   echo "NO BUILD: $DIR has no artemis-cli-$PLATFORM"
