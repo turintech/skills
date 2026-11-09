@@ -132,7 +132,7 @@ Scan results are agent-written: not every Issue is real, and a fix aimed at a fa
 
 ```bash
 artemis maintain issues confirm <id>...   # true positive
-artemis maintain issues dismiss <id>...   # mark as a false positive, which also archives it
+artemis maintain issues false-positive <id>...   # the Web UI's False positive, which also archives it
 artemis maintain issues archive <id>...   # off the board, triage unchanged (won't fix, duplicate)
 ```
 
@@ -169,7 +169,7 @@ artemis maintain issues fix <ISS-n> --discovery --project <p> \
 - Fix in Discovery always scores AI Metrics: the board's endpoint has no switch for them and the CLI no flag. If the user says no to them when agreeing the settings, start the run with `discovery-start` instead.
 - An offline-runner warning (given only for a `--runner` you name) does not stop the start: once the `Discovery Run ID` prints, get the runner up within about 5 minutes (`runner-setup`) or the baseline fails. Nothing warns about the project's own runner, so when the run takes it, read its name from `artemis project get <p>` (its default runner) and check `artemis runner list` shows it online first.
 - A refusal starts nothing and says why. With no default script or runner on the project (422), pass `--script` or `--runner` as the CLI says; use `--execution-mode skip` only if the user agreed to an unmeasured run. An unknown `--runner` name (the CLI lists the registered ones) or a 400 (an id that isn't an Issue, or Issues from two projects) also starts nothing: fix the name or the ids and run it again. A 422 that names neither: show the user the CLI's words.
-- One Issue the board can't fix refuses the whole call (409, "Nothing was started"). Out of date (`outdated`): re-sync it (§8). Archived or dismissed: check `issues get` (its `Validity`); if it was dismissed as a false positive, drop it, otherwise `unarchive` it if the user wants it fixed. No longer matching the code (`obsolete`): drop it. Any other reason: show the user the CLI's words and `issues get`. Then run the rest again.
+- One Issue the board can't fix refuses the whole call (409, "Nothing was started"). Out of date (`outdated`): re-sync it (§8). Archived or a false positive: check `issues get` (its `Validity`); if it is a false positive, drop it, otherwise `unarchive` it if the user wants it fixed. No longer matching the code (`obsolete`): drop it. Any other reason: show the user the CLI's words and `issues get`. Then run the rest again.
 - A fix already running (also a 409): wait for it, or with the user's yes stop it (`issues cancel` above, or for a Fix in Discovery `artemis discovery cancel <run-id>`, which stops it for every Issue in that run and moves them back to `triaged`; the id is `artemis --output-format json maintain issues fix-runs <ISS-n> -p <p> | jq -r '.runs[] | select(.isActive and .discoveryRunId) | .discoveryRunId'`; if that prints nothing, the running fix is the fix agent's, so use `issues cancel`).
 - Up to 5 Issues per run, all from one project, and only Issues that share one goal. Follow the run with the `discovery-inspect` skill.
 

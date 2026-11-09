@@ -22,7 +22,7 @@ def fix_in_discovery():
 
 
 # Each refusal the board or CLI can give, and the way out the skill must name after it.
-REFUSALS = (("(422)", "`--script` or `--runner`"), ("A fix already running", "wait for it"), ("`outdated`", "re-sync it (§8)"), ("`obsolete`", "drop it"), ("Archived or dismissed", "`unarchive`"), ("Any other reason", "the CLI's words"), ("offline-runner warning", "`runner-setup`"), ("the project's own runner", "`artemis runner list`"), ("unknown `--runner` name", "fix the name or the ids"), ("A 422 that names neither", "the CLI's words"))
+REFUSALS = (("(422)", "`--script` or `--runner`"), ("A fix already running", "wait for it"), ("`outdated`", "re-sync it (§8)"), ("`obsolete`", "drop it"), ("Archived or a false positive", "`unarchive`"), ("Any other reason", "the CLI's words"), ("offline-runner warning", "`runner-setup`"), ("the project's own runner", "`artemis runner list`"), ("unknown `--runner` name", "fix the name or the ids"), ("A 422 that names neither", "the CLI's words"))
 
 
 class FixInDiscovery(unittest.TestCase):
