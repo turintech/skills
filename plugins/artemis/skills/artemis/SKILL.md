@@ -164,6 +164,7 @@ Take the expected time only from a measurement: the phase durations `repo-comman
 - CLI: `cli-setup`
 - Runner: `runner-setup`
 - Repository commands, Scripts, Discovery-ready harness authoring, and validation: `repo-command-setup`
+- Reviewing a benchmark on request: what it will measure, whether it's right for the goal or can be gamed: `benchmark-review`
 - Persistent incremental builds: `workspace-setup`
 - Project registration: `project-import`
 - Discovery launch, including `discovery create --script` and guided `--setup`: `discovery-start`
