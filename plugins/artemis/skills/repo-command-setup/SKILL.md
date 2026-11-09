@@ -15,7 +15,7 @@ metadata:
 - **Problem:** Derives, verifies, and records a project Script's self-contained root-level commands: the build and test that gate Discovery, and the benchmark that reports numbers.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
 - **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
-- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then continue to `discovery-start` or validation.
+- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then `discovery-start` or validation, offering `benchmark-review` first (§7).
 
 ## Requirements
 
@@ -98,7 +98,7 @@ Measure the requested optimization target directly.
 
 - Keep unrelated startup, downloads, compilation, and data generation outside the timed region.
 - Warm up runtimes or kernels where required.
-- Use deterministic, representative inputs.
+- Use deterministic, representative inputs read from files or a fixed, logged seed, never literals in the timed code.
 - Emit the metric that should rank versions, with stable units and direction.
 - Keep diagnostic output concise enough to avoid delaying task-log upload.
 
@@ -250,6 +250,16 @@ Use the verified commands unchanged:
 - Don't set `project commands`: they are legacy, Discovery doesn't read them, and they would be a second copy of the commands. Only if the user asks.
 - `discovery-start` passes the same script to `discovery create --script`. Never keep a second command set for Discovery.
 
+## 7. Offer a benchmark review
+
+When the commands are verified and Discovery is next, offer it once per session in one line, in the reply that proposes the next step and before running it:
+
+```text
+Want me to review this benchmark against your goal before Discovery? It takes a few minutes.
+```
+
+On yes, use `benchmark-review`. If the user's next message doesn't take it up, carry on: it is never required and Discovery can always go ahead. Skip the offer when the caller verifies the commands itself or tells you to skip verification, as `quickstart` does, and on a return from `benchmark-review` to make its refinements. When the review comes back with refinements, make them here (HARNESS.md *Rules that close common gaps*).
+
 ## Advanced cases
 
 Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical because of expensive rebuilds, a required long-running service, large ML assets or GPU state, excessive task logs, or runner-only failures. The advanced patterns trade portability for operational feasibility and require explicit safeguards.
@@ -265,3 +275,4 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
 - [ ] Validation and discovery use the same verified commands, stored as a Script.
+- [ ] When the commands are verified and Discovery is next, `benchmark-review` offered at most once, unless the caller verifies the commands itself or skips verification.

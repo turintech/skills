@@ -8,7 +8,7 @@ From the repository root, a validation runs the setup commands (build, then test
 
 - be **headless** (no GUI, prompts, or display);
 - time only the optimization target (warmup and setup outside the timed region);
-- use **deterministic, representative** inputs;
+- use **deterministic, representative** inputs: read from files, or generated from a fixed, logged seed;
 - write numeric metrics to exactly `artemis_results.json` or `artemis_results.csv` in the command working directory;
 - return non-zero on failure;
 - leave metric names, units, and direction stable across baseline and versions.
@@ -36,11 +36,25 @@ test -f artemis_results.json || test -f artemis_results.csv
 
 Confirm the results file contains the ranking metric as a number. Then return to SKILL.md §2–§6 to record the build, test and benchmark in a Script and complete runner verification when available.
 
+## Rules that close common gaps
+
+Start with a simple benchmark that runs end to end. None of these is a default step: add one only when the user picks it in a review, or when a result shows it's needed. They close the gaps `benchmark-review` most often finds:
+
+- **Cases that look like real use.** Inputs from files or a fixed, logged seed, never literals in the timed code. Sizes span the user's range plus one larger, one small and one off-shape case; regimes the user judges apart are separate metrics.
+- **Long enough samples, warm-up outside.** Each timed sample takes about a second or more, or loops internally; warm-up iterations run before the timer, as many as the original's per-iteration times show are needed.
+- **Fail fast.** Check correctness on small inputs before the full timed run, so a broken version fails in seconds.
+- **Consume the output.** Time until the result exists and is used (checksummed, compared or written), so a compiler or a lazy result can't drop the work.
+- **Gate every output of every run** against the original implementation, under the equivalence rule agreed with the user, including generated and edge inputs that aren't scored. Run the reference in a separate process or on fresh buffers.
+- **Check every class** of output, including rare classes however few samples they have, and a margin above any quality floor.
+- **Fresh state each repetition.** No cache, file or process survives from one repetition to the next; with files or data that can be cached, use fresh paths or fresh copies of the same inputs each repetition.
+- **Same limits for everyone.** Pin threads, cores and memory in the benchmark command, the same for the original and every version.
+- **Keep the scorer out of reach.** Harness, gate, data and expected outputs live outside the target files and are protected by a check on their contents, since target files don't stop edits. A holdout of real data stays outside the repository.
+
 ## Long benchmarks: small, medium and full tiers
 
 Prepare tiers once the user has chosen [Fast-track Discovery](../discovery-start/FAST_TRACK.md). Reuse existing workload-selection options where possible; a custom harness could accept `--tier small`, `--tier medium` and `--tier full`. These are harness options, not Artemis CLI flags.
 
-- Use fixed, representative inputs nested small ⊆ medium ⊆ full. Preserve the behavior being optimized; fewer tasks or samples must still exercise the target path.
+- Use deterministic, representative inputs from the same files or fixed seed, nested small ⊆ medium ⊆ full. Preserve the behavior being optimized; fewer tasks or samples must still exercise the target path.
 - Keep metric names, units, definitions and directions identical across tiers. Keep the correctness gate at every tier with the same acceptance criteria; reducing benchmark coverage must not disable tests or relax quality tolerances.
 - Save one Script per tier with its workload fixed in the benchmark command and the build/test gate included. Record each Script ID, workload and measured duration, and verify each through [SKILL.md](SKILL.md). Keep harness, workload selection and gates outside the Discovery agent's edit scope.
 
