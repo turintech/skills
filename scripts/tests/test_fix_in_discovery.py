@@ -47,8 +47,9 @@ class FixInDiscovery(unittest.TestCase):
 
     def test_a_running_discovery_fix_is_cancelled_by_its_run(self):
         section = fix_in_discovery()
-        self.assertIn("`artemis discovery cancel <run-id>`", section)
-        self.assertIn("`artemis discovery cancel <run-id>`, which stops it for every Issue in that run and moves them back to `triaged`", section)
+        # An agent has no terminal to confirm on: without --force the cancel asks, and exits 7.
+        self.assertIn("`artemis discovery cancel <run-id> --force`, which stops it for every Issue in that run and moves them back to `triaged`", section)
+        self.assertNotIn("`artemis discovery cancel <run-id>`", section)
         self.assertRegex(section, r"(?m)^- A fix already running \(also a 409\): wait for it")
         # isActive marks the latest attempt, which may be the fix agent's: no discovery run id then.
         self.assertIn("jq -r '.runs[] | select(.isActive and .discoveryRunId)", section)
