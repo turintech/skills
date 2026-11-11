@@ -1,0 +1,1588 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>__TITLE__</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Baseline orange and Artemis purple are the product's colours. Neutral and verdict tokens follow artemis-ui (slate, teal, poppy, amber).
+   Validated with the dataviz validator: orange vs purple CVD dE 34.5 light, 28.7 dark. Orange is under 3:1 on white (2.45),
+   so every orange mark carries a value label. */
+:root {
+  --bg: #f8fafc; --card: #ffffff; --fg: #0f172a; --text-2: #475569; --line: #e2e8f0; --grid: #e2e8f0; --subtle: #f1f5f9;
+  --baseline: #f28c28; --accent: #8b5cf6; --accent-text: #6d28d9; --neutral: #94a3b8; --ink-mark: #334155; --steer: #0f766e; --s1: #8b5cf6; --s2: #0d9488;
+  --better: #14b8a6; --worse: #fb4a38; --better-text: #0f766e; --worse-text: #dc2626; --noise-text: #a16207; --noise: #facc15; --pending: #94a3b8;
+  --up: #14b8a6; --down: #fb4a38; --eq: #d97706;
+  --focus: #6d28d9; --shadow: 0 1px 3px #0000001a, 0 1px 2px -1px #0000001a;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #020617; --card: #0f172a; --fg: #f1f5f9; --text-2: #cbd5e1; --line: #1e293b; --grid: #1e293b; --subtle: #1e293b;
+  --baseline: #f28c28; --accent: #8b5cf6; --accent-text: #c4b5fd; --neutral: #64748b; --ink-mark: #cbd5e1; --steer: #5eead4; --s1: #8b5cf6; --s2: #2dd4bf;
+  --better: #5eead4; --worse: #fb6151; --better-text: #5eead4; --worse-text: #fb6151; --noise-text: #fde047; --noise: #fde047; --pending: #64748b;
+  --up: #5eead4; --down: #fb6151; --eq: #fbbf24; --focus: #c4b5fd; --shadow: none; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #020617; --card: #0f172a; --fg: #f1f5f9; --text-2: #cbd5e1; --line: #1e293b; --grid: #1e293b; --subtle: #1e293b;
+  --baseline: #f28c28; --accent: #8b5cf6; --accent-text: #c4b5fd; --neutral: #64748b; --ink-mark: #cbd5e1; --steer: #5eead4; --s1: #8b5cf6; --s2: #2dd4bf;
+  --better: #5eead4; --worse: #fb6151; --better-text: #5eead4; --worse-text: #fb6151; --noise-text: #fde047; --noise: #fde047; --pending: #64748b;
+  --up: #5eead4; --down: #fb6151; --eq: #fbbf24; --focus: #c4b5fd; --shadow: none; color-scheme: dark }
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font: 400 15px/1.55 var(--sans); font-variant-numeric: tabular-nums; }
+svg { fill: var(--fg); }
+.page { max-width: 1240px; margin: 0 auto; padding: 28px 16px 72px; display: flex; flex-direction: column; gap: 20px; }
+.brand { display: flex; gap: 12px; align-items: center; }
+.brand img { width: 36px; height: 36px; flex: none; }
+.eyebrow { font-size: 15px; color: var(--text-2); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+h1 { font-size: 28px; line-height: 1.25; font-weight: 600; margin: 8px 0 0; }
+.lede { margin: 8px 0 0; color: var(--text-2); font-size: 16px; min-height: calc(2 * 1.55em); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.chip { font-size: 15px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; color: var(--fg); background: var(--card); }
+.chip b { font-weight: 600; }
+.warn { margin: 10px 0 0; font-size: 16px; color: var(--fg); }
+.means { border: 1.5px solid var(--better); border-radius: 12px; padding: 14px 16px; margin-top: 16px; background: var(--card); }
+.means h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--better-text); }
+.means p { margin: 0; font-size: 16px; line-height: 1.5; }
+.means .num { font-weight: 600; }
+.means ul.cl { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 16px; line-height: 1.5; }
+.bar { display: flex; gap: 12px 20px; flex-wrap: wrap; align-items: flex-end; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.ctl { display: inline-flex; flex-direction: column; gap: 4px; font-size: 15px; color: var(--text-2); font-weight: 500; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
+.seg button { font: 500 15px var(--sans); color: var(--fg); background: transparent; border: 0; padding: 7px 14px; cursor: pointer; min-height: 38px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--subtle); box-shadow: inset 0 0 0 1.5px var(--fg); font-weight: 600; }
+.seg button:disabled { color: var(--text-2); cursor: not-allowed; }
+.btn { font: 500 15px var(--sans); color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 7px 14px; min-height: 38px; cursor: pointer; white-space: nowrap; }
+.btn:hover, .seg button:hover { background: var(--subtle); }
+.link { font: inherit; color: var(--accent-text); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+select { font: 500 15px var(--sans); color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; min-height: 38px; max-width: 260px; }
+button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visible, th button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px 20px 22px; box-shadow: var(--shadow); min-width: 0; }
+.vlink { cursor: pointer; }
+.vlink:focus { outline: none; }
+.vlink:hover > text, .vlink:focus-visible > text { fill: var(--accent-text); text-decoration: underline; font-weight: 700; }
+.head .mark { width: 22px; height: 22px; flex: none; align-self: center; }
+.head { display: flex; gap: 10px 14px; align-items: flex-end; flex-wrap: wrap; }
+.head h2 { flex: 1 1 260px; margin: 0; font-size: 19px; font-weight: 600; line-height: 1.35; min-width: 0; border-radius: 4px; align-self: center; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end; position: relative; }
+.tag { font-size: 15px; color: var(--text-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; white-space: nowrap; align-self: center; }
+.legend { display: flex; gap: 6px 18px; flex-wrap: wrap; margin: 14px 0 6px; }
+.legend button { font: 400 15px var(--sans); color: var(--fg); background: none; border: 0; padding: 2px 0; display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
+.legend button[aria-pressed="false"] { color: var(--text-2); text-decoration: line-through; }
+.legend button[aria-pressed="false"] .sw { opacity: .3; }
+.sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.sw.dot { border-radius: 50%; }
+.sw.ring { border-radius: 50%; background: transparent !important; border: 2px solid currentColor; }
+.sw.dash { background: transparent !important; border: 2px dashed currentColor; }
+.sw.outline { background: transparent !important; border: 2px solid currentColor; }
+.sw.line { height: 3px; width: 16px; border-radius: 2px; }
+.plot { overflow-x: auto; overflow-y: hidden; margin: 0 -4px; padding: 0 4px; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 28px; }
+.one { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.two > .panel:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; }  /* a lone panel, odd one out or single metric, sits centred, never left in a half cell */
+.two > .panel:last-child:nth-child(odd) .ptitle, .two > .panel:last-child:nth-child(odd) .psub, .two > .panel:last-child:nth-child(odd) .palone { text-align: center; }
+.panel { min-width: 0; }
+.multi { display: grid; gap: 20px 16px; }
+.ptitle { font-size: 16px; font-weight: 600; margin: 0; }
+.psub { font-size: 16px; color: var(--text-2); margin: 2px 0 0; }
+.psub .val, .val { font-weight: 600; }
+.palone { font-size: 16px; color: var(--fg); margin: 4px 0 0; }
+.missing { font-size: 15px; color: var(--text-2); margin: 6px 0 0; }
+.sparse { padding: 24px 8px; color: var(--fg); font-size: 16px; border-top: 1px solid var(--line); margin-top: 10px; }
+.hint { font-size: 15px; color: var(--text-2); text-align: right; margin: 6px 0 0; }
+.pop { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; width: 300px; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px #0000002e; display: flex; flex-direction: column; gap: 10px; }
+.pop h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.pop .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 15px; }
+.checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; max-height: 260px; overflow: auto; }
+.checks label { font-size: 15px; display: flex; gap: 8px; align-items: center; color: var(--fg); min-width: 0; }
+.checks label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tip { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 15px; box-shadow: 0 4px 12px #00000026; max-width: min(340px, calc(100vw - 64px)); overflow-wrap: anywhere; line-height: 1.45; }
+.tip b { font-weight: 600; }
+.tip .t2 { color: var(--text-2); }
+.v-better { color: var(--better-text); } .v-worse { color: var(--worse-text); } .v-noise { color: var(--noise-text); } .v-pending { color: var(--fg); } .v-none { color: var(--text-2); }
+table.sum { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 16px; }
+table.sum th { text-align: left; font-size: 15px; font-weight: 600; color: var(--text-2); border-bottom: 1px solid var(--line); padding: 0; white-space: nowrap; }
+table.sum th button { font: inherit; color: inherit; background: none; border: 0; padding: 10px 10px; cursor: pointer; width: 100%; text-align: inherit; }
+table.sum th[aria-sort] button { color: var(--fg); }
+table.sum td { padding: 10px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.sum .sub { display: none; font-size: 15px; color: var(--text-2); font-family: var(--sans); font-weight: 400; margin-top: 2px; }
+@media (max-width: 600px) { table.sum { min-width: 0; font-size: 15px; } table.sum .wide { display: none; } table.sum .sub { display: block; } table.sum th { white-space: normal; } table.sum th button, table.sum td { padding: 8px 3px; } table.sum td:first-child { overflow-wrap: anywhere; } }
+table.sum td.n, table.sum th.n { text-align: right; }
+table.sum td.n { font-variant-numeric: tabular-nums; }
+details.more { border-top: 1px solid var(--line); padding-top: 4px; }
+details.more > summary { cursor: pointer; font-size: 16px; font-weight: 600; padding: 12px 0; list-style: none; display: flex; gap: 10px; align-items: center; }
+details.more > summary::before { content: "+"; display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 8px; }
+details.more[open] > summary::before { content: "\2212"; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more .stack { display: flex; flex-direction: column; gap: 20px; }
+footer { font-size: 15px; color: var(--text-2); display: flex; gap: 6px 18px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+footer code, code { font-family: var(--sans); color: var(--fg); }
+footer a { color: var(--accent-text); }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 10px; font-size: 15px; z-index: 50; }
+.err { padding: 24px; color: var(--fg); }
+@media (max-width: 520px) { h1 { font-size: 22px; } .tools { justify-content: flex-start; } .means p { font-size: 16px; } }
+</style>
+<div id="root"><div class="err">Loading the chart studio...</div></div>
+<script type="application/json" id="studio-data">__STUDIO_DATA__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-is/18.3.1/umd/react-is.production.min.js" integrity="sha384-XYVQ7LtYqgha4ByzNRLR6NHo9p0yVDvmTNuQkiIweU0U8WqLWBkH1L771VlP6fYx" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/3.10.1/Recharts.min.js" integrity="sha384-+A7g/u3B+gLbMJBvixOoipyvnsutGtptbgLWgAQkxNxY++X+G4X61dOYURF/Ff14" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js" integrity="sha384-toVdrLSMaw7Y55MowcKqkmFL/Ek6Sky62NOk0b5sDDZBu2wcoPyyQUt9unDVjXhL" crossorigin="anonymous"></script>
+<script>
+(function () {
+"use strict";
+if (!window.React || !window.ReactDOM || !window.Recharts || !window.htm) {
+  document.getElementById("root").innerHTML = '<div class="err">The chart libraries did not load (React 18.3.1, Recharts 3.10.1, htm 3.1.1). Check the network and reload.</div>';
+  return;
+}
+var h = React.createElement, html = htm.bind(h);
+var useState = React.useState, useEffect = React.useEffect, useMemo = React.useMemo, useRef = React.useRef, useCallback = React.useCallback;
+var RC = Recharts;
+
+/* ---------- data: the collector's snapshots, inlined; nothing here computes a statistic ---------- */
+var SNAP_ERR = null;  // why the embedded data did not parse, shown instead of a bare "did not load"
+function readSnap(id) { try { return JSON.parse(document.getElementById(id).textContent); } catch (e) { SNAP_ERR = e.message; return null; } }
+/* build_studio.py writes { datasets: [...] }: a run snapshot is one dataset; a project snapshot is one dataset whose
+   runs are its Discovery sessions, with any versions that failed the user's own check, per session, in `correctness`.
+   A lone run with such marks keeps its run layout and carries them as correctness["1"]. */
+var DATA = readSnap("studio-data") || { datasets: [] }, SNAPS = {}, DATASETS = [], RUN_FAILED = {}, LEFT_OUT = {};
+(DATA.datasets || []).forEach(function (d) {
+  SNAPS[d.id] = d.sessions ? { multi: true, label: d.label, sessions: d.sessions, correctness: d.correctness || null } : d.snapshot;
+  if (!d.sessions && d.correctness) RUN_FAILED[d.id] = d.correctness["1"] || null;  // a lone run's cross marks
+  LEFT_OUT[d.id] = d.leftOut || [];  // runs the builder or the collector left out of this project
+  DATASETS.push({ id: d.id, label: d.label });
+});
+var FIRST = DATASETS.length ? DATASETS[0].id : null, START = window.__STUDIO_START || null;  // START: the checker opens each view in turn
+var ONLY = DATA.only || null;  // one card only (build_studio.py --only)
+var FAILED_NOW = [];  // the versions the user's own check failed, on the view on screen
+function sessionSnap(ds, i) { return ds && ds.multi ? ds.sessions[Math.min(i, ds.sessions.length - 1)] : ds; }
+
+// The Artemis Web UI's verdict labels, plus "none": a version falcon has not compared, which gets no verdict of its own.
+var VERDICT = { better: "Significantly improved", worse: "Significantly regressed", noise: "No significant difference", pending: "Needs more runs", none: "No Artemis comparison" };
+var VERDICT_SAY = { better: "significantly improved", worse: "significantly regressed", noise: "no significant difference", pending: "needs more runs", none: "no Artemis comparison" };
+function verdictOf(vb) { return vb && vb.verdict ? vb.verdict : "none"; }
+
+function prep(s, failed) {
+  var metrics = s.metrics || [], byKey = {};
+  metrics.forEach(function (m) { byKey[m.key] = m; });
+  var versions = (s.versions || []).slice().sort(function (a, b) { return a.version - b.version; }).map(function (v) { return failed && failed.indexOf(v.version) >= 0 ? Object.assign({}, v, { _failed: true }) : v; });
+  var byLabel = {}; versions.forEach(function (v) { byLabel[v.label] = v; });
+  var plan = chartPlan(s, metrics);
+  return { s: s, metrics: metrics, byKey: byKey, versions: versions, byLabel: byLabel, plan: plan, failed: failed || [],
+    measured: plan.measured, quality: plan.quality, primary: plan.primary, best: s.bestLines || null };
+}
+
+/* Which metrics lead. metrics[].family and a run-level profile are optional (the collector does not send them yet):
+   with a model family, its metrics lead and the trade-off card moves up. Without them, measured targets lead. */
+// The run's metrics schema ranks each metric high, medium or low; the lead metric is the most important, ties in snapshot order.
+var IMPORTANCE = { high: 0, medium: 1, low: 2 };
+function byImportance(list) {
+  var rank = function (m) { var r = IMPORTANCE[m.importance]; return r == null ? 3 : r; };
+  return list.map(function (m, i) { return [m, i]; }).sort(function (a, b) { return rank(a[0]) - rank(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+}
+// The targets that can lead, best first: the collector's lead metric, then by importance; never a reference control.
+function leadOrder(s) {
+  var told = s.bestLines && s.bestLines.metric;
+  var ts = byImportance((s.metrics || []).filter(function (m) { return m.kind === "target" && m.role !== "reference" && m.higherIsBetter != null; }));
+  return ts.filter(function (m) { return m.key === told; }).concat(ts.filter(function (m) { return m.key !== told; }));  // told only counts when it has a direction
+}
+function chartPlan(s, metrics) {
+  var measured = byImportance(metrics.filter(function (m) { return m.kind === "target"; }));  // panels, menus and the headline follow importance
+  var quality = metrics.filter(function (m) { return m.kind === "quality"; });
+  var profile = s.profile || null;
+  var modelFamily = measured.filter(isModel);
+  var modelLed = profile === "model" || (profile == null && modelFamily.length > 0);
+  var ranked = function (list) { return list.filter(function (m) { var w = (s.perMetricWinners || {})[m.key]; return m.higherIsBetter != null && w && w.raw; }); };
+  // The lead metric is the collector's (bestLines.metric), so the headline and "Best = the best version on X" name the same one.
+  // Without it: the most important ranked target. A control measured beside the target (role "reference") never leads.
+  var own = function (list) { return list.filter(function (m) { return m.role !== "reference"; }); };
+  var lead = own(modelLed && modelFamily.length ? modelFamily : measured), told = s.bestLines && s.bestLines.metric;
+  var primary = (own(measured).filter(function (m) { return m.key === told && m.higherIsBetter != null; })[0] || ranked(lead)[0] || ranked(own(measured))[0] || own(measured)[0] || measured[0] || metrics[0] || {}).key;
+  if (modelLed && modelFamily.length) measured = modelFamily.concat(measured.filter(function (m) { return !isModel(m); }));
+  return { measured: measured, quality: quality, primary: primary, profile: profile, modelLed: modelLed };
+}
+
+/* Model-quality rules, on only when a snapshot carries metrics[].family:
+   a bounded score (0 to 1, or %) reads in points, not ×; identical readings mean a deterministic eval. */
+var MODEL_FAMILIES = ["model", "classification", "regression"];
+function isModel(m) { return !!(m && m.family && MODEL_FAMILIES.indexOf(m.family) >= 0); }
+function isBounded(m, s) {  // a higher-is-better family score; loss (lower is better) keeps Log, even inside 0 to 1
+  if (!isModel(m) || m.higherIsBetter !== true || m.bounded === false) return false;
+  if (m.bounded === true || m.unit === "%") return true;
+  var bl = s.baseline.metrics[m.key]; return !!(bl && bl.min >= 0 && bl.max <= 1);
+}
+function ppText(v, m) {  // falcon's improvementPoints, never worked out here: score points, shown as pp on a 0 to 1 score
+  var d = (vsb(v, m.key) || {}).improvementPoints; if (d == null) return null; d *= m.unit === "%" ? 1 : 100;
+  return (d > 0 ? "+" : d < 0 ? MINUS : "") + Math.abs(d).toFixed(1) + " pp, falcon's difference of the means"; }
+// The collector's stored-direction warnings: bestLines.checks, or, on a snapshot from before it had them, the lede's own sentences.
+function directionChecks(s, best) {
+  if (s && Array.isArray(s.directionChecks)) return s.directionChecks;  // the collector's, whatever the Best state
+  if (!best) return [];
+  if (best.checks) return best.checks;
+  return (String(best.lede || "").match(/[^.]*? is set as (?:higher|lower)-is-better on this project; check Settings > Metrics\./g) || []).map(function (s) { return s.trim(); });
+}
+function noReading(best) {  // the collector's notes the lede does not already carry ("v4 has no reading on x; v5 is best on it"), word for word
+  var notes = (best && best.notes) || {};
+  return Object.keys(notes).map(function (k) { return notes[k]; }).filter(function (n) { return best.lede.indexOf(n) < 0 && / has no reading on /.test(n); });
+}
+function deterministic(vb) { return !!(vb && vb.readings > 1 && vb.spreadPct == null && vb.ciLowPct != null); }
+function mstat(v, key) { return v && v.metrics ? v.metrics[key] || null : null; }
+function vsb(v, key) { var m = mstat(v, key); return m ? m.vsBaseline || null : null; }
+function mlabel(m) {  // a plain name: "downstream_build_ms" with unit ms reads "Downstream build (ms)"; the key stays in tooltips
+  if (!m) return "";
+  var u = m.unit, w = String(m.label || m.key).replace(/^\s*[\u2013\u2014]\s*|\s*[\u2013\u2014]\s*$/g, "").replace(/(\w*\d)\s*\u2013\s*(?=[\u2013\u2212-]?\w*\d)/g, "$1 to ").replace(/\s*[\u2013\u2014]\s*/g, ", ").replace(/_/g, " ").trim().split(/\s+/);  // a key keeps its dash; the name shown never does
+  if (u && w.length > 1 && w[w.length - 1].toLowerCase() === String(u).toLowerCase()) w.pop();
+  // A name that leads with its unit, "ms_per_chunk": the unit goes to the brackets, and a time unit reads as Time.
+  else if (u && w.length > 2 && w[1].toLowerCase() === "per" && w[0].toLowerCase() === String(u).toLowerCase()) w[0] = /^(ms|s|us|µs|ns)$/i.test(u) ? "Time" : "";
+  // A rate whose unit says it, "decode_tokens_per_s" in tokens/s: the name drops "per s".
+  if (u && /\//.test(u) && w.length > 2 && w[w.length - 2].toLowerCase() === "per") w = w.slice(0, -2);
+  // A rate written short, "tok_s" or "mb_per_s": the unit's own word is the unit, so the quantity reads Throughput.
+  if (u && /\/s$/.test(u)) {
+    if (w.length > 1 && w[w.length - 1].toLowerCase() === "s") w.pop();
+    var num = u.split("/")[0].toLowerCase(), last = (w[w.length - 1] || "").toLowerCase(), rest = w.slice(0, -1).join(" ").toLowerCase();
+    if (last && num.indexOf(last) === 0 && (!rest || /(throughput|bandwidth|rate)$/.test(rest))) { w.pop(); if (!w.length) w = ["Throughput"]; }
+  }
+  w = w.filter(Boolean); if (!w.length) w = [String(m.key)];
+  var ACR = { rtfx: "RTFx", der: "DER", asr: "ASR", fe: "FE", cpu: "CPU", gpu: "GPU", ai: "AI", ttft: "TTFT", tpot: "TPOT", fps: "FPS", rmse: "RMSE", mae: "MAE", auc: "AUC", f1: "F1", io: "IO", api: "API", sql: "SQL", dbt: "dbt", mb: "MB", gb: "GB" };
+  w = w.map(function (x) { return ACR[x.toLowerCase()] || x; });
+  var l = w.join(" "); if (!ACR[w[0].toLowerCase()]) l = l.charAt(0).toUpperCase() + l.slice(1);
+  return u ? l + " (" + u + ")" : l;
+}
+function isTime(m) { return !!m && (/(^|_)(ms|s|sec|secs|seconds|time|latency|wall|duration)(_|$)/i.test(m.key) || /^(ms|s|sec|seconds)$/i.test(m.unit || "")); }
+var NO_PCT = "no % change from Artemis";  // falcon gave no % (an original of 0, say): never printed as 0.0%
+function chg(m, p) {  // a change in the reader's words: "44.7% less" on a lower-is-better metric, "+97.0%" on a higher-is-better one
+  if (p == null || !isFinite(p)) return NO_PCT;
+  return m && m.higherIsBetter === false ? Math.abs(p).toFixed(1) + "% " + (p >= 0 ? "less" : "more") : fmtPct(p);
+}
+function ivl(m, lo, hi) {  // falcon's interval in the same words: "41.0% to 48.4% less"
+  if (!(m && m.higherIsBetter === false)) return fmtPct(lo) + " to " + fmtPct(hi);
+  var a = function (x) { return Math.abs(x).toFixed(1) + "%"; };
+  if (lo >= 0) return a(lo) + " to " + a(hi) + " less";
+  if (hi <= 0) return a(hi) + " to " + a(lo) + " more";
+  return a(lo) + " more to " + a(hi) + " less";
+}
+function changePhrase(m, p) {  // Artemis's % in words: a lower-is-better time reads as less time, never "+44.7% better"
+  if (p == null || !isFinite(p)) return null;
+  var a = Math.abs(p).toFixed(1) + "%";
+  if (m.higherIsBetter === false) return isTime(m) ? a + (p >= 0 ? " less time" : " more time") : a + (p >= 0 ? " lower" : " higher");
+  return a + (p >= 0 ? " higher" : " lower");
+}
+function unitOf(m) { return m && m.unit ? " " + m.unit : ""; }  // for values only; names carry their unit already
+function dirText(m) { return m.higherIsBetter == null ? "no stored direction" : m.higherIsBetter ? "higher is better" : "lower is better"; }
+
+/* ---------- formatting ---------- */
+var MINUS = "−";
+var NUMFONT = "IBM Plex Sans, ui-sans-serif, system-ui, sans-serif";  // numbers in the text face; the page sets tabular figures
+function fmtNum(v) {
+  if (v == null || !isFinite(v)) return "no value";
+  var a = Math.abs(v), o;
+  if (a === 0) return "0";
+  if (a >= 1000) o = { maximumFractionDigits: 0 };
+  else if (a >= 100) o = { maximumFractionDigits: 1, minimumFractionDigits: 1 };
+  else if (a >= 1) o = { maximumFractionDigits: 2, minimumFractionDigits: 2 };
+  else o = { maximumSignificantDigits: 3 };
+  var t = Math.abs(v).toLocaleString("en-GB", o);
+  return (v < 0 ? MINUS : "") + t;
+}
+function fmtTickNum(v) { return fmtNum(v).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, ""); }
+function fmtPct(p) { if (p == null || !isFinite(p)) return NO_PCT; var t = Math.abs(p).toFixed(1); return (p > 0 ? "+" : p < 0 ? MINUS : "") + t + "%"; }
+function fmtX(r) { if (r == null || !isFinite(r)) return "open"; var d = r >= 10 ? 0 : r >= 2 ? 1 : 2; return r.toLocaleString("en-GB", { maximumFractionDigits: d, minimumFractionDigits: d }) + "×"; }
+function shortSha(x) { return x ? String(x).slice(0, 7) : ""; }
+function runsWord(n) { return n === 1 ? "1 iteration" : n + " iterations"; }  // a reading is an iteration; a run is a script run (the Web UI's words)
+
+/* ---------- per-viewer memory: localStorage, wrapped so the page works without it ---------- */
+var PREFIX = "dv-studio:v1:";
+function load(key, dflt) { try { var t = window.localStorage.getItem(PREFIX + key); return t ? JSON.parse(t) : dflt; } catch (e) { return dflt; } }
+function store(key, val) { try { window.localStorage.setItem(PREFIX + key, JSON.stringify(val)); } catch (e) { /* storage blocked: edits last for this visit */ } }
+function forget(prefix) { try { var ls = window.localStorage, drop = []; for (var i = 0; i < ls.length; i++) { var k = ls.key(i); if (k && k.indexOf(PREFIX + prefix) === 0) drop.push(k); } drop.forEach(function (k) { ls.removeItem(k); }); } catch (e) { /* nothing stored */ } }
+
+/* ---------- theme tokens, read from CSS so both themes work ---------- */
+function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function tokens() {
+  var n = ["--fg", "--text-2", "--line", "--grid", "--card", "--bg", "--baseline", "--accent", "--accent-text", "--neutral", "--ink-mark", "--steer", "--s1", "--s2", "--better", "--worse", "--better-text", "--worse-text", "--noise-text", "--noise", "--pending", "--up", "--down", "--eq"], o = {};
+  n.forEach(function (k) { o[k.slice(2)] = tok(k); }); return o;
+}
+
+/* ---------- downloads: the Artifact downloads capability, else a plain browser save ---------- */
+var dlNs = null;
+function downloadsNs() {
+  if (!dlNs) dlNs = (window.claude && typeof window.claude.use === "function") ? window.claude.use("downloads").catch(function () { return null; }) : Promise.resolve(null);
+  return dlNs;
+}
+function saveFile(filename, data, toast) {
+  return downloadsNs().then(function (d) {
+    if (d) return d.save({ filename: filename, data: data }).then(function () { toast("Saved " + filename); }, function (e) { if (!e || e.code !== "declined") toast("Could not save " + filename + (e && e.code ? " (" + e.code + ")" : "")); });
+    var blob = data instanceof Blob ? data : new Blob([data], { type: filename.endsWith(".svg") ? "image/svg+xml" : "text/csv" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast("Sent " + filename + " to the browser; if no download appears, this view blocks downloads");  // a plain save can't report back
+  });
+}
+function csvOf(rows) {
+  if (!rows || !rows.length) return "";
+  var cols = Object.keys(rows[0]);
+  // A cell that starts like a formula (=, +, -, @) is kept as text, so a spreadsheet never runs an experiment title.
+  var q = function (v) { if (v == null) return ""; var t = String(v); if (typeof v === "string" && /^[=+\-@\t\r]/.test(t)) t = "'" + t; return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  return cols.join(",") + "\n" + rows.map(function (r) { return cols.map(function (c) { return q(r[c]); }).join(","); }).join("\n") + "\n";
+}
+function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+/* One SVG of the card as it looks: title, legend, every chart surface and the HTML labels marked .xt, at their on-screen positions. */
+function buildSVG(card, title, series, hidden) {
+  var T = tokens(), plot = card.querySelector(".plot"); if (!plot) return null;
+  var pr = plot.getBoundingClientRect(), sl = plot.scrollLeft;
+  var W = Math.max(plot.scrollWidth, 320), Hc = plot.scrollHeight, pad = 20, top = 34;
+  var body = "";
+  // HTML labels (.xt), word by word as the page wrapped them, each word in its own colour and weight (a verdict keeps its colour).
+  plot.querySelectorAll(".xt").forEach(function (el) {
+    var lines = {}, walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), node, range = document.createRange();
+    while ((node = walker.nextNode())) {
+      var cs = getComputedStyle(node.parentNode), re = /\S+/g, mm;
+      while ((mm = re.exec(node.data))) {
+        range.setStart(node, mm.index); range.setEnd(node, mm.index + mm[0].length);
+        var r = range.getBoundingClientRect(); if (!r.width) continue;
+        var key = Math.round(r.top), line = lines[key] = lines[key] || { y: r.top - pr.top + r.height * 0.75, x: r.left - pr.left + sl, size: cs.fontSize, words: [] };
+        line.words.push('<tspan x="' + (r.left - pr.left + sl).toFixed(1) + '" font-weight="' + cs.fontWeight + '" fill="' + cs.color + '">' + esc(mm[0]) + "</tspan>");
+      }
+    }
+    Object.keys(lines).forEach(function (k) { var l = lines[k]; body += '<text y="' + l.y.toFixed(1) + '" font-size="' + l.size + '">' + l.words.join("") + "</text>"; });
+  });
+  plot.querySelectorAll("svg.recharts-surface").forEach(function (sv) {
+    var r = sv.getBoundingClientRect(), c = sv.cloneNode(true);
+    c.querySelectorAll(".recharts-tooltip-cursor, .recharts-brush").forEach(function (n) { n.remove(); });
+    body += '<g transform="translate(' + (r.left - pr.left + sl).toFixed(1) + "," + (r.top - pr.top).toFixed(1) + ')">' + c.innerHTML.replace(/&nbsp;/g, "&#160;") + "</g>";  // standalone SVG knows no HTML entities
+  });
+  // The legend as on screen: only with two or more series, the same keys, wrapped to the chart's width.
+  var lx = 0, ly = 0, leg = "", shown = series.length > 1 ? series.filter(function (s) { return !hidden[s.key]; }) : [];
+  shown.forEach(function (s) {
+    var w = 34 + s.label.length * 8.2;  // 15px, as the on-screen legend
+    if (lx && lx + w > W) { lx = 0; ly += 26; }
+    // A ring, a dashed outline (needs more runs) or a plain outline (no comparison) is hollow; a line is a short bar.
+    var hollow = s.shape === "ring" || s.shape === "dash" || s.shape === "outline";
+    leg += (s.shape === "line" ? '<rect x="' + lx + '" y="' + (ly - 5) + '" width="16" height="3" rx="1.5" fill="' + s.color + '"/>'
+      : '<rect x="' + lx + '" y="' + (ly - 9) + '" width="10" height="10" rx="' + (s.shape === "dot" || s.shape === "ring" ? 5 : 3) + '" fill="' + (hollow ? "none" : s.color) + '" stroke="' + s.color + '" stroke-width="' + (hollow ? 2 : 0) + '"' + (s.shape === "dash" ? ' stroke-dasharray="3 2"' : "") + "/>")
+      + '<text x="' + (lx + (s.shape === "line" ? 22 : 18)) + '" y="' + ly + '" font-size="15" fill="' + T.fg + '">' + esc(s.label) + "</text>";
+    lx += w + (s.shape === "line" ? 6 : 0);
+  });
+  // The card's own notes go with the image ("Not measured: ...", "Hidden here: ...", series hidden in the legend), so a
+  // saved chart never drops data without saying so.
+  var notes = [].map.call(card.querySelectorAll(":scope > .missing, :scope > .warn, :scope > .hint"), function (e) { return e.textContent.trim(); })
+    .concat([].map.call(plot.querySelectorAll(".missing:not(.xt), .sparse:not(.xt)"), function (e) {
+      var t = e.parentNode && e.parentNode.querySelector(":scope > .ptitle"); return (t ? t.textContent.trim() + ": " : "") + e.textContent.trim(); }))
+    .filter(Boolean);
+  var off = series.filter(function (s) { return hidden[s.key]; }).map(function (s) { return s.label; });
+  if (off.length) notes.unshift("Hidden in the legend: " + off.join(", "));
+  var foot = notes.map(function (n, k) { return '<text x="0" y="' + (k * 20) + '" font-size="13" fill="' + T["text-2"] + '">' + esc(n) + "</text>"; }).join("");
+  var footH = notes.length ? notes.length * 20 + 8 : 0;
+  var legendH = shown.length ? ly + 28 : 0, Wt = W + pad * 2, Ht = Hc + top + legendH + footH + pad;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + Wt + '" height="' + Ht + '" viewBox="0 0 ' + Wt + " " + Ht + '" font-family="IBM Plex Sans, system-ui, sans-serif" fill="' + T.fg + '">' +
+    '<rect width="100%" height="100%" fill="' + T.card + '"/><text x="' + pad + '" y="' + (pad + 6) + '" font-size="16" font-weight="500" fill="' + T.fg + '">' + esc(title) + "</text>" +
+    '<g transform="translate(' + pad + "," + (top + 12) + ')">' + leg + "</g>" +
+    '<g transform="translate(' + pad + "," + (top + legendH) + ')">' + body + "</g>" +
+    (foot ? '<g transform="translate(' + pad + "," + (top + legendH + Hc + 18) + ')">' + foot + "</g>" : "") + "</svg>";
+}
+/* Exports carry IBM Plex Sans inline, so a saved file measures text as the page does; without the network, a system font. */
+var fontCss = null;
+function exportFonts() {
+  if (fontCss) return fontCss;
+  fontCss = fetch("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap").then(function (r) { if (!r.ok) throw new Error("fonts " + r.status); return r.text(); }).then(function (css) {
+    var blocks = css.split("@font-face").slice(1).filter(function (b) { return /U\+0000-00FF/.test(b); });
+    return Promise.all(blocks.map(function (b) {
+      var url = (/url\((https:[^)]+)\)/.exec(b) || [])[1], wt = (/font-weight:\s*(\d+)/.exec(b) || [])[1] || "400", fam = (/font-family:\s*'([^']+)'/.exec(b) || [])[1] || "IBM Plex Sans";
+      if (!url) return "";
+      return fetch(url).then(function (r) { if (!r.ok) throw new Error("font " + r.status); return r.arrayBuffer(); }).then(function (buf) {
+        var bin = "", u = new Uint8Array(buf); for (var i = 0; i < u.length; i += 32768) bin += String.fromCharCode.apply(null, u.subarray(i, i + 32768));
+        return "@font-face{font-family:'" + fam + "';font-weight:" + wt + ";src:url(data:font/woff2;base64," + btoa(bin) + ") format('woff2');}";
+      });
+    })).then(function (faces) { return faces.join(""); });
+  }).catch(function () { fontCss = null; return ""; });  // retried on the next download
+  return fontCss;
+}
+function withFonts(svg) { return exportFonts().then(function (css) { withFonts.embedded = !!css; return css ? svg.replace(/(<svg[^>]*>)/, "$1<style>" + css + "</style>") : svg; }); }
+function svgToPng(svg) {
+  return new Promise(function (resolve, reject) {
+    var m = /width="(\d+(?:\.\d+)?)" height="(\d+(?:\.\d+)?)"/.exec(svg), w = +m[1], hh = +m[2], img = new Image();
+    img.onload = function () {
+      var c = document.createElement("canvas"); c.width = Math.round(w * 2); c.height = Math.round(hh * 2);
+      var x = c.getContext("2d"); x.scale(2, 2); x.drawImage(img, 0, 0, w, hh);
+      c.toBlob(function (b) { b ? resolve(b) : reject(new Error("canvas")); }, "image/png");
+    };
+    img.onerror = function () { reject(new Error("svg image")); };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+
+/* ---------- small hooks ---------- */
+function useWidth(ref) {
+  var st = useState(0), w = st[0], setW = st[1];
+  useEffect(function () {
+    if (!ref.current) return;
+    var el = ref.current, set = function () { setW(el.clientWidth); }; set();
+    if (!window.ResizeObserver) { window.addEventListener("resize", set); return function () { window.removeEventListener("resize", set); }; }
+    var ro = new ResizeObserver(set); ro.observe(el); return function () { ro.disconnect(); };
+  }, []);
+  return w;
+}
+function useCard(scope, id, dflt) {
+  var key = scope + ":" + id;
+  var st = useState(function () { return Object.assign({}, dflt, load(key, {})); }), v = st[0], setV = st[1];
+  useEffect(function () { setV(Object.assign({}, dflt, load(key, {}))); }, [key]);
+  var set = useCallback(function (patch) { setV(function (old) { var n = Object.assign({}, old, patch); store(key, n); return n; }); }, [key]);
+  return [v, set];
+}
+
+
+/* ---------- verdict encoding: colour plus a word and a glyph, never colour alone ----------
+   Green improved, amber no significant difference, red regressed (the Web UI's labels). Needs more runs is an
+   outline, never a fill. Text uses the darker text tokens in light mode. Purple is only ever the Artemis Best. */
+var GLYPH = { better: "▲", worse: "▼", noise: "≈", pending: "○", none: "·" };
+function vFill(T, v) { return v === "better" ? T.better : v === "worse" ? T.worse : v === "noise" ? T.noise : null; }
+function vText(T, v) { return v === "better" ? T["better-text"] : v === "worse" ? T["worse-text"] : v === "noise" ? T["noise-text"] : v === "none" ? T["text-2"] : T.fg; }
+function pendInk(T, pct) { return pct != null && pct < 0 ? T.worse : T.better; }  // a pending outline leans the way its estimate does
+function vWord(v) { return v ? GLYPH[v] + " " + VERDICT[v] : "no verdict"; }
+// Two versions with the same verdict can still be told apart when falcon's two intervals don't meet.
+function overlaps(a, b) { return !a || !b || a.ciLowPct == null || b.ciLowPct == null || (a.ciLowPct <= b.ciHighPct && b.ciLowPct <= a.ciHighPct); }
+function identical(vb) { return !!vb && vb.verdict === "noise" && vb.ciLowPct === 0 && vb.ciHighPct === 0 && vb.recommendedReadingsReason === "no_effect"; }
+function vbWord(vb) { return !vb ? "no verdict" : identical(vb) ? "≈ Unchanged (identical readings)" : vWord(vb.verdict); }
+var ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAASPElEQVR42sWbebAnV1XHP+d0/7a3zCRMyEJIJITAhAABx4JIViKJMyAVt8QUiylKixBkUExZlmhVKiBFqWwlglqR7Q8LMlPIUpYwCQMmMUQwIFsRmUCEFEvIMst7895v6b73+Mft5Xb/fr83L6NI/+pW969vL/ece873LPe00NquvtqSvXvFAey+zi7wnmvMuBh4KrAVSNjkJgJo2IuAKKiGfftYFFRmHzfuLc+LVX2qEp3HqbKiygNJwl1m7Nm9W+4B2LPHkmuuCbRVY4z/3HST6c03i3/ttfa8tMvNGDvTlI7z4D2YsflNasKJiFXdgBmyWYYYKoKoFfeUDAj/k0RIU0g7kGVkacq+bMJNu3fLV0oaWwwwufpqdO9eca97ud2Yprw1SemNJwA4M0QEaTNss7Ov82Y8muG5zJAWA8QKgi26rskAETFVb6CmasnCopDnTHLPm153vbwjSAIexCQW+xteYW9fGHDjcAQGTh6HuE8Rv4HI6yzRjhhBg+CYKdY4VzFOpOrT+N2lBGJOE9XlZWT1qH/nDdcnN5bqIBHxvz/o8+7xmMwbaTHjG29zVEI0DEKTY4j8LHFvS0OLEaHfGrgyLQExc4rxYJYo+dKydlZX+MPrr5d37dljiQC8/pV2PspXzDAz9NiiHnSC4oVTut8mUI6h7zItFSIzgDCWgAaBghRjSsqZUwuTEF0P3pJEfNpRMc+OV79avpoC5J63DrroaEIuc4ivCBXAQ7rkWDxrRLrsZkuCzPkrG4BmJFgWXjN1j8y5FwNBSFH6vkPfd1DAIokQUTHMel2StXX/VuCl8obrbIfz/LsZCRsQbxZZAYN0S87SOSM6W9sMsI05YRv3W+v+WBNtM88PnKBrCVt9nz4dTK3CAxFDBFPFk7kXpnnGK7s90kmGm2njzfBepmg0E/Bgvj0mObZ9fBz9dhz3i8EYx6O6zhNlgYGlGFabMTPf7yfJCF6hplxS2PiZT/YWWpAAKxqYA/MyBxnj9v/fH4gVvBmPsY5Tj4rUvoki3gHYJSpwlvMggk4RXzhAlfxbOfth5s1JMYafLcGz+wMTMm+sMCaJMEYQdQ4UeYoCW2zOc70PRBuCmUSvMbwTfN4WTZkj0vIz6xdgzTJyghSUWGDeMLPldJ5v780HPbdIEyMQNAc+l4BpUkiJzMIo29h3+Gn2S5jAzBtZ4uiiwSpAaTaTdL6pF8zXFqBhcQy8A58Vtko3cIyOFT/8NPvLefOGN0OSJowKMJcBDbM3Q+Nwgh8r5kNQ8jPdbLalkFa/Rr5FUGjZgAEE1G/qldW3G+TjgANJZxMztUHcYMczy7aBSbQm8YI0ztVoYaQbvXT+wAJj3ETwmZD0j58B48zopjJXDTcv6tIU+8ZxYeML/a0YMsv0lSyqEL9t/6PmxoEJkYXcuEX3egMV4dlnd3FOCswRaLRCZn08oNY1rtwTXQ/iAwZKeb0VwFeZyDAgnetaW83GmVbWDD8R3FDDoGZSLI1BiwVCE4TJEJ5xZoeX71zktCckTMagtIizmBEFsS1Cq2bN/1beE/cXhiFWBWUDFKyAMGo+loBMyNcVywtC5w28mBG8IF5wubDQU664oI8K7LqoP5sod2xCG++N311YsUoiaONCDYxToFRGfm2RN2tigznI1wU/lqYU+NagfOFI+fDC4dC4eEePJ56o5A6edkbKjnO7rK8VIjmTWJkmNlYVm2aK+OaktN2lKTNYZXKk1tljoXO2rriRkvRsGqhs2u5OxnDatoRLdnQxC/G6Ab98UY/77s/JspDyip2umYGQtc75mVmL0NsK2GLI1fbMS8kImy0B7ZYPlXxN5+umL+OGgAXZBHZe3KfbCeCpEvq3LiuXPr/HcBhyGU3wkzkz39LxlnqIq9Wo1P22KdSG2Mu0CrSBraEKBG9wcrTAgVhcXXOgKsJwaJz3tA7PenqK90X+j0IKDC7c0eXJpwRAFGtiyEwssBbqt1qJORJFrQ1LUFiimvhIDSogbGBBzYHy2OWQHRXcSGuTU5mgonmwHLoq7Lq018gwVXhi0OnArst6uKxw8VsES4vgsC8ILBjeMKURk6Qwg7E1AKsZIDRzcTHRM215ZSWFybqSrUkFPNKaLUVYXw8zfOrJireaAeVeNViY7eekPOfcDuvr02bRIqmyal+omFGhvnkiC1Ca4EgNzCIViLOr7dWCSuxnO0Ilg/KRMDmq+JwC7etW6v1JJyiXXditgsZy+8nDfgqcdl7eZdAVXD4fV2Su6Ad/I5ZG87Ur3MaBoIaR+EvLCrRxIJaECgdyGK8obiS1B1YMRk2YjOHKS7ssDKRhWX78E8/ffWDIoUPWSMKctE255Bc7jNZCLm9a7yNRNynC9tLcFrPvYoeIKasixbGi08RvxgoQ7b3BeE3J1rRh9wUYrRvnPCXh58/v1GavGMT+z0145GFj/x2TSuLK4OiSCzucenLCZBS5s7FuV+Ie9D9WDykdokgSJHKFxWpnSBvAF+HBRo4QM85lIxitKj6TyouzkHZi1xW9StdL9P/2AcfXv+HYdqJy770533/QVcwxg25X2Hlll3xSgl+LwArha7DFYvwp3GYnU35ArG7amPloUbMOgqZ1vtmK4CaH0YqSj8ILE2C4Bs/f0eHMMxTv6/c4B/v2ZShSWAhh32eyCh9UA6OedV7CedtThmvS8BBDJroW9wpzXIQ9ngok8XV+oPYHDLHCCjQwIF4EmRkiSKPF50drwmg1qEGWCVuXlRdf3qlEu2TCF7+Y8+D3Pb1OiAv6PeH+A56vfc0hWl8HsGtXh24nZKBih0h8mF2JYo2mD9A0nZWUVJFgqQIzAFC0rQK2iQb5GIZHBJ8p4yH80os6LC/XwKcKa2vG5/fn9DqCFShvDtJEuP0zGeMxDXU55VTlogtThkchsSaBFXFTgdGMmMGiLFG0BqDtAKg+tsK+NtVgfurM8B5Ga8LKQXjKmQkveEFazX657b8958ghI02CqEqRXu+mwsM/Nr5wV16pYOmPXHZ5h5NPUrLxMYisAiOZDqisqQKlM6TTxFuNAWwuHoiZMxkJRw8rO3d2SJL6vAisrBj/ea8L4uyKvEMkwokKn/10zqGDVgVJZtAfwJUvSZmMpXKRLY4CbYNw2bc8QSLVKFWgQbxK5aM/XiaowspheO75Cec8XSvELxm6tCS85oYu5z8nYbQOkyEkEszY0RU4Yavysl/rsLAoleSoBqB77o6E7duF0VoQ24arPBWIzQiirCZ8KhyOiW8EQ2XK2zax9CmQZbC8Ba69LmmoS0mMCJx2uvKq3+nyrW969n8653vfNRaX4PIrUi59ccri0vzlwl1XdXjgwKQGRGzG4msrryfSUIF6yaDICtfgJ5EKSO312cYJybIrSWDlCPzu65VTnlTb+9i5ibdnPkvZfm6X/7jH8eSfU04/Q2o/QYqcodbS6T086QzhgosT7rjNs7QE3ss0wdMJ7BowI1NYMkFLnQ/VFYUUaBnoWNP9neccCayvwdnnwFW/pQ0zJgKrK3XlRskI70MFyQsuSjj9DKmKsEpfRHV2+vzyXQnbniDko9ohmhkyxyawjAUKeqQIhQsMkKjiQlCpqz78nOCn0YoBZplx3Q1Kr98U/aOrxnvelvHRD+Q8+nBd2FT2V4RLVF4DfOlOzy3vyBkNmyHz4pJwxcsSxkPqbE9FdDMXGUeMRA5QbBHSsrSkKjSKwuEqEtxgTT5RY3UFLrxMueDiGvjK/adu9Tz0A1g56PmvrxsvfJFy0YsTFhabZrSc8QPfNPb/s+N79xvjEdx1m+eKq5rP3fFC5cv/5vnvA9DrF1g1K68/QwWwOtYJjlCVA7BGZgjirHCcCGnGAC6DwQBe/TptRHSq8N0Dxidu9SRJ8PbyCdz2Cc/f/HnGl+701XWq8NAPjH98n+OD78r5/gFj0IctW+DufZ7HCskpVUQUdl2d1O5xO3kahcaxFYhIq/ZpMx0mIEUI2srWzNo0gYOPwquuV848S3AugKEvZuRD73McOQxbt0CvA90OLC3A4Udh7z847r3Lc9lLEh78rufu243xyBgsFGCYheevr8Dt/+S59rVJJSnew5lnC79wkXL3bcby1vqd5SqRxYneyF+QSgJCylTrqqyi+LAAxGOGwwLDIZz7bOFVr0nI8zrQUYV77vDcc6cxWITDh+HoUfAu+P5pIiwsCg/eDx9+t+Nznwpe52AgofIkD66rz4XBgvC1L8AD91lFvBBig5dcq5x2eohExeYnR+OkKLErHKyATKlAOyEyLyz2DhaX4bFHjDQt9NhC6vuD7/MkadDP8SQwYTysfX/LodcV+j1Y6IfVopBYnUZ0c7DvViuqVYpSuwTWViw4Tfn89YgqDiisgBjtYCiYv0ZRcwHJZRxAa0nMzHAuANDXv2zc8IqcD/+tY3UFkhQ+eavjwH2e/qAuszm6DodXwGfBnTUveBfiAF/kDmZ5deag34cHvmV8+Q4LanEUbrvV+Os/MX7wHeh0pJIaZmWApiq8pjBAWhIQqUDb/StDYCmZEFJe73+v4/P7PC/9DeXjH/X0+0FCSgZmGRxeMQYd2Lo0YyU3XtVvLcubQSeFOz9l5BO4+9PGQw/CYDFkks3PcVOjxzSy1LErXFoBWmsD1QP8dO1e/DLvQ1LhhBOFH/3QeO9fORYWgiR41/Q/hyM4eAR6qTDo1oDVeN+sUrmCAYcfgY/fYnS6sLT1OCrYZ1TWpKUXqC0G1OlvO+ZLDMPnAeV7vebMt+OIlXXodYyTT1A6ySbLYIpLNIGFpbpE53iIriXACkeolQpr5ANsOhbYqE7T27RT0nahstw4uAr9jnHislSxlmzi+WbTS4CyQTGJ0I5nqoquSAJa2aC4wHgzDHhcNU3FiEZj45Ejnm6qLA1kw/v+tzVSdcxYWIAoGySxI6TSXKXp9gTzdoxSmcc5wOjP0XXjkdSTJgn97k+xfsogUej3mtJZBUOIOS0/B4mYsO0kqfR/w2iQx9lfNOeNQ6tBEib58bB2c+Vj3qDfN5YWrHKial/AvIqwqkWKpczAOAcnn6ps2SrkubWWyWavE7DZfl+jf5bDY0c8j614ckfD9whZZysqf+sK1WaOcoN+Aj0uh1Oe6Ol2grcpVtYGKRhrKsJ30hRE8DEAdrtw7rOTYGp8XTdk7d/UjB+731cOljHKjIcPeQ6tepyLoWujUmBrOhEz+hWYZMKWZeOMJzlc3iiH8WnSAbhfBT6bpPXCecCDMPOnP1l5zvOULDOyzP5PK3vL0QowmhgPH/YcWbcqiyUtx0xarnqztfoL4gd947zteSM5GyyAWZoIhuxPU9GPZBk3qsa5gfCwLDOe8cyUpWXHN77qOHzQ6uzMZnTVpmt524BaWpvx2JhMHNm2hBOWheQ4q0/LiPGUkz1Pe6qj3w0eqzbGpDqcjHMv7iMC8Bd/6j62uKS/Phr6XJJgGWKr0OvBJIOHfuT58Q+N0dAan7jMW0lq1wDMst1xn4ix1FeesCwMeorga7vdKn6UOe9bWjRO2macsNVjPjhM2ij/s3zLYJAeWR9+cucfLPyqGCZvu4lzBspXEbpmXkRDmBwzIUmg261nrCl+TVPaXm+sj236PHUiVorFmDIPqdYKXhoJTRoOTVjqDl+UmQ/g174HM59qaiKWj7Pu+TvfyAHduwd9081yIHdu96BPolpk0xq5wmLRYxKay8HlhnNBvMJ/yOOWFS230DJr9uVlX3mtkRXPLqND7y0cl1+uutbe13vzwXplE2kSX9NuIuoXBp1kmGW7d71Rvr13D6rXXCPuppss/aM3p+9fH/LHg76mSZIoRb0Hre/wwudtzc/X4k/htMwtaNhreS76kLGSFGTqU7hKbVoE1Gltq/dRWNte2YrCdzOzPElSWRj00oNrwze99I1Lt1QfTpYXlife9eb8t3tdeU+/r1uGI4C8kAaTQipE56Jx9SFCrRpTJXi1uLfL8uIgpf0tRF3kJM0VXosqAo04fDUxTCVJlha6jCZudT3L3vArbxh8KP6IuoElZcdfvmV49lK3/2cq/je7HV0qQ3RvLT2WOcSJzSCc5vnY8ywruKeIt+ny1ogR01VfRYyvKYlqsGR5tgbysTWfv+Wq1w++0/6CfApM4wv+/u2j7Vhvl6i/DM/TETsVrKcqhpjEIbQWo9CCAVDnGEvx1Ab41ZJQERMPyJvEtTzQZkDzXJmtEZOJiv5IRe73xr+q+H+58vf697VpK7f/Aavsl8mWkGs4AAAAAElFTkSuQmCC";
+
+/* ---------- shared bits ---------- */
+function Tip(props) {
+  if (!props.active || !props.payload || !props.payload.length) return null;
+  var p = props.payload[0].payload; if (!p || !p.tip) return null;
+  return html`<div class="tip">${p.tip.map(function (l, i) { return html`<div key=${i} class=${l[0] === "~" ? "t2" : ""}>${i === 0 ? html`<b>${l}</b>` : l[0] === "~" ? l.slice(1) : l}</div>`; })}</div>`;
+}
+function versionTip(v, key, m) {
+  var st = mstat(v, key), vb = vsb(v, key), out = [v.label + (v.experimentTitle ? ": " + v.experimentTitle : "")];
+  if (v._failed) out.push("✕ Failed your correctness check");
+  if (st && st.mean != null) out.push("Mean " + fmtNum(st.mean) + unitOf(m) + (st.count ? " over " + runsWord(st.count) : ""));  // no count: no "0 iterations"
+  if (vb) out.push(chg(m, vb.improvementPct) + " vs the original, " + vWord(vb.verdict) + (vb.ciLowPct != null ? " (95% " + ivl(m, vb.ciLowPct, vb.ciHighPct) + ")" : ""));
+  if (v.experimentStatus) out.push("~Experiment " + v.experimentStatus + (v.experimentConclusion ? ": " + clip(v.experimentConclusion, 160) : ""));
+  return out;
+}
+function clip(t, n) { t = String(t || ""); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + "..." : t; }
+function Legend(props) {
+  return html`<div class="legend" role="group" aria-label="Series">${props.series.map(function (s) {
+    var on = !props.hidden[s.key];
+    return html`<button key=${s.key} type="button" aria-pressed=${on ? "true" : "false"} onClick=${function () { props.toggle(s.key); }} title=${on ? "Hide " + s.label : "Show " + s.label}>
+      <span class=${"sw " + (s.shape || "")} style=${{ background: s.color, color: s.color }}></span>${s.label}</button>`;
+  })}</div>`;
+}
+function Popover(props) {
+  var ref = useRef(null);
+  useEffect(function () {
+    var f = function (e) { if (ref.current && !ref.current.contains(e.target) && !(e.target.closest && e.target.closest("[data-pop='" + props.id + "']"))) props.onClose(); };
+    var k = function (e) { if (e.key === "Escape") props.onClose(); };
+    document.addEventListener("mousedown", f); document.addEventListener("keydown", k);
+    return function () { document.removeEventListener("mousedown", f); document.removeEventListener("keydown", k); };
+  }, []);
+  React.useLayoutEffect(function () {  // anchored to the tools row's right edge; on a phone that row can sit left, so shift back on screen
+    var el = ref.current; if (!el) return;
+    var r = el.getBoundingClientRect(), vw = document.documentElement.clientWidth, shift = r.left < 16 ? 16 - r.left : r.right > vw - 16 ? vw - 16 - r.right : 0;
+    if (shift) el.style.right = (-shift) + "px";
+  }, []);
+  return html`<div class="pop" ref=${ref} role="dialog" aria-label=${props.label}>${props.children}</div>`;
+}
+function Ctl(props) {  // a <label> only around a menu; around buttons, a click on the caption would press the first one
+  return props.group ? html`<div class="ctl"><span>${props.label}</span>${props.children}</div>` : html`<label class="ctl"><span>${props.label}</span>${props.children}</label>`;
+}
+function Means(props) {  // every Conclusion looks the same: one green-bordered box of short bullets
+  if (!props.text) return null;
+  return html`<div class="means"><h3>${props.title || "Conclusion"}</h3>${Array.isArray(props.text) ? html`<ul class="cl">${props.text.filter(Boolean).map(function (t, k) { return html`<li key=${k}>${t}</li>`; })}</ul>` : html`<p>${props.text}</p>`}</div>`;
+}
+
+/* The card shell: question heading, labelled tools on the heading row, how to read it, legend, chart,
+   the "Conclusion" box, and a small Artemis mark in the corner. */
+function Card(props) {
+  var c = props.card, set = props.set, ref = useRef(null);
+  var st = useState(null), open = st[0], setOpen = st[1];
+  var title = props.question, toast = props.toast;
+  var sp = props.scope.split(":"), fileBase = (sp[0] + (/^s\d+$/.test(sp[2] || "") ? "-" + sp[2] : "") + "-" + props.id).replace(/[^a-z0-9-]+/gi, "-");
+  function dl(kind) {
+    if (kind === "csv") { var rows = (props.rows ? props.rows() : []).map(function (r) {  // every CSV says which rows failed the user's check
+        if (r.failed_correctness_check != null || !/^v\d+$/.test(String(r.version || ""))) return r;
+        return Object.assign({}, r, { failed_correctness_check: FAILED_NOW.indexOf(+String(r.version).slice(1)) >= 0 });
+      }); if (!rows.length) { toast("Nothing plotted to export"); return; } saveFile(fileBase + ".csv", csvOf(rows), toast).catch(function (e) { toast("CSV export failed (" + ((e && e.message) || "this browser") + ")"); }); return; }
+    var svg = buildSVG(ref.current, title, props.series || [], c.hidden || {});
+    if (!svg) { toast("No chart to export"); return; }
+    var said = function (m) { toast(withFonts.embedded ? m : m + " (the fonts did not load, so it uses a system font)"); };  // an image without its web font
+    if (kind === "svg") { withFonts(svg).then(function (t) { return saveFile(fileBase + ".svg", t, said); }).catch(function (e) { toast("SVG export failed (" + ((e && e.message) || "this browser") + ")"); }); return; }
+    withFonts(svg).then(svgToPng).then(function (b) { return saveFile(fileBase + ".png", b, said); }).catch(function (e) { toast("PNG export failed (" + ((e && e.message) || "this browser") + "); try SVG"); });
+  }
+  var toggle = function (k) { var hd = Object.assign({}, c.hidden || {}); hd[k] = !hd[k]; set({ hidden: hd }); };
+  var vlist = props.versionChoices || [], mlist = props.metricChoices || null, img = props.images !== false;
+  var none = vlist.length > 0 && vlist.every(function (l) { return (c.offV || []).indexOf(l) >= 0; }), NONE = "No versions shown. Pick some under Versions.";
+  // Picks are saved per card, so a returning reader is told what this card leaves out, and where to bring it back.
+  var hidM = (c.offM || []).map(function (k) { return (mlist || []).filter(function (m) { return m.key === k; })[0]; }).filter(Boolean).map(mlabel);
+  var hidV = (c.offV || []).filter(function (l) { return vlist.indexOf(l) >= 0; });
+  var hiddenSay = [hidM.length ? hidM.join(", ") + " (Metrics)" : null, hidV.length ? hidV.join(", ") + " (Versions)" : null].filter(Boolean).join("; ");
+  var pop = function (k, label, body) { return open === k ? html`<${Popover} id=${props.id + "-" + k} label=${label} onClose=${function () { setOpen(null); }}>${body}<//>` : null; };
+  var opener = function (k, label) { return html`<button type="button" class="btn" data-pop=${props.id + "-" + k} aria-expanded=${open === k} onClick=${function () { setOpen(open === k ? null : k); }}>${label}</button>`; };
+  return html`<section class="card" ref=${ref} data-card=${props.id}>
+    <div class="head">
+      <img class="mark" src=${ICON} alt="" aria-hidden="true"/>
+      <h2>${title}</h2>
+      <div class="tools">
+        ${props.tag ? html`<span class="tag">${props.tag}</span>` : null}
+        ${props.controls || null}
+        ${mlist ? opener("m", "Metrics") : null}
+        ${vlist.length ? opener("v", "Versions") : null}
+        ${opener("d", "Download")}
+        ${pop("v", "Versions", html`<h3>Versions</h3>
+          <div class="checks">${vlist.map(function (l) { var off = (c.offV || []).indexOf(l) >= 0; return html`<label key=${l}><input type="checkbox" checked=${!off} onChange=${function () { var o = (c.offV || []).filter(function (x) { return x !== l; }); if (!off) o.push(l); set({ offV: o }); }}/><span>${l}</span></label>`; })}</div>
+          <div class="row"><button type="button" class="link" onClick=${function () { set({ offV: [] }); }}>All</button><button type="button" class="link" onClick=${function () { set({ offV: vlist.slice() }); }}>None</button></div>`)}
+        ${pop("m", "Metrics", html`<h3>Metrics</h3>
+          <div class="checks" style=${{ gridTemplateColumns: "1fr" }}>${(mlist || []).map(function (m) { var off = (c.offM || []).indexOf(m.key) >= 0; return html`<label key=${m.key}><input type="checkbox" checked=${!off} onChange=${function () { var o = (c.offM || []).filter(function (x) { return x !== m.key; }); if (!off) o.push(m.key); set({ offM: o }); }}/><span title=${m.key}>${mlabel(m)}</span></label>`; })}</div>
+          <div class="row"><button type="button" class="link" onClick=${function () { set({ offM: [] }); }}>All</button></div>`)}
+        ${pop("d", "Download", html`<h3>Download</h3>
+          ${img ? html`<button type="button" class="btn" data-dl="png" onClick=${function () { setOpen(null); dl("png"); }}>PNG, 2x</button>
+          <button type="button" class="btn" data-dl="svg" onClick=${function () { setOpen(null); dl("svg"); }}>SVG</button>` : null}
+          <button type="button" class="btn" data-dl="csv" onClick=${function () { setOpen(null); dl("csv"); }}>CSV of the ${img ? "plotted " : ""}data</button>`)}
+      </div>
+    </div>
+    ${props.series && props.series.length > 1 ? html`<${Legend} series=${props.series} hidden=${c.hidden || {}} toggle=${toggle}/>` : null}
+    <div class="plot">${none ? html`<div class="sparse">${NONE}</div>` : props.children}</div>
+    ${none ? null : props.after || null}
+    ${none || !hiddenSay ? null : html`<p class="missing">Hidden here: ${hiddenSay}</p>`}
+    ${FAILED_NOW.length && ["ranked", "sessions"].indexOf(props.id) < 0 ? html`<p class="missing">✕ Failed your correctness check: ${FAILED_NOW.map(function (n) { return "v" + n; }).join(", ")}. Measured, but not usable.</p>` : null}
+    <${Means} text=${none ? NONE : props.means && props.means.text}/>
+  </section>`;
+}
+function axisTick(T) { return { fill: T["text-2"], fontSize: 15 }; }
+function niceUp(x) { if (!(x > 0)) return 1; var p = Math.pow(10, Math.floor(Math.log10(x))), n = x / p; return ([1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].filter(function (k) { return n <= k + 1e-9; })[0]) * p; }
+function niceStep(x) { if (!(x > 0)) return 1; var p = Math.pow(10, Math.floor(Math.log10(x))), n = x / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+function sideDomain(lo, hi) {  // linear, 0 always in view, and each side as long as its own data: so a -440% loss does not shrink +16% gains to slivers
+  var L = lo < 0 ? -niceUp(-lo * 1.06) : 0, R = hi > 0 ? niceUp(hi * 1.06) : 0;
+  return L === 0 && R === 0 ? [0, 1] : [L, R];
+}
+// The forest's range: 0 in view and each side of it at least a third of the axis, so both shaded bands show to the edge.
+function bandDomain(lo, hi) {
+  var d = sideDomain(Math.min(lo, 0), Math.max(hi, 0)), L = d[0], R = d[1];
+  if (L === 0 && R === 1) { L = -5; R = 5; }
+  if (L === 0) L = -niceUp(R / 2);
+  if (R === 0) R = niceUp(-L / 2);
+  if (R < (R - L) / 3) R = niceUp(-L / 2);
+  if (-L < (R - L) / 3) L = -niceUp(R / 2);
+  return [L, R];
+}
+function tipPos() { return window.innerWidth < 600 ? { x: 0, y: 0 } : undefined; }  // a phone pins the tooltip top-left so all of it shows
+function sideTicks(dom, narrow) {  // 0 always; an end at least span/4 (phone) or span/8 from 0; halfway marks (not on a phone) a sixth of the span from every other tick
+  var span = dom[1] - dom[0], gap = span / (narrow ? 4 : 8), out = [0].concat([dom[0], dom[1]].filter(function (v) { return v !== 0 && Math.abs(v) >= gap; }));
+  if (!narrow) [dom[0] / 2, dom[1] / 2].forEach(function (v) { if (out.every(function (o) { return Math.abs(o - v) > span / 6; })) out.push(v); });
+  if (out.length === 1) out.push(Math.abs(dom[0]) > Math.abs(dom[1]) ? dom[0] : dom[1]);  // both ends tiny: keep the longer one
+  return out.filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
+}
+/* The outlier rule: the axis fits the rest, and a far outlier is clipped at the edge with an
+   arrow and its value printed. Far: one or two items, fewer than the rest, past FAR_X times the rest's reach (for example, a
+   517.6% regression next to 99.9% gains is 5.2x on the bars, 9.8x with intervals). items: [{ key, lo, hi }], each extent including 0. */
+var FAR_X = 5;
+function farOutliers(items) {
+  var reach = function (it) { return Math.max(Math.abs(it.lo), Math.abs(it.hi)); };
+  var s = items.slice().sort(function (a, b) { return reach(b) - reach(a); });
+  for (var k = 1; k <= 2 && s.length - k > k; k++) {
+    var rest = Math.max.apply(null, s.slice(k).map(reach));
+    if (rest > 0 && reach(s[k - 1]) > FAR_X * rest) return s.slice(0, k).map(function (it) { return it.key; });
+  }
+  return [];
+}
+/* "% better" can't pass +100% on a lower-is-better metric that can't go below 0, nor fall past -100% on a higher-is-better one. */
+function pctCap(m, b) {  // b: the original's stats on m
+  if (!b || !(b.min >= 0)) return [-Infinity, Infinity];
+  return m.higherIsBetter === false ? [-Infinity, 100] : m.higherIsBetter === true ? [-100, Infinity] : [-Infinity, Infinity];
+}
+/* A "% better" axis with one tick step on both sides of 0, inside the cap. */
+function evenAxis(dom, cap, narrow) {
+  var L = Math.max(dom[0], cap[0]), R = Math.min(dom[1], cap[1]), st = niceStep((R - L) / (narrow ? 3 : 6) || 1);  // about 3 steps on a phone, so tick labels never touch
+  L = L < 0 ? Math.max(-Math.ceil(-L / st - 1e-9) * st, cap[0]) : 0;
+  R = R > 0 ? Math.min(Math.ceil(R / st - 1e-9) * st, cap[1]) : 0;
+  if (L === R) R = Math.min(st, cap[1]) || 1;
+  var t = []; for (var v = Math.ceil(L / st - 1e-9) * st; v <= R + st * 1e-6; v += st) t.push(+v.toPrecision(12));
+  return { domain: [L, R], ticks: t };
+}
+function clampTo(v, d) { return Math.max(d[0], Math.min(d[1], v)); }
+function niceAxis(lo, hi, n, floor) { if (!(hi > lo)) { var d = Math.abs(hi) * 0.1 || 1; lo -= d; hi += d; } if (floor != null && lo < floor) lo = floor; var st = niceStep((hi - lo) / (n || 5)), a = Math.max(Math.floor(lo / st) * st, floor == null ? -Infinity : floor), b = Math.ceil(hi / st) * st, t = []; for (var v = a; v <= b + st * 1e-6; v += st) t.push(+v.toPrecision(12)); return { domain: [a, b], ticks: t }; }
+function MetricSelect(props) {
+  return html`<${Ctl} label="Metric"><select value=${props.value} onChange=${function (e) { props.onChange(e.target.value); }}>${props.list.map(function (m) { return html`<option key=${m.key} value=${m.key}>${mlabel(m)}</option>`; })}</select><//>`;
+}
+function Seg(props) {
+  return html`<${Ctl} label=${props.label} group=${true}><span class="seg" role="group" aria-label=${props.label}>${props.options.map(function (o) { return html`<button key=${o[0]} type="button" disabled=${!!o[2]} title=${o[3] || ""} aria-pressed=${props.value === o[0] ? "true" : "false"} onClick=${function () { props.onChange(o[0]); }}>${o[1]}</button>`; })}</span><//>`;
+}
+function rankedMetrics(D) { return D.measured.filter(function (m) { return m.higherIsBetter != null; }); }
+function oneEach(vb, baseN) { return vb && vb.readings === 1 && baseN === 1; }
+function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+// Break points inside a code name (after _ . / : between letters, and every 12 characters of a run of 18+), so a long identifier wraps while plain words stay whole.
+function softBreaks(t) { return t ? t.replace(/([A-Za-z][_./:])(?=[A-Za-z])/g, "$1\u200b").replace(/[^\s\u200b]{18,}/g, function (w) { return w.replace(/(.{12})(?=.)/g, "$1\u200b"); }) : t; }
+// A verdict in its own words and colour: green improved, red regressed, amber no difference.
+function vw(verdict, words) { return html`<span class=${"v-" + verdict}>${words || VERDICT_SAY[verdict]}</span>`; }
+// One bullet per verdict present: improved best first, regressed worst first, so no verdict goes unsaid.
+function verdictLines(rows, m, total) {  // "3 of 5 significantly improved: v2 99.9% less, ..."
+  var rest = rows.filter(function (r) { return r.verdict; });  // a verdict with no % still counts; its change reads "no % change from Artemis"
+  var names = function (rs) { var shown = rs.slice(0, 4).map(function (r) { return r.label + " " + chg(m, r.pct); }).join(", "); return rs.length > 4 ? shown + " and " + (rs.length - 4) + " more" : shown; };
+  var p = function (r) { return r.pct == null ? -1e300 : r.pct; }, up = function (a, b) { return p(b) - p(a); };
+  var groups = [["better", up, "significantly improved"], ["worse", function (a, b) { return p(a) - p(b); }, "significantly regressed"], ["noise", up, "no significant difference"], ["pending", up, null], ["none", up, "with no Artemis comparison"]];
+  return groups.map(function (g) {
+    var rs = rest.filter(function (r) { return r.verdict === g[0]; }).sort(g[1]);
+    if (!rs.length) return null;
+    var n = rs.length + " of " + total + " " + (g[2] || (rs.length === 1 ? "needs more runs" : "need more runs"));
+    return html`${vw(g[0], n)}: ${numSpan(names(rs))}`;
+  });
+}
+function numSpan(t) { return html`<span class="num">${t}</span>`; }
+/* What the runs show, by counting them: no statistic. Plain text, for the "Conclusion" boxes. */
+function overlapText(st, base, m, label) {
+  if (!st || !base || !st.runs || !base.runs || !st.runs.length || !base.runs.length || m.higherIsBetter == null) return "";
+  var hib = m.higherIsBetter, bestB = hib ? Math.max.apply(null, base.runs) : Math.min.apply(null, base.runs);
+  var beat = st.runs.filter(function (v) { return hib ? v > bestB : v < bestB; }).length, n = st.runs.length;
+  if (n === 1 && base.runs.length === 1) return " With one run on each side, treat it as a lead and measure again.";
+  if (beat === n) return " All " + n + " of " + label + "'s iterations beat the original's best iteration.";
+  return " " + beat + " of " + label + "'s " + n + " iterations beat the original's best iteration, so watch the overlap.";
+}
+function pareto(D) {  // the default pair: the collector's --pareto, else a measured metric against an AI Metric; null when there is no real second metric
+  var sp = D.s.pareto, dir = D.metrics.filter(function (m) { return m.higherIsBetter != null; });
+  if (sp && sp.axes && !(Array.isArray(sp.points) && sp.points.length)) return null;  // --pareto with no front: no card, never a broken one
+  var t = leadOrder(D.s)[0], q = dir.filter(function (m) { return m.kind === "quality"; })[0];
+  var kx = sp && sp.axes ? sp.axes[0].key : t && q ? t.key : null, ky = sp && sp.axes ? sp.axes[1].key : t && q ? q.key : null;
+  if (!kx || !ky || kx === ky) return null;
+  var vals = function (k) { return D.versions.map(function (v) { var st = mstat(v, k); return st ? st.mean : null; }).filter(function (x) { return x != null; }); };
+  var flat = function (a) { return a.length < 2 || a.every(function (x) { return x === a[0]; }); };
+  return flat(vals(kx)) || flat(vals(ky)) ? null : { x: kx, y: ky };
+}
+
+/* ---------- 1. Original against the Artemis Best: two solid bars per metric, two panels a row ---------- */
+function artemisTick(T, head) {
+  return function (tp) {
+    var v = tp.payload.value, isA = v === head;
+    var tw = String(v).length * 7.4;
+    return h("g", { transform: "translate(" + tp.x + "," + tp.y + ")" },
+      isA ? h("image", { href: ICON, x: -tw / 2 - 12, y: 5, width: 18, height: 18 }) : null,
+      h("text", { x: isA ? 10 : 0, y: 19, textAnchor: "middle", fontSize: 15, fontWeight: isA ? 600 : 500, fill: isA ? T["accent-text"] : T.fg }, v));
+  };
+}
+function BestCard(props) {
+  var D = props.D, T = props.T, W = props.W;
+  var derived = D.measured.some(function (m) { return m.higherIsBetter === false && isTime(m); }) ? D.measured.filter(function (m) { return /speedup|speed_up/i.test(m.key); }).map(function (m) { return m.key; }) : [];  // a ratio of the same timing says it twice
+  var cs = useCard(props.scope, "best", { offM: derived }), c = cs[0], hd = c.hidden || {};
+  var bestV = D.best ? D.byLabel[D.best.label] : null;
+  var col = { baseline: T.baseline, head: T.accent };
+  var headName = bestV ? "Artemis " + bestV.label : "Artemis";
+  var ms = D.measured.filter(function (m) { return (c.offM || []).indexOf(m.key) < 0 && D.s.baseline.metrics[m.key]; });
+  var noOriginal = D.measured.filter(function (m) { return (c.offM || []).indexOf(m.key) < 0 && !D.s.baseline.metrics[m.key]; });  // named under the panels
+  var series = [{ key: "baseline", label: "Original", color: col.baseline }].concat(bestV ? [{ key: "head", label: headName + " (Best)", color: col.head }] : []);
+  var pw = W >= 820 ? Math.floor((W - 28) / 2) : W, allRows = [];
+  var panels = ms.map(function (m) {
+    var base = D.s.baseline.metrics[m.key], st = bestV ? mstat(bestV, m.key) : null, vb = bestV ? vsb(bestV, m.key) : null, rows = [];
+    if (!hd.baseline && base && base.mean != null) rows.push({ k: "baseline", name: "Original", mean: base.mean, color: col.baseline, tip: ["Original code", "Mean " + fmtNum(base.mean) + unitOf(m) + (base.count ? " over " + runsWord(base.count) : ""), "~Commit " + shortSha(D.s.run.baselineVersionSha)] });
+    if (!hd.head && st && st.mean != null) rows.push({ k: "head", name: headName, mean: st.mean, color: col.head, tip: versionTip(bestV, m.key, m) });
+    rows.forEach(function (x) { allRows.push({ metric: m.key, bar: x.name, mean: x.mean }); });
+    var w = ((D.s.perMetricWinners || {})[m.key] || {}).raw, alone = w && bestV && w.version !== bestV.version && D.best.notes && D.best.notes[m.key] ? w : null;
+    return { m: m, rows: rows, vb: vb, noReading: !!bestV && !(st && st.mean != null), one: oneEach(vb, D.s.baseline.readings[m.key]), ax: niceAxis(0, Math.max.apply(null, [0].concat(rows.map(function (x) { return x.mean; }))) * 1.12 || 1, 4), alone: alone };  // bars start at 0
+  });
+  var pm = D.byKey[D.primary], means = null;
+  if (bestV && pm) {
+    var pvb = vsb(bestV, pm.key), alone = panels.filter(function (p) { return p.m.key === pm.key; })[0];
+    means = { text: ms.filter(function (m) { return m.key === pm.key; }).concat(ms.filter(function (m) { return m.key !== pm.key; })).map(function (m) {  // the lead first, unless the reader hid it
+      var x = vsb(bestV, m.key), xs = mstat(bestV, m.key);
+      if (!xs || xs.mean == null) return html`${mlabel(m)}: ${bestV.label} has no reading on it`;  // never measured, not "no change"
+      if (!x) return null;
+      if (identical(x)) return html`${mlabel(m)}: ${vw("noise", "unchanged")}`;
+      return html`${mlabel(m)}: ${numSpan(chg(m, x.improvementPct))}${x.ciLowPct != null ? " (" + ivl(m, x.ciLowPct, x.ciHighPct) + ")" : ""}, ${vw(verdictOf(x))}`;
+    }).concat([alone && alone.alone ? html`${alone.alone.label} does better on ${mlabel(pm)} alone (${numSpan(chg(pm, alone.alone.pctBetter))}); Artemis compares each version with the original only.` : null]) };
+  }
+  var tick = artemisTick(T, headName);
+  return html`<${Card} id="best" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question=${bestV ? "Is " + bestV.label + " code patch better than the original?" : "Is the Best version better than the original?"} series=${series} metricChoices=${D.measured}
+    rows=${function () { return allRows; }} means=${means}>
+    <div class=${W >= 820 ? "two" : "one"}>${panels.map(function (p) {
+      var vt = p.vb ? vText(T, p.vb.verdict) : T.fg;
+      return html`<div class="panel" key=${p.m.key}>
+        <p class="ptitle xt">${mlabel(p.m)}</p>
+        <p class="psub xt">${p.vb ? html`<span class="val" style=${{ color: p.one ? T.fg : vt }}>${identical(p.vb) ? "0.0%" : changePhrase(p.m, p.vb.improvementPct) || NO_PCT}</span>, <span style=${{ color: p.one ? T.fg : vt }}>${p.one ? "1 run each, not confirmed" : vbWord(p.vb)}</span>` : p.noReading ? bestV.label + " has no reading on " + mlabel(p.m) : NO_PCT}${", " + dirText(p.m)}</p>
+        <${RC.BarChart} width=${pw} height=${300} data=${p.rows} margin=${{ top: 30, right: 12, left: 12, bottom: 8 }} accessibilityLayer=${true}>
+          <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${32}/>
+          <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
+          <${RC.YAxis} domain=${[0, p.ax.domain[1]]} ticks=${p.ax.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${fmtTickNum}
+            width=${Math.max(44, Math.ceil(Math.max.apply(null, p.ax.ticks.map(function (t) { return String(fmtTickNum(t)).length; })) * 9) + (p.m.unit ? 22 : 8))}
+            label=${p.m.unit ? { value: p.m.unit, angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } } : undefined}/>
+          <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.4 }} isAnimationActive=${false}/>
+          <${RC.Bar} dataKey="mean" isAnimationActive=${false} maxBarSize=${110} radius=${[6, 6, 0, 0]}>
+            ${p.rows.map(function (r, i) { return html`<${RC.Cell} key=${i} fill=${r.color}/>`; })}
+            <${RC.LabelList} dataKey="mean" position="top" formatter=${function (v) { return fmtNum(v) + unitOf(p.m); }} fill=${T.fg} fontSize=${16} fontWeight=${600} fontFamily=${NUMFONT}/>
+          <//>
+        <//>
+        ${p.alone ? html`<p class="palone xt">Best on this metric alone: ${p.alone.label}, ${chg(p.m, p.alone.pctBetter)}${(vsb(D.byLabel[p.alone.label], p.m.key) || {}).verdict ? ", " + VERDICT_SAY[vsb(D.byLabel[p.alone.label], p.m.key).verdict] : ""}</p>` : null}
+      </div>`;
+    })}</div>
+    ${noOriginal.length ? html`<p class="missing">No reading on the original: ${noOriginal.map(mlabel).join(", ")}</p>` : null}
+    ${!ms.length && !noOriginal.length ? html`<div class="sparse">No measured metric is selected.</div>` : null}
+  <//>`;
+}
+
+/* ---------- 2. Ranked bars of every version's change, coloured by Artemis's verdict ---------- */
+function barLabel(T, rows, narrow, M) {
+  return function (lp) {
+    var r = rows[lp.index]; if (!r) return null;
+    var end = Math.max(lp.x, lp.x + lp.width), inside = narrow && Math.abs(lp.width) > 96 && vFill(T, r.verdict), y = lp.y + lp.height / 2 + 5;
+    if (inside) return h("text", { x: end - 8, y: y, fontSize: 15, fill: "#0f172a", textAnchor: "end" }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600 }, chg(M, r.pct)), r.verdict ? h("tspan", { dx: 6 }, GLYPH[r.verdict]) : null);
+    var x = end + 8;
+    return h("text", { x: x, y: y, fontSize: 15, fill: T.fg }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600 }, chg(M, r.pct)),
+      r.verdict ? h("tspan", { fill: vText(T, r.verdict), fontSize: 15, dx: 8 }, narrow ? GLYPH[r.verdict] : vWord(r.verdict)) : null,
+      null);
+  };
+}
+/* A version's page in its Discovery session, on its Code tab (artemis-ui route projects/$id/discover/$runId/versions/$versionId).
+   Built only from the collector's run URL on an Artemis host (artemis.turintech.ai or a subdomain) and falcon's version id; no link otherwise. */
+var ARTEMIS = "^https:\\/\\/(?:[a-z0-9-]+\\.)*artemis\\.turintech\\.ai\\/projects\\/[^/?#]+";
+function runHref(run) {  // the run on an Artemis host, a trailing "/" dropped
+  var base = String((run || {}).webUrl || "").replace(/\/$/, "");
+  return new RegExp(ARTEMIS + "\\/discover\\/[^/?#]+$").test(base) ? base : null;
+}
+function projectHref(run) { var u = String((run || {}).projectUrl || "").replace(/\/$/, ""); return new RegExp(ARTEMIS + "$").test(u) ? u : null; }  // the footer's fallback
+function versionHref(D, v) { var base = runHref(D.s.run); return base && v && v.id ? base + "/versions/" + encodeURIComponent(v.id) : null; }
+function linked(href, label, child, mouseOnly) {  // an SVG <a>: a real link, new tab; the label takes Tab and Enter, the mark is a second, mouse-only way in
+  if (!href) return child;
+  var say = "Open " + label + "'s code change in Artemis";
+  return h("a", { href: href, target: "_blank", rel: "noopener", className: "vlink", "aria-label": say + " (new tab)", tabIndex: mouseOnly ? -1 : undefined, "aria-hidden": mouseOnly ? "true" : undefined }, h("title", null, say), child);
+}
+function hbarShape(T, colors) {
+  return function (sp) {
+    var x = Math.min(sp.x, sp.x + sp.width), w = Math.max(Math.abs(sp.width), 1), p = sp.payload || {}, fill = colors(p), pend = p.verdict === "pending", none = !p.verdict || p.verdict === "none";
+    var tip = p.clip < 0 ? x : x + w, back = p.clip < 0 ? 12 : -12, cy = sp.y + sp.height / 2;  // a clipped bar ends in an arrowhead at the axis edge
+    return linked(p.href, p.v || p.label, h("g", null,
+      h("rect", { x: x, y: sp.y, width: w, height: sp.height, rx: 4, fill: pend || none ? T.card : fill, stroke: none ? T.neutral : fill, strokeWidth: pend || none ? 2 : 0, strokeDasharray: pend ? "5 3" : null }),
+      p.clip ? h("polygon", { className: "clip-arrow", points: [tip, cy, tip + back, sp.y + 3, tip + back, sp.y + sp.height - 3].join(" "), fill: T.card, stroke: "none" }) : null), true);
+  };
+}
+function verdictSeries(T, present) {
+  return ["better", "noise", "worse", "pending", "none"].filter(function (k) { return present.indexOf(k) >= 0; }).map(function (k) {
+    return { key: k, label: GLYPH[k] + " " + VERDICT[k], color: k === "pending" ? T.better : k === "none" ? T.neutral : vFill(T, k), shape: k === "pending" ? "dash" : k === "none" ? "outline" : "" };
+  });
+}
+function RankedCard(props) {
+  var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "ranked", {}), c = cs[0], hd = c.hidden || {};
+  var list = rankedMetrics(D), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key];
+  var ranks = (D.s.rankings || {})[key] || [], winner = ((D.s.perMetricWinners || {})[key] || {}).raw, off = c.offV || [], narrow = W < 560;  // Best is the Composite pick, so one metric's chart never marks it
+  var all = ranks.filter(function (r) { return off.indexOf(r.label) < 0; }).map(function (r) {
+    var v = D.byLabel[r.label], vb = vsb(v, key);
+    return { label: (v._failed ? "✕ " : "") + r.label, pct: r.pctBetter, verdict: verdictOf(vb), failed: !!v._failed, tip: versionTip(v, key, m), v: r.label, href: versionHref(D, v) };
+  });
+  var series = verdictSeries(T, all.map(function (r) { return r.verdict; }));
+  var colorOf = function (p) { var s = series.filter(function (x) { return x.key === p.verdict; })[0]; return p.verdict === "pending" ? pendInk(T, p.pct) : s ? s.color : T.neutral; };
+  var rows = all.filter(function (r) { return !hd[r.verdict]; });
+  var measuredLabels = ranks.map(function (r) { return r.label; });
+  // Versions not ranked here: measured with no Artemis comparison (falcon's unranked), or not measured at all.
+  var hasMean = function (v) { var st = mstat(v, key); return !!(st && st.mean != null); };
+  var unranked = D.versions.filter(function (v) { return measuredLabels.indexOf(v.label) < 0 && hasMean(v); });
+  // A version falcon judged but gave no % (an original of 0) keeps its verdict; only one with no comparison at all says so.
+  var judged = function (v) { var x = vsb(v, key); return !!(x && x.verdict); };
+  var noCmpV = unranked.filter(function (v) { return !judged(v); }), noPctV = unranked.filter(judged);
+  var missing = D.versions.filter(function (v) { return measuredLabels.indexOf(v.label) < 0 && !hasMean(v); });
+  var far = farOutliers(rows.map(function (r) { return { key: r.label, lo: Math.min(0, r.pct), hi: Math.max(0, r.pct) }; })), near = rows.filter(function (r) { return far.indexOf(r.label) < 0; });
+  var lo = Math.min.apply(null, [0].concat(near.map(function (r) { return r.pct; }))), hi = Math.max.apply(null, [0].concat(near.map(function (r) { return r.pct; })));
+  rows.forEach(function (r) { if (far.indexOf(r.label) >= 0) { if (r.pct < 0) lo = Math.min(lo, -hi / 4); else hi = Math.max(hi, -lo / 4); } });  // a clipped bar keeps room for its arrow
+  var ax = evenAxis(sideDomain(lo, hi), pctCap(m, D.s.baseline.metrics[key]), narrow), dom = ax.domain;
+  rows.forEach(function (r) { r.shown = clampTo(r.pct, dom); r.clip = r.pct < dom[0] ? -1 : r.pct > dom[1] ? 1 : 0; });
+  var width = Math.max(W, 300), height = 50 + rows.length * 44;
+  var n = { better: 0, noise: 0, worse: 0, pending: 0, none: 0 }; all.forEach(function (r) { n[r.verdict]++; });
+  var means;
+  if (winner) {
+    var wvb = vsb(D.byLabel[winner.label], key), next = ranks.filter(function (r) { return r.label !== winner.label && off.indexOf(r.label) < 0; })[0];  // never a version the reader hid
+    means = { text: [
+      html`Top: ${numSpan(winner.label + ", " + chg(m, winner.pctBetter))}${wvb ? html`, ${vw(verdictOf(wvb))}` : ""}`,
+      next && wvb && verdictOf(vsb(D.byLabel[next.label], key)) === verdictOf(wvb) && overlaps(wvb, vsb(D.byLabel[next.label], key)) ? html`Can't be told apart from ${next.label} (${chg(m, next.pctBetter)}): both against the original only` : null,
+      html`${[n.better ? vw("better", n.better + " significantly improved") : null, n.noise ? vw("noise", n.noise + " no significant difference") : null, n.pending ? vw("pending", n.pending + (n.pending === 1 ? " needs more runs" : " need more runs")) : null, n.worse ? vw("worse", n.worse + " significantly regressed") : null, n.none ? vw("none", n.none + " with no Artemis comparison") : null].filter(Boolean).map(function (x, i) { return i ? html`, ${x}` : x; })}`,
+      winner.eligible ? null : winner.label + " fails the eligibility gate (experiment " + winner.experimentStatus + ")",
+      D.byLabel[winner.label]._failed ? vw("worse", winner.label + " failed your correctness check") : null] };
+  } else means = { text: "No winner on " + mlabel(m) + ": " + (((D.s.perMetricWinners || {})[key] || {}).reason || "no change from Artemis yet") + "." };
+  var yTick = function (tp) { var r = rows[tp.index] || {}; return linked(r.href, r.v, h("text", { x: tp.x - 6, y: tp.y + 5, textAnchor: "end", fontSize: 15, fontWeight: 500, fill: T.fg }, tp.payload.value)); };
+  return html`<${Card} id="ranked" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question=${"Which versions moved " + mlabel(m) + " the most?"} series=${series}
+    controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>`}
+    versionChoices=${measuredLabels}
+    rows=${function () { return rows.map(function (r) { return { version: r.v, metric: key, pct_better: r.pct, verdict: VERDICT[r.verdict], failed_correctness_check: r.failed }; }); }} means=${means}
+    after=${html`${noCmpV.length ? html`<p class="missing">No Artemis comparison: ${noCmpV.map(function (v) { return v.label; }).join(", ")}</p>` : null}${noPctV.length ? html`<p class="missing">No % change from Artemis: ${noPctV.map(function (v) { return v.label + " (" + vWord(vsb(v, key).verdict) + ")"; }).join(", ")}</p>` : null}${missing.length ? html`<p class="missing">Not measured: ${missing.map(function (v) { return v.label + " (" + (v.executionStatus === "failed" ? "execution failed" : v.lifecycle === "generation_failed" ? "generation failed" : v.displayStatus || v.lifecycle || "not measured") + ")"; }).join(", ")}</p>` : null}${D.failed.length ? html`<p class="missing">✕ Failed your correctness check: ${D.failed.map(function (x) { return "v" + x; }).join(", ")}. The check is yours, outside the snapshot; their changes are measured but not usable.</p>` : null}`}>
+    ${rows.length ? html`<${RC.BarChart} width=${width} height=${height} data=${rows} layout="vertical" margin=${{ top: 10, right: narrow ? 118 : 260, left: 4, bottom: 26 }}>
+      <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
+      <${RC.XAxis} type="number" domain=${dom} ticks=${ax.ticks} interval=${0} allowDataOverflow=${true} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${function (v) { return fmtPct(v).replace(".0%", "%"); }}
+        label=${{ value: narrow ? "% better →" : "← worse     % better than the original     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
+      <${RC.YAxis} type="category" dataKey="label" width=${76} tick=${yTick} tickLine=${false} axisLine=${false} interval=${0}/>
+      <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.5}/>
+      <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.4 }} isAnimationActive=${false}/>
+      <${RC.Bar} dataKey="shown" isAnimationActive=${false} barSize=${24} shape=${hbarShape(T, colorOf)}>
+        <${RC.LabelList} dataKey="shown" content=${barLabel(T, rows, narrow, m)}/>
+      <//>
+    <//>` : html`<div class="sparse">${all.length ? "Every series is hidden." : "No version has a change on " + mlabel(m) + " yet."}</div>`}
+  <//>`;
+}
+
+/* ---------- 3. Forest: Artemis's change and 95% interval, in verdict colours, Linear or Log (x) ---------- */
+function ratioFromPct(p, hib) { if (p == null) return null; if (hib) return 1 + p / 100; return p >= 100 ? Infinity : 1 / (1 - p / 100); }  // unit change only: Artemis's interval read as a better-ratio
+function ForestCard(props) {
+  var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "forest", { scale: "lin" }), c = cs[0], hd = c.hidden || {};
+  var list = rankedMetrics(D), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key], hib = !!m.higherIsBetter, bounded = isBounded(m, D.s), log = c.scale === "log" && !bounded;
+  var ranks = (D.s.rankings || {})[key] || [], off = c.offV || [], narrow = W < 560;  // Best is the Composite pick, so one metric's chart never marks it
+  var all = ranks.map(function (r) {
+    var v = D.byLabel[r.label], vb = vsb(v, key); if (!vb) return null;
+    var tb = (mstat(v, key) || {}).timesBetter, est = log ? (tb > 0 ? Math.log10(tb) : null) : vb.improvementPct, lo = null, hi = null, openLo = false, openHi = false;
+    if (vb.ciLowPct != null) {
+      // On Log (×) an end of the interval can have no ratio (100% or more less time, or -100% or worse): that side runs to the axis edge.
+      if (log) { var a = ratioFromPct(vb.ciLowPct, hib), b = ratioFromPct(vb.ciHighPct, hib); lo = a > 0 ? Math.log10(a) : null; hi = isFinite(b) ? Math.log10(b) : null; openLo = lo == null; openHi = hi == null; }
+      else { lo = vb.ciLowPct; hi = vb.ciHighPct; }
+    }
+    var open = openLo || openHi;
+    return { label: r.label, version: r.version, est: est, lo: lo, hi: hi, open: open, openLo: openLo, openHi: openHi, pct: vb.improvementPct, tb: tb, verdict: vb.verdict, failed: !!v._failed, href: versionHref(D, v),
+      tip: versionTip(v, key, m).concat(log && tb ? ["~" + fmtX(tb) + " better-ratio" + (open ? "; one side of the interval is open" : "")] : []).concat(bounded && ppText(v, m) ? ["~" + ppText(v, m)] : []).concat(isModel(m) && deterministic(vb) ? ["~Interval leaves out test-set sampling."] : []),
+      det: isModel(m) && deterministic(vb), ciLo: vb.ciLowPct, ciHi: vb.ciHighPct };
+  }).filter(function (r) { return r && r.est != null && off.indexOf(r.label) < 0; });
+  // Ranked versions with no point on this chart are named, never dropped quietly, and still count in "N of total".
+  var shownRanks = ranks.filter(function (r) { return off.indexOf(r.label) < 0; }), drawnL = all.map(function (r) { return r.label; });
+  var rankedL = ranks.map(function (r) { return r.label; });
+  var outside = D.versions.filter(function (v) { var st = mstat(v, key); return rankedL.indexOf(v.label) < 0 && off.indexOf(v.label) < 0 && st && st.mean != null; });
+  var hasVerdict = function (v) { var x = vsb(v, key); return !!(x && x.verdict); };
+  var noPctF = outside.filter(hasVerdict);  // judged, but no % to place on the axis
+  var left = shownRanks.filter(function (r) { return drawnL.indexOf(r.label) < 0; }), noCmp = left.filter(function (r) { return !vsb(D.byLabel[r.label], key); }).concat(outside.filter(function (v) { return !hasVerdict(v); }));
+  var noRatio = left.filter(function (r) { return noCmp.indexOf(r) < 0; });
+  var series = verdictSeries(T, all.map(function (r) { return r.verdict; }));
+  var rows = all.filter(function (r) { return !hd[r.verdict]; });
+  rows.forEach(function (r, i) { r.y = i + 1; });
+  var reach = Math.max.apply(null, [log ? Math.log10(1.25) : 5].concat(rows.map(function (r) { return Math.max(Math.abs(r.est), Math.abs(r.lo == null ? 0 : r.lo), Math.abs(r.hi == null ? 0 : r.hi)); })));
+  var B, ticks, fmtTick;
+  if (log) {
+    var top = [1.25, 1.5, 2, 3, 5, 10, 20, 50, 100, 1000, 1e4].filter(function (n) { return Math.log10(n) >= reach * 1.04; })[0] || 1e4;
+    B = Math.log10(top); var marks = top <= 2 ? [top] : top < 10 ? [2, top] : [2, 10].concat([100, 1000, 1e4].filter(function (n) { return n <= top; }));
+    if (marks.indexOf(top) < 0) marks.push(top);
+    ticks = [0].concat(marks.map(function (n) { return Math.log10(n); }), marks.map(function (n) { return -Math.log10(n); })).sort(function (a, b) { return a - b; });
+    fmtTick = function (v) { var n = Math.pow(10, v); return (n >= 1 ? +n.toPrecision(3) : +n.toPrecision(2)) + "×"; };
+  } else {
+    var span = function (r) { return [r.est, r.lo, r.hi].filter(function (x) { return x != null; }); };
+    var far = farOutliers(rows.map(function (r) { var a = span(r).concat([0]); return { key: r.label, lo: Math.min.apply(null, a), hi: Math.max.apply(null, a) }; }));
+    var ext = function (f) { return rows.filter(function (r) { return far.indexOf(r.label) < 0; }).map(span).reduce(function (a, b) { return a.concat(b); }, [0]).reduce(function (a, b) { return f(a, b); }); };
+    var fax = evenAxis(bandDomain(ext(Math.min), ext(Math.max)), pctCap(m, D.s.baseline.metrics[key]), narrow), sd = fax.domain;
+    ticks = fax.ticks;
+    fmtTick = function (v) { return fmtPct(v).replace(".0%", "%"); };
+  }
+  var L = log ? -B : sd[0], R = log ? B : sd[1];
+  rows.forEach(function (r) { r.clip = r.est < L ? -1 : r.est > R ? 1 : 0; r.est = clampTo(r.est, [L, R]); });  // a far outlier sits at the edge as an arrow; its value is printed beside it
+  // An interval that runs past the axis edge, or has an open side, ends in an arrowhead at the edge, never a closing cap.
+  rows.forEach(function (r) { r.pastLo = r.openLo || (r.lo != null && r.lo < L); r.pastHi = r.openHi || (r.hi != null && r.hi > R); if (r.pastLo || r.pastHi) r.tip = r.tip.concat(["~The interval runs past the edge of the axis"]); });
+  rows.forEach(function (r) { r.err = [r.lo == null ? (r.openLo ? r.est - L : 0) : r.est - Math.max(r.lo, L), r.hi == null ? (r.openHi ? R - r.est : 0) : Math.min(r.hi, R) - r.est]; });
+  var xlabels = {}, dp = 1;
+  if (log) { for (dp = 1; dp <= 3; dp++) { var seen = {}, tie = false; rows.forEach(function (r) { var t = r.tb.toFixed(r.tb >= 10 ? Math.max(0, dp - 1) : dp); if (seen[t]) tie = true; seen[t] = 1; }); if (!tie) break; } rows.forEach(function (r) { xlabels[r.label] = r.tb.toFixed(r.tb >= 10 ? Math.max(0, dp - 1) : Math.min(dp, 3)) + "×"; }); }
+  var huge = !log && !bounded && all.some(function (r) { return r.tb && (r.tb >= 10 || r.tb <= 0.1); });
+  var anyCI = all.some(function (r) { return r.lo != null || r.hi != null; });
+  // The value (16px) and verdict (15px) share one line; widen the column for the longest pair rather than let them overlap.
+  var pairW = Math.max.apply(null, [0].concat(rows.map(function (r) { return String(log ? xlabels[r.label] : chg(m, r.pct)).length * 9.8 + 10 + vWord(r.verdict).length * 7.6; })));
+  var width = Math.max(W, 300), right = narrow ? 40 : Math.max(270, Math.ceil(pairW) + 28), height = 56 + rows.length * (narrow ? 54 : 40);
+  var colorOf = function (r) { if (r.verdict === "pending") return pendInk(T, r.pct); var s = series.filter(function (x) { return x.key === r.verdict; })[0]; return s ? s.color : T.better; };
+  var x0 = 4 + 76, x1 = width - right, pxOf = function (v) { return x0 + (Math.max(L, Math.min(R, v)) - L) / (R - L) * (x1 - x0); };
+  // On a phone the value sits on its own line above its row, so it never covers a mark or an interval.
+  var phoneLabel = function (sp, p, text, ink) { return h("text", { x: x0, y: sp.cy - 13, textAnchor: "start", fontSize: 15, fill: ink, fontWeight: 600, fontFamily: NUMFONT }, text); };
+  var shape = function (sp) {
+    var p = sp.payload, cl = colorOf(p), pend = p.verdict === "pending", val = log ? xlabels[p.label] : chg(m, p.pct), ink = vText(T, p.verdict);
+    var k = (x1 - x0) / (R - L), edge = function (side) { var x = sp.cx + ((side < 0 ? L : R) - p.est) * k; return h("polygon", { key: "e" + side, className: "ci-open", points: [x + side * 6, sp.cy, x - side * 4, sp.cy - 7, x - side * 4, sp.cy + 7].join(" "), fill: cl }); };
+    return h("g", null, p.pastLo ? edge(-1) : null, p.pastHi ? edge(1) : null,
+      linked(p.href, p.label, p.clip ? h("polygon", { className: "clip-arrow", points: [sp.cx + p.clip * 2, sp.cy, sp.cx - p.clip * 12, sp.cy - 8, sp.cx - p.clip * 12, sp.cy + 8].join(" "), fill: cl })
+        : h("circle", { cx: sp.cx, cy: sp.cy, r: 6.5, fill: pend ? T.card : cl, stroke: cl, strokeWidth: 2.2 }), true),
+      narrow ? phoneLabel(sp, p, val + " " + GLYPH[p.verdict], ink)
+        : h("text", { x: width - right + 16, y: sp.cy + 5, fill: ink }, h("tspan", { fontSize: 16, fontWeight: 600, fontFamily: NUMFONT }, val), h("tspan", { fontSize: 15, dx: 10 }, vWord(p.verdict))));
+  };
+  var sig = all.filter(function (r) { return r.verdict === "better"; });
+  var maxN = Math.max.apply(null, [0].concat(ranks.map(function (r) { var vb = vsb(D.byLabel[r.label], key); return vb && isFinite(vb.readings) ? vb.readings : 0; })));
+  var means;
+  if (!anyCI) means = { text: ["No intervals yet: with " + runsWord(maxN) + " per version Artemis can't size one, so every change needs more runs"] };
+  else { var floor = sig.slice().sort(function (a, b) { return b.ciLo - a.ciLo; })[0]; means = { text: verdictLines(all, m, shownRanks.length + outside.length).concat([
+      floor ? html`Surest gain: ${numSpan(floor.label + ", at least " + (log ? fmtX(ratioFromPct(floor.ciLo, hib)) : chg(m, floor.ciLo)))}, the low end of its 95% interval` : null,
+      all.some(function (r) { return r.det; }) ? "Identical readings on both sides: a deterministic eval, so the interval leaves out test-set sampling" : null]) }; }
+  var yTick = function (tp) { var r = rows[tp.index] || {}; return linked(r.href, r.label, h("text", { x: tp.x - 4, y: tp.y + 5, textAnchor: "end", fontSize: 15, fontWeight: 500, fill: T.fg }, (r.failed ? "✕ " : "") + (r.label || ""))); };
+  return html`<${Card} id="forest" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question=${"How sure is each change on " + mlabel(m) + "?"} series=${anyCI ? series : []}
+    controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>
+      <${Seg} label="Scale" value=${log ? "log" : "lin"} onChange=${function (v) { cs[1]({ scale: v }); }} options=${[["lin", "Linear"], ["log", "Log (×)", bounded, bounded ? "A bounded score reads in points, not ×" : "Log scale, × better"]]}/>`}
+    versionChoices=${ranks.map(function (r) { return r.label; })}
+    rows=${function () { return rows.map(function (r) { return { version: r.label, metric: key, pct_better: r.pct, ci_low_pct: r.ciLo, ci_high_pct: r.ciHi, times_better: r.tb, verdict: VERDICT[r.verdict], scale: log ? "log" : "linear" }; }); }}
+    means=${means} after=${html`${noCmp.length ? html`<p class="missing">No Artemis comparison: ${noCmp.map(function (r) { return r.label; }).join(", ")}</p>` : null}${noPctF.length ? html`<p class="missing">No % change from Artemis: ${noPctF.map(function (v) { return v.label + " (" + vWord(vsb(v, key).verdict) + ")"; }).join(", ")}</p>` : null}${noRatio.length ? html`<p class="missing">${log ? "No × ratio from Artemis" : "No % change from Artemis"}: ${noRatio.map(function (r) { return r.label; }).join(", ")}</p>` : null}${huge ? html`<p class="hint">Very large changes: view as × better (<button type="button" class="link" onClick=${function () { cs[1]({ scale: "log" }); }}>log</button>)</p>` : null}`}>
+    ${!anyCI ? html`<div class="sparse">No intervals yet. The ranked bars show the changes.</div>`
+    : rows.length ? html`<${RC.ScatterChart} width=${width} height=${height} margin=${{ top: narrow ? 22 : 12, right: right, left: 4, bottom: 30 }}>
+      ${L < 0 ? html`<${RC.ReferenceArea} x1=${L} x2=${0} fill=${T.worse} fillOpacity=${0.08} stroke="none" ifOverflow="hidden"/>` : null}
+      ${R > 0 ? html`<${RC.ReferenceArea} x1=${0} x2=${R} fill=${T.better} fillOpacity=${0.08} stroke="none" ifOverflow="hidden"/>` : null}
+      <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
+      <${RC.XAxis} type="number" dataKey="est" domain=${[L, R]} ticks=${ticks} interval=${0} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${fmtTick}
+        label=${{ value: log ? "× better than the original" : narrow ? "% better →" : "← worse     % better than the original, 95% interval     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
+      <${RC.YAxis} type="number" dataKey="y" domain=${[0.4, rows.length + 0.6]} reversed=${true} ticks=${rows.map(function (r) { return r.y; })} width=${76} tick=${yTick} tickLine=${false} axisLine=${false} interval=${0}/>
+      <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.5} label=${narrow ? undefined : { value: "original", position: "top", fill: T["text-2"], fontSize: 15 }}/>
+      <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${false} isAnimationActive=${false}/>
+      ${rows.map(function (r) { return html`<${RC.Scatter} key=${r.label} data=${[r]} isAnimationActive=${false} shape=${shape}>
+        <${RC.ErrorBar} dataKey="err" direction="x" width=${8} stroke=${colorOf(r)} strokeWidth=${2.2} strokeDasharray=${r.verdict === "pending" ? "5 3" : undefined} isAnimationActive=${false}/>
+      <//>`; })}
+    <//>` : html`<div class="sparse">Every series is hidden.</div>`}
+  <//>`;
+}
+
+/* ---------- 4. Over time, in generation order, steers marked ---------- */
+var TIME_H = 360;  // the chart's height; Best's label flips above its ring in the bottom 90px of the chart
+function TimeCard(props) {
+  var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "time", { mode: "pct" }), c = cs[0], hd = c.hidden || {};
+  var list = rankedMetrics(D).concat(D.measured.filter(function (m) { return m.higherIsBetter == null; })), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key];
+  var mode = c.mode || "pct", winner = ((D.s.perMetricWinners || {})[key] || {}).raw, off = c.offV || [], head = mode === "fit" && D.s.webUiBest ? D.s.webUiBest.version : null  /* Best is the Composite pick: marked only on the Composite view */;
+  var rawMark = mode === "fit" ? null : (winner ? winner.version : null);
+  // The ring marks the Web UI's Best; when the page's Best is another version (no Composite change on the lead metric), it says whose.
+  var headWord = D.best && head != null && D.best.version !== head ? "Web UI Best " : "Best ";
+  var col = { line: T.accent, steer: T.fg };
+  var data = D.versions.filter(function (v) { return off.indexOf(v.label) < 0; }).map(function (v) {
+    var st = mstat(v, key), vb = vsb(v, key), y = mode === "pct" ? (st ? st.pctBetter : null) : mode === "mean" ? (st ? st.mean : null) : (v.fitness != null && v.displayStatus === "scored" ? v.fitness : null);
+    return { v: v.version, label: v.label, y: y == null ? null : y, verdict: mode === "fit" ? null : verdictOf(vb), tip: versionTip(v, key, m).concat(mode === "fit" && v.fitness != null ? ["~Composite score " + v.fitness.toFixed(3)] : []) };
+  });
+  var bs = c.brush && c.brush[1] < data.length ? c.brush : [0, Math.max(0, data.length - 1)], vis = data.slice(bs[0], bs[1] + 1);
+  var steers = ((D.s.steering || {}).points || []).filter(function (p) { return p.firstVersion != null; });
+  var series = [{ key: "line", label: mode === "fit" ? "Overall score (Composite)" : mode === "mean" ? mlabel(m) + ", mean" : mlabel(m) + ", % better", color: mode === "fit" ? col.line : T.neutral, shape: "dot" }];  // versions are separate tries, so dots, never a joining line
+  if (steers.length) series.push({ key: "steer", label: "Steer", color: col.steer, shape: "line" });
+  var base = D.s.baseline.metrics[key], width = Math.max(W, 300), N = D.versions.length;
+  var yLabel = mode === "pct" ? "% better than the original" : mode === "mean" ? mlabel(m) + ", mean" : "Overall score (Composite)";
+  var ys = vis.map(function (d) { return d.y; }).filter(function (y) { return y != null; });
+  if (mode === "pct") ys.push(0); if (mode === "mean" && base) ys.push(base.mean);
+  var ax = ys.length ? niceAxis(Math.min.apply(null, ys), Math.max.apply(null, ys), 5, mode !== "pct" && Math.min.apply(null, ys) >= 0 ? 0 : null) : { domain: [0, 1], ticks: [0, 1] };
+  if (mode === "pct") { var tcap = pctCap(m, D.s.baseline.metrics[key]); ax.domain = [Math.max(ax.domain[0], tcap[0]), Math.min(ax.domain[1], tcap[1])]; ax.ticks = ax.ticks.filter(function (t) { return t >= ax.domain[0] && t <= ax.domain[1]; }); }
+  var xd = vis.length ? [vis[0].v - 0.5, vis[vis.length - 1].v + 0.5] : [0.5, N + 0.5];
+  var sp = D.s.steering || {}, means;
+  // The steer's own words are collected text (marked .data), quoted as written.
+  var steerText = sp.reason ? "This Discovery session's chat could not be read, so its steers are unknown." : steers.length ? html`A steer came before ${steers[0].firstLabel}: “<span class="data">${clip(steers[0].guidance, 110)}</span>”` : "Nobody steered this Discovery session.";
+  if (mode === "fit") means = { text: [D.s.webUiBest ? html`Highest: ${numSpan(D.s.webUiBest.label + ", " + D.s.webUiBest.fitness.toFixed(3))}` : null, "The overall (Composite) score is the platform's roll-up of the metrics by importance", steerText] };
+  else if (winner) { var pos = D.versions.map(function (v) { return v.version; }).indexOf(winner.version) + 1, contiguous = D.versions.every(function (v, i) { return v.version === i + 1; }), wvt = (vsb(D.byLabel[winner.label], key) || {}).verdict; means = { text: [
+      html`Top on ${mlabel(m)}: ${numSpan(winner.label + ", " + chg(m, winner.pctBetter))}${wvt ? html`, ${vw(wvt)}` : ""}`,
+      contiguous ? "It was the " + ordinal(pos) + " of " + N + " versions" : "It was the " + ordinal(winner.version) + " version made; this snapshot holds " + N + " versions",
+      D.byLabel[winner.label]._failed ? vw("worse", "It failed your correctness check") : null,
+      steerText] }; }
+  var gaps = data.filter(function (d) { return d.y == null; }).map(function (d) { return d.label; });
+  var valText = function (y) { return mode === "pct" ? chg(m, y) : mode === "mean" ? fmtNum(y) : y.toFixed(3); };
+  var yFmt = function (v) { return mode === "pct" ? fmtPct(v).replace(".0%", "%") : mode === "fit" ? (+v.toFixed(3)).toString() : fmtTickNum(v); };
+  // Room for the widest tick (about 9px a character at 15px) plus the rotated title, so the two never overlap.
+  var yAxisW = Math.max(66, 30 + 8.5 * Math.max.apply(null, [0].concat((ax.ticks || []).map(function (v) { return String(yFmt(v)).length; }))));
+  var dot = function (p) {
+    var pl = p.payload; if (pl.y == null || p.cy == null) return h("g", { key: p.index });
+    var isHead = pl.v === head, isRaw = pl.v === rawMark && rawMark !== head, cl = mode === "fit" ? col.line : pl.verdict === "pending" ? pendInk(T, pl.y) : vFill(T, pl.verdict) || T.neutral, hollow = mode !== "fit" && (pl.verdict === "pending" || pl.verdict === "none"), parts = [];
+    if (isHead) parts.push(h("circle", { key: "r", cx: p.cx, cy: p.cy, r: 11, fill: "none", stroke: T.accent, strokeWidth: 2.5 }));
+    parts.push(h("circle", { key: "d", cx: p.cx, cy: p.cy, r: isHead ? 7 : 6, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 2 }));
+    // Never past the plot's edge. Best sits under its ring, or over it near the x axis.
+    var lab = (isHead ? headWord : "") + valText(pl.y), lw = lab.length * 8.6, px0 = yAxisW + 8 - 4, px1 = width - 28 + 4;
+    var lx = Math.max(px0, Math.min(px1 - lw, p.cx - lw / 2));  // centred on the point, then pulled inside the plot
+    if (isHead || isRaw) parts.push(h("text", { key: "t", x: lx, y: isHead ? (p.cy > TIME_H - 40 - 50 ? p.cy - 18 : p.cy + 28) : p.cy - 16, textAnchor: "start", fontSize: 15, fill: T.fg, fontWeight: 600, fontFamily: NUMFONT }, (isHead ? headWord : "") + valText(pl.y)));
+    return h("g", { key: p.index }, parts);
+  };
+  return html`<${Card} id="time" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question="How did the search go, version by version?" series=${series}
+    controls=${html`${mode !== "fit" ? html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>` : null}
+      <${Seg} label="Show" value=${mode} onChange=${function (v) { cs[1]({ mode: v }); }} options=${[["pct", "% change"], ["mean", "Mean"], ["fit", "Overall score"]]}/>`}
+    versionChoices=${D.versions.map(function (v) { return v.label; })}
+    rows=${function () { return (hd.line ? [] : vis).map(function (d) { return { version: d.label, value: d.y, series: mode === "pct" ? "pct_better" : mode === "mean" ? "mean" : "composite_score", metric: mode === "fit" ? "" : key }; }); }}
+    means=${means} after=${html`${N > 12 ? html`<p class="missing">Drag either purple handle on the strip under the chart to zoom into a range of versions.</p>` : null}${gaps.length ? html`<p class="missing">Gaps, not zeroes: ${gaps.join(", ")} ${gaps.length === 1 ? "has" : "have"} no value</p>` : null}`}>
+    <${RC.LineChart} width=${width} height=${TIME_H} data=${data} margin=${{ top: 30, right: 28, left: 8, bottom: 10 }}>
+      <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
+      <${RC.XAxis} dataKey="v" type="number" domain=${xd} ticks=${vis.map(function (d) { return d.v; })} tickFormatter=${function (n) { return "v" + n; }} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} allowDecimals=${false} allowDataOverflow=${true}/>
+      <${RC.YAxis} width=${yAxisW} tick=${axisTick(T)} tickLine=${false} axisLine=${false} domain=${ax.domain} ticks=${ax.ticks}
+        tickFormatter=${yFmt}
+        label=${{ value: yLabel, angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } }}/>
+      ${mode === "pct" ? html`<${RC.ReferenceLine} y=${0} stroke=${T.fg} strokeWidth=${1.5} label=${{ value: "original", position: "insideBottomLeft", fill: T["text-2"], fontSize: 15 }}/>` : null}
+      ${mode === "mean" && base ? html`<${RC.ReferenceLine} y=${base.mean} stroke=${T.baseline} strokeWidth=${2.5} label=${{ value: "original " + fmtNum(base.mean), position: "insideBottomLeft", fill: T["text-2"], fontSize: 15 }}/>` : null}
+      ${!hd.steer ? steers.filter(function (p) { return p.firstVersion - 0.5 > xd[0] && p.firstVersion - 0.5 < xd[1]; }).map(function (p, i) { return html`<${RC.ReferenceLine} key=${"s" + i} x=${p.firstVersion - 0.5} stroke=${col.steer} strokeWidth=${1} strokeDasharray="4 4" label=${{ value: "Steer", position: "insideTopLeft", fill: T.fg, fontSize: 15 }}/>`; }) : null}
+      <${RC.Tooltip} position=${tipPos()} content=${Tip} isAnimationActive=${false}/>
+      ${!hd.line ? html`<${RC.Line} type="linear" dataKey="y" stroke="none" strokeWidth=${0} connectNulls=${false} isAnimationActive=${false} dot=${dot} activeDot=${{ r: 6 }}/>` : null}
+      ${N > 12 ? html`<${RC.Brush} dataKey="v" height=${22} travellerWidth=${10} stroke=${T.accent} fill=${T.card} startIndex=${bs[0]} endIndex=${bs[1]} tickFormatter=${function (n) { return "v" + n; }} onChange=${function (r) { if (r && r.startIndex != null) cs[1]({ brush: [r.startIndex, r.endIndex] }); }}/>` : null}
+    <//>
+  <//>`;
+}
+
+/* ---------- 5. Box plots with every run, the only chart that draws runs ---------- */
+var BOX_MIN = 5;  // fewer runs than this: a strip of the runs and the mean, no box (report-design: three points invent a shape)
+function runValue(r) { return r != null && typeof r === "object" ? r.value : r; }
+function runMachine(r) { return r != null && typeof r === "object" ? (r.runner || r.machine || null) : null; }
+function hasMachines(D, key) {
+  var any = function (st) { return st && (st.runs || []).some(function (r) { return runMachine(r) != null; }); };
+  return any(D.s.baseline.metrics[key]) || D.versions.some(function (v) { return any(mstat(v, key)); });
+}
+function hasRuns(D, key) { var n = function (st) { return st && st.runs ? st.runs.length : 0; }; return n(D.s.baseline.metrics[key]) > 1 && D.versions.some(function (v) { return n(mstat(v, key)) > 1; }); }
+function boxShape(T, showPoints) {
+  return function (sp) {
+    var p = sp.payload, x = sp.x, w = sp.width, y = sp.y, hh = sp.height, cx = x + w / 2, bw = Math.min(w * 0.6, 56), parts = [];
+    var top = p.clipAt != null ? Math.min(p.max, p.clipAt) : p.max, bottom = Math.min(p.min, top), above = p.clipAt != null && p.min >= p.clipAt;
+    var px = function (v) { return top === bottom ? y + hh / 2 : y + (top - Math.min(v, top)) / (top - bottom) * hh; };
+    if (above) return h("g", null,  // the whole group is past the axis: an arrow up, and its range in words
+      h("polygon", { className: "clip-arrow", points: [cx, y, cx - 9, y + 14, cx + 9, y + 14].join(" "), fill: p.color }),
+      h("text", { x: cx, y: y + 32, textAnchor: "middle", fontSize: 13, fontWeight: 600, fill: T.fg, fontFamily: NUMFONT }, fmtNum(p.min)),
+      h("text", { x: cx, y: y + 48, textAnchor: "middle", fontSize: 13, fontWeight: 600, fill: T.fg, fontFamily: NUMFONT }, "to " + fmtNum(p.max)));
+    var quart = p.q1 != null && p.q3 != null && p.median != null;  // a pooled Machine group has no falcon quartiles: its runs, no box
+    if (quart && p.n >= BOX_MIN && p.max !== p.min) {
+      parts.push(h("line", { key: "w", x1: cx, x2: cx, y1: px(p.max), y2: px(p.min), stroke: p.color, strokeWidth: 2 }));
+      parts.push(h("line", { key: "wt", x1: cx - bw / 4, x2: cx + bw / 4, y1: px(p.max), y2: px(p.max), stroke: p.color, strokeWidth: 2 }));
+      parts.push(h("line", { key: "wb", x1: cx - bw / 4, x2: cx + bw / 4, y1: px(p.min), y2: px(p.min), stroke: p.color, strokeWidth: 2 }));
+      parts.push(h("rect", { key: "b", x: cx - bw / 2, y: px(p.q3), width: bw, height: Math.max(2, px(p.q1) - px(p.q3)), rx: 4, fill: p.color, fillOpacity: 0.25, stroke: p.color, strokeWidth: 2 }));
+      parts.push(h("line", { key: "md", x1: cx - bw / 2, x2: cx + bw / 2, y1: px(p.median), y2: px(p.median), stroke: p.color, strokeWidth: 3 }));
+    } else if (p.mean != null) parts.push(h("line", { key: "mn", x1: cx - bw / 2, x2: cx + bw / 2, y1: px(p.mean), y2: px(p.mean), stroke: p.color, strokeWidth: 3 }));
+    if (showPoints || p.n < BOX_MIN || !quart) p.runs.forEach(function (v, i) { var j = p.runs.length === 1 ? 0 : ((i * 7919) % 11) / 10 - 0.5; parts.push(h("circle", { key: "p" + i, cx: cx + j * bw * 0.8, cy: px(v), r: 3.5, fill: T.card, stroke: T.fg, strokeWidth: 1.5 })); });
+    if (p.clipAt != null && p.max > p.clipAt) parts.push(h("polygon", { key: "ca", className: "clip-arrow", points: [cx, y - 2, cx - 9, y + 12, cx + 9, y + 12].join(" "), fill: p.color }),
+      h("text", { key: "cv", x: cx + 12, y: y + 12, fontSize: 13, fontWeight: 600, fill: T.fg, fontFamily: NUMFONT }, "max " + fmtNum(p.max)));
+    return h("g", null, parts);
+  };
+}
+/* Are a project's runs repeats of one task, or different tasks? Different when their task text or target files differ,
+   or when their originals on the first session's lead metric are more than 2x apart (another benchmark). Unknown fields count as the same. */
+function differentTasks(snaps) {
+  if (!snaps || snaps.length < 2) return false;
+  // An empty list of target files is unknown, as a missing one is: it never makes two sessions different tasks.
+  var same = function (f) { var a = snaps.map(function (s) { var x = (s.run || {})[f]; return JSON.stringify(x == null || (Array.isArray(x) && !x.length) ? null : x); }); return a.indexOf("null") >= 0 || a.every(function (x) { return x === a[0]; }); };
+  if (!same("taskDescription") || !same("targetFiles")) return true;
+  var m0 = leadOrder(snaps[0])[0];
+  if (!m0) return false;
+  var means = snaps.map(function (s) { return (((s.baseline || {}).metrics || {})[m0.key] || {}).mean; }).filter(function (v) { return v > 0 && isFinite(v); });
+  return means.length > 1 && Math.max.apply(null, means) / Math.min.apply(null, means) > 2;
+}
+function phoneName(n) {  // 52px groups on a phone: commits show 4 characters (the tooltip has the full commit)
+  var s = String(n);
+  if (/^[0-9a-f]{7}$/.test(s)) return s.slice(0, 4);
+  return s === "Original" ? "Orig." : s;
+}
+// A group name wider than its slot (a long runner name, say) is cut with an ellipsis rather than hidden; its tooltip has it whole.
+function fitName(s, slot) { s = String(s); if (s.length * 8.6 <= slot - 6) return s; return s.slice(0, Math.max(1, Math.floor((slot - 22) / 8.6))) + "…"; }  // 15px: about 8.6px a letter, 14px the ellipsis
+function BoxCard(props) {
+  var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "box", { by: "version", scale: "shared" }), c = cs[0], hd = c.hidden || {};
+  var list = D.measured, key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key], machines = hasMachines(D, key);
+  var by = c.by === "machine" && !machines ? "version" : (c.by || "version"), off = c.offV || [];  // Best is the Composite pick, so one metric's chart never marks it
+  var colOf = function (role, verdict, pct) { return role === "baseline" ? T.baseline : verdict === "pending" ? pendInk(T, pct) : vFill(T, verdict) || T.neutral; };
+  var base = D.s.baseline.metrics[key], groups = [];
+  var add = function (name, st, role, verdict, tip, v) {
+    var hideKey = role === "baseline" ? "baseline" : verdict;
+    if (hd[hideKey]) return; var runs = ((st && st.runs) || []).map(runValue).filter(function (x) { return x != null; }); if (!runs.length) return;
+    groups.push({ name: name, color: colOf(role, verdict, st && st.pctBetter), runs: runs, min: Math.min.apply(null, runs), max: Math.max.apply(null, runs), q1: st.q1, q3: st.q3, median: st.median, mean: st.mean, n: runs.length, range: [Math.min.apply(null, runs), Math.max.apply(null, runs)], tip: runs.length < st.runs.length ? tip.concat(["~" + runs.length + " of " + st.runs.length + " iterations have a value"]) : tip, v: v });
+  };
+  if (by === "machine") {
+    var pool = {}, take = function (st) { (st && st.runs || []).forEach(function (r) { var k = runMachine(r) || "unknown", x = runValue(r); if (x != null) (pool[k] = pool[k] || []).push(x); }); };
+    take(base); D.versions.forEach(function (v) { if (off.indexOf(v.label) < 0) take(mstat(v, key)); });
+    Object.keys(pool).sort().forEach(function (k) { groups.push({ name: k, color: T.accent, runs: pool[k], min: Math.min.apply(null, pool[k]), max: Math.max.apply(null, pool[k]), n: pool[k].length, range: [Math.min.apply(null, pool[k]), Math.max.apply(null, pool[k])], tip: [k, runsWord(pool[k].length) + ", every version pooled"] }); });
+  } else {
+    if (off.indexOf("original") < 0) add(by === "commit" ? shortSha(D.s.run.baselineVersionSha) : "Original", base, "baseline", null, ["Original" + (by === "commit" ? " " + shortSha(D.s.run.baselineVersionSha) : ""), "Median " + fmtNum(base && base.median) + unitOf(m) + ", range " + fmtNum(base && base.min) + " to " + fmtNum(base && base.max) + unitOf(m), "~" + runsWord(base ? (base.runs || []).length : 0)], "original");
+    D.versions.forEach(function (v) {
+      if (off.indexOf(v.label) >= 0) return;
+      var st = mstat(v, key), vb = vsb(v, key);
+      add(by === "commit" ? shortSha(v.versionSha) || v.label + " (no commit)" : v.label, st, "other", verdictOf(vb), versionTip(v, key, m).concat(st ? ["~Median " + fmtNum(st.median) + unitOf(m) + ", quartiles " + fmtNum(st.q1) + " to " + fmtNum(st.q3) + unitOf(m)] : []), v.label);
+    });
+  }
+  var present = D.versions.filter(function (v) { var st = mstat(v, key); return st && st.runs && st.runs.length; }).map(function (v) { return verdictOf(vsb(v, key)); });
+  var series = by === "machine" ? [] : [{ key: "baseline", label: "Original", color: T.baseline }].concat(verdictSeries(T, present));
+  var own = c.scale === "own" && by !== "machine";
+  var nonNeg = groups.every(function (g) { return g.min >= 0; });
+  var far = own || !nonNeg ? [] : farOutliers(groups.map(function (g) { return { key: g.name, lo: 0, hi: g.max }; })), near = groups.filter(function (g) { return far.indexOf(g.name) < 0; });
+  var lo = Math.min.apply(null, near.map(function (g) { return g.min; })), hi = Math.max.apply(null, near.map(function (g) { return g.max; }));
+  var shared = groups.length ? niceAxis(lo - (hi - lo) * 0.04, hi + (hi - lo) * 0.04, 5, nonNeg ? 0 : null) : { domain: [0, 1], ticks: [0, 1] };
+  groups.forEach(function (g) { if (far.indexOf(g.name) >= 0) { g.clipAt = shared.domain[1]; g.range = [Math.min(g.min, g.clipAt), g.clipAt]; } });  // past the axis: an arrow and its own range in words
+  var width = Math.max(W, 300);
+  // Own scale: one panel per group in rows of equal length, as many columns as fit at 140px or more (two on a phone), each chart its column's width.
+  var ownMax = Math.max(1, Math.min(groups.length, Math.floor((W + 16) / (140 + 16)))), ownCols = Math.ceil(groups.length / Math.ceil(groups.length / ownMax)), ownW = Math.floor((W - 16 * (ownCols - 1)) / ownCols);
+  // Counted from the same readings the plot draws: a version whose readings are all null (NaN from Artemis) is named too.
+  var valuesOf = function (st) { return ((st && st.runs) || []).map(runValue).filter(function (x) { return x != null; }); };
+  var noRuns = D.versions.filter(function (v) { return !valuesOf(mstat(v, key)).length; }).map(function (v) { return v.label; });
+  var top = ((D.s.perMetricWinners || {})[key] || {}).raw, means = null, wv = top ? D.byLabel[top.label] : null;  // this metric's top version, not the Composite Best
+  if (base && valuesOf(base).length === 1) means = { text: [html`One iteration on the original: ${numSpan(fmtNum(valuesOf(base)[0]) + unitOf(m))}, so no spread to show yet`] };
+  else if (base && valuesOf(base).length) means = { text: [html`Original: ${numSpan(fmtNum(Math.min.apply(null, valuesOf(base))) + " to " + fmtNum(Math.max.apply(null, valuesOf(base))) + unitOf(m))} over ${runsWord(valuesOf(base).length)}`, wv ? overlapText(mstat(wv, key), base, m, wv.label).trim() || null : null] };
+  var shape = boxShape(T, !hd.points);
+  var tick = function (tp) { var g = groups.filter(function (x) { return x.name === tp.payload.value; })[0]; return h("g", { transform: "translate(" + tp.x + "," + tp.y + ")" }, h("title", null, tp.payload.value), h("text", { textAnchor: "middle", y: 14, fontSize: 15, fill: T.fg, fontWeight: 500 }, fitName(W < 560 ? phoneName(tp.payload.value) : tp.payload.value, tp.payload.offset ? tp.payload.offset * 2 : 80)), h("text", { textAnchor: "middle", y: 31, fontSize: 15, fill: T["text-2"] }, g ? "n=" + g.n : "")); };
+  var chartOf = function (data, w, ax, showY) {
+    return html`<${RC.BarChart} width=${w} height=${own ? 260 : 380} data=${data} margin=${{ top: 14, right: 10, left: 6, bottom: 6 }}>
+      <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
+      <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${40}/>
+      <${RC.YAxis} width=${Math.max(showY ? 66 : 52, Math.ceil(Math.max.apply(null, ax.ticks.map(function (t) { return String(fmtTickNum(t)).length; })) * 9) + (showY ? 26 : 10))} domain=${ax.domain} ticks=${ax.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${fmtTickNum}
+        label=${showY ? { value: mlabel(m), angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } } : undefined}/>
+      <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.35 }} isAnimationActive=${false}/>
+      <${RC.Bar} dataKey="range" isAnimationActive=${false} shape=${shape}/>
+    <//>`;
+  };
+  var boxW = Math.max(width, (W < 560 ? 52 : 80) * groups.length + (W < 560 ? 76 : 90));  // 52px a group on a phone fits a 4-character commit and "n=25" side by side; more groups swipe, with the cue
+  return html`<${Card} id="box" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question=${"How spread out are the iterations on " + mlabel(m) + "?"} series=${series}
+    controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>
+      <${Seg} label="Group by" value=${by} onChange=${function (v) { cs[1]({ by: v }); }} options=${[["version", "Version"], ["commit", "Commit"]].concat(machines ? [["machine", "Machine"]] : [])}/>
+      ${by !== "machine" ? html`<${Seg} label="Scale" value=${own ? "own" : "shared"} onChange=${function (v) { cs[1]({ scale: v }); }} options=${[["shared", "Shared"], ["own", "Own"]]}/>` : null}`}
+    versionChoices=${["original"].concat(D.versions.map(function (v) { return v.label; }))}
+    rows=${function () { var out = []; groups.forEach(function (g) { g.runs.forEach(function (v, i) { out.push({ group: g.name, version: g.v || "", metric: key, run: i + 1, value: v }); }); }); return out; }}
+    means=${means} after=${noRuns.length ? html`<p class="missing">No runs: ${noRuns.join(", ")}</p>` : null}
+>
+    ${groups.length ? html`<p class="psub xt">${mlabel(m)}, ${dirText(m)}</p>` : null}
+    ${!groups.length ? html`<div class="sparse">${Object.keys(hd).some(function (k) { return hd[k]; }) && !noRuns.length ? "Every series is hidden." : "No individual iterations on " + mlabel(m) + " in this snapshot."}</div>`
+    : own ? html`<div class="multi" style=${{ gridTemplateColumns: "repeat(" + ownCols + ", minmax(0, 1fr))" }}>${groups.map(function (g) { var ax = niceAxis(g.min - (g.max - g.min) * 0.15, g.max + (g.max - g.min) * 0.15, 3, g.min >= 0 ? 0 : null); return html`<div class="panel" key=${g.name}>${chartOf([g], ownW, ax, false)}</div>`; })}</div>`
+    : html`${boxW > width + 1 ? html`<p class="hint">Swipe the chart sideways to see all ${groups.length} groups →</p>` : null}${chartOf(groups, boxW, shared, true)}`}
+  <//>`;
+}
+
+/* ---------- 6. Summary table: every version, sortable, with CSV ---------- */
+function SummaryCard(props) {
+  var D = props.D, T = props.T, cs = useCard(props.scope, "table", { sort: { k: "version", dir: 1 } }), c = cs[0];
+  var list = rankedMetrics(D), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key];  // Best is the Composite pick, so one metric's table never marks it
+  var rows = D.versions.map(function (v) {
+    var st = mstat(v, key), vb = vsb(v, key);
+    return { version: v.version, label: v.label, what: v.experimentTitle || "", pct: st && st.pctBetter != null ? st.pctBetter : null, lo: vb ? vb.ciLowPct : null, hi: vb ? vb.ciHighPct : null, verdict: vb && vb.verdict ? vb.verdict : st && st.pctBetter != null ? "none" : null, runs: vb ? vb.readings : (st ? st.count : 0), commit: shortSha(v.versionSha), failed: !!v._failed,
+      status: !st || st.mean == null ? (v.executionStatus === "failed" ? "execution failed" : v.lifecycle === "generation_failed" ? "generation failed" : "not measured") : st.pctBetter == null ? (vb && vb.verdict ? NO_PCT : VERDICT_SAY.none) : "" };
+  });
+  var s = c.sort || { k: "version", dir: 1 }, vorder = { better: 0, noise: 1, pending: 2, none: 3, worse: 4 };
+  var val = function (r) { return s.k === "verdict" ? (r.verdict ? vorder[r.verdict] : 9) : s.k === "what" ? r.what.toLowerCase() : s.k === "commit" ? r.commit : r[s.k]; };
+  var sorted = rows.slice().sort(function (a, b) { var x = val(a), y = val(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * s.dir; });
+  var th = function (k, label, num, extra) { var on = s.k === k; return html`<th class=${(num ? "n" : "") + (extra ? " " + extra : "")} aria-sort=${on ? (s.dir > 0 ? "ascending" : "descending") : undefined}><button type="button" onClick=${function () { cs[1]({ sort: { k: k, dir: on ? -s.dir : (k === "pct" ? -1 : 1) } }); }}>${label}${on ? (s.dir > 0 ? " ↑" : " ↓") : ""}</button></th>`; };
+  var judgedRow = function (r) { return r.verdict && r.verdict !== "none"; };
+  var measured = rows.filter(function (r) { return r.pct != null || judgedRow(r); }), notM = rows.filter(function (r) { return r.pct == null && !judgedRow(r); });
+  var won = measured.filter(function (r) { return r.verdict === "better"; }).length;
+  var means = { text: (won ? [] : [html`${numSpan("0 of " + rows.length)} ${vw("better")}`]).concat(verdictLines(measured, m, rows.length), [
+      notM.length ? notM.map(function (r) { return r.label + " " + r.status; }).join(", ") : null]) };
+  return html`<${Card} id="table" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast} images=${false}
+    question=${"Every version on " + mlabel(m)} controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>`}
+    rows=${function () { return sorted.map(function (r) { return { version: r.label, what_changed: r.what, metric: key, pct_better: r.pct, change: r.pct == null ? "" : chg(m, r.pct), ci_low_pct: r.lo, ci_high_pct: r.hi, verdict: r.verdict ? VERDICT[r.verdict] : r.status, iterations: r.runs, commit: r.commit, failed_correctness_check: r.failed }; }); }} means=${means}>
+    <table class="sum">
+      <thead><tr>${th("version", "Version")}${th("what", "What changed", false, "wide")}${th("pct", "Change vs the original", true)}${th("lo", "95% interval", true, "wide")}${th("verdict", "Verdict")}${th("runs", "Itera\u00ADtions", true)}${th("commit", "Commit", false, "wide")}</tr></thead>
+      <tbody>${sorted.map(function (r) { return html`<tr key=${r.label}>
+        <td>${r.failed ? "✕ " : ""}${r.label}<span class="sub">${softBreaks(r.what) || "no title"}</span></td><td class="wide">${softBreaks(r.what) || "no title"}</td>
+        <td class="n">${r.pct == null ? "" : chg(m, r.pct)}${r.lo == null ? null : html`<span class="sub">${ivl(m, r.lo, r.hi)}</span>`}</td><td class="n wide">${r.lo == null ? "" : ivl(m, r.lo, r.hi)}</td>
+        <td class=${r.verdict ? "v-" + r.verdict : ""}>${r.verdict ? vWord(r.verdict) : r.status}</td><td class="n">${r.runs || ""}</td><td class="wide">${r.commit}</td></tr>`; })}</tbody>
+    </table>
+  <//>`;
+}
+
+/* ---------- 7. Pareto: an analytical view over two chosen metrics (More charts) ---------- */
+function dominatesRule(a, b, axes) {  // the collector's rule (collect_discovery.py pareto_front): at least as good on both, better on one
+  var ge = true, gt = false;
+  axes.forEach(function (ax) { var x = a.values[ax.key], y = b.values[ax.key]; var better = ax.hib ? x > y : x < y, worse = ax.hib ? x < y : x > y; if (worse) ge = false; if (better) gt = true; });
+  return ge && gt;
+}
+function axisName(m) { return (m.kind === "quality" ? "AI score: " : "") + mlabel(m); }  // an AI Metric's axis says it is an opinion score; the direction goes in a line under the heading, which declutter() never cuts
+function ParetoCard(props) {
+  var D = props.D, T = props.T, W = props.W, sp = D.s.pareto, dflt = pareto(D) || {};
+  var cs = useCard(props.scope, "pareto", {}), c = cs[0], hd = c.hidden || {}, off = c.offV || [];
+  var kx = c.x && D.byKey[c.x] ? c.x : dflt.x, ky = c.y && D.byKey[c.y] ? c.y : dflt.y, mx = D.byKey[kx], my = D.byKey[ky];
+  if (!mx || !my) return null;
+  var axes = [{ key: kx, hib: !!mx.higherIsBetter }, { key: ky, hib: !!my.higherIsBetter }];
+  var fromSnap = !!(sp && sp.axes && Array.isArray(sp.points) && sp.axes[0].key === kx && sp.axes[1].key === ky);
+  var pts = fromSnap ? sp.points.map(function (p) { return { label: p.label, version: p.version, values: p.values, dominated: p.dominated }; })
+    : D.versions.map(function (v) { var a = mstat(v, kx), b = mstat(v, ky); if (!a || !b || a.mean == null || b.mean == null) return null; var vals = {}; vals[kx] = a.mean; vals[ky] = b.mean; return { label: v.label, version: v.version, values: vals }; }).filter(Boolean);
+  if (!fromSnap) pts.forEach(function (p) { p.dominated = pts.some(function (o) { return o !== p && dominatesRule(o, p, axes); }); });
+  pts = pts.filter(function (p) { return off.indexOf(p.label) < 0; });
+  var onChart = pts.map(function (p) { return p.label; }), notOn = D.versions.filter(function (v) { return off.indexOf(v.label) < 0 && onChart.indexOf(v.label) < 0; }).map(function (v) { return v.label; });
+  var data = pts.map(function (p) { var v = D.byLabel[p.label]; return { x: p.values[kx], y: p.values[ky], label: p.label, front: !p.dominated, tip: [p.label + (v && v.experimentTitle ? ": " + v.experimentTitle : ""), mlabel(mx) + " " + fmtNum(p.values[kx]) + unitOf(mx), mlabel(my) + " " + fmtNum(p.values[ky]) + unitOf(my), "~" + (p.dominated ? "Beaten on both axes by another version" : "Not beaten on both axes at once")] }; });
+  var front = data.filter(function (d) { return d.front; }), rest = data.filter(function (d) { return !d.front; });
+  var bx = D.s.baseline.metrics[kx], by = D.s.baseline.metrics[ky];
+  var basePt = bx && by && bx.mean != null && by.mean != null ? [{ x: bx.mean, y: by.mean, label: "Original", tip: ["Original", mlabel(mx) + " " + fmtNum(bx.mean) + unitOf(mx), mlabel(my) + " " + fmtNum(by.mean) + unitOf(my)] }] : [];
+  var series = [{ key: "front", label: "On the front (filled)", color: T.accent, shape: "dot" }, { key: "other", label: "Beaten on both (outline)", color: T.accent, shape: "ring" }, { key: "baseline", label: "Original", color: T.baseline }];
+  var width = Math.max(W, 300);
+  var xs = data.map(function (d) { return d.x; }).concat(basePt.map(function (b) { return b.x; })), yv = data.map(function (d) { return d.y; }).concat(basePt.map(function (b) { return b.y; }));
+  var padOf = function (a) { var lo = Math.min.apply(null, a), hi = Math.max.apply(null, a), d = (hi - lo) * 0.08 || Math.abs(hi) * 0.05 || 0.5; return [lo - d, hi + d]; };
+  var px = padOf(xs), py = padOf(yv), axX = niceAxis(px[0], px[1], W < 560 ? 3 : 5), axY = niceAxis(py[0], py[1], 4);
+  var unit01 = function (a, ax) { if (Math.min.apply(null, a) >= 0 && Math.max.apply(null, a) <= 1 && ax.domain[1] > 1) { ax.domain[1] = 1; ax.ticks = ax.ticks.filter(function (t) { return t <= 1; }); } };
+  unit01(xs, axX); unit01(yv, axY);
+  var allM = D.metrics.filter(function (m) { return m.higherIsBetter != null; });
+  var sel = function (val, k) { return html`<${Ctl} label=${k === "x" ? "Across" : "Up"}><select value=${val} onChange=${function (e) { var o = {}; o[k] = e.target.value; cs[1](o); }}>${allM.map(function (m) { return html`<option key=${m.key} value=${m.key}>${mlabel(m)}</option>`; })}</select><//>`; };
+  var ptShape = function (filled) { return function (p) { var d = p.payload; return h("g", null,
+    h("circle", { cx: p.cx, cy: p.cy, r: 7, fill: filled ? T.accent : T.card, stroke: T.accent, strokeWidth: 2.2 }),
+    h("text", { x: p.cx, y: p.cy - 13, textAnchor: "middle", fontSize: 15, fill: T.fg, fontWeight: d.front ? 600 : 400 }, d.label)); }; };
+  var means = { text: [
+      html`Not beaten on both: ${numSpan(front.map(function (d) { return d.label; }).join(", ") || "none")}`,
+      html`Beaten on both by another version: ${numSpan(String(rest.length))}`,
+      "This page draws the front from the means; it is an analysis, not an Artemis verdict" + (mx.kind === "quality" || my.kind === "quality" ? ", and an AI Metric is an opinion of the code" : "")] };
+  return html`<${Card} id="pareto" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question=${"Which versions trade " + mlabel(mx) + " against " + mlabel(my) + " best?"} series=${series} tag="Analysis, not an Artemis verdict"
+    controls=${html`${sel(kx, "x")}${sel(ky, "y")}`} versionChoices=${D.versions.map(function (v) { return v.label; })}
+    after=${notOn.length ? html`<p class="missing">Not on this chart (no ${mlabel(mx)} or no ${mlabel(my)}): ${notOn.join(", ")}</p>` : null}
+    rows=${function () { return data.map(function (d) { return { version: d.label, x_metric: kx, x_mean: d.x, y_metric: ky, y_mean: d.y, on_front: d.front }; }).concat(basePt.map(function (b) { return { version: "original", x_metric: kx, x_mean: b.x, y_metric: ky, y_mean: b.y, on_front: "" }; })); }}
+    means=${means}>
+    ${data.length ? html`<p class="psub xt">Across: ${axisName(mx)}, ${dirText(mx)}. Up: ${axisName(my)}, ${dirText(my)}.</p>` : null}
+    ${data.length ? html`<${RC.ScatterChart} width=${width} height=${380} margin=${{ top: 28, right: 28, left: 8, bottom: 30 }}>
+      <${RC.CartesianGrid} strokeDasharray="2 3" stroke=${T.grid}/>
+      <${RC.XAxis} type="number" dataKey="x" name=${mlabel(mx)} domain=${axX.domain} ticks=${axX.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${fmtTickNum}
+        label=${{ value: axisName(mx), position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
+      <${RC.YAxis} type="number" dataKey="y" name=${mlabel(my)} domain=${axY.domain} ticks=${axY.ticks} width=${Math.max(66, Math.ceil(Math.max.apply(null, axY.ticks.map(function (t) { return String(fmtTickNum(t)).length; })) * 9) + 26)} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${fmtTickNum}
+        label=${{ value: axisName(my), angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } }}/>
+      <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${false} isAnimationActive=${false}/>
+      ${!hd.other ? html`<${RC.Scatter} data=${rest} isAnimationActive=${false} shape=${ptShape(false)}/>` : null}
+      ${!hd.baseline && basePt.length ? html`<${RC.Scatter} data=${basePt} isAnimationActive=${false} shape=${function (p) { return h("g", null, h("rect", { x: p.cx - 7, y: p.cy - 7, width: 14, height: 14, rx: 3, fill: T.baseline, stroke: T.card, strokeWidth: 2 }), h("text", { x: p.cx, y: p.cy + 24, textAnchor: "middle", fontSize: 15, fill: T.fg }, "Original")); }}/>` : null}
+      ${!hd.front ? html`<${RC.Scatter} data=${front} isAnimationActive=${false} shape=${ptShape(true)}/>` : null}
+    <//>` : html`<div class="sparse">No version has both ${mlabel(mx)} and ${mlabel(my)}.</div>`}
+  <//>`;
+}
+
+/* ---------- 8. AI Metrics, their own card: direction only, never a verdict (More charts) ---------- */
+function hasAIScores(D) { return D.quality.some(function (m) { return D.versions.some(function (v) { var st = mstat(v, m.key); return st && st.mean != null; }); }); }
+function AICard(props) {
+  var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "ai", {}), c = cs[0], hd = c.hidden || {}, off = c.offV || [];
+  if (!D.quality.length) return null;
+  var qs = D.quality.filter(function (m) { return (c.offM || []).indexOf(m.key) < 0; });
+  var noneOn = !qs.length;  // every AI Metric unticked under Metrics
+  var series = [{ key: "up", label: "Better than the original's score", color: T.better }, { key: "eq", label: "Same score", color: T.neutral }, { key: "down", label: "Worse than the original's score", color: T.worse }];
+  var rowsAll = [], counted = [], pw = W >= 820 ? Math.floor((W - 28) / 2) : W;
+  var panels = qs.map(function (m) {
+    var b = (D.s.baseline.metrics[m.key] || {}).mean, directed = m.higherIsBetter != null, notes = [], neverRan = [], unscored = [];
+    var rows = D.versions.filter(function (v) { return off.indexOf(v.label) < 0; }).map(function (v) {
+      var st = mstat(v, m.key); if (!st || st.mean == null) { unscored.push(v.label); return null; }
+      if (v.executionStatus === "failed") neverRan.push(v.label);
+      var pct = st.pctBetter, d = pct == null ? null : pct > 0 ? "up" : pct < 0 ? "down" : "eq";
+      return { label: v.label, pct: pct == null ? null : Math.max(-100, Math.min(100, pct)), raw: pct, clip: pct == null ? 0 : pct > 100 ? 1 : pct < -100 ? -1 : 0, dir: d, ran: v.executionStatus !== "failed",
+        tip: [v.label + (v.experimentTitle ? ": " + v.experimentTitle : ""), "Score " + fmtNum(st.mean) + (b != null ? " against the original's " + fmtNum(b) : ""), pct != null ? fmtPct(pct) + " vs the original's score" : "No % from Artemis", v.executionStatus === "failed" ? "~Never ran (execution failed); the AI judge read the code only" : "~An opinion of the code, not a measurement"] };
+    }).filter(Boolean);
+    // The count is over every score with a %, whatever the legend hides; a score with no % is named under its panel.
+    if (directed) rows.forEach(function (r) { if (r.pct != null) counted.push(r.dir); });
+    var noPctRows = directed && rows.some(function (r) { return r.pct != null; }) ? rows.filter(function (r) { return r.pct == null; }).map(function (r) { return r.label; }) : [];
+    var drawn = rows.filter(function (r) { return directed && r.pct != null && !hd[r.dir]; });
+    drawn.forEach(function (r) { rowsAll.push({ metric: m.key, version: r.label, pct_vs_original: r.raw, original_score: b, direction: r.dir, ran: r.ran }); });
+    if (!rows.length) notes.push(off.length && D.versions.every(function (v) { return off.indexOf(v.label) >= 0; }) ? "Every version is hidden." : "No version has a score on " + mlabel(m) + ".");
+    else if (!directed) notes.push("No stored direction, so no better or worse.");
+    else if (!rows.some(function (r) { return r.pct != null; })) notes.push("No % from Artemis: the original scores " + fmtNum(b) + ", so a % change is not defined. Scores: " + D.versions.map(function (v) { var st = mstat(v, m.key); return st && st.mean != null ? v.label + " " + fmtNum(st.mean) : null; }).filter(Boolean).join(", ") + ".");
+    if (!drawn.length && rows.some(function (r) { return r.pct != null; })) notes.push("Every series is hidden.");
+    return { m: m, rows: drawn, b: b, notes: notes, neverRan: neverRan, noPct: noPctRows, unscored: rows.length ? unscored : [] };
+  });
+  var up = counted.filter(function (d) { return d === "up"; }).length;
+  var means = { text: [html`${numSpan(up + " of " + counted.length)} scores beat the original's, across ${qs.length === 1 ? "1 AI Metric" : qs.length + " AI Metrics"}`, "The AI judge's opinions of the code, not verdicts"] };
+  // A score past ±100% stops at the axis edge in an arrowhead (the outlier rule); its label prints the real value.
+  var bar = function (sp) { var p = sp.payload || {}, x = Math.min(sp.x, sp.x + sp.width), ww = Math.max(Math.abs(sp.width), 3), cl = p.dir === "up" ? T.better : p.dir === "down" ? T.worse : T.neutral, cy = sp.y + sp.height / 2;
+    var tip = p.clip < 0 ? x : x + ww, back = p.clip < 0 ? 10 : -10;
+    return h("g", null, h("rect", { x: p.dir === "eq" ? x - 1.5 : x, y: sp.y, width: ww, height: sp.height, rx: 3, fill: cl }),
+      p.clip ? h("polygon", { className: "clip-arrow", points: [tip, cy, tip + back, sp.y + 2, tip + back, sp.y + sp.height - 2].join(" "), fill: T.card, stroke: "none" }) : null); };
+  var lblOf = function (rows) { return function (lp) { var r = rows[lp.index]; if (!r || r.raw == null) return null; var v = r.raw, neg = v < 0, xEnd = neg ? Math.min(lp.x, lp.x + lp.width) - 6 : Math.max(lp.x, lp.x + lp.width) + 6; if (v === 0) return h("text", { x: lp.x + 8, y: lp.y + lp.height / 2 + 5, textAnchor: "start", fontSize: 15, fill: T["text-2"], fontFamily: NUMFONT }, "0%");  // the same score: plain, not the amber of a verdict
+    return h("text", { x: xEnd, y: lp.y + lp.height / 2 + 5, textAnchor: neg ? "end" : "start", fontSize: 15, fill: T.fg, fontFamily: NUMFONT }, fmtPct(v).replace(".0%", "%")); }; };
+  return html`<${Card} id="ai" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question="What did the AI judge think of each version?" series=${series} tag="Opinions, not verdicts"
+    metricChoices=${D.quality} versionChoices=${D.versions.map(function (v) { return v.label; })} rows=${function () { return rowsAll; }} means=${noneOn ? null : means}>
+    <div class=${W >= 820 ? "two" : "one"}>${panels.map(function (p) {
+      return html`<div class="panel" key=${p.m.key}>
+        <p class="ptitle xt" title=${(p.m.description || "") + " (" + p.m.key + ")"}>${mlabel(p.m)}</p>
+        <p class="psub xt">${p.b != null ? "Original scores " + fmtNum(p.b) : "No original score"}</p>
+        ${p.rows.length ? html`<${RC.BarChart} width=${pw} height=${66 + p.rows.length * 30} data=${p.rows} layout="vertical" margin=${{ top: 6, right: 56, left: 4, bottom: 6 }}>
+          <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
+          <${RC.XAxis} type="number" domain=${[-100, 100]} ticks=${[-100, -50, 0, 50, 100]} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${function (v) { return fmtPct(v).replace(".0%", "%"); }}/>
+          <${RC.YAxis} type="category" dataKey="label" width=${36} tick=${axisTick(T)} tickLine=${false} axisLine=${false} interval=${0}/>
+          <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.5}/>
+          <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.4 }} isAnimationActive=${false}/>
+          <${RC.Bar} dataKey="pct" isAnimationActive=${false} barSize=${18} shape=${bar}>
+            <${RC.LabelList} dataKey="pct" content=${lblOf(p.rows)}/>
+          <//>
+        <//>` : html`<p class="missing">${p.notes.join(" ")}</p>`}
+        ${p.neverRan.length && p.rows.length ? html`<p class="psub xt">Never ran (judged from the code only): ${p.neverRan.join(", ")}</p>` : null}
+        ${p.noPct.length ? html`<p class="missing">No % from Artemis: ${p.noPct.join(", ")}</p>` : null}
+        ${p.unscored.length ? html`<p class="missing">No score: ${p.unscored.join(", ")}</p>` : null}
+      </div>`;
+    })}</div>
+    ${noneOn ? html`<div class="sparse">No AI Metric is selected.</div>` : null}
+  <//>`;
+}
+
+/* ---------- 0. Several Discovery sessions in one project: each against its own original, the line pattern follows the session ---------- */
+function SessionsCard(props) {
+  var ds = props.ds, sel = (props.sel || 0) + 1, T = props.T, W = props.W, cs = useCard(props.scope, "sessions", { mode: "ranked" }), c = cs[0], hd = c.hidden || {};
+  var snaps = ds.sessions, s0 = snaps[0];
+  // Repeats of one task, or different tasks: always Discovery sessions; different tasks get their own heading and a line saying their sizes don't compare.
+  var diff = differentTasks(snaps), SESSION = "Discovery session";  // never "Run N" for a Discovery session
+  var shared = leadOrder(s0).filter(function (m) { return snaps.every(function (sn) { return (sn.metrics || []).some(function (x) { return x.key === m.key; }); }); });
+  var key = c.metric && shared.some(function (m) { return m.key === c.metric; }) ? c.metric : (shared[0] || {}).key, m = shared.filter(function (x) { return x.key === key; })[0];
+  if (!m) {  // nothing to rank the sessions on: the card says so and names each session's own targets
+    var own = snaps.map(function (sn, i) { var ts = (sn.metrics || []).filter(function (x) { return x.kind === "target" && x.higherIsBetter != null; }).map(mlabel); return SESSION + " " + (i + 1) + ": " + (ts.join(", ") || "none"); });
+    return html`<section class="card" data-card="sessions"><div class="head"><img class="mark" src=${ICON} alt="" aria-hidden="true"/><h2>How did each Discovery session do?</h2></div>
+      <div class="plot"><div class="sparse">No target metric with a direction is shared by every session, so their versions can't be ranked together. ${own.join("; ")}.</div></div></section>`;
+  }
+  var colors = [T.fg, T.fg], dashes = [null, "6 4"], many = snaps.length > 2;
+  // Two sessions draw solid and dashed lines; from three, each gets its own pattern, named in the legend and at the line's end.
+  var PATTERNS = [[null, "solid"], ["6 4", "dashed"], ["2 3", "dotted"], ["10 3 2 3", "dash-dot"], ["1 6", "sparse dots"], ["16 5", "long dash"]];
+  var patOf = function (i) { return PATTERNS[i % PATTERNS.length]; };
+  var mode = c.mode || "ranked";
+  var failedOf = function (i) { return (ds.correctness && ds.correctness[String(i + 1)]) || []; };
+  var width = Math.max(W, 300), narrow = W < 560, rows = [];  // a phone's rows fit a three-line name (58px)
+  snaps.forEach(function (sn, i) {
+    if (mode === "time" && hd["s" + (i + 1)]) return;  // a session's line hidden in Over time stays in Ranked
+    var vs = {}; (sn.versions || []).forEach(function (v) { vs[v.label] = v; });
+    ((sn.rankings || {})[key] || []).forEach(function (r) {
+      var v = vs[r.label], vb = vsb(v, key), bad = failedOf(i).indexOf(r.version) >= 0;
+      rows.push({ label: (bad ? "✕ " : "") + SESSION + " " + (i + 1) + "|version " + r.label.replace(/^v/, ""), pct: r.pctBetter, session: i + 1, version: r.label, verdict: verdictOf(vb), failed: bad, tip: [SESSION + " " + (i + 1)].concat(versionTip(bad ? Object.assign({}, v, { _failed: true }) : v, key, m)) });
+    });
+  });
+  rows.sort(function (a, b) { return b.pct - a.pct; });
+  var series = mode === "time" ? snaps.map(function (sn, i) { return { key: "s" + (i + 1), label: SESSION + " " + (i + 1) + " (" + (many ? patOf(i)[1] : i ? "dashed" : "solid") + ")", color: T.fg, shape: "line" }; })
+    : verdictSeries(T, rows.map(function (r) { return r.verdict; }));
+  rows = rows.filter(function (r) { return mode === "time" || !hd[r.verdict]; });
+  // From 6 Discovery sessions up, Ranked shows each session's top version (its top correct one when --failed marks some); "All N versions" brings the rest back.
+  var big = snaps.length >= 6, total = rows.length, tops = big && c.show !== "all", allRows = rows;
+  if (tops) rows = rows.filter(function (r) { var own = rows.filter(function (x) { return x.session === r.session; }), pick = own.filter(function (x) { return !x.failed; })[0] || own[0]; return pick === r; });
+  // Every version number any session has, in order: a snapshot cut to v1, v4, v5 keeps those numbers, never v1 to v3.
+  var nums = []; snaps.forEach(function (sn) { (sn.versions || []).forEach(function (v) { if (v.version != null && nums.indexOf(v.version) < 0) nums.push(v.version); }); });
+  nums.sort(function (a, b) { return a - b; }); if (!nums.length) nums = [1];
+  var line = [];
+  nums.forEach(function (n) { var row = { v: n, tip: ["v" + n] }; snaps.forEach(function (sn, i) { var v = (sn.versions || []).filter(function (x) { return x.version === n; })[0], st = mstat(v, key); row["s" + (i + 1)] = st && st.pctBetter != null ? st.pctBetter : null; row.tip.push(SESSION + " " + (i + 1) + ": " + (st && st.pctBetter != null ? chg(m, st.pctBetter) : "no value") + (failedOf(i).indexOf(n) >= 0 ? " ✕" : "")); }); line.push(row); });
+  var far = farOutliers(rows.map(function (r) { return { key: r.label, lo: Math.min(0, r.pct), hi: Math.max(0, r.pct) }; })), near = rows.filter(function (r) { return far.indexOf(r.label) < 0; });
+  var lo = Math.min.apply(null, [0].concat(near.map(function (r) { return r.pct; }))), hi = Math.max.apply(null, [0].concat(near.map(function (r) { return r.pct; })));
+  rows.forEach(function (r) { if (far.indexOf(r.label) >= 0) { if (r.pct < 0) lo = Math.min(lo, -hi / 4); else hi = Math.max(hi, -lo / 4); } });  // a clipped bar keeps room for its arrow
+  var ax = evenAxis(sideDomain(lo, hi), pctCap(m, ((snaps[0] || {}).baseline || { metrics: {} }).metrics[key]), narrow), dom = ax.domain;
+  rows.forEach(function (r) { r.shown = clampTo(r.pct, dom); r.clip = r.pct < dom[0] ? -1 : r.pct > dom[1] ? 1 : 0; });
+  var ys = []; line.forEach(function (r) { snaps.forEach(function (sn, i) { if (r["s" + (i + 1)] != null) ys.push(r["s" + (i + 1)]); }); }); ys.push(0);
+  var lineAx = niceAxis(Math.min.apply(null, ys), Math.max.apply(null, ys), 5);
+  // End labels for 3+ sessions: where line ends sit closer than a label's height, spread them 18px apart and keep them inside the plot.
+  var endY = {}, plotH = 280, perPx = (lineAx.domain[1] - lineAx.domain[0]) / plotH;
+  if (many) {
+    var ends = snaps.map(function (sn, i) { var last = null; line.forEach(function (r) { if (r["s" + (i + 1)] != null) last = r["s" + (i + 1)]; }); return { i: i, n: last == null ? null : (lineAx.domain[1] - last) / perPx }; })
+      .filter(function (e) { return e.n != null && !hd["s" + (e.i + 1)]; }).sort(function (a, b) { return a.n - b.n || a.i - b.i; });
+    ends.forEach(function (e, k) { e.y = k ? Math.max(e.n, ends[k - 1].y + 18) : e.n; });
+    for (var k = ends.length - 1; k >= 0; k--) ends[k].y = Math.min(ends[k].y, k === ends.length - 1 ? plotH - 10 : ends[k + 1].y - 18);
+    ends.forEach(function (e) { endY[e.i] = e.y - e.n; });
+  }
+  var parts = snaps.map(function (sn, i) {
+    var ok = ((sn.rankings || {})[key] || []).filter(function (r) { return failedOf(i).indexOf(r.version) < 0; })[0];
+    if (!ok) return SESSION + " " + (i + 1) + (failedOf(i).length ? " has no correct version with a change" : " has no version with a change on " + mlabel(m));
+    var v = (sn.versions || []).filter(function (x) { return x.version === ok.version; })[0], vb = vsb(v, key), top = ((sn.rankings || {})[key] || [])[0];
+    return html`${SESSION} ${i + 1}'s top${failedOf(i).length ? " correct version" : ""} on ${mlabel(m)}: ${numSpan(ok.label + ", " + chg(m, ok.pctBetter))}${vb ? html`, ${vw(verdictOf(vb))}` : ""}${top && top.version !== ok.version ? " (" + top.label + ", ranked higher, failed your correctness check)" : ""}`;
+  });
+  var unranked = snaps.map(function (sn, i) { var r = ((sn.rankings || {})[key] || []).map(function (x) { return x.label; }), u = (sn.versions || []).filter(function (v) { return r.indexOf(v.label) < 0; }).map(function (v) { return v.label; }); return u.length ? SESSION + " " + (i + 1) + " " + u.join(", ") : null; }).filter(Boolean);
+  var bad = snaps.map(function (sn, i) { return failedOf(i).length ? SESSION + " " + (i + 1) + " " + failedOf(i).map(function (x) { return "v" + x; }).join(", ") : null; }).filter(Boolean);
+  var anyBad = bad.length > 0;
+  var means = { text: [diff ? "Each Discovery session here is a different task, so compare verdicts, not sizes" : null].concat(parts, [anyBad ? vw("worse", "Versions marked ✕ failed your correctness check: measured but not usable") : null]) };
+  var colorOf = function (p) { if (p.verdict === "pending") return pendInk(T, p.pct); var sv = series.filter(function (x) { return x.key === p.verdict; })[0]; return sv ? sv.color : vFill(T, p.verdict) || T.neutral; };
+  return html`<${Card} id="sessions" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question=${diff ? "Discovery sessions in this project (each against its own original)" : "How did each Discovery session do on " + mlabel(m) + "?"} series=${series}
+    controls=${html`<${Ctl} label="Metric"><select value=${key} onChange=${function (e) { cs[1]({ metric: e.target.value }); }}>${shared.map(function (x) { return html`<option key=${x.key} value=${x.key}>${mlabel(x)}</option>`; })}</select><//>
+      <${Seg} label="View" value=${mode} onChange=${function (v) { cs[1]({ mode: v }); }} options=${[["ranked", "Ranked"], ["time", "Over time"]]}/>
+      ${big && mode === "ranked" ? html`<${Seg} label="Show" value=${tops ? "top" : "all"} onChange=${function (v) { cs[1]({ show: v }); }} options=${[["top", "Each " + SESSION + "'s top"], ["all", "All " + total + " versions"]]}/>` : null}`}
+    rows=${function () { return allRows.map(function (r) { return { session: r.session, version: r.version, metric: key, pct_better: r.pct, verdict: r.verdict ? VERDICT[r.verdict] : "", failed_correctness_check: r.failed }; }); }}
+    means=${means} after=${html`${unranked.length ? html`<p class="missing">No change on ${mlabel(m)}: ${unranked.join("; ")}</p>` : null}${bad.length ? html`<p class="missing">✕ Failed your correctness check: ${bad.join("; ")}. The check is yours, outside the snapshot.</p>` : null}`}>
+    ${mode === "ranked" ? html`<${RC.BarChart} width=${width} height=${50 + rows.length * (narrow ? 58 : 44)} data=${rows} layout="vertical" margin=${{ top: 10, right: narrow ? 118 : 270, left: 4, bottom: 26 }}>
+      <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
+      <${RC.XAxis} type="number" domain=${dom} ticks=${ax.ticks} interval=${0} allowDataOverflow=${true} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${function (v) { return fmtPct(v).replace(".0%", "%"); }}
+        label=${{ value: narrow ? "% better →" : "← worse     % better than its own " + SESSION + "'s original     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
+      ${rows.filter(function (r) { return r.session === sel; }).map(function (r) { return html`<${RC.ReferenceArea} key=${"sel" + r.label} y1=${r.label} y2=${r.label} fill=${T.grid} fillOpacity=${0.55} stroke="none" ifOverflow="hidden"/>`; })}
+      <${RC.YAxis} type="category" dataKey="label" width=${narrow ? 92 : 156} tick=${function (tp) {
+        // "Discovery session N" over "version M"; a phone breaks the first line after "Discovery".
+        var l = String(tp.payload.value).split("|"), on = (rows[tp.index] || {}).session === sel, head = narrow ? l[0].replace(/^((?:✕ )?Discovery) /, "$1|").split("|") : [l[0]], lines = head.concat([l[1]]);
+        return h("text", { x: tp.x - 6, y: tp.y + 5 - (lines.length - 1) * 7.5, textAnchor: "end", fontSize: 15, fill: T.fg }, lines.map(function (t, i) { return h("tspan", { key: i, x: tp.x - 6, dy: i ? 15 : 0, fontWeight: i < head.length ? (on ? 700 : 500) : (on ? 600 : 400) }, t); })); }} tickLine=${false} axisLine=${false} interval=${0}/>
+      <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.5}/>
+      <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.4 }} isAnimationActive=${false}/>
+      <${RC.Bar} dataKey="shown" isAnimationActive=${false} barSize=${22} shape=${hbarShape(T, colorOf)}>
+        <${RC.LabelList} dataKey="shown" content=${barLabel(T, rows, narrow, m)}/>
+      <//>
+    <//>` : html`<${RC.LineChart} width=${width} height=${340} data=${line} margin=${{ top: 18, right: many ? 104 : 28, left: 8, bottom: 10 }}>
+      <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
+      <${RC.XAxis} dataKey="v" type="number" domain=${[nums[0] - 0.5, nums[nums.length - 1] + 0.5]} ticks=${line.map(function (r) { return r.v; })} tickFormatter=${function (n) { return "v" + n; }} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0}/>
+      <${RC.YAxis} width=${78} domain=${lineAx.domain} ticks=${lineAx.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${function (v) { return v === 0 ? "original" : fmtPct(v).replace(".0%", "%"); }}/>
+      <${RC.ReferenceLine} y=${0} stroke=${T.fg} strokeWidth=${1.5}/>
+      <${RC.Tooltip} position=${tipPos()} content=${Tip} isAnimationActive=${false}/>
+      ${snaps.map(function (sn, i) { return hd["s" + (i + 1)] ? null : html`<${RC.Line} key=${i} type="linear" dataKey=${"s" + (i + 1)} stroke=${colors[i % 2]} strokeWidth=${i + 1 === sel ? 3 : 1.5} strokeDasharray=${(many ? patOf(i)[0] : dashes[i % 2]) || undefined} connectNulls=${false} isAnimationActive=${false} label=${many ? function (lp) { var last = -1; line.forEach(function (r, j) { if (r["s" + (i + 1)] != null) last = j; }); return lp.index === last && lp.y != null ? h("text", { key: "end" + i, x: lp.x + 10, y: lp.y + 5 + (endY[i] || 0), fontSize: 15, fontWeight: 600, fill: T.fg }, SESSION + " " + (i + 1)) : h("g", { key: "e" + lp.index }); } : undefined} dot=${function (dp) { var vv = (snaps[i].versions || []).filter(function (x) { return x.version === dp.payload.v; })[0], vb = vsb(vv, key); if (dp.payload["s" + (i + 1)] == null || dp.cy == null) return h("g", { key: dp.index }); var vd = verdictOf(vb), cl = vd === "pending" ? pendInk(T, dp.payload["s" + (i + 1)]) : vFill(T, vd) || T.neutral, hollow = vd === "pending" || vd === "none"; return h("circle", { key: dp.index, cx: dp.cx, cy: dp.cy, r: 6, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 2 }); }}/>`; })}
+    <//>`}
+  <//>`;
+}
+
+/* ---------- the page ---------- */
+function App() {
+  var dsState = useState(function () { var d = START ? START.dataset : ONLY ? FIRST : load("dataset", FIRST); return SNAPS[d] ? d : FIRST; }), dataset = dsState[0], setDataset = dsState[1];
+  var th = useState(function () { return load("theme", "auto"); }), theme = th[0], setTheme = th[1];
+  var ss = useState(function () { return START ? START.session || 0 : ONLY ? 0 : load("session", 0); }), sess = ss[0], setSess = ss[1];
+  var tv = useState(0), themeTick = tv[0], bump = tv[1];
+  var ts = useState(null), toastMsg = ts[0], setToast = ts[1];
+  var rk = useState(0), resetKey = rk[0], setResetKey = rk[1];
+  var mo = useState(function () { return START && START.more ? true : load("more", false); }), moreOpen = mo[0], setMore = mo[1];  // START.more: the checker draws More too
+  var wrap = useRef(null), W = useWidth(wrap);
+  useEffect(function () {
+    var r = document.documentElement; if (theme === "auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme", theme); store("theme", theme); bump(function (x) { return x + 1; });
+    if (theme === "auto" && window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"), f = function () { bump(function (x) { return x + 1; }); }; mq.addEventListener("change", f); return function () { mq.removeEventListener("change", f); }; }
+  }, [theme]);
+  useEffect(function () { store("dataset", dataset); }, [dataset]);
+  useEffect(function () { store("session", sess); }, [sess]);
+  var toast = useCallback(function (m) { setToast(m); setTimeout(function () { setToast(null); }, 2600); }, []);
+  var ds = SNAPS[dataset], si = ds && ds.multi ? Math.min(sess, ds.sessions.length - 1) : 0, s = sessionSnap(ds, si);
+  var failed = ds && ds.multi ? (ds.correctness ? ds.correctness[String(si + 1)] || null : null) : RUN_FAILED[dataset] || null;
+  FAILED_NOW = failed || [];  // read by every card's note and CSV
+  // A remembered session that no longer exists: the page draws the last one, and says so.
+  var clamped = !START && ds && ds.multi && sess > ds.sessions.length - 1 ? html`<p class="warn">The Discovery session you last opened is gone; showing session ${ds.sessions.length}.</p>` : null;
+  var D = useMemo(function () { return s ? prep(s, failed) : null; }, [dataset, si]);
+  var T = useMemo(tokens, [themeTick]);
+  window.SNAPSHOT = s || null;  // the snapshot on screen, for check_report.py --studio
+  window.STUDIO_ONLY = ONLY;  // a one-card page has no h1; its card heading is the title
+  window.STUDIO_MULTI = !!(ds && ds.multi);  // a project view always carries its sessions card
+  window.STUDIO_VIEW_DRAWN = { dataset: dataset, session: si };
+  // The user's correctness marks on this view, read straight from the embedded data, so the checker can tell if the page drops them.
+  window.STUDIO_FAILED = ((DATA.datasets || []).filter(function (d) { return d.id === dataset; }).map(function (d) { return (d.correctness || {})[String(si + 1)]; })[0]) || [];
+  window.STUDIO_LEFT_OUT = LEFT_OUT[dataset] || [];  // runs left out of this project, for the checker  // the view on screen, so the checker can tell it drew the one it asked for
+  window.STUDIO_LABELS = s ? s.metrics.reduce(function (o, m) { o[m.key] = mlabel(m); return o; }, {}) : {};  // the names the page shows, for the checker
+  if (!s) return html`<div class="err">This snapshot did not load${SNAP_ERR ? ": " + SNAP_ERR : ""}.</div>`;
+  var scope = dataset + ":" + s.run.id + (ds.multi ? ":s" + (si + 1) : "");  // resetKey stays out: it only remounts the cards
+  var cardW = Math.max(0, W - 32 - 42);  // the page's 16px gutters, then the card's 20px padding and border
+  var pm = D.byKey[D.primary], bestV = D.best ? D.byLabel[D.best.label] : null, vb = bestV && pm ? vsb(bestV, pm.key) : null, one = vb && oneEach(vb, s.baseline.readings[pm.key]);
+  var title;
+  var noPct = !!(vb && changePhrase(pm, vb.improvementPct) == null), failedMark = bestV && bestV._failed ? " (✕ failed your correctness check)" : "";
+  if (bestV && vb && noPct) title = bestV.label + failedMark + " has " + NO_PCT + " on " + mlabel(pm) + ", " + VERDICT_SAY[verdictOf(vb)];
+  else if (bestV && vb) title = bestV.label + failedMark + " " + (pm.higherIsBetter === false && isTime(pm) ? "takes " : "is ") + changePhrase(pm, vb.improvementPct) + " than the original on " + mlabel(pm) + ", " + (one ? "1 run each, not confirmed" : VERDICT_SAY[verdictOf(vb)]);
+  else if (D.best) title = D.best.label + " leads; no Artemis comparison on " + mlabel(pm) + " yet";
+  else title = pm ? "No Best version on " + mlabel(pm) + " yet: " + (((D.s.perMetricWinners || {})[pm.key] || {}).reason || "no Artemis comparison yet") : "No measured metric to compare";
+  var w = pm ? (D.s.perMetricWinners[pm.key] || {}) : {};
+  // When the overall pick isn't the best on the lead metric, the headline names both, so it never reads as the fastest.
+  if (bestV && vb && !noPct && !bestV._failed && !one && w.raw && w.raw.version !== bestV.version)
+    title = bestV.label + ", Artemis's overall pick, " + (pm.higherIsBetter === false && isTime(pm) ? "takes " : "is ") + changePhrase(pm, vb.improvementPct) + " than the original on " + mlabel(pm) + ", " + VERDICT_SAY[verdictOf(vb)] + "; "
+      + w.raw.label + (pm.higherIsBetter === false && isTime(pm) ? " is fastest" : " does best") + " on " + mlabel(pm) + " alone (" + chg(pm, w.raw.pctBetter) + ")";
+  var gate = w.raw && !w.raw.eligible ? w.raw.label + " is the raw winner on " + mlabel(pm) + " but fails the eligibility gate (" + (w.raw.lifecycle !== "completed" ? "lifecycle " + w.raw.lifecycle : w.raw.executionStatus !== "success" ? "execution " + w.raw.executionStatus : "experiment " + w.raw.experimentStatus) + "); the best eligible version is " + (w.eligible ? w.eligible.label + " at " + chg(pm, w.eligible.pctBetter) : "none") + "." : null;
+  // How Best was chosen, in one line: falcon's Composite score, or the lead metric when the run has none.
+  var bestRule = !D.best ? null : D.best.byComposite === false ? "Best = the best version on " + mlabel(pm) + "." : "Best = highest Composite score across all metrics.";
+  // Each other metric whose own best is another version, in one bullet; the lead metric's own is a bullet of its own below.
+  var rawShown = !!(bestV && vb && !noPct && !bestV._failed && !one && w.raw && w.raw.version !== bestV.version);
+  var others = !D.best ? [] : Object.keys(D.best.notes || {}).filter(function (k) { return (k !== D.primary || !rawShown) && D.byKey[k]; }).map(function (k) { var x = /^(\S+) is best on /.exec(D.best.notes[k]); return x ? x[1] + " on " + mlabel(D.byKey[k]) : null; }).filter(Boolean);
+  var alsoBest = others.length ? "Also best on one metric: " + others.join(", ") : null;
+  var checks = directionChecks(D.s, D.best);  // the collector's stored-direction warnings, word for word
+  var topMeans = D.best && !(bestV && vb) ? { text: [bestRule, alsoBest].concat(noReading(D.best), checks) } : checks.length ? { text: checks } : null;
+  if (bestV && vb) {
+    var notes = [
+      vb.ciLowPct != null ? html`95% interval ${numSpan(ivl(pm, vb.ciLowPct, vb.ciHighPct))}, from ${runsWord(vb.readings)}` : null,
+      one ? vw("pending", "1 iteration each: a lead, not a result; measure again") : null,
+      bestV._failed ? html`${vw("worse", bestV.label + " failed your correctness check")}, so its change is not usable (failed here: ${D.failed.map(function (n) { return "v" + n; }).join(", ")})` : null,
+      null,  // the headline already names the best on the lead metric
+      gate];
+    topMeans = { text: [bestRule].concat(notes, [alsoBest], noReading(D.best), checks) };
+  }
+  // Runs the builder left out (no measured version) or the collector skipped: named on the page, not only on stderr.
+  var leftOut = LEFT_OUT[dataset].length ? html`<p class="warn">Not shown: ${LEFT_OUT[dataset].map(function (r) { return html`${r.id ? "run " + String(r.id).slice(0, 8) : "a run with no id"} (<span class="data">${r.reason}</span>)`; }).map(function (x, i) { return i ? html`; ${x}` : x; })}.</p>` : null;
+  var nonFinite = (D.s.nonFinite || []).length ? html`<p class="warn">Artemis sent ${D.s.nonFinite.length} value${D.s.nonFinite.length === 1 ? "" : "s"} that ${D.s.nonFinite.length === 1 ? "is" : "are"} not a number; read as missing: <span class="data">${D.s.nonFinite.slice(0, 3).join(", ")}${D.s.nonFinite.length > 3 ? " and " + (D.s.nonFinite.length - 3) + " more" : ""}</span>.</p>` : null;
+  var cp = { D: D, T: T, W: cardW, scope: scope, toast: toast };
+  var boxDefault = hasRuns(D, D.primary), pp = pareto(D), ai = hasAIScores(D);
+  var multi = !!ds.multi;  // the sessions card leads, then best, ranked and forest, and the table
+  var main = [["best", BestCard], ["ranked", RankedCard], ["forest", ForestCard]].concat(multi ? [] : [["time", TimeCard]], !multi && boxDefault ? [["box", BoxCard]] : [], [["table", SummaryCard]]);
+  var more = [].concat(multi ? [["time", TimeCard]] : [], multi || !boxDefault ? [["box", BoxCard]] : [], pp ? [["pareto", ParetoCard]] : [], ai ? [["ai", AICard]] : []);
+  if (D.plan.modelLed && pp) { main.splice(1, 0, ["pareto", ParetoCard]); more = more.filter(function (x) { return x[0] !== "pareto"; }); }
+  window.STUDIO_CARDS = ONLY ? [ONLY] : (ds.multi ? ["sessions"] : []).concat(main.concat(moreOpen ? more : []).map(function (x) { return x[0]; }));  // the cards this view must draw, for the checker
+  var render = function (x) { var C = x[1]; return h(Guard, { key: dataset + si + x[0] + resetKey, chart: true }, html`<${C} ...${cp}/>`); };  // one broken chart shows its own message
+  var foot = html`<footer>
+      <span>Discovery session <code>${s.run.id}</code></span><span>Runner <code>${s.run.runner || "unknown"}</code></span><span>Original commit <code>${shortSha(s.run.baselineVersionSha)}</code></span><span>${s.collectedAt ? "Collected " + String(s.collectedAt).slice(0, 16).replace("T", " ") + " UTC" : "Collection time not recorded"}</span>
+      ${runHref(s.run) ? html`<a href=${runHref(s.run)} target="_blank" rel="noopener">Open in Artemis</a>` : projectHref(s.run) ? html`<a href=${projectHref(s.run)} target="_blank" rel="noopener">Open the project in Artemis</a>` : html`<span>No Artemis link</span>`}
+    </footer>`;
+  // build_studio.py --only: one chart, drawn by the same card as in the studio, with no other cards or switchers.
+  if (ONLY) {
+    var pick = (ds.multi ? [["sessions", null]] : []).concat(main, more).filter(function (x) { return x[0] === ONLY; })[0];
+    var onlyCard = !pick ? html`<div class="err">This ${ds.multi ? "project" : "run"} has no ${ONLY} chart to draw.</div>`
+      : ONLY === "sessions" ? h(Guard, { key: dataset + "sessions", chart: true }, html`<${SessionsCard} ds=${ds} sel=${si} T=${T} W=${cardW} scope=${dataset + ":sessions"} toast=${toast}/>`) : render(pick);
+    // A one-card page has no headline, so it says how Best was chosen in one line that names the version, as the studio does.
+    var ofProject = !ds.multi ? null : ONLY === "sessions" ? html`<p class="lede">The Best line below is Discovery session 1's; the chart ranks all ${ds.sessions.length} sessions.</p>`
+      : html`<p class="lede">Drawn from Discovery session 1 of ${ds.sessions.length} in ${ds.label}.</p>`;  // which run a one-card page of a project shows
+    var why = !D.best && checks.length ? html`<p class="lede">${checks.join(" ")}</p>` : D.best ? html`<p class="lede">${[bestRule.replace(/\.$/, ": " + D.best.label + "."), rawShown ? w.raw.label + " does best on " + mlabel(pm) + " alone (" + chg(pm, w.raw.pctBetter) + ")." : null, alsoBest ? alsoBest + "." : null, gate].concat(noReading(D.best), checks).filter(Boolean).join(" ")}</p>` : null;
+    var themeBar = html`<div class="bar"><${Seg} label="Theme" value=${theme} onChange=${setTheme} options=${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]]}/></div>`;
+    return html`<div class="page" ref=${wrap}>${themeBar}${onlyCard}${ofProject}${why}${leftOut}${nonFinite}${foot}${toastMsg ? html`<div class="toast" role="status">${toastMsg}</div>` : null}</div>`;
+  }
+  return html`<div class="page" ref=${wrap}>
+    <header>
+      <div class="brand"><img src=${ICON} alt="Artemis"/><div class="eyebrow"><span>${ds.multi ? ds.label + ", Discovery session " + (si + 1) : s.run.projectName || "Discovery run " + shortSha(s.run.id)}</span><span>·</span><span>${pm ? mlabel(pm) : ""}</span><span>·</span><span>${s.run.status || "no status"}, ${s.run.versionCount != null ? s.run.versionCount : D.versions.length} versions</span></div></div>
+      <h1>${title}</h1>
+      ${leftOut}${nonFinite}${clamped}
+      <${Means} text=${topMeans && topMeans.text}/>
+    </header>
+    <div class="bar">
+      <${Ctl} label="Project"><select value=${dataset} onChange=${function (e) { setDataset(e.target.value); }}>${DATASETS.filter(function (d) { return SNAPS[d.id]; }).map(function (d) { return html`<option key=${d.id} value=${d.id}>${d.label}</option>`; })}</select><//>
+      ${ds.multi ? (ds.sessions.length > 4 ? html`<${Ctl} label="Discovery session"><select value=${si} onChange=${function (e) { setSess(Number(e.target.value)); }}>${ds.sessions.map(function (x, i) { return html`<option key=${i} value=${i}>${"Discovery session " + (i + 1)}</option>`; })}</select><//>` : html`<${Seg} label="Discovery session" value=${si} onChange=${setSess} options=${ds.sessions.map(function (x, i) { return [i, String(i + 1), false, "Discovery session " + (i + 1)]; })}/>`) : null}
+      <${Seg} label="Theme" value=${theme} onChange=${setTheme} options=${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]]}/>
+      <span style=${{ flex: 1 }}></span>
+      <button type="button" class="btn" title="Clears the metrics, views and versions you picked here" onClick=${function () { forget(dataset + ":"); setResetKey(function (x) { return x + 1; }); toast("Picks reset"); }}>Reset</button>
+    </div>
+    ${ds.multi ? h(Guard, { key: dataset + "sessions" + resetKey, chart: true }, html`<${SessionsCard} ds=${ds} sel=${si} T=${T} W=${cardW} scope=${dataset + ":sessions"} toast=${toast}/>`) : null}
+    ${main.map(render)}
+    ${more.length ? html`<details class="more" open=${moreOpen} onToggle=${function (e) { setMore(e.target.open); store("more", e.target.open); }}>
+      <summary>More charts (${more.length}): ${more.map(function (x) { return { time: "over time", box: "box plots", pareto: "trade-off", ai: "AI Metrics" }[x[0]]; }).join(", ")}</summary>
+      <div class="stack">${moreOpen ? more.map(render) : null}</div>
+    </details>` : null}
+    ${foot}
+    ${toastMsg ? html`<div class="toast" role="status">${toastMsg}</div>` : null}
+  </div>`;
+}
+
+/* ---------- label layout: one pass over every chart after each render ----------
+   Ticks that would overprint give way (0 and the ends first). Every other label is pulled inside its plot (or the chart),
+   cut with an ellipsis if it is wider than that, then nudged up or down past any label already placed, and hidden only
+   when no nearby spot is free; the mark's tooltip still gives its value. Measured from the drawn text, so it holds at any width. */
+function declutter() {
+  [].forEach.call(document.querySelectorAll("svg.recharts-surface"), function (svg) {
+    var box = svg.getBoundingClientRect(); if (!box.width) return;
+    var R = function (x) { return x.getBoundingClientRect(); };
+    var leaf = function (x) {  // the one text node a label is made of, directly or inside a single tspan (Recharts' Label); null for mixed text
+      var n = x.childNodes.length === 1 ? x.firstChild : null;
+      if (n && n.nodeType === 1 && n.tagName.toLowerCase() === "tspan" && n.childNodes.length === 1) n = n.firstChild;
+      return n && n.nodeType === 3 ? n : null;
+    };
+    // Undo an earlier shortening only while the label still shows it; text React has since replaced is left as it is.
+    var restore = function (x, n) { if (x.dataset.full == null) return; if (n && n.data === x.dataset.short) n.data = x.dataset.full; delete x.dataset.full; delete x.dataset.short; };
+    var texts = [].filter.call(svg.querySelectorAll("text"), function (x) { return !x.getAttribute("transform") && x.textContent.trim(); });
+    texts.forEach(function (x) { x.style.transform = ""; x.style.visibility = ""; restore(x, leaf(x)); });
+    var hit = function (a, b, pad) { return Math.min(a.right, b.right) - Math.max(a.left, b.left) > -pad && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > -pad; };
+    var shift = function (r, dx, dy) { return { left: r.left + dx, right: r.right + dx, top: r.top + dy, bottom: r.bottom + dy }; };
+    var clipOf = function (el) {
+      for (var e = el; e && e !== svg; e = e.parentNode) {
+        var c = e.getAttribute && e.getAttribute("clip-path"), m = c && /url\(#([^)]+)\)/.exec(c), cp = m && document.getElementById(m[1]), r = cp && cp.querySelector("rect");
+        if (r) { var x0 = box.left + +r.getAttribute("x"), y0 = box.top + +r.getAttribute("y"); return { left: x0, top: y0, right: x0 + +r.getAttribute("width"), bottom: y0 + +r.getAttribute("height") }; }
+      }
+      return { left: box.left + 1, top: box.top + 1, right: box.right - 1, bottom: box.bottom - 1 };
+    };
+    // A rotated axis title that runs past the chart's top or bottom is shortened with an ellipsis; the full name is in the card's Metric menu.
+    [].forEach.call(svg.querySelectorAll("text[transform]"), function (x) {
+      var n = leaf(x); if (!n) return;
+      restore(x, n);
+      var spills = function () { var r = R(x); return r.top < box.top + 2 || r.bottom > box.bottom - 2; };
+      if (!spills()) return;
+      var full = n.data, s = full; x.dataset.full = full;
+      while (s.length > 4 && spills()) { s = s.slice(0, -2); n.data = s.replace(/[\s,]+$/, "") + "…"; }
+      x.dataset.short = n.data;
+    });
+    var placed = [];
+    // 1. ticks, axis by axis, each tick as one unit (a name and its "n=5" line together): 0 and the ends keep their place,
+    //    and a tick that would overprint one already kept is hidden
+    [].forEach.call(svg.querySelectorAll(".recharts-cartesian-axis-tick-labels"), function (g) {
+      var ticks = [].filter.call(g.querySelectorAll(".recharts-cartesian-axis-tick-label"), function (x) { return x.textContent.trim(); });
+      ticks.forEach(function (x) { x.style.visibility = ""; x.style.transform = ""; });
+      var rank = function (x, i) { var s = x.textContent.trim(); return /^(0%?|original)$/.test(s) ? 0 : i === 0 || i === ticks.length - 1 ? 1 : 2; };
+      ticks.map(function (x, i) { return { x: x, k: rank(x, i), i: i }; }).sort(function (a, b) { return a.k - b.k || a.i - b.i; }).forEach(function (o) {
+        var r = R(o.x), dx = r.left < box.left + 1 ? box.left + 1 - r.left : r.right > box.right - 1 ? box.right - 1 - r.right : 0;  // cut by the chart's edge: moved inside
+        if (dx) r = shift(r, dx, 0);
+        if (r.left < box.left || r.right > box.right || placed.some(function (p) { return hit(r, p, 2); })) { o.x.style.visibility = "hidden"; return; }  // ticks keep 2px apart
+        if (dx) o.x.style.transform = "translate(" + dx + "px,0)";
+        placed.push(r);
+      });
+    });
+    // 2. every other label: inside its area, then clear of the rest; bold labels (Best, verdicts) are placed first
+    var free = texts.filter(function (x) { return !x.closest(".recharts-cartesian-axis-tick-labels"); });
+    // A halo in the card's colour, so a line or gridline passing behind a label never runs through its letters.
+    // Set inline from the computed colour (a CSS rule would override labels that set their own stroke, and a var() would not survive the SVG download).
+    var halo = getComputedStyle(svg.closest(".card") || document.body).backgroundColor;
+    free.forEach(function (x) { if (x.getAttribute("stroke") || x.dataset.halo === halo) return; x.style.paintOrder = "stroke"; x.style.stroke = halo; x.style.strokeWidth = "4px"; x.style.strokeLinejoin = "round"; x.dataset.halo = halo; });
+    free.sort(function (a, b) { var wa = +getComputedStyle(a).fontWeight >= 600, wb = +getComputedStyle(b).fontWeight >= 600; return (wb ? 1 : 0) - (wa ? 1 : 0); });
+    free.forEach(function (x) {
+      var lim = clipOf(x), r = R(x);
+      if (r.width > lim.right - lim.left && leaf(x)) {  // too long for its area: shortened with an ellipsis
+        var nd = leaf(x), full = nd.data; x.dataset.full = full; var s = full;
+        while (s.length > 4 && R(x).width > lim.right - lim.left) { s = s.slice(0, -2); nd.data = s.replace(/[\s,]+$/, "") + "…"; }
+        x.dataset.short = nd.data;
+        r = R(x);
+      }
+      var dx = r.left < lim.left ? lim.left - r.left : r.right > lim.right ? lim.right - r.right : 0;
+      var dyIn = r.top < lim.top ? lim.top - r.top : r.bottom > lim.bottom ? lim.bottom - r.bottom : 0;
+      var tries = [0, -14, 14, -28, 28], spot = null;
+      for (var i = 0; i < tries.length && spot == null; i++) {
+        var q = shift(r, dx, dyIn + tries[i]);
+        if (q.top < lim.top - 1 || q.bottom > lim.bottom + 1) continue;
+        if (!placed.some(function (p) { return hit(q, p, -2); })) spot = dyIn + tries[i];  // touching is fine; more than 2px of overlap is not
+      }
+      if (spot == null) { x.style.visibility = "hidden"; return; }
+      if (dx || spot) x.style.transform = "translate(" + dx + "px," + spot + "px)";
+      placed.push(shift(r, dx, spot));
+    });
+  });
+}
+var declutterT = 0;
+function scheduleDeclutter() { clearTimeout(declutterT); declutterT = setTimeout(declutter, 30); }
+if (window.MutationObserver) new MutationObserver(scheduleDeclutter).observe(document.getElementById("root"), { childList: true, subtree: true });
+window.addEventListener("resize", scheduleDeclutter);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleDeclutter);
+
+/* A drawing error shows its reason instead of an empty page; React reports render errors here, not to a try/catch. */
+function Guard(props) { React.Component.call(this, props); this.state = { error: null }; }
+Guard.prototype = Object.create(React.Component.prototype);
+Guard.prototype.constructor = Guard;
+Guard.getDerivedStateFromError = function (error) { return { error: error }; };
+Guard.prototype.componentDidCatch = function (error) { if (window.__AR_ERRORS) window.__AR_ERRORS.push("SCRIPT ERROR: " + error.message); };
+Guard.prototype.render = function () {
+  var e = this.state.error;
+  if (!e) return this.props.children;
+  return this.props.chart ? h("div", { className: "card" }, h("div", { className: "err" }, "This chart failed to draw: " + e.message)) : h("div", { className: "err" }, "The studio failed to draw this snapshot: " + e.message);
+};
+try { ReactDOM.createRoot(document.getElementById("root")).render(h(Guard, null, h(App))); }
+catch (e) { document.getElementById("root").innerHTML = '<div class="err">The studio failed to start: ' + esc(e.message) + "</div>"; }
+})();
+
+</script>

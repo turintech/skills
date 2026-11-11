@@ -5,7 +5,7 @@ Publish a **self-contained HTML** discovery report as a Claude Code Artifact.
 ## Build
 
 1. Build with the kit ([report-kit.md](report-kit.md)): a page script, `build_report.py`, then `check_report.py`. Write files in a temporary directory outside the project unless the user asked to keep them.
-2. The built page is one self-contained file: kit, styles and snapshot inlined, no npm, no backend, no CDN.
+2. The built page is one self-contained file: kit, styles and snapshot inlined, no npm, no backend, no CDN. The chart studio is the exception: its data is inlined, but it loads its pinned chart libraries from cdnjs and unpkg, so it needs the network.
 3. Follow [report-design.md](report-design.md): the story, the page anatomy, the figures, and the visual standard. For a chart the kit does not have, draw SVG with `ArtemisReport.s` in the same style.
 
 ## Page
@@ -20,11 +20,12 @@ Follow the anatomy in [report-design.md](report-design.md): the main finding as 
 - Honor `prefers-color-scheme` / `data-theme`.
 - Give each SVG a `role="img"` and an `aria-label` that names the metric and baseline.
 - Hover tooltips are enough. Do not add zoom/brush unless asked.
+- These rules are for a page you write with the kit. The chart studio (`build_studio.py`) is built as it is: leave its charts, its over-time zoom strip and its labels alone, and check it with `check_report.py --studio`.
 - Never name a top-level script variable `top`, `name`, `parent`, `status`, `length` or `origin`: they are browser globals, and a `const top` stops the whole script with nothing on the page to show why.
 
 ## Publish
 
-Publish without asking: an Artifact starts private to the user. Hand it over as in SKILL.md *Hand it over*: a summary of at most four lines, then the Artifact link in the **OPEN YOUR REPORT** box, the privacy line and the Discovery Web UI link. Later edits republish the same artifact.
+Publish without asking: an Artifact starts private to the user. Hand it over as in SKILL.md *Hand it over*: a summary of at most four lines, then the Artifact link in the **OPEN YOUR REPORT** box, the privacy line and the Discovery Web UI link. Later edits republish the same artifact. Publish a chart studio page with `capabilities: {downloads: true}`, so its Download buttons save files.
 
 If Artifacts are disabled, leave the local HTML in place and give the file path.
 

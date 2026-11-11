@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import html as html_lib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -13,10 +15,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "tests"))
 
 import build_report  # noqa: E402
 import check_report  # noqa: E402
 import collect_discovery  # noqa: E402
+from studio_fixtures import low_then_high  # noqa: E402
 
 FIXTURE = ROOT / "tests" / "fixtures" / "synthetic"
 
@@ -71,6 +75,16 @@ class KitTests(unittest.TestCase):
         self.assertIn("DASH", problems)
         self.assertIn("MONOSPACE", problems)
 
+    def test_a_spaced_fetch_fails(self) -> None:
+        html = build_report.build({"run": {"id": "r"}}, PAGE + 'fetch ("https://example.com/x");', "Title")
+        self.assertTrue(any(p.startswith("LIVE FETCH") for p in check_report.static_checks(html)))
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_request_at_run_time_fails(self) -> None:
+        html = build_report.build({"run": {"id": "r"}}, PAGE + 'new Image().src = "https://example.com/pixel.gif";', "Title")
+        problems = check_report.render_checks(html, check_report.find_chrome())
+        self.assertTrue(any(p.startswith("LIVE FETCH: loaded https://example.com/pixel.gif") for p in problems), problems)
+
     def test_default_figures_pass_static_checks(self) -> None:
         self.assertEqual(check_report.static_checks(build_report.build({}, DEFAULT_PAGE, "Title")), [])
 
@@ -113,7 +127,7 @@ class FewBarsTests(unittest.TestCase):
             page.write_text(html + probe, encoding="utf-8")
             dom = subprocess.run([check_report.find_chrome(), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
                                   "--window-size=1200,900", "--virtual-time-budget=3000", "--dump-dom", page.as_uri()],
-                                 capture_output=True, text=True, timeout=120, check=False).stdout
+                                 env=check_report.chrome_env(tmp), capture_output=True, text=True, timeout=120, check=False).stdout
         import re
         return json.loads(re.search(r'<pre id="__geo">(.*?)</pre>', dom, re.S).group(1))
 
@@ -268,23 +282,44 @@ class RecipeRenderTests(unittest.TestCase):
             dom = subprocess.run(
                 [check_report.find_chrome(), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
                  "--virtual-time-budget=4000", "--dump-dom", page.as_uri()],
-                capture_output=True, text=True, timeout=120, check=False,
+                env=check_report.chrome_env(tmp), capture_output=True, text=True, timeout=120, check=False,
             ).stdout
         self.assertIn("The ring marks", dom)
         self.assertEqual(dom.count('r="10"'), 1)
 
+    # A real run (tests/fixtures/bench/nemo-speech.json): its lead metric, rtfx, has no unit.
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_real_run_reads_cleanly_on_the_default_page(self) -> None:
+        snapshot = json.loads((ROOT / "tests" / "fixtures" / "bench" / "nemo-speech.json").read_text(encoding="utf-8"))
+        html = build_report.build(snapshot, self.recipe_page(), "Title")
+        self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+        text = self.page_text(html)
+        self.assertIn("rtfx (higher is better)", text)
+        self.assertNotIn("(, ", text)
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_a_direction_warning_missing_from_a_report_fails(self) -> None:
+        check = "latency_ms is set as higher-is-better on this project; check Settings > Metrics."
+        snapshot = self.fixture_snapshot(True)
+        snapshot["directionChecks"] = [check]  # the lede does not carry it, so the page does not either
+        problems = check_report.render_checks(build_report.build(snapshot, self.recipe_page(), "Title"), check_report.find_chrome())
+        self.assertIn("MISSING DIRECTION CHECK (keep it verbatim): " + check, problems)
+
     @staticmethod
-    def page_text(html: str) -> str:
+    def dom(html: str) -> str:
         with tempfile.TemporaryDirectory() as tmp:
             page = Path(tmp) / "page.html"
             page.write_text(html, encoding="utf-8")
             dom = subprocess.run(
                 [check_report.find_chrome(), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
                  "--virtual-time-budget=4000", "--dump-dom", page.as_uri()],
-                capture_output=True, text=True, encoding="utf-8", timeout=120, check=False,
+                env=check_report.chrome_env(tmp), capture_output=True, text=True, encoding="utf-8", timeout=120, check=False,
             ).stdout
-        import html as html_lib
-        import re
+        return dom
+
+    @staticmethod
+    def page_text(html: str) -> str:
+        dom = RecipeRenderTests.dom(html)
         text = re.sub(r"<script.*?</script>|<style.*?</style>", " ", dom, flags=re.S)
         return re.sub(r"\s+", " ", html_lib.unescape(re.sub(r"<[^>]+>", " ", text)))
 
@@ -462,6 +497,36 @@ class MaintainReportTests(unittest.TestCase):
         severe = RecipeRenderTests.page_text(build_report.build(snapshot, page, "Maintain")).split("How severe are the open issues?")[1].split("Where do they sit")[0]
         self.assertIn("1 high open: fix or triage these first", severe)
         self.assertEqual(severe.count("1 high"), 1, severe)
+
+
+class RecipeLeadMetricTests(unittest.TestCase):
+    """The documented page leads with the run's most important target, as the studio does."""
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_the_recipe_leads_with_the_most_important_target(self) -> None:
+        snap = low_then_high()
+        snap["bestLines"].pop("metric")  # an older snapshot: the recipe's own importance rule picks the lead
+        dom = RecipeRenderTests.dom(build_report.build(snap, RecipeRenderTests.recipe_page(), "Lead metric"))
+        found = re.search(r"<header[^>]*>(.*?)</header>", dom, re.S)
+        self.assertIsNotNone(found, "the recipe drew no header")
+        header = found.group(1) if found else ""
+        self.assertIn("latency_ms", header, "the page led on a low-importance metric that did not move")
+        self.assertNotIn("db_size_mb", header)
+
+    @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")
+    def test_the_recipe_leads_with_the_collectors_metric_never_an_undirected_one(self) -> None:
+        # db_size_mb is more important and listed first. With a direction, the collector's pick (latency_ms) still leads;
+        # with none and no bestLines.metric (an older snapshot), the recipe's own rule passes it over.
+        for direction, told in ((False, True), (None, False)):
+            with self.subTest(direction=direction, bestLines_metric=told):
+                s = low_then_high()
+                next(m for m in s["metrics"] if m["key"] == "db_size_mb").update(importance="high", higherIsBetter=direction)
+                if not told:
+                    s["bestLines"].pop("metric")
+                dom = RecipeRenderTests.dom(build_report.build(s, RecipeRenderTests.recipe_page(), "Lead metric"))
+                header = re.search(r"<header[^>]*>(.*?)</header>", dom, re.S).group(1)
+                self.assertIn("latency_ms", header)
+                self.assertNotIn("db_size_mb", header)
 
 
 if __name__ == "__main__":
