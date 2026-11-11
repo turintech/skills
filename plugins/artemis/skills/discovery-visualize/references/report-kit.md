@@ -23,7 +23,11 @@ This is the default report, best vs baseline ([report-design.md](report-design.m
 
 ```js
 const R = ArtemisReport, S = SNAPSHOT, F = R.fmt;
-const key = S.metrics.find(m => m.kind === 'target' && m.role !== 'reference').key;
+// The run's most important target leads (the metrics schema's importance: high, medium, low); ties keep snapshot order.
+const rank = m => ({ high: 0, medium: 1, low: 2 })[m.importance] ?? 3;
+// The collector names it in bestLines.metric; an older snapshot without it falls back to the same rule: a target with a direction first.
+const key = (S.bestLines && S.bestLines.metric) || S.metrics.filter(m => m.kind === 'target' && m.role !== 'reference')
+  .sort((a, b) => (a.higherIsBetter == null) - (b.higherIsBetter == null) || rank(a) - rank(b))[0].key;
 const def = S.metrics.find(m => m.key === key), unit = def.unit || '', up = def.higherIsBetter;
 const word = up ? 'faster' : 'lower';  // the metric's own word: faster, smaller, more accurate
 const worse = up ? 'slower' : 'higher';  // and for a best version that is still behind the baseline
@@ -102,7 +106,7 @@ if (runsKnown) {
   R.compareRuns(fr.chart,
     { label: 'Baseline', sub: sha, runs: base.runs, mean: base.mean, color: 'var(--ar-baseline)' },
     { label: winV.label, sub: 'best version', runs: winM.runs, mean: winM.mean },
-    { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + unit + ', ' + (up ? 'higher' : 'lower') + ' is better)',
+    { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + (unit ? unit + ', ' : '') + (up ? 'higher' : 'lower') + ' is better)',
       aria: key + ', every run: baseline mean ' + F.num(base.mean, 2) + ' against ' + winV.label + ' mean ' + F.num(winM.mean, 2) });
   const worstWin = up ? Math.min(...winM.runs) : Math.max(...winM.runs), bestBase = up ? Math.max(...base.runs) : Math.min(...base.runs);
   const clear = up ? worstWin > bestBase : worstWin < bestBase;
