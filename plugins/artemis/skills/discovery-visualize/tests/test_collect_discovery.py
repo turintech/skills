@@ -292,11 +292,48 @@ class BestLinesTests(unittest.TestCase):
             ],
         )
         self.assertFalse(defs["simulation_fps"]["higherIsBetter"])
-        lede = collector.best_lines(
+        lines = collector.best_lines(
             {"simulation_fps": {"key": "simulation_fps", **defs["simulation_fps"]}},
             [{"version": 1, "label": "v1", "metrics": {"simulation_fps": {"mean": 1.0, "pctBetter": 5.0}}}],
-            {"simulation_fps": self.winner(1, 5.0)}, None)["lede"]
-        self.assertIn("simulation_fps is set as lower-is-better on this project; check Settings > Metrics.", lede)
+            {"simulation_fps": self.winner(1, 5.0)}, None)
+        self.assertIn("simulation_fps is set as lower-is-better on this project; check Settings > Metrics.", lines["lede"])
+        self.assertEqual(lines["checks"], ["simulation_fps is set as lower-is-better on this project; check Settings > Metrics."])
+
+    def test_the_lead_passes_over_a_more_important_metric_nobody_has_a_reading_on(self) -> None:
+        defs = {
+            "p99_ms": {"kind": "target", "importance": "high", "higherIsBetter": False},
+            "latency_ms": {"kind": "target", "importance": "medium", "higherIsBetter": False},
+        }
+        versions = [{"version": 2, "label": "v2", "metrics": {"latency_ms": {"pctBetter": 40.0}}}]
+        winners = {"p99_ms": {"raw": None}, "latency_ms": {"raw": {"version": 2, "label": "v2", "pctBetter": 40.0}}}
+        self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "latency_ms")
+
+    def test_a_nan_from_artemis_is_missing_before_anything_is_ranked(self) -> None:
+        payloads = collector.load_from_dir(str(FIXTURES))
+        top = next(v for v in payloads["comparison"]["versions"] if v.get("versionNumber") == 2)
+        next(m for m in top["metrics"] if m["name"] == "latency_ms")["improvementPct"] = float("nan")
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([r["label"] for r in snap["rankings"]["latency_ms"]], ["v4", "v1"])
+        self.assertEqual(snap["perMetricWinners"]["latency_ms"]["raw"]["label"], "v4")
+        self.assertIn("run 11111111-1111-1111-1111-111111111111: 1 non-finite value(s) from Artemis read as missing: v2 latency_ms improvementPct", err.getvalue())
+        self.assertEqual(snap["nonFinite"], ["v2 latency_ms improvementPct"])
+
+    def test_every_non_finite_value_is_named_by_what_it_belongs_to(self) -> None:
+        root = {"observations": [{"metricName": "latency_ms", "value": 1.0}], "comparison": {"versions": [{"versionNumber": 2, "metrics": {"latency_ms": {"mean": 1.0}}}]},
+                "odd": [[1.0]]}
+        self.assertEqual(collector.readable_path(root, "observations[0].value"), "latency_ms value")
+        self.assertEqual(collector.readable_path(root, "comparison.versions[0].metrics.latency_ms.mean"), "v2 latency_ms mean")
+        self.assertEqual(collector.readable_path(root, "odd[0][0]"), "odd[0][0]")  # nothing to name it by: the raw path
+        root = {"run": {"baselineGroupId": "g-base"}, "versions": [{"versionNumber": 4, "observationGroupId": "g-4"}],
+                "observations": [{"observationGroupId": "g-base", "metricName": "latency_ms", "value": 1.0}, {"observationGroupId": "g-4", "metricName": "latency_ms", "value": 1.0}]}
+        self.assertEqual([collector.readable_path(root, f"observations[{i}].value") for i in (0, 1)], ["original latency_ms value", "v4 latency_ms value"])
+
+    def test_nan_and_infinity_are_written_as_null_and_named(self) -> None:
+        self.assertEqual(collector.finite({"a": [float("nan"), 1.5, float("inf")], "b": {"c": float("-inf")}}), {"a": [None, 1.5, None], "b": {"c": None}})
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(json.loads(collector.write_finite({"versions": [{"metrics": {"x": {"std": float("nan")}}}]})), {"versions": [{"metrics": {"x": {"std": None}}}]})
+        self.assertIn("1 non-finite value(s) computed by the collector written as null: versions[0].metrics.x.std", err.getvalue())
 
     def test_names_and_unsure_units_never_flag(self) -> None:
         defs = {
@@ -505,6 +542,44 @@ class ClassificationAndReferenceTests(unittest.TestCase):
         self.assertEqual(collector.infer_unit("latency_ms"), "ms")
         self.assertIsNone(collector.infer_unit("score"))
 
+    def test_the_lead_metric_is_the_most_important_target_never_a_reference(self) -> None:
+        defs = {
+            "cublas_ms": {"kind": "target", "role": "reference", "importance": "high", "higherIsBetter": False},
+            "wall_ms": {"kind": "target", "importance": "medium", "higherIsBetter": False},
+            "rtfx": {"kind": "target", "importance": "high", "higherIsBetter": True},
+            "judge": {"kind": "quality", "importance": "high", "higherIsBetter": True},
+        }
+        versions = [{"version": 1, "label": "v1", "metrics": {"rtfx": {"pctBetter": 10.0}, "wall_ms": {"pctBetter": 5.0}}}]
+        winners = {k: {"raw": {"version": 1, "label": "v1", "pctBetter": 10.0}} for k in ("rtfx", "wall_ms", "cublas_ms")}
+        lines = collector.best_lines(defs, versions, winners, None)
+        self.assertEqual(lines["metric"], "rtfx")
+        # A more important target with no direction cannot lead: it has no ranking or winner.
+        defs = dict({"der": {"kind": "target", "importance": "high", "higherIsBetter": None}}, **defs)
+        self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "rtfx")
+        self.assertIn("best version on rtfx", lines["lede"])
+
+    def test_units_from_real_run_names(self) -> None:
+        # NeMo's metrics: a leading unit before "per", and a bare "s" at the end.
+        self.assertEqual(collector.infer_unit("ms_per_chunk"), "ms")
+        self.assertEqual(collector.infer_unit("proc_wall_s"), "s")
+        self.assertEqual(collector.infer_unit("wall_sec"), "s")
+        self.assertEqual(collector.infer_unit("tokens_per_s"), "tokens/s")
+        self.assertEqual(collector.infer_unit("decode_tokens_per_s"), "tokens/s")
+        self.assertEqual(collector.infer_unit("mb_per_s"), "MB/s")
+        for name, unit in (("frames_per_s", "frames/s"), ("images_per_sec", "images/s"), ("requests_per_sec", "requests/s"),
+                           ("samples_per_s", "samples/s"), ("throughput_mb_per_s", "MB/s"), ("tokens_s", "tokens/s"), ("mb_s", None),
+                           ("items_s", None), ("widgets_per_s", None), ("decode_ms_per_token", "ms"), ("wall_s_per_iter", "s"), ("latency ms", "ms"), ("", None), ("_", None),
+                           ("time_per_iter_ms", "ms"), ("latency_per_token_us", "\u00b5s"), ("energy_per_op_ns", "ns"), ("bytes_per_step_mb", "MB"),
+                           ("gpu_memory_per_batch_gb", "GB"), ("tokens_per_second", "tokens/s"), ("requests_per_second", "requests/s"), ("tok_s", "tokens/s"),
+                           ("throughput_s", None), ("tflops_s", None), ("gflops_s", None), ("qps_s", None), ("fps_s", None),
+                           ("gflops_per_s", None), ("tflops_per_s", None),
+                           ("decode_tok_s", "tokens/s"), ("throughput_tok_s", "tokens/s"), ("ttft_s", "s"), ("epoch_s", "s"), ("inference_s", "s"), ("iters_s", None), ("req_s", None), ("bytes_s", None),
+                           ("wall_time_s", "s"), ("elapsed_sec", "s"), ("prefill_tok_s", "tokens/s"), ("tok_per_s", "tokens/s"), ("x_per_s_per", None),
+                           ("tokens_per_s_per_gpu", None), ("samples_per_sec_per_gpu", None), ("req_per_s_per_node", None)):
+            self.assertEqual(collector.infer_unit(name), unit, name)
+        for name in ("der_long", "rtfx", "speaker_prob_parity_safety", "tokens_per_step"):
+            self.assertIsNone(collector.infer_unit(name), name)
+
     def test_reference_pairs(self) -> None:
         names = ["MatMul_triton_tflops", "MatMul_cublas_tflops", "MatMul_triton_ms", "MatMul_cublas_ms", "simulation_fps"]
         pairs = collector.find_references(names)
@@ -566,13 +641,38 @@ class FalconComparisonTests(unittest.TestCase):
             },
         }
 
+    def test_falcons_points_change_is_passed_through(self) -> None:
+        payloads = self.payloads()
+        payloads["comparison"]["versions"][1]["metrics"][0]["improvementPoints"] = 0.12
+        snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual(snap["versions"][0]["metrics"]["simulation_fps"]["vsBaseline"]["improvementPoints"], 0.12)
+
+    def test_an_ai_score_has_no_times_better(self) -> None:
+        # A score is an opinion of the code, so no page can print "1.43x worse" for it; its % stays falcon's.
+        snap = collector.build_snapshot(collector.load_from_dir(str(FIXTURES)), collected_at="2026-01-01T00:00:00Z")
+        quality = [m["key"] for m in snap["metrics"] if m["kind"] == "quality"]
+        self.assertTrue(quality, "the fixture needs an AI Metric")
+        for v in snap["versions"]:
+            for key in quality:
+                stat = v["metrics"].get(key)
+                if stat:
+                    self.assertIsNone(stat["timesBetter"], (v["label"], key))
+        for key in quality:
+            for row in snap["rankings"].get(key, []):
+                self.assertIsNone(row["timesBetter"], key)
+            for pick in (snap["perMetricWinners"].get(key) or {}).values():
+                if isinstance(pick, dict):
+                    self.assertIsNone(pick.get("timesBetter"), key)
+        # A measured metric keeps its ratio.
+        self.assertAlmostEqual(snap["versions"][0]["metrics"]["latency_ms"]["timesBetter"], 1.25)
+
     def test_maps_falcons_verdict_and_interval(self) -> None:
         snap = collector.build_snapshot(self.payloads(), collected_at="2026-01-01T00:00:00Z")
         metric = snap["versions"][0]["metrics"]["simulation_fps"]
         self.assertEqual(metric["pctBetter"], 20.0)
         self.assertAlmostEqual(metric["timesBetter"], 1.2)
         self.assertEqual(metric["vsBaseline"], {
-            "source": "falcon", "verdict": "better", "improvementPct": 20.0, "ciLowPct": 12.5, "ciHighPct": 27.5,
+            "source": "falcon", "verdict": "better", "improvementPct": 20.0, "improvementPoints": None, "ciLowPct": 12.5, "ciHighPct": 27.5,
             "readings": 5, "recommendedReadings": None, "recommendedReadingsReason": "settled", "spreadPct": 3.1,
         })
         self.assertEqual(snap["versions"][0]["overallVerdict"]["verdict"], "better")

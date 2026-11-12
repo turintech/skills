@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -110,14 +111,50 @@ REFERENCE_TOKENS = ("cublas", "cudnn", "torch", "pytorch", "numpy", "mkl", "eige
 # Units recognised from a metric's name when the platform stores none.
 UNIT_SUFFIXES = (
     ("tflops", "TFLOPS"), ("gflops", "GFLOPS"), ("fps", "fps"), ("tokens_per_s", "tokens/s"), ("tok_s", "tokens/s"),
-    ("ms", "ms"), ("us", "\u00b5s"), ("ns", "ns"), ("seconds", "s"), ("runtime", "s"), ("mb", "MB"), ("gb", "GB"), ("memory", "bytes"),
+    ("ms", "ms"), ("us", "\u00b5s"), ("ns", "ns"), ("seconds", "s"), ("secs", "s"), ("sec", "s"), ("s", "s"), ("runtime", "s"),
+    ("mb", "MB"), ("gb", "GB"), ("memory", "bytes"),
 )
 
 
+RATE_NOUNS = ("tokens", "samples", "requests", "frames", "images", "items", "ops", "queries", "rows", "steps")
+RATES = ("tflops", "gflops", "fps", "qps", "throughput")  # already a rate: "tflops_s" or "gflops_per_s" is no unit we can name
+TIME_WORDS = ("time", "wall", "latency", "duration", "elapsed", "runtime", "compile", "build", "step", "proc", "cpu", "total", "run",
+              "ttft", "tpot", "epoch", "train", "inference", "e2e", "query")
+
+
 def infer_unit(name: str) -> str | None:
-    tail = re.split(r"[_\s]", name.lower())[-1]
+    lowered = name.lower()
+    words = [w for w in re.split(r"[_\s]", lowered) if w]
+    if not words:
+        return None
+    single = {suffix: unit for suffix, unit in UNIT_SUFFIXES if "_" not in suffix}
+    times = {"s": "s", "sec": "s", "secs": "s", "second": "s", "seconds": "s", "ms": "ms", "us": "\u00b5s", "ns": "ns"}
+    if words.count("per") > 1:
+        return None  # a rate of a rate, "tokens_per_s_per_gpu": no unit we can name
+    if "per" in words[:-1]:
+        # A rate: "mb_per_s" is MB/s, "frames_per_sec" is frames/s, and one that leads with a unit, "ms_per_chunk", is in ms.
+        i = len(words) - 2 - words[-2::-1].index("per")  # the last "per" that has a word after it
+        before, after = words[i - 1] if i else "", words[i + 1]
+        if before in RATES:
+            return None
+        if before in single and before not in times and after in times:
+            return single[before] + "/" + times[after]
+        if (before in RATE_NOUNS or before == "tok") and after in times:
+            return ("tokens" if before == "tok" else before) + "/" + times[after]
+        if before in times:  # a time per something, wherever it sits: "ms_per_chunk", "latency_ms_per_token"
+            return times[before]
+        if after in times or i == len(words) - 2:
+            return None  # "widgets_per_s", "score_per_step": a rate too unsure to name
+        # "time_per_iter_ms": the unit comes after the rate, so the suffix rule below reads it
+    elif len(words) > 1 and words[-1] in times and words[-2] in ("tokens", "tok"):
+        return "tokens/s"  # "tokens_s", "decode_tok_s": tokens a second
+    elif len(words) > 1 and words[-1] in times and words[-2] in RATE_NOUNS + RATES + ("mb", "gb"):
+        return None  # "iters_s", "mb_s": a rate written without "per", too unsure to name
     for suffix, unit in UNIT_SUFFIXES:
-        if tail == suffix or name.lower().endswith("_" + suffix):
+        if lowered == suffix or lowered.endswith("_" + suffix) or words[-1] == suffix:
+            # A bare "s" is seconds only after a word for time ("proc_wall_s"); "iters_s" or "req_s" is a rate.
+            if suffix in ("s", "sec", "secs") and len(words) > 1 and words[-2] not in TIME_WORDS:
+                return None
             return unit
     return None
 
@@ -336,6 +373,7 @@ def falcon_vs_baseline(compared: dict[str, Any] | None) -> dict[str, Any] | None
         "source": "falcon",
         "verdict": compared.get("verdict"),
         "improvementPct": compared.get("improvementPct"),
+        "improvementPoints": compared.get("improvementPoints"),
         "ciLowPct": compared.get("improvementLowPct"),
         "ciHighPct": compared.get("improvementHighPct"),
         "readings": compared.get("readings"),
@@ -402,6 +440,68 @@ _HIGHER_UNITS = {"fps", "ops/s", "req/s", "tokens/s", "items/s", "/s"}
 _LOWER_UNITS = {"s", "ms", "us", "\u00b5s", "ns", "sec", "secs", "second", "seconds"}
 
 
+def finite(value: Any, path: str = "", nulled: list[str] | None = None) -> Any:
+    """NaN and Infinity as null: they are not JSON, and a browser's JSON.parse refuses the whole snapshot for one.
+    Each path nulled is added to `nulled`, so the caller can say where."""
+    if isinstance(value, float) and not math.isfinite(value):
+        if nulled is not None:
+            nulled.append(path or "the snapshot")
+        return None
+    if isinstance(value, list):
+        return [finite(v, f"{path}[{i}]", nulled) for i, v in enumerate(value)]
+    if isinstance(value, dict):
+        return {k: finite(v, f"{path}.{k}" if path else k, nulled) for k, v in value.items()}
+    return value
+
+
+CONTAINERS = {"run", "versions", "metrics", "observations", "comparison", "experiments", "baseline", "docs", "runs", "groups"}
+
+
+def readable_path(root: Any, path: str) -> str:
+    """A payload path in a reader's words: each list item by its version or metric where it has one, and each metric
+    key of a mapping, so "comparison.versions[2].metrics[0].improvementPct" reads "v2 latency_ms improvementPct".
+    When no item can be named, the raw path is kept, so the line always says where."""
+    words, named, node = [], False, root
+    run = root.get("run") if isinstance(root, dict) else None
+    run = run["docs"][0] if isinstance(run, dict) and isinstance(run.get("docs"), list) and run["docs"] else run
+    groups = {run.get("baselineGroupId"): "original"} if isinstance(run, dict) and run.get("baselineGroupId") else {}
+    for v in as_docs(root.get("versions")) if isinstance(root, dict) and root.get("versions") is not None else []:
+        if isinstance(v, dict) and v.get("observationGroupId") and v.get("versionNumber") is not None:
+            groups[v["observationGroupId"]] = f"v{v['versionNumber']}"
+    for key, index in re.findall(r"([^.\[\]]+)|\[(\d+)\]", path):
+        if key:
+            parent, node = node, node.get(key) if isinstance(node, dict) else None
+            if not isinstance(node, (dict, list)):
+                words.append(key)  # the field itself
+            elif key not in CONTAINERS and isinstance(parent, dict) and isinstance(node, dict):
+                words.append(key)  # a metric name used as a mapping key
+                named = True
+        else:
+            node = node[int(index)] if isinstance(node, list) and int(index) < len(node) else None
+            if isinstance(node, dict):
+                group = node.get("observationGroupId")
+                who = groups.get(group) if group else None  # an observation: whose reading it is, the original or vN
+                if who:
+                    words.append(who)
+                label = (f"v{node['versionNumber']}" if node.get("versionNumber") is not None
+                         else node.get("name") or node.get("metricName") or node.get("label"))
+                if label:
+                    words.append(str(label))
+                    named = True
+    return " ".join(words) if named else path
+
+
+def write_finite(value: Any) -> str:
+    """The snapshot as JSON, with each NaN or Infinity written as null and named on stderr: a version whose only reading
+    was NaN shows as not measured, so the cause is said here."""
+    nulled: list[str] = []
+    encoded = json.dumps(finite(value, "", nulled), indent=2)
+    if nulled:
+        shown = ", ".join(nulled[:5]) + (f" and {len(nulled) - 5} more" if len(nulled) > 5 else "")
+        print(f"collect_discovery.py: {len(nulled)} non-finite value(s) computed by the collector written as null: {shown}", file=sys.stderr)
+    return encoded
+
+
 def direction_checks(metric_defs: dict[str, dict[str, Any]]) -> list[str]:
     """A plain line for each measured metric whose stored direction contradicts its platform unit."""
     lines = []
@@ -429,11 +529,23 @@ def best_lines(
     ui_best: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     """The sentences every report and chat answer carries verbatim: which version leads and why, and each
-    measured metric whose own best is another version. None when no target metric has a best version."""
-    key = next((n for n, d in metric_defs.items() if d["kind"] == "target" and d.get("role") != "reference"), None)
-    if key is None:
+    measured metric whose own best is another version. None when there is no target metric, or the lead metric has no
+    best version and the Web UI's Best has no change on it."""
+    # The lead metric: a target with a direction first, then the most important (high, medium, low), ties in snapshot
+    # order; never a control. The first in that order with a best version leads, so a more important metric that no
+    # version has a reading on yet never hides a clear winner on the next one.
+    rank = {"high": 0, "medium": 1, "low": 2}
+    targets = sorted((n for n, d in metric_defs.items() if d["kind"] == "target" and d.get("role") != "reference"),
+                     key=lambda n: (metric_defs[n].get("higherIsBetter") is None, rank.get(metric_defs[n].get("importance"), 3)))
+    if not targets:
         return None
     by_number = {v["version"]: v for v in versions}
+
+    def has_best(name: str) -> bool:
+        ui = (by_number.get(ui_best["version"], {}).get("metrics") or {}).get(name) if ui_best else None
+        return bool((ui and ui.get("pctBetter") is not None) or (winners.get(name) or {}).get("raw"))
+
+    key = next((n for n in targets if has_best(n)), targets[0])
     ui_stat = (by_number.get(ui_best["version"], {}).get("metrics") or {}).get(key) if ui_best else None
     by_composite = bool(ui_stat and ui_stat.get("pctBetter") is not None)
     raw = (winners.get(key) or {}).get("raw")
@@ -467,9 +579,11 @@ def best_lines(
         notes[name] = f"{own['label']} is best on {name}"
     if elsewhere:
         lede += " Best on a single metric instead: " + "; ".join(elsewhere) + "."
-    for line in direction_checks(metric_defs):
+    checks = direction_checks(metric_defs)
+    for line in checks:
         lede += " " + line
-    return {"version": lead["version"], "label": lead["label"], "byComposite": by_composite, "lede": lede, "notes": notes}
+    # checks: the same lines on their own, so a page that does not print the lede can still carry each word for word.
+    return {"version": lead["version"], "label": lead["label"], "metric": key, "byComposite": by_composite, "lede": lede, "notes": notes, "checks": checks}
 
 
 def _instant(value: Any) -> datetime | None:
@@ -584,6 +698,18 @@ def build_snapshot(
     base_url: str | None = None,
     pareto_axes: list[str] | None = None,
 ) -> dict[str, Any]:
+    # A NaN or Infinity from Artemis becomes null before anything is ranked or picked from it (a NaN breaks the sort),
+    # and each one is named, so a version that loses its % this way is not quietly ranked last.
+    raw_paths: list[str] = []
+    named = finite(payloads, "", raw_paths)
+    nulled = [readable_path(payloads, p) for p in raw_paths]  # "v2 latency_ms improvementPct", not raw indices
+    payloads = named
+    if nulled:
+        shown = ", ".join(nulled[:5]) + (f" and {len(nulled) - 5} more" if len(nulled) > 5 else "")
+        head = payloads.get("run")
+        head = head["docs"][0] if isinstance(head, dict) and isinstance(head.get("docs"), list) and head["docs"] else head
+        run_id = head.get("id") if isinstance(head, dict) else None
+        print(f"collect_discovery.py: run {run_id or 'unknown'}: {len(nulled)} non-finite value(s) from Artemis read as missing: {shown}", file=sys.stderr)
     run = payloads["run"]
     if isinstance(run, dict) and isinstance(run.get("docs"), list) and run["docs"]:
         run = run["docs"][0]
@@ -730,7 +856,9 @@ def build_snapshot(
             payload = dict(stat)
             use_falcon_stats(payload, compared)
             payload["pctBetter"] = compared.get("improvementPct")
-            payload["timesBetter"] = times_better(compared.get("improvementPct"), (metric_defs.get(name) or {}).get("higherIsBetter"))
+            # An AI score is an opinion of the code, not a measurement, so it gets no "x better"; its % stays falcon's.
+            definition = metric_defs.get(name) or {}
+            payload["timesBetter"] = None if definition.get("kind") == "quality" else times_better(compared.get("improvementPct"), definition.get("higherIsBetter"))
             payload["vsBaseline"] = falcon_vs_baseline(compared)
             joined[name] = payload
         add_reference_ratios(joined)
@@ -928,6 +1056,9 @@ def build_snapshot(
         "perMetricWinners": winners,
         "webUiBest": web_ui_best(versions),
         "bestLines": best_lines(metric_defs, versions, winners, web_ui_best(versions)),
+        # The stored-direction warnings on their own as well, so a page carries them even when no version leads.
+        "directionChecks": direction_checks(metric_defs),
+        "nonFinite": nulled,  # the values Artemis sent as NaN or Infinity, read as missing
         "steering": steering_points(payloads.get("chat"), versions),
         "executionSummary": {
             **lifecycle_counts,
@@ -986,7 +1117,7 @@ def main(argv: list[str] | None = None) -> int:
             except (RuntimeError, ValueError) as error:
                 skipped.append({"id": item.get("id"), "status": item.get("status"), "reason": str(error)[:200]})
         result = {"schemaVersion": SCHEMA_VERSION, "kind": "project", "projectId": args.project, "collectedAt": collected_at, "runs": runs, "skipped": skipped}
-        encoded = json.dumps(result, indent=2)
+        encoded = write_finite(result)
         if args.output:
             with open(args.output, "w", encoding="utf-8") as handle:
                 handle.write(encoded + "\n")
@@ -1015,7 +1146,7 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as error:
         print(f"collect_discovery.py: {error}", file=sys.stderr)
         return 2
-    encoded = json.dumps(snapshot, indent=2, sort_keys=False)
+    encoded = write_finite(snapshot)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as handle:
             handle.write(encoded)

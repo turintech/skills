@@ -1,0 +1,2190 @@
+{
+  "schemaVersion": 2,
+  "collectedAt": "2026-11-10T17:24:08+00:00",
+  "provenance": {
+    "source": "artemis discovery metrics --all --stats",
+    "statsSource": "artemis discovery compare (falcon)",
+    "runsSource": "artemis discovery metrics --all",
+    "verdictsSource": "artemis discovery compare (falcon)",
+    "commands": [
+      "artemis --output-format json discovery get <run-id>",
+      "artemis --output-format json discovery versions list <run-id> --all",
+      "artemis --output-format json discovery metrics <run-id> --all --stats",
+      "artemis --output-format json discovery metrics <run-id> --all",
+      "artemis --output-format json discovery experiments list <run-id> --all",
+      "artemis --output-format json discovery compare <run-id>",
+      "artemis --output-format json chat messages <chat-id>",
+      "artemis --output-format json project list --all"
+    ],
+    "cli": "artemis"
+  },
+  "run": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "projectId": "00000000-0000-4000-8000-000000000000",
+    "status": "completed",
+    "displayStatus": "completed",
+    "taskDescription": "redacted",
+    "targetFiles": [
+      "src/a.cpp",
+      "src/b.cpp",
+      "src/c.cpp"
+    ],
+    "versionCount": 3,
+    "numVersions": 8,
+    "experimentCount": 10,
+    "baselineGroupId": "00000000-0000-4000-8000-000000000000",
+    "baselineVersionSha": "bbbbbbb000000000000000000000000000000002",
+    "baselineChangesetId": "00000000-0000-4000-8000-000000000000",
+    "createdAt": "2026-10-05T13:24:02Z",
+    "updatedAt": "2026-10-05T15:52:27Z",
+    "runnerName": "redacted",
+    "runner": "redacted",
+    "projectName": "redacted",
+    "projectUrl": null,
+    "webUrl": null
+  },
+  "metrics": [
+    {
+      "key": "rtfx",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "rtfx",
+      "source": "worker",
+      "higherIsBetter": true,
+      "importance": "high",
+      "kind": "target",
+      "unit": null,
+      "platformUnit": null,
+      "description": null
+    },
+    {
+      "key": "wall_ms",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "wall ms",
+      "source": "worker",
+      "higherIsBetter": false,
+      "importance": "medium",
+      "kind": "target",
+      "unit": "ms",
+      "platformUnit": null,
+      "description": null
+    },
+    {
+      "key": "ms_per_chunk",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "ms per chunk",
+      "source": "worker",
+      "higherIsBetter": false,
+      "importance": "medium",
+      "kind": "target",
+      "unit": "ms",
+      "platformUnit": null,
+      "description": null
+    },
+    {
+      "key": "proc_wall_s",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "proc wall s",
+      "source": "worker",
+      "higherIsBetter": false,
+      "importance": "low",
+      "kind": "target",
+      "unit": "s",
+      "platformUnit": null,
+      "description": null
+    },
+    {
+      "key": "der_long",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "der long",
+      "source": "worker",
+      "higherIsBetter": false,
+      "importance": "medium",
+      "kind": "target",
+      "unit": null,
+      "platformUnit": null,
+      "description": null
+    },
+    {
+      "key": "speaker_prob_parity_safety",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "speaker prob parity safety",
+      "source": "agent",
+      "higherIsBetter": true,
+      "importance": "high",
+      "kind": "quality",
+      "unit": null,
+      "platformUnit": null,
+      "description": "redacted"
+    },
+    {
+      "key": "asr_fe_output_preservation",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "asr fe output preservation",
+      "source": "agent",
+      "higherIsBetter": true,
+      "importance": "medium",
+      "kind": "quality",
+      "unit": null,
+      "platformUnit": null,
+      "description": "redacted"
+    },
+    {
+      "key": "host_work_between_chunks_reduction",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "host work between chunks reduction",
+      "source": "agent",
+      "higherIsBetter": true,
+      "importance": "medium",
+      "kind": "quality",
+      "unit": null,
+      "platformUnit": null,
+      "description": "redacted"
+    },
+    {
+      "key": "graph_cache_miss_reduction",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "graph cache miss reduction",
+      "source": "agent",
+      "higherIsBetter": true,
+      "importance": "medium",
+      "kind": "quality",
+      "unit": null,
+      "platformUnit": null,
+      "description": "redacted"
+    },
+    {
+      "key": "offline_and_cpu_build_compat",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "offline and cpu build compat",
+      "source": "agent",
+      "higherIsBetter": true,
+      "importance": "low",
+      "kind": "quality",
+      "unit": null,
+      "platformUnit": null,
+      "description": "redacted"
+    },
+    {
+      "key": "change_scope_and_style_fit",
+      "metricId": "00000000-0000-4000-8000-000000000000",
+      "label": "change scope and style fit",
+      "source": "agent",
+      "higherIsBetter": true,
+      "importance": "low",
+      "kind": "quality",
+      "unit": null,
+      "platformUnit": null,
+      "description": "redacted"
+    }
+  ],
+  "baseline": {
+    "sha": "bbbbbbb000000000000000000000000000000002",
+    "observationGroupId": "00000000-0000-4000-8000-000000000000",
+    "metrics": {
+      "rtfx": {
+        "mean": 67.93,
+        "min": 56.0,
+        "max": 71.94,
+        "count": 5,
+        "runs": [
+          56.0,
+          71.01
+        ],
+        "q1": 69.24,
+        "median": 71.01,
+        "q3": 71.47,
+        "std": 6.748,
+        "ste": 3.018
+      },
+      "wall_ms": {
+        "mean": 8913.0,
+        "min": 8341.0,
+        "max": 10710.0,
+        "count": 5,
+        "runs": [
+          10710.0,
+          8449.0
+        ],
+        "q1": 8395.0,
+        "median": 8449.0,
+        "q3": 8666.0,
+        "std": 1015.0,
+        "ste": 453.7
+      },
+      "ms_per_chunk": {
+        "mean": 15.45,
+        "min": 14.46,
+        "max": 18.57,
+        "count": 5,
+        "runs": [
+          18.57,
+          14.64
+        ],
+        "q1": 14.55,
+        "median": 14.64,
+        "q3": 15.02,
+        "std": 1.758,
+        "ste": 0.7863
+      },
+      "proc_wall_s": {
+        "mean": 10.45,
+        "min": 9.395,
+        "max": 11.89,
+        "count": 5,
+        "runs": [
+          11.89,
+          9.395
+        ],
+        "q1": 9.411,
+        "median": 9.814,
+        "q3": 11.76,
+        "std": 1.263,
+        "ste": 0.5649
+      },
+      "der_long": {
+        "mean": 0.09989,
+        "min": 0.09989,
+        "max": 0.09989,
+        "count": 5,
+        "runs": [
+          0.09989,
+          0.09989
+        ],
+        "q1": 0.09989,
+        "median": 0.09989,
+        "q3": 0.09989,
+        "std": 0,
+        "ste": 0
+      },
+      "speaker_prob_parity_safety": {
+        "mean": 1,
+        "min": 1,
+        "max": 1,
+        "count": 1,
+        "runs": [
+          1
+        ],
+        "q1": 1.0,
+        "median": 1.0,
+        "q3": 1.0
+      },
+      "asr_fe_output_preservation": {
+        "mean": 1,
+        "min": 1,
+        "max": 1,
+        "count": 1,
+        "runs": [
+          1
+        ],
+        "q1": 1.0,
+        "median": 1.0,
+        "q3": 1.0
+      },
+      "host_work_between_chunks_reduction": {
+        "mean": 0,
+        "min": 0,
+        "max": 0,
+        "count": 1,
+        "runs": [
+          0
+        ],
+        "q1": 0.0,
+        "median": 0.0,
+        "q3": 0.0
+      },
+      "graph_cache_miss_reduction": {
+        "mean": 0,
+        "min": 0,
+        "max": 0,
+        "count": 1,
+        "runs": [
+          0
+        ],
+        "q1": 0.0,
+        "median": 0.0,
+        "q3": 0.0
+      },
+      "offline_and_cpu_build_compat": {
+        "mean": 1,
+        "min": 1,
+        "max": 1,
+        "count": 1,
+        "runs": [
+          1
+        ],
+        "q1": 1.0,
+        "median": 1.0,
+        "q3": 1.0
+      },
+      "change_scope_and_style_fit": {
+        "mean": 0.5,
+        "min": 0.5,
+        "max": 0.5,
+        "count": 1,
+        "runs": [
+          0.5
+        ],
+        "q1": 0.5,
+        "median": 0.5,
+        "q3": 0.5
+      }
+    },
+    "readings": {
+      "asr_fe_output_preservation": 1,
+      "change_scope_and_style_fit": 1,
+      "der_long": 5,
+      "graph_cache_miss_reduction": 1,
+      "host_work_between_chunks_reduction": 1,
+      "ms_per_chunk": 5,
+      "offline_and_cpu_build_compat": 1,
+      "proc_wall_s": 5,
+      "rtfx": 5,
+      "speaker_prob_parity_safety": 1,
+      "wall_ms": 5
+    }
+  },
+  "versions": [
+    {
+      "label": "v1",
+      "version": 1,
+      "id": "00000000-0000-4000-8000-000000000000",
+      "lifecycle": "completed",
+      "executionStatus": "success",
+      "displayStatus": "scored",
+      "fitness": 0.1453,
+      "changesetId": "00000000-0000-4000-8000-000000000000",
+      "versionSha": "ddddddd000000000000000000000000000000004",
+      "observationGroupId": "00000000-0000-4000-8000-000000000000",
+      "experimentId": "00000000-0000-4000-8000-000000000000",
+      "experimentTitle": "Etaoinshr detaoi nshrdeta oi NshrDetaoi",
+      "experimentStatus": "validated",
+      "experimentConfidence": 0.8,
+      "experimentConclusion": "redacted",
+      "parentExperimentIds": [],
+      "llmRationale": "redacted",
+      "createdAt": "2026-10-05T13:37:10Z",
+      "overallVerdict": {
+        "verdict": "pending",
+        "improvementLowPct": null,
+        "improvementHighPct": null,
+        "provisional": true
+      },
+      "metrics": {
+        "rtfx": {
+          "mean": 94.05,
+          "min": 91.97,
+          "max": 95.04,
+          "count": 5,
+          "runs": [
+            94.28,
+            94.11
+          ],
+          "q1": 94.11,
+          "median": 94.28,
+          "q3": 94.82,
+          "std": 1.219,
+          "ste": 0.545,
+          "pctBetter": 38.44,
+          "timesBetter": 1.384,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 38.44,
+            "ciLowPct": 21.43,
+            "ciHighPct": 55.45,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 3.991,
+            "improvementPoints": null
+          }
+        },
+        "wall_ms": {
+          "mean": 6381.0,
+          "min": 6313.0,
+          "max": 6524.0,
+          "count": 5,
+          "runs": [
+            6364.0,
+            6375.0
+          ],
+          "q1": 6328.0,
+          "median": 6364.0,
+          "q3": 6375.0,
+          "std": 83.8,
+          "ste": 37.48,
+          "pctBetter": 28.41,
+          "timesBetter": 1.397,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 28.41,
+            "ciLowPct": 18.32,
+            "ciHighPct": 38.5,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 4.51,
+            "improvementPoints": null
+          }
+        },
+        "ms_per_chunk": {
+          "mean": 11.06,
+          "min": 10.94,
+          "max": 11.31,
+          "count": 5,
+          "runs": [
+            11.03,
+            11.05
+          ],
+          "q1": 10.97,
+          "median": 11.03,
+          "q3": 11.05,
+          "std": 0.1452,
+          "ste": 0.06495,
+          "pctBetter": 28.41,
+          "timesBetter": 1.397,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 28.41,
+            "ciLowPct": 18.32,
+            "ciHighPct": 38.5,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 4.51,
+            "improvementPoints": null
+          }
+        },
+        "proc_wall_s": {
+          "mean": 10.56,
+          "min": 7.275,
+          "max": 20.38,
+          "count": 5,
+          "runs": [
+            7.399,
+            7.275
+          ],
+          "q1": 7.291,
+          "median": 7.399,
+          "q3": 10.47,
+          "std": 5.654,
+          "ste": 2.529,
+          "pctBetter": -1.05,
+          "timesBetter": 0.9896,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "noise",
+            "improvementPct": -1.05,
+            "ciLowPct": -67.55,
+            "ciHighPct": 65.44,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "too_small",
+            "spreadPct": 20.82,
+            "improvementPoints": null
+          }
+        },
+        "der_long": {
+          "mean": 0.09989,
+          "min": 0.09989,
+          "max": 0.09989,
+          "count": 5,
+          "runs": [
+            0.09989,
+            0.09989
+          ],
+          "q1": 0.09989,
+          "median": 0.09989,
+          "q3": 0.09989,
+          "std": 0,
+          "ste": 0,
+          "pctBetter": 0,
+          "timesBetter": 1.0,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "noise",
+            "improvementPct": 0,
+            "ciLowPct": 0,
+            "ciHighPct": 0,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_effect",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "speaker_prob_parity_safety": {
+          "mean": 0.9,
+          "min": 0.9,
+          "max": 0.9,
+          "count": 1,
+          "runs": [
+            0.9
+          ],
+          "q1": 0.9,
+          "median": 0.9,
+          "q3": 0.9,
+          "pctBetter": -10,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -10,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "asr_fe_output_preservation": {
+          "mean": 0.95,
+          "min": 0.95,
+          "max": 0.95,
+          "count": 1,
+          "runs": [
+            0.95
+          ],
+          "q1": 0.95,
+          "median": 0.95,
+          "q3": 0.95,
+          "pctBetter": -5,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -5,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "host_work_between_chunks_reduction": {
+          "mean": 0.5,
+          "min": 0.5,
+          "max": 0.5,
+          "count": 1,
+          "runs": [
+            0.5
+          ],
+          "q1": 0.5,
+          "median": 0.5,
+          "q3": 0.5,
+          "pctBetter": null,
+          "timesBetter": null,
+          "vsBaseline": null
+        },
+        "graph_cache_miss_reduction": {
+          "mean": 0,
+          "min": 0,
+          "max": 0,
+          "count": 1,
+          "runs": [
+            0
+          ],
+          "q1": 0.0,
+          "median": 0.0,
+          "q3": 0.0,
+          "pctBetter": null,
+          "timesBetter": null,
+          "vsBaseline": null
+        },
+        "offline_and_cpu_build_compat": {
+          "mean": 0.875,
+          "min": 0.875,
+          "max": 0.875,
+          "count": 1,
+          "runs": [
+            0.875
+          ],
+          "q1": 0.875,
+          "median": 0.875,
+          "q3": 0.875,
+          "pctBetter": -12.5,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -12.5,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "change_scope_and_style_fit": {
+          "mean": 0.85,
+          "min": 0.85,
+          "max": 0.85,
+          "count": 1,
+          "runs": [
+            0.85
+          ],
+          "q1": 0.85,
+          "median": 0.85,
+          "q3": 0.85,
+          "pctBetter": 70,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": 70,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        }
+      },
+      "eligible": true
+    },
+    {
+      "label": "v4",
+      "version": 4,
+      "id": "00000000-0000-4000-8000-000000000000",
+      "lifecycle": "completed",
+      "executionStatus": "success",
+      "displayStatus": "scored",
+      "fitness": 0.3248,
+      "changesetId": "00000000-0000-4000-8000-000000000000",
+      "versionSha": "aaaaaaa000000000000000000000000000000001",
+      "observationGroupId": "00000000-0000-4000-8000-000000000000",
+      "experimentId": "00000000-0000-4000-8000-000000000000",
+      "experimentTitle": "Nshrdetaoinsh RDE TA oinshr det aoins hrdet",
+      "experimentStatus": "validated",
+      "experimentConfidence": 0.66,
+      "experimentConclusion": "redacted",
+      "parentExperimentIds": [],
+      "llmRationale": "redacted",
+      "createdAt": "2026-10-05T14:06:58Z",
+      "overallVerdict": {
+        "verdict": "pending",
+        "improvementLowPct": null,
+        "improvementHighPct": null,
+        "provisional": true
+      },
+      "metrics": {
+        "rtfx": {
+          "mean": 133.8,
+          "min": 132.8,
+          "max": 135.0,
+          "count": 5,
+          "runs": [
+            134.0,
+            135.0
+          ],
+          "q1": 133.6,
+          "median": 133.8,
+          "q3": 134.0,
+          "std": 0.8026,
+          "ste": 0.3589,
+          "pctBetter": 97,
+          "timesBetter": 1.97,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 97,
+            "ciLowPct": 72.73,
+            "ciHighPct": 121.3,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 3.991,
+            "improvementPoints": null
+          }
+        },
+        "wall_ms": {
+          "mean": 4484.0,
+          "min": 4445.0,
+          "max": 4519.0,
+          "count": 5,
+          "runs": [
+            4477.0,
+            4445.0
+          ],
+          "q1": 4477.0,
+          "median": 4484.0,
+          "q3": 4492.0,
+          "std": 26.86,
+          "ste": 12.01,
+          "pctBetter": 49.7,
+          "timesBetter": 1.988,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 49.7,
+            "ciLowPct": 42.59,
+            "ciHighPct": 56.8,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 4.51,
+            "improvementPoints": null
+          }
+        },
+        "ms_per_chunk": {
+          "mean": 7.77,
+          "min": 7.704,
+          "max": 7.832,
+          "count": 5,
+          "runs": [
+            7.76,
+            7.704
+          ],
+          "q1": 7.76,
+          "median": 7.771,
+          "q3": 7.786,
+          "std": 0.04656,
+          "ste": 0.02082,
+          "pctBetter": 49.7,
+          "timesBetter": 1.988,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 49.7,
+            "ciLowPct": 42.59,
+            "ciHighPct": 56.8,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 4.51,
+            "improvementPoints": null
+          }
+        },
+        "proc_wall_s": {
+          "mean": 5.552,
+          "min": 5.354,
+          "max": 5.681,
+          "count": 5,
+          "runs": [
+            5.541,
+            5.57
+          ],
+          "q1": 5.541,
+          "median": 5.57,
+          "q3": 5.615,
+          "std": 0.1227,
+          "ste": 0.05489,
+          "pctBetter": 46.89,
+          "timesBetter": 1.883,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 46.89,
+            "ciLowPct": 38.98,
+            "ciHighPct": 54.8,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 20.82,
+            "improvementPoints": null
+          }
+        },
+        "der_long": {
+          "mean": 0.09989,
+          "min": 0.09989,
+          "max": 0.09989,
+          "count": 5,
+          "runs": [
+            0.09989,
+            0.09989
+          ],
+          "q1": 0.09989,
+          "median": 0.09989,
+          "q3": 0.09989,
+          "std": 0,
+          "ste": 0,
+          "pctBetter": 0,
+          "timesBetter": 1.0,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "noise",
+            "improvementPct": 0,
+            "ciLowPct": 0,
+            "ciHighPct": 0,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_effect",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "speaker_prob_parity_safety": {
+          "mean": 0.85,
+          "min": 0.85,
+          "max": 0.85,
+          "count": 1,
+          "runs": [
+            0.85
+          ],
+          "q1": 0.85,
+          "median": 0.85,
+          "q3": 0.85,
+          "pctBetter": -15,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -15,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "asr_fe_output_preservation": {
+          "mean": 0.7,
+          "min": 0.7,
+          "max": 0.7,
+          "count": 1,
+          "runs": [
+            0.7
+          ],
+          "q1": 0.7,
+          "median": 0.7,
+          "q3": 0.7,
+          "pctBetter": -30,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -30,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "host_work_between_chunks_reduction": {
+          "mean": 0.7,
+          "min": 0.7,
+          "max": 0.7,
+          "count": 1,
+          "runs": [
+            0.7
+          ],
+          "q1": 0.7,
+          "median": 0.7,
+          "q3": 0.7,
+          "pctBetter": null,
+          "timesBetter": null,
+          "vsBaseline": null
+        },
+        "graph_cache_miss_reduction": {
+          "mean": 0,
+          "min": 0,
+          "max": 0,
+          "count": 1,
+          "runs": [
+            0
+          ],
+          "q1": 0.0,
+          "median": 0.0,
+          "q3": 0.0,
+          "pctBetter": null,
+          "timesBetter": null,
+          "vsBaseline": null
+        },
+        "offline_and_cpu_build_compat": {
+          "mean": 0.75,
+          "min": 0.75,
+          "max": 0.75,
+          "count": 1,
+          "runs": [
+            0.75
+          ],
+          "q1": 0.75,
+          "median": 0.75,
+          "q3": 0.75,
+          "pctBetter": -25,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -25,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "change_scope_and_style_fit": {
+          "mean": 0.45,
+          "min": 0.45,
+          "max": 0.45,
+          "count": 1,
+          "runs": [
+            0.45
+          ],
+          "q1": 0.45,
+          "median": 0.45,
+          "q3": 0.45,
+          "pctBetter": -10,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -10,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        }
+      },
+      "eligible": true
+    },
+    {
+      "label": "v5",
+      "version": 5,
+      "id": "00000000-0000-4000-8000-000000000000",
+      "lifecycle": "completed",
+      "executionStatus": "success",
+      "displayStatus": "scored",
+      "fitness": 0.3069,
+      "changesetId": "00000000-0000-4000-8000-000000000000",
+      "versionSha": "ccccccc000000000000000000000000000000003",
+      "observationGroupId": "00000000-0000-4000-8000-000000000000",
+      "experimentId": "00000000-0000-4000-8000-000000000000",
+      "experimentTitle": "Aoinshrdeta OIN shr-detaoin shr detaoin shrdet (aoi-nshrdetao)",
+      "experimentStatus": "inconclusive",
+      "experimentConfidence": 0.25,
+      "experimentConclusion": "redacted",
+      "parentExperimentIds": [
+        "00000000-0000-4000-8000-000000000000"
+      ],
+      "llmRationale": "redacted",
+      "createdAt": "2026-10-05T14:24:57Z",
+      "overallVerdict": {
+        "verdict": "pending",
+        "improvementLowPct": null,
+        "improvementHighPct": null,
+        "provisional": true
+      },
+      "metrics": {
+        "rtfx": {
+          "mean": 136.9,
+          "min": 135.1,
+          "max": 139.5,
+          "count": 5,
+          "runs": [
+            135.1,
+            136.8
+          ],
+          "q1": 136.1,
+          "median": 136.8,
+          "q3": 137.1,
+          "std": 1.661,
+          "ste": 0.7428,
+          "pctBetter": 101.6,
+          "timesBetter": 2.016,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 101.6,
+            "ciLowPct": 76.78,
+            "ciHighPct": 126.3,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 3.991,
+            "improvementPoints": null
+          }
+        },
+        "wall_ms": {
+          "mean": 4383.0,
+          "min": 4300.0,
+          "max": 4442.0,
+          "count": 5,
+          "runs": [
+            4442.0,
+            4385.0
+          ],
+          "q1": 4377.0,
+          "median": 4385.0,
+          "q3": 4409.0,
+          "std": 52.78,
+          "ste": 23.61,
+          "pctBetter": 50.83,
+          "timesBetter": 2.034,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 50.83,
+            "ciLowPct": 43.9,
+            "ciHighPct": 57.76,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 4.51,
+            "improvementPoints": null
+          }
+        },
+        "ms_per_chunk": {
+          "mean": 7.595,
+          "min": 7.452,
+          "max": 7.699,
+          "count": 5,
+          "runs": [
+            7.699,
+            7.599
+          ],
+          "q1": 7.586,
+          "median": 7.599,
+          "q3": 7.641,
+          "std": 0.09148,
+          "ste": 0.04091,
+          "pctBetter": 50.83,
+          "timesBetter": 2.034,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 50.83,
+            "ciLowPct": 43.9,
+            "ciHighPct": 57.76,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 4.51,
+            "improvementPoints": null
+          }
+        },
+        "proc_wall_s": {
+          "mean": 5.336,
+          "min": 5.189,
+          "max": 5.444,
+          "count": 5,
+          "runs": [
+            5.432,
+            5.323
+          ],
+          "q1": 5.294,
+          "median": 5.323,
+          "q3": 5.432,
+          "std": 0.1054,
+          "ste": 0.04713,
+          "pctBetter": 48.95,
+          "timesBetter": 1.959,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "better",
+            "improvementPct": 48.95,
+            "ciLowPct": 41.34,
+            "ciHighPct": 56.57,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "settled",
+            "spreadPct": 20.82,
+            "improvementPoints": null
+          }
+        },
+        "der_long": {
+          "mean": 0.09989,
+          "min": 0.09989,
+          "max": 0.09989,
+          "count": 5,
+          "runs": [
+            0.09989,
+            0.09989
+          ],
+          "q1": 0.09989,
+          "median": 0.09989,
+          "q3": 0.09989,
+          "std": 0,
+          "ste": 0,
+          "pctBetter": 0,
+          "timesBetter": 1.0,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "noise",
+            "improvementPct": 0,
+            "ciLowPct": 0,
+            "ciHighPct": 0,
+            "readings": 5,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_effect",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "speaker_prob_parity_safety": {
+          "mean": 0.75,
+          "min": 0.75,
+          "max": 0.75,
+          "count": 1,
+          "runs": [
+            0.75
+          ],
+          "q1": 0.75,
+          "median": 0.75,
+          "q3": 0.75,
+          "pctBetter": -25,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -25,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "asr_fe_output_preservation": {
+          "mean": 0.675,
+          "min": 0.675,
+          "max": 0.675,
+          "count": 1,
+          "runs": [
+            0.675
+          ],
+          "q1": 0.675,
+          "median": 0.675,
+          "q3": 0.675,
+          "pctBetter": -32.5,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -32.5,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "host_work_between_chunks_reduction": {
+          "mean": 0.725,
+          "min": 0.725,
+          "max": 0.725,
+          "count": 1,
+          "runs": [
+            0.725
+          ],
+          "q1": 0.725,
+          "median": 0.725,
+          "q3": 0.725,
+          "pctBetter": null,
+          "timesBetter": null,
+          "vsBaseline": null
+        },
+        "graph_cache_miss_reduction": {
+          "mean": 0,
+          "min": 0,
+          "max": 0,
+          "count": 1,
+          "runs": [
+            0
+          ],
+          "q1": 0.0,
+          "median": 0.0,
+          "q3": 0.0,
+          "pctBetter": null,
+          "timesBetter": null,
+          "vsBaseline": null
+        },
+        "offline_and_cpu_build_compat": {
+          "mean": 0.725,
+          "min": 0.725,
+          "max": 0.725,
+          "count": 1,
+          "runs": [
+            0.725
+          ],
+          "q1": 0.725,
+          "median": 0.725,
+          "q3": 0.725,
+          "pctBetter": -27.5,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": -27.5,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        },
+        "change_scope_and_style_fit": {
+          "mean": 0.525,
+          "min": 0.525,
+          "max": 0.525,
+          "count": 1,
+          "runs": [
+            0.525
+          ],
+          "q1": 0.525,
+          "median": 0.525,
+          "q3": 0.525,
+          "pctBetter": 5,
+          "timesBetter": null,
+          "vsBaseline": {
+            "source": "falcon",
+            "verdict": "pending",
+            "improvementPct": 5,
+            "ciLowPct": null,
+            "ciHighPct": null,
+            "readings": 1,
+            "recommendedReadings": null,
+            "recommendedReadingsReason": "no_data",
+            "spreadPct": null,
+            "improvementPoints": null
+          }
+        }
+      },
+      "eligible": true
+    }
+  ],
+  "experiments": [
+    {
+      "id": "00000000-0000-4000-8000-000000000000",
+      "title": "Eta-oins hrd etaoinshr deta oins hrd eta-oinsh rdet aoinshr",
+      "status": "queued",
+      "confidence": 0.15,
+      "parentExperimentIds": [
+        "00000000-0000-4000-8000-000000000000"
+      ],
+      "version": null,
+      "conclusion": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000000",
+      "title": "Detaoinshrd ETA oin-shrdeta oin shrdeta oinshr (det-aoinshrde)",
+      "status": "inconclusive",
+      "confidence": 0.25,
+      "parentExperimentIds": [
+        "00000000-0000-4000-8000-000000000000"
+      ],
+      "version": 5,
+      "conclusion": "redacted"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000000",
+      "title": "Taoi NSHR detaoi nshrdeta oin shr detaoins hrdetao",
+      "status": "queued",
+      "confidence": 0.2,
+      "parentExperimentIds": [
+        "00000000-0000-4000-8000-000000000000"
+      ],
+      "version": null,
+      "conclusion": null
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000000",
+      "title": "Nshrdetaoinsh RDE TA oinshr det aoins hrdet",
+      "status": "validated",
+      "confidence": 0.66,
+      "parentExperimentIds": [],
+      "version": 4,
+      "conclusion": "redacted"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000000",
+      "title": "Taoinshrd etaoin shrdetao in ShrdEtaoin",
+      "status": "validated",
+      "confidence": 0.8,
+      "parentExperimentIds": [],
+      "version": 1,
+      "conclusion": "redacted"
+    }
+  ],
+  "rankings": {
+    "rtfx": [
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 136.9,
+        "pctBetter": 101.6,
+        "timesBetter": 2.016,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 133.8,
+        "pctBetter": 97,
+        "timesBetter": 1.97,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 94.05,
+        "pctBetter": 38.44,
+        "timesBetter": 1.384,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      }
+    ],
+    "wall_ms": [
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 4383.0,
+        "pctBetter": 50.83,
+        "timesBetter": 2.034,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 4484.0,
+        "pctBetter": 49.7,
+        "timesBetter": 1.988,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 6381.0,
+        "pctBetter": 28.41,
+        "timesBetter": 1.397,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      }
+    ],
+    "ms_per_chunk": [
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 7.595,
+        "pctBetter": 50.83,
+        "timesBetter": 2.034,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 7.77,
+        "pctBetter": 49.7,
+        "timesBetter": 1.988,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 11.06,
+        "pctBetter": 28.41,
+        "timesBetter": 1.397,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      }
+    ],
+    "proc_wall_s": [
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 5.336,
+        "pctBetter": 48.95,
+        "timesBetter": 1.959,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 5.552,
+        "pctBetter": 46.89,
+        "timesBetter": 1.883,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 10.56,
+        "pctBetter": -1.05,
+        "timesBetter": 0.9896,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      }
+    ],
+    "der_long": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.09989,
+        "pctBetter": 0,
+        "timesBetter": 1.0,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.09989,
+        "pctBetter": 0,
+        "timesBetter": 1.0,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.09989,
+        "pctBetter": 0,
+        "timesBetter": 1.0,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      }
+    ],
+    "speaker_prob_parity_safety": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.9,
+        "pctBetter": -10,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.85,
+        "pctBetter": -15,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.75,
+        "pctBetter": -25,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      }
+    ],
+    "asr_fe_output_preservation": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.95,
+        "pctBetter": -5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.7,
+        "pctBetter": -30,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.675,
+        "pctBetter": -32.5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      }
+    ],
+    "host_work_between_chunks_reduction": [],
+    "graph_cache_miss_reduction": [],
+    "offline_and_cpu_build_compat": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.875,
+        "pctBetter": -12.5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.75,
+        "pctBetter": -25,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.725,
+        "pctBetter": -27.5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      }
+    ],
+    "change_scope_and_style_fit": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.85,
+        "pctBetter": 70,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.525,
+        "pctBetter": 5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.45,
+        "pctBetter": -10,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      }
+    ]
+  },
+  "runningBest": {
+    "rtfx": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 94.05,
+        "bestVersion": 1,
+        "bestMean": 94.05
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 133.8,
+        "bestVersion": 4,
+        "bestMean": 133.8
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 136.9,
+        "bestVersion": 5,
+        "bestMean": 136.9
+      }
+    ],
+    "wall_ms": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 6381.0,
+        "bestVersion": 1,
+        "bestMean": 6381.0
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 4484.0,
+        "bestVersion": 4,
+        "bestMean": 4484.0
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 4383.0,
+        "bestVersion": 5,
+        "bestMean": 4383.0
+      }
+    ],
+    "ms_per_chunk": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 11.06,
+        "bestVersion": 1,
+        "bestMean": 11.06
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 7.77,
+        "bestVersion": 4,
+        "bestMean": 7.77
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 7.595,
+        "bestVersion": 5,
+        "bestMean": 7.595
+      }
+    ],
+    "proc_wall_s": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 10.56,
+        "bestVersion": 1,
+        "bestMean": 10.56
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 5.552,
+        "bestVersion": 4,
+        "bestMean": 5.552
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 5.336,
+        "bestVersion": 5,
+        "bestMean": 5.336
+      }
+    ],
+    "der_long": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.09989,
+        "bestVersion": 1,
+        "bestMean": 0.09989
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.09989,
+        "bestVersion": 1,
+        "bestMean": 0.09989
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.09989,
+        "bestVersion": 1,
+        "bestMean": 0.09989
+      }
+    ],
+    "speaker_prob_parity_safety": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.9,
+        "bestVersion": 1,
+        "bestMean": 0.9
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.85,
+        "bestVersion": 1,
+        "bestMean": 0.9
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.75,
+        "bestVersion": 1,
+        "bestMean": 0.9
+      }
+    ],
+    "asr_fe_output_preservation": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.95,
+        "bestVersion": 1,
+        "bestMean": 0.95
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.7,
+        "bestVersion": 1,
+        "bestMean": 0.95
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.675,
+        "bestVersion": 1,
+        "bestMean": 0.95
+      }
+    ],
+    "host_work_between_chunks_reduction": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.5,
+        "bestVersion": 1,
+        "bestMean": 0.5
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.7,
+        "bestVersion": 2,
+        "bestMean": 0.7
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.725,
+        "bestVersion": 5,
+        "bestMean": 0.725
+      }
+    ],
+    "graph_cache_miss_reduction": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0,
+        "bestVersion": 1,
+        "bestMean": 0
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0,
+        "bestVersion": 3,
+        "bestMean": 0.6
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0,
+        "bestVersion": 3,
+        "bestMean": 0.6
+      }
+    ],
+    "offline_and_cpu_build_compat": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.875,
+        "bestVersion": 1,
+        "bestMean": 0.875
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.75,
+        "bestVersion": 1,
+        "bestMean": 0.875
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.725,
+        "bestVersion": 1,
+        "bestMean": 0.875
+      }
+    ],
+    "change_scope_and_style_fit": [
+      {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.85,
+        "bestVersion": 1,
+        "bestMean": 0.85
+      },
+      {
+        "version": 4,
+        "label": "v4",
+        "mean": 0.45,
+        "bestVersion": 1,
+        "bestMean": 0.85
+      },
+      {
+        "version": 5,
+        "label": "v5",
+        "mean": 0.525,
+        "bestVersion": 1,
+        "bestMean": 0.85
+      }
+    ]
+  },
+  "perMetricWinners": {
+    "rtfx": {
+      "raw": {
+        "version": 5,
+        "label": "v5",
+        "mean": 136.9,
+        "pctBetter": 101.6,
+        "timesBetter": 2.016,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      "eligible": {
+        "version": 5,
+        "label": "v5",
+        "mean": 136.9,
+        "pctBetter": 101.6,
+        "timesBetter": 2.016,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      "unranked": []
+    },
+    "wall_ms": {
+      "raw": {
+        "version": 5,
+        "label": "v5",
+        "mean": 4383.0,
+        "pctBetter": 50.83,
+        "timesBetter": 2.034,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      "eligible": {
+        "version": 5,
+        "label": "v5",
+        "mean": 4383.0,
+        "pctBetter": 50.83,
+        "timesBetter": 2.034,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      "unranked": []
+    },
+    "ms_per_chunk": {
+      "raw": {
+        "version": 5,
+        "label": "v5",
+        "mean": 7.595,
+        "pctBetter": 50.83,
+        "timesBetter": 2.034,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      "eligible": {
+        "version": 5,
+        "label": "v5",
+        "mean": 7.595,
+        "pctBetter": 50.83,
+        "timesBetter": 2.034,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      "unranked": []
+    },
+    "proc_wall_s": {
+      "raw": {
+        "version": 5,
+        "label": "v5",
+        "mean": 5.336,
+        "pctBetter": 48.95,
+        "timesBetter": 1.959,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      "eligible": {
+        "version": 5,
+        "label": "v5",
+        "mean": 5.336,
+        "pctBetter": 48.95,
+        "timesBetter": 1.959,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "inconclusive"
+      },
+      "unranked": []
+    },
+    "der_long": {
+      "raw": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.09989,
+        "pctBetter": 0,
+        "timesBetter": 1.0,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "eligible": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.09989,
+        "pctBetter": 0,
+        "timesBetter": 1.0,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "unranked": []
+    },
+    "speaker_prob_parity_safety": {
+      "raw": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.9,
+        "pctBetter": -10,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "eligible": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.9,
+        "pctBetter": -10,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "unranked": []
+    },
+    "asr_fe_output_preservation": {
+      "raw": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.95,
+        "pctBetter": -5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "eligible": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.95,
+        "pctBetter": -5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "unranked": []
+    },
+    "host_work_between_chunks_reduction": {
+      "raw": null,
+      "eligible": null,
+      "unranked": [
+        "v1",
+        "v4",
+        "v5"
+      ],
+      "reason": "Artemis has no change against the baseline for any version yet"
+    },
+    "graph_cache_miss_reduction": {
+      "raw": null,
+      "eligible": null,
+      "unranked": [
+        "v1",
+        "v4",
+        "v5"
+      ],
+      "reason": "Artemis has no change against the baseline for any version yet"
+    },
+    "offline_and_cpu_build_compat": {
+      "raw": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.875,
+        "pctBetter": -12.5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "eligible": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.875,
+        "pctBetter": -12.5,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "unranked": []
+    },
+    "change_scope_and_style_fit": {
+      "raw": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.85,
+        "pctBetter": 70,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "eligible": {
+        "version": 1,
+        "label": "v1",
+        "mean": 0.85,
+        "pctBetter": 70,
+        "timesBetter": null,
+        "eligible": true,
+        "lifecycle": "completed",
+        "executionStatus": "success",
+        "experimentStatus": "validated"
+      },
+      "unranked": []
+    }
+  },
+  "webUiBest": {
+    "version": 4,
+    "label": "v4",
+    "fitness": 0.3248
+  },
+  "bestLines": {
+    "version": 4,
+    "label": "v4",
+    "byComposite": true,
+    "lede": "v4 is the Web UI’s Best: the highest Composite score, the platform’s roll-up of the metrics by importance. Best on a single metric instead: v5 on rtfx (+101.6%); v5 on wall_ms (+50.8%); v5 on ms_per_chunk (+50.8%); v5 on proc_wall_s (+49.0%).",
+    "notes": {
+      "rtfx": "v5 is best on rtfx",
+      "wall_ms": "v5 is best on wall_ms",
+      "ms_per_chunk": "v5 is best on ms_per_chunk",
+      "proc_wall_s": "v5 is best on proc_wall_s"
+    },
+    "metric": "rtfx",
+    "checks": []
+  },
+  "steering": {
+    "points": [],
+    "source": null,
+    "reason": "redacted"
+  },
+  "executionSummary": {
+    "completed": 3,
+    "generation_failed": 0,
+    "scoring_failed": 0,
+    "execution_success": 3,
+    "execution_failed": 0,
+    "execution_pending": 0,
+    "missingTargetMetrics": []
+  },
+  "experimentSummary": {
+    "validated": 2,
+    "refuted": 0,
+    "inconclusive": 1
+  },
+  "pareto": null,
+  "references": [],
+  "directionChecks": [],
+  "nonFinite": []
+}
