@@ -276,6 +276,17 @@ function dirText(m) { return m.higherIsBetter == null ? "no stored direction" : 
 /* ---------- formatting ---------- */
 var MINUS = "−";
 var NUMFONT = "IBM Plex Sans, ui-sans-serif, system-ui, sans-serif";  // numbers in the text face; the page sets tabular figures
+// Text is sized by measuring it in the font the browser draws, never by counting characters: with Google Fonts out of
+// reach a wider or taller system sans draws instead, and the App draws again once the web font arrives.
+var measurer = null;
+function fontCtx(px, wt) {
+  if (measurer === null) { try { measurer = document.createElement("canvas").getContext("2d") || false; } catch (e) { measurer = false; } }
+  if (measurer) measurer.font = (wt || 400) + " " + px + "px " + NUMFONT;
+  return measurer;
+}
+function textW(s, px, wt) { var c = fontCtx(px, wt); return c ? c.measureText(String(s)).width : String(s).length * px * 0.62; }
+// Ascent to descent of the drawn font: the height each line of SVG text takes, so stacked lines never touch.
+function lineH(px) { var c = fontCtx(px), m = c && c.measureText("Hg"); return m && m.fontBoundingBoxAscent ? m.fontBoundingBoxAscent + m.fontBoundingBoxDescent : px * 1.4; }
 function fmtNum(v) {
   if (v == null || !isFinite(v)) return "no value";
   var a = Math.abs(v), o;
@@ -358,7 +369,7 @@ function buildSVG(card, title, series, hidden) {
   // The legend as on screen: only with two or more series, the same keys, wrapped to the chart's width.
   var lx = 0, ly = 0, leg = "", shown = series.length > 1 ? series.filter(function (s) { return !hidden[s.key]; }) : [];
   shown.forEach(function (s) {
-    var w = 34 + s.label.length * 8.2;  // 15px, as the on-screen legend
+    var w = 34 + textW(s.label, 15);  // 15px, as the on-screen legend
     if (lx && lx + w > W) { lx = 0; ly += 26; }
     // A ring, a dashed outline (needs more runs) or a plain outline (no comparison) is hollow; a line is a short bar.
     var hollow = s.shape === "ring" || s.shape === "dash" || s.shape === "outline";
@@ -655,7 +666,7 @@ function pareto(D) {  // the default pair: the collector's --pareto, else a meas
 function artemisTick(T, head) {
   return function (tp) {
     var v = tp.payload.value, isA = v === head;
-    var tw = String(v).length * 7.4;
+    var tw = textW(v, 15, isA ? 600 : 500);
     return h("g", { transform: "translate(" + tp.x + "," + tp.y + ")" },
       isA ? h("image", { href: ICON, x: -tw / 2 - 12, y: 5, width: 18, height: 18 }) : null,
       h("text", { x: isA ? 10 : 0, y: 19, textAnchor: "middle", fontSize: 15, fontWeight: isA ? 600 : 500, fill: isA ? T["accent-text"] : T.fg }, v));
@@ -873,7 +884,7 @@ function ForestCard(props) {
   var huge = !log && !bounded && all.some(function (r) { return r.tb && (r.tb >= 10 || r.tb <= 0.1); });
   var anyCI = all.some(function (r) { return r.lo != null || r.hi != null; });
   // The value (16px) and verdict (15px) share one line; widen the column for the longest pair rather than let them overlap.
-  var pairW = Math.max.apply(null, [0].concat(rows.map(function (r) { return String(log ? xlabels[r.label] : chg(m, r.pct)).length * 9.8 + 10 + vWord(r.verdict).length * 7.6; })));
+  var pairW = Math.max.apply(null, [0].concat(rows.map(function (r) { return textW(log ? xlabels[r.label] : chg(m, r.pct), 16, 600) + 10 + textW(vWord(r.verdict), 15); })));
   var width = Math.max(W, 300), right = narrow ? 40 : Math.max(270, Math.ceil(pairW) + 28), height = 56 + rows.length * (narrow ? 54 : 40);
   var colorOf = function (r) { if (r.verdict === "pending") return pendInk(T, r.pct); var s = series.filter(function (x) { return x.key === r.verdict; })[0]; return s ? s.color : T.better; };
   var x0 = 4 + 76, x1 = width - right, pxOf = function (v) { return x0 + (Math.max(L, Math.min(R, v)) - L) / (R - L) * (x1 - x0); };
@@ -957,15 +968,15 @@ function TimeCard(props) {
   var gaps = data.filter(function (d) { return d.y == null; }).map(function (d) { return d.label; });
   var valText = function (y) { return mode === "pct" ? chg(m, y) : mode === "mean" ? fmtNum(y) : y.toFixed(3); };
   var yFmt = function (v) { return mode === "pct" ? fmtPct(v).replace(".0%", "%") : mode === "fit" ? (+v.toFixed(3)).toString() : fmtTickNum(v); };
-  // Room for the widest tick (about 9px a character at 15px) plus the rotated title, so the two never overlap.
-  var yAxisW = Math.max(66, 30 + 8.5 * Math.max.apply(null, [0].concat((ax.ticks || []).map(function (v) { return String(yFmt(v)).length; }))));
+  // Room for the widest tick plus the rotated title (one line high) and a gap, so the two never overlap.
+  var yAxisW = Math.max(66, Math.ceil(lineH(15) + 12 + Math.max.apply(null, [0].concat((ax.ticks || []).map(function (v) { return textW(yFmt(v), 15); })))));
   var dot = function (p) {
     var pl = p.payload; if (pl.y == null || p.cy == null) return h("g", { key: p.index });
     var isHead = pl.v === head, isRaw = pl.v === rawMark && rawMark !== head, cl = mode === "fit" ? col.line : pl.verdict === "pending" ? pendInk(T, pl.y) : vFill(T, pl.verdict) || T.neutral, hollow = mode !== "fit" && (pl.verdict === "pending" || pl.verdict === "none"), parts = [];
     if (isHead) parts.push(h("circle", { key: "r", cx: p.cx, cy: p.cy, r: 11, fill: "none", stroke: T.accent, strokeWidth: 2.5 }));
     parts.push(h("circle", { key: "d", cx: p.cx, cy: p.cy, r: isHead ? 7 : 6, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 2 }));
     // Never past the plot's edge. Best sits under its ring, or over it near the x axis.
-    var lab = (isHead ? headWord : "") + valText(pl.y), lw = lab.length * 8.6, px0 = yAxisW + 8 - 4, px1 = width - 28 + 4;
+    var lab = (isHead ? headWord : "") + valText(pl.y), lw = textW(lab, 15, 600), px0 = yAxisW + 8 - 4, px1 = width - 28 + 4;
     var lx = Math.max(px0, Math.min(px1 - lw, p.cx - lw / 2));  // centred on the point, then pulled inside the plot
     if (isHead || isRaw) parts.push(h("text", { key: "t", x: lx, y: isHead ? (p.cy > TIME_H - 40 - 50 ? p.cy - 18 : p.cy + 28) : p.cy - 16, textAnchor: "start", fontSize: 15, fill: T.fg, fontWeight: 600, fontFamily: NUMFONT }, (isHead ? headWord : "") + valText(pl.y)));
     return h("g", { key: p.index }, parts);
@@ -1043,7 +1054,7 @@ function phoneName(n) {  // 52px groups on a phone: commits show 4 characters (t
   return s === "Original" ? "Orig." : s;
 }
 // A group name wider than its slot (a long runner name, say) is cut with an ellipsis rather than hidden; its tooltip has it whole.
-function fitName(s, slot) { s = String(s); if (s.length * 8.6 <= slot - 6) return s; return s.slice(0, Math.max(1, Math.floor((slot - 22) / 8.6))) + "…"; }  // 15px: about 8.6px a letter, 14px the ellipsis
+function fitName(s, slot) { s = String(s); if (textW(s, 15, 500) <= slot - 6) return s; var n = s.length; while (n > 1 && textW(s.slice(0, n) + "…", 15, 500) > slot - 6) n--; return s.slice(0, n) + "…"; }  // 15px, measured
 function BoxCard(props) {
   var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "box", { by: "version", scale: "shared" }), c = cs[0], hd = c.hidden || {};
   var list = D.measured, key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key], machines = hasMachines(D, key);
@@ -1085,11 +1096,11 @@ function BoxCard(props) {
   if (base && valuesOf(base).length === 1) means = { text: [html`One iteration on the original: ${numSpan(fmtNum(valuesOf(base)[0]) + unitOf(m))}, so no spread to show yet`] };
   else if (base && valuesOf(base).length) means = { text: [html`Original: ${numSpan(fmtNum(Math.min.apply(null, valuesOf(base))) + " to " + fmtNum(Math.max.apply(null, valuesOf(base))) + unitOf(m))} over ${runsWord(valuesOf(base).length)}`, wv ? overlapText(mstat(wv, key), base, m, wv.label).trim() || null : null] };
   var shape = boxShape(T, !hd.points);
-  var tick = function (tp) { var g = groups.filter(function (x) { return x.name === tp.payload.value; })[0]; return h("g", { transform: "translate(" + tp.x + "," + tp.y + ")" }, h("title", null, tp.payload.value), h("text", { textAnchor: "middle", y: 14, fontSize: 15, fill: T.fg, fontWeight: 500 }, fitName(W < 560 ? phoneName(tp.payload.value) : tp.payload.value, tp.payload.offset ? tp.payload.offset * 2 : 80)), h("text", { textAnchor: "middle", y: 31, fontSize: 15, fill: T["text-2"] }, g ? "n=" + g.n : "")); };
+  var tick = function (tp) { var g = groups.filter(function (x) { return x.name === tp.payload.value; })[0]; return h("g", { transform: "translate(" + tp.x + "," + tp.y + ")" }, h("title", null, tp.payload.value), h("text", { textAnchor: "middle", y: 14, fontSize: 15, fill: T.fg, fontWeight: 500 }, fitName(W < 560 ? phoneName(tp.payload.value) : tp.payload.value, tp.payload.offset ? tp.payload.offset * 2 : 80)), h("text", { textAnchor: "middle", y: 14 + Math.ceil(lineH(15)) + 1, fontSize: 15, fill: T["text-2"] }, g ? "n=" + g.n : "")); };
   var chartOf = function (data, w, ax, showY) {
     return html`<${RC.BarChart} width=${w} height=${own ? 260 : 380} data=${data} margin=${{ top: 14, right: 10, left: 6, bottom: 6 }}>
       <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
-      <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${40}/>
+      <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${Math.max(40, Math.ceil(8 + 2 * lineH(15)))}/>
       <${RC.YAxis} width=${Math.max(showY ? 66 : 52, Math.ceil(Math.max.apply(null, ax.ticks.map(function (t) { return String(fmtTickNum(t)).length; })) * 9) + (showY ? 26 : 10))} domain=${ax.domain} ticks=${ax.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${fmtTickNum}
         label=${showY ? { value: mlabel(m), angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } } : undefined}/>
       <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.35 }} isAnimationActive=${false}/>
@@ -1373,6 +1384,13 @@ function App() {
   var th = useState(function () { return load("theme", "auto"); }), theme = th[0], setTheme = th[1];
   var ss = useState(function () { return START ? START.session || 0 : ONLY ? 0 : load("session", 0); }), sess = ss[0], setSess = ss[1];
   var tv = useState(0), themeTick = tv[0], bump = tv[1];
+  var ft = useState(0), setFontTick = ft[1];  // a web font arriving changes every measured width, so draw again
+  useEffect(function () {
+    if (!document.fonts) return;
+    var again = function () { setFontTick(function (n) { return n + 1; }); };
+    if (document.fonts.ready) document.fonts.ready.then(again);
+    if (document.fonts.addEventListener) { document.fonts.addEventListener("loadingdone", again); return function () { document.fonts.removeEventListener("loadingdone", again); }; }
+  }, []);
   var ts = useState(null), toastMsg = ts[0], setToast = ts[1];
   var rk = useState(0), resetKey = rk[0], setResetKey = rk[1];
   var mo = useState(function () { return START && START.more ? true : load("more", false); }), moreOpen = mo[0], setMore = mo[1];  // START.more: the checker draws More too

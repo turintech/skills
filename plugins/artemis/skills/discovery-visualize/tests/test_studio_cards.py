@@ -1359,3 +1359,30 @@ class LastPassTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def without_web_font(html: str, family: str | None) -> str:
+    """The page as a viewer sees it when Google Fonts is out of reach: the system's own sans, or the named one."""
+    html = re.sub(r'<link rel="stylesheet" href="https://fonts\.googleapis\.com/[^"]*">', "", html)
+    return html.replace("IBM Plex Sans", family) if family else html
+
+
+def installed(family: str) -> bool:
+    try:
+        out = subprocess.run(["fc-match", "-f", "%{family}", family], capture_output=True, text=True, timeout=30, check=False).stdout
+    except OSError:
+        return False
+    return family in out.split(",")  # fc-match names a substitute when the family is missing
+
+
+@unittest.skipUnless(CHROME, "no Chrome or Chromium")
+class FallbackFontTests(unittest.TestCase):
+    def test_no_label_overlaps_in_a_fallback_font(self) -> None:
+        # A viewer who cannot reach Google Fonts sees the system's sans: DejaVu Sans is wider than IBM Plex Sans and
+        # Noto Sans taller, so text sized by counting characters ran into its neighbour (CI, 12 Nov).
+        html = build_studio.build([project_snapshot(3)])
+        for family in (None, "DejaVu Sans", "Noto Sans"):
+            if family and not installed(family):
+                continue  # the system default above still ran
+            with self.subTest(family=family or "system default"):
+                self.assertEqual(check_report.studio_render_checks(without_web_font(html, family), CHROME), [])
