@@ -168,6 +168,7 @@ Take the expected time only from a measurement: the phase durations `repo-comman
 - Project registration: `project-import`
 - Discovery launch, including `discovery create --script` and guided `--setup`: `discovery-start`
 - Discovery continuation, budget expansion, steering, or redirection: `discovery-steer`
+- Implementing a discovery run's versions on the user's own machine, claiming the versions the run's agent opens for claim: `discovery-implement`
 - Discovery interpretation: `discovery-inspect`
 - "Is my change faster?", a before/after benchmark of a local change on a runner: `change-validate`
 - Discovery charts, canvases, artifacts, or visual reports: `discovery-visualize`
