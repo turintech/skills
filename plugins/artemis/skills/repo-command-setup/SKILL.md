@@ -15,7 +15,7 @@ metadata:
 - **Problem:** Derives, verifies, and records a project Script's self-contained root-level commands: the build and test that gate Discovery, and the benchmark that reports numbers.
 - **Must be available:** Either a local checkout with the runner's toolchain or an online runner with an imported or import-ready project, plus agreement on the performance target when it is ambiguous.
 - **Use / don't use:** Use to prepare or repair repository commands and verify runner compatibility; when the repository lacks a harness, follow [HARNESS.md](HARNESS.md) first, then continue here.
-- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then continue to `discovery-start` or validation.
+- **Next skill:** If runner verification needs a project, use `project-import` and return here; otherwise import after local verification, then `discovery-start` (offering `benchmark-review` first, §7) or validation.
 
 ## Requirements
 
@@ -231,7 +231,7 @@ artemis changeset validation logs "<validation-id>" --project "<project-uuid>"
 
 Confirm every command shows `exitCode: 0` and that the intended runner and toolchain were used. If compile takes more than about 5 minutes, every Discovery version repeats it: use `workspace-setup` for an incremental build before Discovery. `validation get` and `validation logs` both read through the platform; no access to the runner host is needed.
 
-`validation get` reports only `exitCode`, `runtime`, `cpu` and `memory`, never metric values. The values are in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Read command output there, or with `execution-log-inspect` and the validate response's `processId`, not a per-command `logId`.
+`validation get` reports each command's `exitCode`, `runtime`, `cpu` and `memory`, and on CLI 1.1.18 or newer each metric's mean, n and std, never the raw values. The values are in `validation logs`, as `artemis_results.json content:` followed by `Wrote N metric values to observation`. Read command output there, or with `execution-log-inspect` and the validate response's `processId`, not a per-command `logId`.
 
 For a discovery run the equivalent is `artemis discovery metrics "<run-id>" --all`, or `--stats` for mean, standard deviation and sample count across repeated measurements.
 
@@ -250,6 +250,16 @@ Use the verified commands unchanged:
 - Don't set `project commands`: they are legacy, Discovery doesn't read them, and they would be a second copy of the commands. Only if the user asks.
 - `discovery-start` passes the same script to `discovery create --script`. Never keep a second command set for Discovery.
 
+## 7. Offer a benchmark review
+
+When the commands are verified and Discovery is next, offer it once per session in one line, in the reply that proposes the next step and before running it:
+
+```text
+Want me to review this benchmark against your goal before Discovery? It takes a few minutes.
+```
+
+On yes, use `benchmark-review`. If the user already asked to start Discovery, skip the offer and go on to `discovery-start`. If the user's next message doesn't take it up, carry on: it is never required and Discovery can always go ahead. Skip the offer when the caller verifies the commands itself or tells you to skip verification, as `quickstart` does, and on a return from `benchmark-review` to make its refinements. When the review comes back with refinements, make them here (HARNESS.md *Rules that close common gaps*); if they change the Script's commands and a Discovery run already uses this Script (`scriptId` in `artemis --output-format json discovery list --project <project> --all`, or no `scriptId` when this Script is the project's default, `isDefault` in `artemis --output-format json project scripts get <script-id> --project <project>`), create a new Script for them rather than updating this one. Then return to `benchmark-review`.
+
 ## Advanced cases
 
 Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical because of expensive rebuilds, a required long-running service, large ML assets or GPU state, excessive task logs, or runner-only failures. The advanced patterns trade portability for operational feasibility and require explicit safeguards.
@@ -265,3 +275,4 @@ Read [ADVANCED.md](ADVANCED.md) when clean-checkout execution is impractical bec
 - [ ] Benchmark writes a fresh numeric `artemis_results.json` or CSV file.
 - [ ] Runtime, toolchain, and machine-level prerequisites are documented.
 - [ ] Validation and discovery use the same verified commands, stored as a Script.
+- [ ] When the commands are verified and Discovery is next, `benchmark-review` offered once, except when the user already asked to start Discovery, the caller verifies or skips verification, or this is a return from the review.

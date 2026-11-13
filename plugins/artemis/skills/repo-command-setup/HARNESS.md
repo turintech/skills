@@ -34,7 +34,21 @@ rm -f artemis_results.json artemis_results.csv
 test -f artemis_results.json || test -f artemis_results.csv
 ```
 
-Confirm the results file contains the ranking metric as a number. Then return to SKILL.md §2–§6 to record the build, test and benchmark in a Script and complete runner verification when available.
+Confirm the results file contains the ranking metric as a number. Then return to SKILL.md §2-§7 to record the build, test and benchmark in a Script and complete runner verification when available.
+
+## Rules that close common gaps
+
+Start with a simple benchmark that runs end to end. Beyond the steps above, none of these is a default step: add one only when the user picks it in a review, or when a result shows it's needed. They close the gaps `benchmark-review` most often finds:
+
+- **Cases that look like real use.** Inputs from files or a fixed, logged seed, never literals in the timed code. Sizes span the user's range plus one larger, one small and one off-shape case; regimes the user judges apart are separate metrics.
+- **Long enough samples.** Each timed sample takes about a second or more, or loops internally, with as many warm-up iterations before the timer as the original's per-iteration times show are needed.
+- **Fail fast.** Check correctness on small inputs before the full timed run, so a broken version fails in seconds.
+- **Consume the output.** Time until the result exists and is used (checksummed, compared or written), so a compiler or a lazy result can't drop the work.
+- **Gate every output of every run** against the original implementation, under the equivalence rule agreed with the user, including generated and edge inputs that aren't scored. Run the reference in a separate process or on fresh buffers.
+- **Check every class** of output, including rare classes however few samples they have, and a margin above any quality floor.
+- **Fresh state each repetition.** No cache, file or process survives from one repetition to the next; with files or data that can be cached, use fresh paths or fresh copies of the same inputs each repetition.
+- **Same limits for everyone.** Pin threads, cores and memory in the benchmark command, the same for the original and every version.
+- **Keep the scorer out of reach.** Harness, gate, data and expected outputs live outside the target files and are protected by a check on their contents, since target files don't stop edits. Keep the expected digests outside the repository, in the Script's last setup command, after build and test (for example `printf '%s  %s\n' <sha256> bench/run.py | sha256sum -c`, `shasum -a 256 -c` on macOS), since Discovery can't edit the Script. The check covers only what measures (the benchmark, its checks, their expected outputs and the check itself), never which other files a version may change: target files are guidance for Discovery, not a write boundary, so an honest change anywhere in the code must still pass. A holdout of real data stays outside the repository.
 
 ## Long benchmarks: small, medium and full tiers
 
