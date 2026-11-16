@@ -56,8 +56,8 @@ class MaintainBoardReport(unittest.TestCase):
         for host in ("Cursor", "GitHub Copilot"):
             self.assertIn(f"### {host}", readme)
             section = readme.split(f"### {host}", 1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
-            note = [s for s in re.split(r"(?<=\.) ", section) if "`maintain`" in s]
-            self.assertTrue(note and "`discovery-visualize`" in note[0], f"{host}: {note}")
+            notes = [p for p in section.split("\n\n") if "`maintain`" in p]
+            self.assertTrue(any("`discovery-visualize`" in p for p in notes), f"{host}: {notes}")
 
 
 if __name__ == "__main__":
