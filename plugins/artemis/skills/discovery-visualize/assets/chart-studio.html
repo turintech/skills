@@ -184,14 +184,21 @@ function byImportance(list) {
   var rank = function (m) { var r = IMPORTANCE[m.importance]; return r == null ? 3 : r; };
   return list.map(function (m, i) { return [m, i]; }).sort(function (a, b) { return rank(a[0]) - rank(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
 }
-// The targets that can lead, best first: the collector's lead metric, then by importance; never a reference control.
+// The targets that can lead, best first: the collector's lead metric, then its lead order; never a reference control.
 function leadOrder(s) {
   var told = s.bestLines && s.bestLines.metric;
-  var ts = byImportance((s.metrics || []).filter(function (m) { return m.kind === "target" && m.role !== "reference" && m.higherIsBetter != null; }));
+  var ts = byLeadOrder(s, (s.metrics || []).filter(function (m) { return m.kind === "target" && m.role !== "reference" && m.higherIsBetter != null; }));
   return ts.filter(function (m) { return m.key === told; }).concat(ts.filter(function (m) { return m.key !== told; }));  // told only counts when it has a direction
 }
+// Panels and menus follow the collector's lead order (bestLines.order), so the headline's metric comes first; a metric it doesn't list,
+// or a snapshot from before it had one, keeps importance order after them.
+function byLeadOrder(s, list) {
+  var order = (s.bestLines && s.bestLines.order) || [];
+  var at = function (m) { var i = order.indexOf(m.key); return i < 0 ? order.length : i; };
+  return byImportance(list).map(function (m, i) { return [m, i]; }).sort(function (a, b) { return at(a[0]) - at(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+}
 function chartPlan(s, metrics) {
-  var measured = byImportance(metrics.filter(function (m) { return m.kind === "target"; }));  // panels, menus and the headline follow importance
+  var measured = byLeadOrder(s, metrics.filter(function (m) { return m.kind === "target"; }));
   var quality = metrics.filter(function (m) { return m.kind === "quality"; });
   var profile = s.profile || null;
   var modelFamily = measured.filter(isModel);

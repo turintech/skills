@@ -2162,7 +2162,8 @@
       "proc_wall_s": "v5 is best on proc_wall_s"
     },
     "metric": "rtfx",
-    "checks": []
+    "checks": [],
+    "order": ["rtfx", "wall_ms", "ms_per_chunk", "proc_wall_s", "der_long"]
   },
   "steering": {
     "points": [],

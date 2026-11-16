@@ -113,6 +113,17 @@ class BestCardTests(unittest.TestCase):
         text = probed(html, ds(html), "return document.querySelector('[data-card=\"best\"]').textContent;")
         self.assertRegex(text, r"Best on this metric alone: v4, [^,]+, (significantly|no significant|needs)")
 
+    def test_panels_follow_the_headline_not_snapshot_order(self) -> None:
+        # Staging run 470b9ac1: answers (held at 0.0%) and p95 (96.7% less) were both "high"; the headline led on p95
+        # but the card's first panel was still answers.
+        snap = low_then_high()
+        next(m for m in snap["metrics"] if m["key"] == "db_size_mb")["importance"] = "high"
+        snap["bestLines"] = collect_discovery.best_lines({m["key"]: m for m in snap["metrics"]}, snap["versions"], snap["perMetricWinners"], snap["webUiBest"])
+        self.assertEqual(snap["bestLines"]["metric"], KEY)
+        html = build_studio.build([snap])
+        text = probed(html, ds(html), "return document.querySelector('[data-card=\"best\"]').textContent;")
+        self.assertLess(text.index("Latency (ms)"), text.index("Db size MB"), text[:300])
+
 
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class TimeCardTests(unittest.TestCase):

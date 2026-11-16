@@ -589,7 +589,9 @@ def best_lines(
     for line in checks:
         lede += " " + line
     # checks: the same lines on their own, so a page that does not print the lede can still carry each word for word.
-    return {"version": lead["version"], "label": lead["label"], "metric": key, "byComposite": by_composite, "lede": lede, "notes": notes, "checks": checks}
+    # order: every target in the lead order above, so a page lays out its panels the way the headline chose, not a second sort.
+    return {"version": lead["version"], "label": lead["label"], "metric": key, "byComposite": by_composite, "lede": lede, "notes": notes,
+            "checks": checks, "order": targets}
 
 
 def _instant(value: Any) -> datetime | None:
