@@ -47,7 +47,17 @@ class MaintainBoardReport(unittest.TestCase):
                 self.assertIn(anchor, slugs, link + "#" + anchor)
 
     def test_a_missing_kit_falls_back_to_text(self):
-        self.assertIn("answer in text and say the chart needs `discovery-visualize` installed too", REPORT.read_text())
+        text = REPORT.read_text()
+        self.assertIn("`<maintain-dir>/../discovery-visualize/scripts/build_report.py`", text)
+        self.assertIn("answer in text and say the chart needs `discovery-visualize` installed too", text)
+
+    def test_each_readme_copy_path_says_maintain_needs_discovery_visualize(self):
+        readme = (SKILLS.parents[2] / "README.md").read_text()
+        for host in ("Cursor", "GitHub Copilot"):
+            self.assertIn(f"### {host}", readme)
+            section = readme.split(f"### {host}", 1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
+            note = [s for s in re.split(r"(?<=\.) ", section) if "`maintain`" in s]
+            self.assertTrue(note and "`discovery-visualize`" in note[0], f"{host}: {note}")
 
 
 if __name__ == "__main__":

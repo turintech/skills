@@ -34,7 +34,7 @@ agent plugin marketplace add https://github.com/turintech/skills.git \
   --git-ref v2.0.0
 ```
 
-Then install `artemis` from the marketplace. Copying `plugins/artemis/skills/<skill-name>/` into `.agents/skills/`, `.cursor/skills/`, or `.claude/skills/` still works when you need a project-local checkout.
+Then install `artemis` from the marketplace. Copying `plugins/artemis/skills/<skill-name>/` into `.agents/skills/`, `.cursor/skills/`, or `.claude/skills/` still works when you need a project-local checkout. If you copy `maintain` on its own, its board chart also needs `discovery-visualize` copied beside it.
 
 ### Codex
 
@@ -48,7 +48,7 @@ codex plugin marketplace add turintech/skills --ref v2.0.0
 gh skill install turintech/skills --all --pin v2.0.0
 ```
 
-Or copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.claude/skills/` in the workspace.
+Or copy the same skill folders into `.github/skills/`, `.agents/skills/`, or `.claude/skills/` in the workspace. If you copy `maintain` on its own, its board chart also needs `discovery-visualize` copied beside it.
 
 ## Releasing
 
