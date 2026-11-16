@@ -51,7 +51,7 @@ End with a recap the user can follow alone: the path as a short list of page and
 
 Button names are the Web UI's. Steps are goals: find each control on the page you are looking at.
 
-**Where things are.** A project's left bar has **Overview** and **Agents**, then *Workflows* (**Maintain**, **Discover**, **Plan**), *Code* (**Branches**, **Files**) and **Project Settings**, which opens its own sections: **General**, **Runner and Scripts**, **Metrics**. A dot on a settings link means "Setup incomplete". The **Get Started** card at the bottom of the bar lists what setup is left. Every page has a chat panel on the right with example prompts for that page.
+**Where things are.** A project's left bar has **Overview** and **Agents**, then *Workflows* (**Maintain**, **Discover**), *Code* (**Branches**, **Files**) and **Project Settings**, which opens its own sections: **General**, **Runner and Scripts**, **Metrics**. A dot on a settings link means "Setup incomplete". The **Get Started** card at the bottom of the bar lists what setup is left. Every page has a chat panel on the right with example prompts for that page.
 
 | Tour | Steps | Changes anything |
 |---|---|---|
