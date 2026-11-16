@@ -179,6 +179,35 @@ class RankedCardTests(unittest.TestCase):
 
 
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
+class FarValueTests(unittest.TestCase):
+    """Staging run 470b9ac1: every version's startup got worse, v2's by 111744.7%, so every label sat right of the zero
+    line, and at 390px v2's fell off the chart."""
+
+    @staticmethod
+    def far(snap: dict) -> dict:
+        worse = {"v2": -111744.7, "v4": -2.0, "v1": -0.7}
+        for label, pct in worse.items():
+            st = by_label(snap)[label]["metrics"][KEY]
+            st["pctBetter"] = pct
+            if st.get("vsBaseline"):
+                st["vsBaseline"].update(improvementPct=pct, verdict="noise")
+        for r in snap["rankings"][KEY]:
+            r["pctBetter"] = worse.get(r["label"], r["pctBetter"])
+        return snap
+
+    def hidden(self, html: str) -> list[str]:
+        return [p for p in check_report.studio_render_checks(html, CHROME) if p.startswith("LABEL HIDDEN") and "111744.7%" in p]
+
+    def test_a_clipped_bar_prints_its_whole_value_on_a_phone(self) -> None:
+        self.assertEqual(self.hidden(build_studio.build([self.far(run_snapshot())])), [])
+
+    def test_a_clipped_session_bar_prints_its_whole_value_on_a_phone(self) -> None:
+        project = project_snapshot(2)
+        project["runs"] = [self.far(run) for run in project["runs"]]
+        self.assertEqual(self.hidden(build_studio.build([project])), [])
+
+
+@unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class ExportTests(unittest.TestCase):
     CAPTURE = ("URL.createObjectURL = function (b) { b.text().then(function (t) { window.__saved = t; }); return 'about:blank'; };"
                "HTMLAnchorElement.prototype.click = function () {};")

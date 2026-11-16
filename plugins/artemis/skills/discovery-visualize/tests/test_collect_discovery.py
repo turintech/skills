@@ -308,6 +308,31 @@ class BestLinesTests(unittest.TestCase):
         winners = {"p99_ms": {"raw": None}, "latency_ms": {"raw": {"version": 2, "label": "v2", "pctBetter": 40.0}}}
         self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "latency_ms")
 
+    def test_a_tie_in_importance_leads_with_the_significant_change(self) -> None:
+        # Staging run 470b9ac1: both "high"; answers held at 0.0% while p95 fell 96.7%, significantly.
+        defs = {
+            "answers_match": {"kind": "target", "importance": "high", "higherIsBetter": True},
+            "p95_ms": {"kind": "target", "importance": "high", "higherIsBetter": False},
+            "p50_ms": {"kind": "target", "importance": "high", "higherIsBetter": False},
+        }
+        stat = lambda pct, verdict: {"pctBetter": pct, "vsBaseline": {"verdict": verdict, "improvementPct": pct}}
+        versions = [{"version": 8, "label": "v8", "metrics": {"answers_match": stat(0, "noise"), "p50_ms": stat(3.0, "noise"),
+                                                              "p95_ms": stat(96.7, "better")}}]
+        winners = {"answers_match": {"raw": {"version": 8, "label": "v8", "pctBetter": 0}},
+                   "p50_ms": {"raw": {"version": 8, "label": "v8", "pctBetter": 3.0}},
+                   "p95_ms": {"raw": {"version": 8, "label": "v8", "pctBetter": 96.7}}}
+        self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "p95_ms")
+
+    def test_a_metric_no_version_moved_never_leads_one_that_moved(self) -> None:
+        defs = {
+            "answers_match": {"kind": "target", "importance": "high", "higherIsBetter": True},
+            "p95_ms": {"kind": "target", "importance": "medium", "higherIsBetter": False},
+        }
+        versions = [{"version": 8, "label": "v8", "metrics": {"answers_match": {"pctBetter": 0}, "p95_ms": {"pctBetter": 40.0}}}]
+        winners = {"answers_match": {"raw": {"version": 8, "label": "v8", "pctBetter": 0}},
+                   "p95_ms": {"raw": {"version": 8, "label": "v8", "pctBetter": 40.0}}}
+        self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "p95_ms")
+
     def test_a_nan_from_artemis_is_missing_before_anything_is_ranked(self) -> None:
         payloads = collector.load_from_dir(str(FIXTURES))
         top = next(v for v in payloads["comparison"]["versions"] if v.get("versionNumber") == 2)

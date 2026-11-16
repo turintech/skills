@@ -177,7 +177,8 @@ function prep(s, failed) {
 
 /* Which metrics lead. metrics[].family and a run-level profile are optional (the collector does not send them yet):
    with a model family, its metrics lead and the trade-off card moves up. Without them, measured targets lead. */
-// The run's metrics schema ranks each metric high, medium or low; the lead metric is the most important, ties in snapshot order.
+// The run's metrics schema ranks each metric high, medium or low. The collector picks the lead (bestLines.metric) and breaks ties;
+// without it, as in an older snapshot, the most important leads, ties in snapshot order.
 var IMPORTANCE = { high: 0, medium: 1, low: 2 };
 function byImportance(list) {
   var rank = function (m) { var r = IMPORTANCE[m.importance]; return r == null ? 3 : r; };
@@ -732,6 +733,13 @@ function BestCard(props) {
 }
 
 /* ---------- 2. Ranked bars of every version's change, coloured by Artemis's verdict ---------- */
+// Right margin for barLabel's outside labels: the widest as it draws them (8px gap, the change, 8px, the glyph or word, 6px spare), never under
+// floor. A far value clipped at the axis edge still prints in full beside its arrow, never hidden past the chart.
+function labelRoom(rows, narrow, M, floor) {
+  return Math.max(floor, Math.ceil(Math.max.apply(null, [0].concat(rows.map(function (r) {
+    return 8 + textW(chg(M, r.pct), 15, 600) + (r.verdict ? 8 + textW(narrow ? GLYPH[r.verdict] : vWord(r.verdict), 15) : 0);
+  }))) + 6));
+}
 function barLabel(T, rows, narrow, M) {
   return function (lp) {
     var r = rows[lp.index]; if (!r) return null;
@@ -814,7 +822,7 @@ function RankedCard(props) {
     versionChoices=${measuredLabels}
     rows=${function () { return rows.map(function (r) { return { version: r.v, metric: key, pct_better: r.pct, verdict: VERDICT[r.verdict], failed_correctness_check: r.failed }; }); }} means=${means}
     after=${html`${noCmpV.length ? html`<p class="missing">No Artemis comparison: ${noCmpV.map(function (v) { return v.label; }).join(", ")}</p>` : null}${noPctV.length ? html`<p class="missing">No % change from Artemis: ${noPctV.map(function (v) { return v.label + " (" + vWord(vsb(v, key).verdict) + ")"; }).join(", ")}</p>` : null}${missing.length ? html`<p class="missing">Not measured: ${missing.map(function (v) { return v.label + " (" + (v.executionStatus === "failed" ? "execution failed" : v.lifecycle === "generation_failed" ? "generation failed" : v.displayStatus || v.lifecycle || "not measured") + ")"; }).join(", ")}</p>` : null}${D.failed.length ? html`<p class="missing">✕ Failed your correctness check: ${D.failed.map(function (x) { return "v" + x; }).join(", ")}. The check is yours, outside the snapshot; their changes are measured but not usable.</p>` : null}`}>
-    ${rows.length ? html`<${RC.BarChart} width=${width} height=${height} data=${rows} layout="vertical" margin=${{ top: 10, right: narrow ? 118 : 260, left: 4, bottom: 26 }}>
+    ${rows.length ? html`<${RC.BarChart} width=${width} height=${height} data=${rows} layout="vertical" margin=${{ top: 10, right: labelRoom(rows, narrow, m, narrow ? 118 : 260), left: 4, bottom: 26 }}>
       <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
       <${RC.XAxis} type="number" domain=${dom} ticks=${ax.ticks} interval=${0} allowDataOverflow=${true} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${function (v) { return fmtPct(v).replace(".0%", "%"); }}
         label=${{ value: narrow ? "% better →" : "← worse     % better than the original     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
@@ -1353,7 +1361,7 @@ function SessionsCard(props) {
       ${big && mode === "ranked" ? html`<${Seg} label="Show" value=${tops ? "top" : "all"} onChange=${function (v) { cs[1]({ show: v }); }} options=${[["top", "Each " + SESSION + "'s top"], ["all", "All " + total + " versions"]]}/>` : null}`}
     rows=${function () { return allRows.map(function (r) { return { session: r.session, version: r.version, metric: key, pct_better: r.pct, verdict: r.verdict ? VERDICT[r.verdict] : "", failed_correctness_check: r.failed }; }); }}
     means=${means} after=${html`${unranked.length ? html`<p class="missing">No change on ${mlabel(m)}: ${unranked.join("; ")}</p>` : null}${bad.length ? html`<p class="missing">✕ Failed your correctness check: ${bad.join("; ")}. The check is yours, outside the snapshot.</p>` : null}`}>
-    ${mode === "ranked" ? html`<${RC.BarChart} width=${width} height=${50 + rows.length * (narrow ? 58 : 44)} data=${rows} layout="vertical" margin=${{ top: 10, right: narrow ? 118 : 270, left: 4, bottom: 26 }}>
+    ${mode === "ranked" ? html`<${RC.BarChart} width=${width} height=${50 + rows.length * (narrow ? 58 : 44)} data=${rows} layout="vertical" margin=${{ top: 10, right: labelRoom(rows, narrow, m, narrow ? 118 : 270), left: 4, bottom: 26 }}>
       <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
       <${RC.XAxis} type="number" domain=${dom} ticks=${ax.ticks} interval=${0} allowDataOverflow=${true} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${function (v) { return fmtPct(v).replace(".0%", "%"); }}
         label=${{ value: narrow ? "% better →" : "← worse     % better than its own " + SESSION + "'s original     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>

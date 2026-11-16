@@ -531,12 +531,18 @@ def best_lines(
     """The sentences every report and chat answer carries verbatim: which version leads and why, and each
     measured metric whose own best is another version. None when there is no target metric, or the lead metric has no
     best version and the Web UI's Best has no change on it."""
-    # The lead metric: a target with a direction first, then the most important (high, medium, low), ties in snapshot
-    # order; never a control. The first in that order with a best version leads, so a more important metric that no
-    # version has a reading on yet never hides a clear winner on the next one.
+    # The lead metric: a target with a direction first, then one some version moved, then the most important (high,
+    # medium, low), then one where falcon calls a change significant, ties in snapshot order; never a control. A metric
+    # no version moved (a correctness count that held at 0.0%) never leads a page while another one moved. The first in
+    # that order with a best version leads, so a more important metric that no version has a reading on yet never hides
+    # a clear winner on the next one.
     rank = {"high": 0, "medium": 1, "low": 2}
+    stats = lambda n: [s for s in ((v.get("metrics") or {}).get(n) for v in versions) if s]
+    moved = lambda n: any(s.get("pctBetter") not in (None, 0) for s in stats(n))
+    significant = lambda n: any((s.get("vsBaseline") or {}).get("verdict") in ("better", "worse") for s in stats(n))
     targets = sorted((n for n, d in metric_defs.items() if d["kind"] == "target" and d.get("role") != "reference"),
-                     key=lambda n: (metric_defs[n].get("higherIsBetter") is None, rank.get(metric_defs[n].get("importance"), 3)))
+                     key=lambda n: (metric_defs[n].get("higherIsBetter") is None, not moved(n),
+                                    rank.get(metric_defs[n].get("importance"), 3), not significant(n)))
     if not targets:
         return None
     by_number = {v["version"]: v for v in versions}
