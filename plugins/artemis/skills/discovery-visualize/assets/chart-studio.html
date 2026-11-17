@@ -104,8 +104,8 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .tip .t2 { color: var(--text-2); }
 .v-better { color: var(--better-text); } .v-worse { color: var(--worse-text); } .v-noise { color: var(--noise-text); } .v-pending { color: var(--fg); } .v-none { color: var(--text-2); }
 table.sum { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px; }
-table.sum th { text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--text-2); border-bottom: 1.5px solid var(--line); padding: 0; white-space: nowrap; }
-table.sum th button { font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; background: none; border: 0; padding: 7px 8px; cursor: pointer; width: 100%; text-align: inherit; }
+table.sum th { text-align: left; font-size: 13px; font-weight: 600; color: var(--text-2); border-bottom: 1.5px solid var(--line); padding: 0; white-space: nowrap; }
+table.sum th button { font: inherit; color: inherit; background: none; border: 0; padding: 7px 8px; cursor: pointer; width: 100%; text-align: inherit; }
 table.sum th[aria-sort] button { color: var(--fg); }
 table.sum td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.4; }
 table.sum tbody tr:hover td { background: var(--subtle); }
@@ -118,6 +118,7 @@ table.sum .st { font-size: 12px; color: var(--text-2); }
 .ikey { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 10px 0 0; font-size: 13px; }
 .ikey .t2 { color: var(--text-2); }
 table.sum .sub { display: none; font-size: 13px; color: var(--text-2); font-family: var(--sans); font-weight: 400; margin-top: 2px; }
+@media (max-width: 600px) { table.sum td.n:nth-child(3) { white-space: normal; } table.sum .ci { display: block; white-space: normal; } table.sum td.ic, table.sum th.ic { width: auto; } }
 @media (max-width: 600px) { table.sum { min-width: 0; font-size: 13px; } table.sum .wide { display: none; } table.sum .sub { display: block; } table.sum th { white-space: normal; } table.sum th button, table.sum td { padding: 8px 3px; } table.sum td:first-child { overflow-wrap: anywhere; } }
 table.sum td.n, table.sum th.n { text-align: right; }
 table.sum td.n { font-variant-numeric: tabular-nums; }
@@ -494,7 +495,7 @@ function useCard(scope, id, dflt) {
    Green improved, amber no significant difference, red regressed (the Web UI's labels). Needs more runs is an
    outline, never a fill. Text uses the darker text tokens in light mode. Purple is only ever the Artemis Best. */
 var GLYPH = { better: "▲", worse: "▼", noise: "≈", pending: "○", none: "·" };
-var ICON_OF = { better: "✓", pending: "○", noise: "≈", worse: "▼", none: "·" };  // the table's verdict signs: shape and colour, never colour alone
+var ICON_OF = { better: "✓", pending: "○", noise: "≈", worse: "▼", none: "·", failed: "✗" };  // the table's verdict signs: shape and colour, never colour alone
 function vFill(T, v) { return v === "better" ? T.better : v === "worse" ? T.worse : v === "noise" ? T.noise : null; }
 function vText(T, v) { return v === "better" ? T["better-text"] : v === "worse" ? T["worse-text"] : v === "noise" ? T["noise-text"] : v === "none" ? T["text-2"] : T.fg; }
 function pendInk(T, pct) { return pct != null && pct < 0 ? T.worse : T.better; }  // a pending outline leans the way its estimate does
@@ -1232,26 +1233,117 @@ function SummaryCard(props) {
     return { version: v.version, label: v.label, what: v.experimentTitle || "", pct: st && st.pctBetter != null ? st.pctBetter : null, lo: vb ? vb.ciLowPct : null, hi: vb ? vb.ciHighPct : null, verdict: vb && vb.verdict ? vb.verdict : st && st.pctBetter != null ? "none" : null, runs: vb ? vb.readings : (st ? st.count : 0), commit: shortSha(v.versionSha), failed: !!v._failed,
       status: !st || st.mean == null ? (v.executionStatus === "failed" ? "execution failed" : v.lifecycle === "generation_failed" ? "generation failed" : "not measured") : st.pctBetter == null ? (vb && vb.verdict ? NO_PCT : VERDICT_SAY.none) : "" };
   });
+  // A version that failed to run (or to generate) has nothing to compare: a red ✗, and left out until the reader asks.
+  rows.forEach(function (r) { r.ran = r.status === "execution failed" || r.status === "generation failed" ? r.status : null; });
+  var failedRuns = rows.filter(function (r) { return r.ran; }), showFailed = !!c.showFailed;
   var s = c.sort || { k: "version", dir: 1 }, vorder = { better: 0, noise: 1, pending: 2, none: 3, worse: 4 };
   var val = function (r) { return s.k === "verdict" ? (r.verdict ? vorder[r.verdict] : 9) : s.k === "what" ? r.what.toLowerCase() : s.k === "commit" ? r.commit : r[s.k]; };
-  var sorted = rows.slice().sort(function (a, b) { var x = val(a), y = val(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * s.dir; });
+  var sorted = rows.filter(function (r) { return showFailed || !r.ran; }).sort(function (a, b) { var x = val(a), y = val(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * s.dir; });
   var th = function (k, label, num, extra) { var on = s.k === k; return html`<th class=${(num ? "n" : "") + (extra ? " " + extra : "")} aria-sort=${on ? (s.dir > 0 ? "ascending" : "descending") : undefined}><button type="button" onClick=${function () { cs[1]({ sort: { k: k, dir: on ? -s.dir : (k === "pct" ? -1 : 1) } }); }}>${label}${on ? (s.dir > 0 ? " ↑" : " ↓") : ""}</button></th>`; };
   var judgedRow = function (r) { return r.verdict && r.verdict !== "none"; };
   var measured = rows.filter(function (r) { return r.pct != null || judgedRow(r); }), notM = rows.filter(function (r) { return r.pct == null && !judgedRow(r); });
   var won = measured.filter(function (r) { return r.verdict === "better"; }).length;
   var means = { text: (won ? [] : [html`${numSpan("0 of " + rows.length)} ${vw("better")}`]).concat(verdictLines(measured, m, rows.length), [
-      notM.length ? notM.map(function (r) { return r.label + " " + r.status; }).join(", ") : null]) };
+      failedRuns.length ? failedRuns.length + " failed to run" + (showFailed ? "" : " (hidden; Show failed versions)") : null,
+      notM.filter(function (r) { return !r.ran; }).length ? notM.filter(function (r) { return !r.ran; }).map(function (r) { return r.label + " " + r.status; }).join(", ") : null]) };
   return html`<${Card} id="table" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast} images=${false}
-    question=${"Every version on " + mlabel(m)} controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>`}
+    question=${"Every version on " + mlabel(m)} controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>${failedRuns.length ? html`<button type="button" class="btn" aria-pressed=${showFailed ? "true" : "false"} onClick=${function () { cs[1]({ showFailed: !showFailed }); }}>${(showFailed ? "Hide" : "Show") + " failed versions (" + failedRuns.length + ")"}</button>` : null}`}
     rows=${function () { return sorted.map(function (r) { return { version: r.label, what_changed: r.what, metric: key, pct_better: r.pct, change: r.pct == null ? "" : chg(m, r.pct), ci_low_pct: r.lo, ci_high_pct: r.hi, verdict: r.verdict ? VERDICT[r.verdict] : r.status, iterations: r.runs, commit: r.commit, failed_correctness_check: r.failed }; }); }} means=${means}>
     <table class="sum">
       <thead><tr>${th("version", "Version")}${th("what", "What changed", false, "wide")}${th("pct", "Δ% vs original", true)}${th("verdict", "Verdict", false, "ic")}${th("runs", "Itera\u00ADtions", true)}${th("commit", "Commit", false, "wide")}</tr></thead>
       <tbody>${sorted.map(function (r) { return html`<tr key=${r.label}>
         <td>${r.failed ? "✕ " : ""}${r.label}<span class="sub">${softBreaks(r.what) || "no title"}</span></td><td class="wide what">${softBreaks(r.what) || "no title"}</td>
         <td class="n">${r.pct == null ? "" : chg(m, r.pct)}${r.lo == null ? null : html` <span class="ci">(${ivl(m, r.lo, r.hi)})</span>`}</td>
-        <td class=${"ic" + (r.verdict ? " v-" + r.verdict : "")}>${r.verdict ? html`<span class="vicon" role="img" aria-label=${VERDICT[r.verdict]} title=${VERDICT[r.verdict]}>${ICON_OF[r.verdict]}</span>` : html`<span class="st">${r.status}</span>`}</td><td class="n">${r.runs || ""}</td><td class="wide">${r.commit}</td></tr>`; })}</tbody>
+        <td class=${"ic" + (r.verdict ? " v-" + r.verdict : r.ran ? " v-worse" : "")}>${r.verdict ? html`<span class="vicon" role="img" aria-label=${VERDICT[r.verdict]} title=${VERDICT[r.verdict]}>${ICON_OF[r.verdict]}</span>` : r.ran ? html`<span class="vicon" role="img" aria-label=${"Failed: " + r.ran} title=${"Failed: " + r.ran}>${ICON_OF.failed}</span>` : html`<span class="st">${r.status}</span>`}</td><td class="n">${r.runs || ""}</td><td class="wide">${r.commit}</td></tr>`; })}</tbody>
     </table>
-    <div class="ikey" aria-label="Verdict signs">${["better", "pending", "noise", "worse"].map(function (k) { return html`<span key=${k} class=${"v-" + k}><span class="vicon" aria-hidden="true">${ICON_OF[k]}</span> ${VERDICT[k]}</span>`; })}<span class="t2">Δ% in brackets: the 95% interval</span></div>
+    <div class="ikey" aria-label="Verdict signs">${["better", "pending", "noise", "worse"].map(function (k) { return html`<span key=${k} class=${"v-" + k}><span class="vicon" aria-hidden="true">${ICON_OF[k]}</span> ${VERDICT[k]}</span>`; })}${failedRuns.length ? html`<span class="v-worse"><span class="vicon" aria-hidden="true">${ICON_OF.failed}</span> Failed to run (${failedRuns.length}${showFailed ? "" : ", hidden"})</span>` : null}<span class="t2">Δ% in brackets: the 95% interval</span></div>
+  <//>`;
+}
+
+/* ---------- 6. Trade-off: every version on two measured metrics, as Artemis's % better than the original ---------- */
+// Metrics Artemis compared on at least two versions; two or more of them, or no card (build_studio.py drawable("tradeoff") mirrors this).
+function tradeMetrics(D) { return rankedMetrics(D).filter(function (m) { return D.versions.filter(function (v) { var x = vsb(v, m.key); return x && x.improvementPct != null; }).length >= 2; }); }
+function tradeOff(D) {
+  var ms = tradeMetrics(D); if (ms.length < 2) return null;
+  var own = ms.filter(function (m) { return m.role !== "reference"; }), x = ms.filter(function (m) { return m.key === D.primary; })[0] || own[0] || ms[0];
+  var y = own.concat(ms).filter(function (m) { return m.key !== x.key; })[0];
+  return { x: x.key, y: y.key };
+}
+var TRADE_KIND = { better: "▲ Improved on one or both, worse on neither", trade: "◆ Trade-off: better on one, worse on the other", noise: "● No significant difference on either", worse: "▼ Regressed on one or both, better on neither" };
+function tradeKind(vx, vy) { var b = vx === "better" || vy === "better", w = vx === "worse" || vy === "worse"; return b && w ? "trade" : b ? "better" : w ? "worse" : "noise"; }
+function TradeOffCard(props) {
+  var D = props.D, T = props.T, W = props.W, dflt = tradeOff(D) || {}, ms = tradeMetrics(D);
+  var cs = useCard(props.scope, "tradeoff", {}), c = cs[0], hd = c.hidden || {}, off = c.offV || [];
+  var kx = c.x && D.byKey[c.x] ? c.x : dflt.x, ky = c.y && D.byKey[c.y] ? c.y : dflt.y, mx = D.byKey[kx], my = D.byKey[ky];
+  if (!mx || !my) return null;
+  var pts = D.versions.filter(function (v) { return off.indexOf(v.label) < 0; }).map(function (v) {
+    var a = vsb(v, kx), b = vsb(v, ky); if (!a || !b || a.improvementPct == null || b.improvementPct == null) return null;
+    return { label: (v._failed ? "✕ " : "") + v.label, v: v, x: a.improvementPct, y: b.improvementPct, xlo: a.ciLowPct, xhi: a.ciHighPct, ylo: b.ciLowPct, yhi: b.ciHighPct, kind: tradeKind(a.verdict, b.verdict), href: versionHref(D, v) };
+  }).filter(Boolean);
+  // The front: no other version at least as good on both and better on one. Beaten for sure only when the version that edges it
+  // is clear of it on that axis (its interval above this one's, both from Artemis); an edge inside the intervals is within noise.
+  var edges = function (a, b) { return a.x >= b.x && a.y >= b.y && (a.x > b.x || a.y > b.y); };
+  var clear = function (a, b) { return (a.x > b.x && a.xlo != null && b.xhi != null && a.xlo > b.xhi) || (a.y > b.y && a.ylo != null && b.yhi != null && a.ylo > b.yhi); };
+  pts.forEach(function (p) { var by = pts.filter(function (o) { return o !== p && edges(o, p); }); p.status = !by.length ? "front" : by.some(function (o) { return clear(o, p); }) ? "beaten" : "close"; });
+  var shown = pts.filter(function (p) { return !hd[p.kind] && !(hd.beaten && p.status === "beaten"); });
+  var front = pts.filter(function (p) { return p.status === "front"; }).sort(function (a, b) { return a.x - b.x; }), close = pts.filter(function (p) { return p.status === "close"; }), beaten = pts.filter(function (p) { return p.status === "beaten"; });
+  var notOn = D.versions.filter(function (v) { return off.indexOf(v.label) < 0 && !pts.some(function (p) { return p.v === v; }); }).map(function (v) { return v.label; });
+  var colOf = function (k) { return k === "better" ? T.better : k === "worse" ? T.worse : k === "trade" ? T.accent : T.noise; };
+  var present = ["better", "trade", "noise", "worse"].filter(function (k) { return pts.some(function (p) { return p.kind === k; }); });
+  var series = present.map(function (k) { return { key: k, label: TRADE_KIND[k], color: colOf(k), shape: "dot" }; })
+    .concat(front.length > 1 ? [{ key: "front", label: "The front: not beaten on both (joined)", color: T.accent, shape: "line" }] : [], beaten.length ? [{ key: "beaten", label: "Beaten for sure (faded)", color: T.neutral, shape: "outline" }] : []);
+  // Axes: 0 (the original) always in view; the estimates set the span, and an interval may reach out to half as far again, then is cut at the edge.
+  var span = function (ests, cis) { var lo = Math.min.apply(null, [0].concat(ests)), hi = Math.max.apply(null, [0].concat(ests)), w = (hi - lo) || 10;
+    cis.forEach(function (x) { if (x != null) { lo = Math.min(lo, Math.max(x, lo - w / 2)); hi = Math.max(hi, Math.min(x, hi + w / 2)); } }); var pad = (hi - lo) * 0.08 || 1; return niceAxis(lo - pad, hi + pad, W < 560 ? 4 : 6); };
+  var axX = span(pts.map(function (p) { return p.x; }), [].concat.apply([], pts.map(function (p) { return [p.xlo, p.xhi]; })));
+  var axY = span(pts.map(function (p) { return p.y; }), [].concat.apply([], pts.map(function (p) { return [p.ylo, p.yhi]; })));
+  var X = axX.domain, Y = axY.domain;
+  pts.forEach(function (p) {
+    p.ex = p.xlo != null && p.xhi != null ? [p.x - Math.max(p.xlo, X[0]), Math.min(p.xhi, X[1]) - p.x] : null;
+    p.ey = p.ylo != null && p.yhi != null ? [p.y - Math.max(p.ylo, Y[0]), Math.min(p.yhi, Y[1]) - p.y] : null;
+    p.tip = [p.v.label + (p.v.experimentTitle ? ": " + p.v.experimentTitle : ""), mlabel(mx) + ": " + chg(mx, p.x) + (p.xlo != null ? " (" + ivl(mx, p.xlo, p.xhi) + ")" : ""), mlabel(my) + ": " + chg(my, p.y) + (p.ylo != null ? " (" + ivl(my, p.ylo, p.yhi) + ")" : ""),
+      "~" + (p.status === "front" ? "On the front: no version is as good on both and better on one" : p.status === "close" ? "Within noise of the front: the version that edges it overlaps it" : "Beaten for sure on both by another version")];
+  });
+  var width = Math.max(W, 300), narrow = W < 560, n = Math.max(1, shown.length - 1), top = front.length ? front[front.length - 1] : null;
+  var mark = function (p, i) { return function (sp) {
+    var k = p.kind, cl = colOf(k), r = 6.5, cx = sp.cx, cy = sp.cy, faded = p.status === "beaten", dash = p.status === "close";
+    var shape = k === "better" ? h("polygon", { points: [cx, cy - r - 1, cx + r, cy + r - 1, cx - r, cy + r - 1].join(" ") }) : k === "worse" ? h("polygon", { points: [cx, cy + r + 1, cx + r, cy - r + 1, cx - r, cy - r + 1].join(" ") })
+      : k === "trade" ? h("polygon", { points: [cx, cy - r - 1, cx + r + 1, cy, cx, cy + r + 1, cx - r - 1, cy].join(" ") }) : h("circle", { cx: cx, cy: cy, r: r - 0.5 });
+    var styled = React.cloneElement(shape, { fill: dash ? T.card : cl, stroke: cl, strokeWidth: 2, strokeDasharray: dash ? "3 2" : null });
+    var lab = p === top ? h("text", { x: cx, y: cy - 12, textAnchor: "middle", fontSize: 13, fontWeight: 600, fill: T["accent-text"] }, "Top " + p.label) : null;  // one label: the front's top across; the line and the Conclusion name the rest
+    return h("g", { opacity: faded ? 0.35 : 1 }, h("g", { className: "pop", style: { "--d": Math.round(i * 420 / n) + "ms" } }, linked(p.href, p.v.label, styled, true), lab));
+  }; };
+  var means = { text: [
+      html`On the front: ${numSpan(front.map(function (p) { return p.v.label; }).join(", ") || "none")}`,
+      close.length ? html`Within noise of the front: ${close.map(function (p) { return p.v.label; }).join(", ")} (edged on both, but inside the intervals)` : null,
+      html`Beaten for sure on both: ${numSpan(String(beaten.length))} of ${pts.length}`,
+      "Artemis's % better and 95% intervals on each axis; the front is this page's reading of them, not an Artemis verdict"] };
+  var sel = function (val, k) { return html`<${Ctl} label=${k === "x" ? "Across" : "Up"}><select value=${val} onChange=${function (e) { var o = {}; o[k] = e.target.value; cs[1](o); }}>${ms.map(function (m) { return html`<option key=${m.key} value=${m.key}>${mlabel(m)}</option>`; })}</select><//>`; };
+  var tick = function (v) { return fmtPct(v).replace(".0%", "%"); };
+  return html`<${Card} id="tradeoff" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
+    question=${"What does each version trade between " + mlabel(mx) + " and " + mlabel(my) + "?"} series=${series}
+    controls=${html`${sel(kx, "x")}${sel(ky, "y")}`} versionChoices=${D.versions.map(function (v) { return v.label; })}
+    after=${notOn.length ? html`<p class="missing">Not on this chart (no Artemis change on ${mlabel(mx)} or ${mlabel(my)}): ${notOn.join(", ")}</p>` : null}
+    rows=${function () { return pts.map(function (p) { return { version: p.v.label, x_metric: kx, x_pct_better: p.x, x_ci_low_pct: p.xlo, x_ci_high_pct: p.xhi, y_metric: ky, y_pct_better: p.y, y_ci_low_pct: p.ylo, y_ci_high_pct: p.yhi, kind: TRADE_KIND[p.kind].slice(2), front: p.status }; }); }}
+    means=${means}>
+    ${pts.length ? html`<${RC.ScatterChart} width=${width} height=${narrow ? 320 : 360} margin=${{ top: 24, right: 24, left: 8, bottom: 30 }}>
+      <${RC.ReferenceArea} x1=${0} x2=${X[1]} y1=${0} y2=${Y[1]} fill=${T.better} fillOpacity=${0.06} stroke="none" ifOverflow="hidden"/>
+      <${RC.CartesianGrid} strokeDasharray="2 3" stroke=${T.grid}/>
+      <${RC.XAxis} type="number" dataKey="x" domain=${X} ticks=${axX.ticks} interval=${0} allowDataOverflow=${true} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${tick}
+        label=${{ value: (narrow ? "" : mlabel(mx) + ": ") + "% better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 13 }}/>
+      <${RC.YAxis} type="number" dataKey="y" domain=${Y} ticks=${axY.ticks} interval=${0} allowDataOverflow=${true} width=${70} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${tick}
+        label=${{ value: (narrow ? "" : mlabel(my) + ": ") + "% better →", angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 13, style: { textAnchor: "middle" } }}/>
+      <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.2}/>
+      <${RC.ReferenceLine} y=${0} stroke=${T.fg} strokeWidth=${1.2}/>
+      <${RC.ReferenceLine} y=${Y[1]} stroke="none" label=${{ value: "better on both ↗", position: "insideTopRight", fill: T["better-text"], fontSize: 13, fontWeight: 600 }}/>
+      <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${false} isAnimationActive=${false}/>
+      ${front.length > 1 && !hd.front ? html`<${RC.Scatter} className="late" data=${front.map(function (p) { return { x: p.x, y: p.y }; })} line=${{ stroke: T.accent, strokeWidth: 2 }} lineType="joint" isAnimationActive=${false} shape=${function () { return h("g"); }}/>` : null}
+      <${RC.Scatter} data=${[{ x: 0, y: 0, tip: ["Original", "0% on both: every change is measured from here"] }]} isAnimationActive=${false} shape=${function (sp) { return h("g", null, h("rect", { x: sp.cx - 7, y: sp.cy - 7, width: 14, height: 14, rx: 3, fill: T.baseline, stroke: T.card, strokeWidth: 2 }), h("text", { x: sp.cx + 11, y: sp.cy + 18, fontSize: 13, fill: T.fg }, "Original")); }}/>
+      ${shown.map(function (p, i) { return html`<${RC.Scatter} key=${p.v.label} data=${[p]} isAnimationActive=${false} shape=${mark(p, i)}>
+        ${p.ex ? html`<${RC.ErrorBar} dataKey="ex" direction="x" width=${5} stroke=${colOf(p.kind)} strokeWidth=${1.2} strokeOpacity=${p.status === "beaten" ? 0.3 : 0.7} isAnimationActive=${false}/>` : null}
+        ${p.ey ? html`<${RC.ErrorBar} dataKey="ey" direction="y" width=${5} stroke=${colOf(p.kind)} strokeWidth=${1.2} strokeOpacity=${p.status === "beaten" ? 0.3 : 0.7} isAnimationActive=${false}/>` : null}
+      <//>`; })}
+    <//>` : html`<div class="sparse">No version has an Artemis change on both ${mlabel(mx)} and ${mlabel(my)}.</div>`}
   <//>`;
 }
 
@@ -1519,7 +1611,7 @@ function App() {
   window.STUDIO_LABELS = s ? s.metrics.reduce(function (o, m) { o[m.key] = mlabel(m); return o; }, {}) : {};  // the names the page shows, for the checker
   if (!s) return html`<div class="err">This snapshot did not load${SNAP_ERR ? ": " + SNAP_ERR : ""}.</div>`;
   var scope = dataset + ":" + s.run.id + (ds.multi ? ":s" + (si + 1) : "");  // resetKey stays out: it only remounts the cards
-  var cardW = Math.max(0, W - 32 - 42);  // the page's 16px gutters, then the card's 20px padding and border
+  var cardW = Math.max(0, W - 32 - 34);  // the page's 16px gutters, then the card's 16px padding and border
   var pm = D.byKey[D.primary], bestV = D.best ? D.byLabel[D.best.label] : null, vb = bestV && pm ? vsb(bestV, pm.key) : null, one = vb && oneEach(vb, s.baseline.readings[pm.key]);
   var title;
   var noPct = !!(vb && changePhrase(pm, vb.improvementPct) == null), failedMark = bestV && bestV._failed ? " (✕ failed your correctness check)" : "";
@@ -1554,9 +1646,10 @@ function App() {
   var leftOut = LEFT_OUT[dataset].length ? html`<p class="warn">Not shown: ${LEFT_OUT[dataset].map(function (r) { return html`${r.id ? "run " + String(r.id).slice(0, 8) : "a run with no id"} (<span class="data">${r.reason}</span>)`; }).map(function (x, i) { return i ? html`; ${x}` : x; })}.</p>` : null;
   var nonFinite = (D.s.nonFinite || []).length ? html`<p class="warn">Artemis sent ${D.s.nonFinite.length} value${D.s.nonFinite.length === 1 ? "" : "s"} that ${D.s.nonFinite.length === 1 ? "is" : "are"} not a number; read as missing: <span class="data">${D.s.nonFinite.slice(0, 3).join(", ")}${D.s.nonFinite.length > 3 ? " and " + (D.s.nonFinite.length - 3) + " more" : ""}</span>.</p>` : null;
   var cp = { D: D, T: T, W: cardW, scope: scope, toast: toast };
-  var boxes = enoughForBoxes(D, D.primary), pp = pareto(D), ai = hasAIScores(D);
+  var boxes = enoughForBoxes(D, D.primary), pp = pareto(D), ai = hasAIScores(D), to = tradeOff(D);
+  if (pp && to && !(D.byKey[pp.x].kind === "quality" || D.byKey[pp.y].kind === "quality")) pp = null;  // two measured metrics: the trade-off card says it in Artemis's own changes
   var multi = !!ds.multi;  // the sessions card leads, then best, the change card (bar or forest), and the table
-  var main = [["best", BestCard], ["change", ChangeCard]].concat(multi ? [] : [["time", TimeCard]], [["table", SummaryCard]]);
+  var main = [["best", BestCard], ["change", ChangeCard]].concat(multi ? [] : [["time", TimeCard]], to ? [["tradeoff", TradeOffCard]] : [], [["table", SummaryCard]]);
   var more = [].concat(multi ? [["time", TimeCard]] : [], boxes ? [["box", BoxCard]] : [], pp ? [["pareto", ParetoCard]] : [], ai ? [["ai", AICard]] : []);
   if (D.plan.modelLed && pp) { main.splice(1, 0, ["pareto", ParetoCard]); more = more.filter(function (x) { return x[0] !== "pareto"; }); }
   window.STUDIO_CARDS = ONLY ? [ONLY] : (ds.multi ? ["sessions"] : []).concat(main.concat(moreOpen ? more : []).map(function (x) { return x[0]; }));  // the cards this view must draw, for the checker
@@ -1567,7 +1660,7 @@ function App() {
     </footer>`;
   // build_studio.py --only: one chart, drawn by the same card as in the studio, with no other cards or switchers.
   if (ONLY) {
-    var pick = (ds.multi ? [["sessions", null]] : []).concat(main, more, [["ranked", RankedCard], ["forest", ForestCard], ["box", BoxCard]]).filter(function (x) { return x[0] === ONLY; })[0];
+    var pick = (ds.multi ? [["sessions", null]] : []).concat(main, more, [["ranked", RankedCard], ["forest", ForestCard], ["box", BoxCard]], pareto(D) ? [["pareto", ParetoCard]] : []).filter(function (x) { return x[0] === ONLY; })[0];
     var onlyCard = !pick ? html`<div class="err">This ${ds.multi ? "project" : "run"} has no ${ONLY} chart to draw.</div>`
       : ONLY === "sessions" ? h(Guard, { key: dataset + "sessions", chart: true }, html`<${SessionsCard} ds=${ds} sel=${si} T=${T} W=${cardW} scope=${dataset + ":sessions"} toast=${toast}/>`) : render(pick);
     // A one-card page has no headline, so it says how Best was chosen in one line that names the version, as the studio does.

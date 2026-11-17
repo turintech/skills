@@ -312,23 +312,23 @@ class LeadMetricAndTypeTests(unittest.TestCase):
         self.assertNotIn("old axis", again["text"])
 
     def test_own_scale_puts_every_panel_in_one_row_on_desktop_and_two_columns_on_a_phone(self) -> None:
-        html = build_studio.build([run_snapshot()])
+        html = build_studio.build([run_snapshot()], only="box")  # few iterations: the studio leaves box plots out, their own page draws them
         ds = embedded(html)["datasets"][0]["id"]
         act = "var c = document.querySelector('[data-card=\\\"box\\\"]'); [].filter.call(c.querySelectorAll('.seg button'), function (b) { return b.textContent === 'Own'; })[0].click();"
         read = "var ps = [].map.call(document.querySelectorAll('[data-card=\\\"box\\\"] .multi .panel'), function (p) { var r = p.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(p.querySelector('svg').getBoundingClientRect().width)]; }); return ps;"
-        desk = probed(html, ds, read, act=act, more=True)
+        desk = probed(html, ds, read, act=act)
         self.assertGreater(len(desk), 2)
         self.assertEqual(len({p[1] for p in desk}), 1, f"panels wrapped onto more than one row: {desk}")
         self.assertTrue(all(abs(p[2] - p[3]) <= 2 for p in desk), f"a chart is narrower than its panel: {desk}")
-        phone = probed(html, ds, read, act=act, phone=True, more=True)
+        phone = probed(html, ds, read, act=act, phone=True)
         self.assertEqual(len({p[0] for p in phone}), 2, f"a phone should show two columns: {phone}")
         # Nine groups split into rows of 5 and 4 rather than a full row and one panel alone.
         many = run_snapshot()
         donor = next(v for v in many["versions"] if (v["metrics"].get("latency_ms") or {}).get("runs"))
         for n in range(6, 11):
             many["versions"].append(dict(copy.deepcopy(donor), version=n, label=f"v{n}", id=f"ver-{n}"))
-        built = build_studio.build([many])
-        rows = probed(built, embedded(built)["datasets"][0]["id"], read, act=act, more=True)
+        built = build_studio.build([many], only="box")
+        rows = probed(built, embedded(built)["datasets"][0]["id"], read, act=act)
         per_row = [sum(1 for p in rows if p[1] == top) for top in sorted({p[1] for p in rows})]
         self.assertEqual(sum(per_row), 9, rows)
         self.assertEqual(sorted(per_row), [4, 5], f"rows should be as even as nine allows: {per_row}")
@@ -575,9 +575,12 @@ class BuilderRefusalAndTooltipTests(unittest.TestCase):
             html = build_studio.build([snap])
             ds = embedded(html)["datasets"][0]
             drawn = probed(html, ds["id"], "return [].map.call(document.querySelectorAll('section.card'), function (c) { return c.dataset.card; });", more=True)
-            for card in ("pareto", "ai"):
+            for card in ("tradeoff", "pareto", "ai"):
                 with self.subTest(snapshot=name, card=card):
-                    self.assertEqual(card in drawn, build_studio.drawable(card, ds) is None, drawn)
+                    expect = build_studio.drawable(card, ds) is None
+                    if card == "pareto" and name in ("axes", "flat axes") and build_studio.drawable("tradeoff", ds) is None:
+                        expect = False  # two measured axes: the studio shows the trade-off card instead; --only pareto still draws it
+                    self.assertEqual(card in drawn, expect, drawn)
             if name in ("empty front", "no points"):  # left out cleanly: no card, no error message anywhere
                 self.assertNotIn("pareto", drawn)
                 self.assertEqual(probed(html, ds["id"], "return document.querySelectorAll('.err').length;", more=True), 0, name)
@@ -776,6 +779,8 @@ class IterationWordingTests(unittest.TestCase):
         text = probed(html, embedded(html)["datasets"][0]["id"], "return document.getElementById('root').innerText;", more=True).replace("\u00ad", "")
         self.assertRegex(text, r"from \d+ iterations")
         self.assertIn("Iterations", text)  # the table's column
+        boxes = build_studio.build([snap], only="box")  # few iterations: the studio leaves box plots out, their own page draws them
+        text += probed(boxes, embedded(boxes)["datasets"][0]["id"], "return document.getElementById('root').innerText;").replace("\u00ad", "")
         self.assertIn("How spread out are the iterations on", text)
         self.assertIsNone(re.search(r"\b\d+ runs\b|\b1 run\b|\bRuns\b", text), re.findall(r".{30}\b(?:\d+ runs|1 run|Runs)\b.{20}", text))
 
@@ -920,6 +925,66 @@ class TidierStudioTests(unittest.TestCase):
         html = build_studio.build([with_intervals(run_snapshot())])
         got = probed(html, embedded(html)["datasets"][0]["id"], "return [].map.call(document.querySelectorAll('[data-card=\"best\"] .psub .ci'), function (c) { return c.textContent; });")
         self.assertTrue(got and all(t.startswith("(95% CI ") for t in got), got)
+
+
+def two_targets(close: bool = False) -> dict:
+    """compile_runtime as a second measured target: v2 (40, -10) and v4 (30, 0) lead; v4 edges v1 (20, -5),
+    clear of it on latency unless close, when the intervals overlap."""
+    snap = run_snapshot()
+    next(m for m in snap["metrics"] if m["key"] == "compile_runtime")["kind"] = "target"
+    for v in snap["versions"]:
+        for key in ("latency_ms", "compile_runtime"):
+            vb = ((v["metrics"].get(key) or {}).get("vsBaseline"))
+            if vb and vb.get("improvementPct") is not None:
+                half = 12 if close else 3
+                vb.update(ciLowPct=vb["improvementPct"] - half, ciHighPct=vb["improvementPct"] + half, verdict="noise" if close else "better" if vb["improvementPct"] > 3 else "worse" if vb["improvementPct"] < -3 else "noise")
+    return snap
+
+
+class FailedRowsAndTradeOffTests(unittest.TestCase):
+    """The table hides failed versions behind a counted toggle; the trade-off card reads Artemis's changes on two metrics."""
+
+    def test_the_builder_draws_a_trade_off_only_with_two_compared_metrics(self) -> None:
+        one = build_studio.build([run_snapshot()])
+        self.assertIsNotNone(build_studio.drawable("tradeoff", embedded(one)["datasets"][0]))
+        two = build_studio.build([two_targets()])
+        self.assertIsNone(build_studio.drawable("tradeoff", embedded(two)["datasets"][0]))
+        with self.assertRaises(ValueError):
+            build_studio.build([run_snapshot()], only="tradeoff")
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_failed_versions_are_hidden_counted_and_shown_as_a_cross(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        ds = embedded(html)["datasets"][0]["id"]
+        read = """var c = document.querySelector('[data-card="table"]'), b = [].filter.call(c.querySelectorAll('.tools button'), function (x) { return /failed versions/.test(x.textContent); })[0];
+          return { rows: [].map.call(c.querySelectorAll('tbody tr td:first-child'), function (t) { return t.firstChild.textContent.trim(); }), button: b ? b.textContent : null,
+                   cross: [].map.call(c.querySelectorAll('td .vicon'), function (i) { return i.getAttribute('aria-label'); }).filter(function (l) { return /^Failed/.test(l); }), key: c.querySelector('.ikey').textContent };"""
+        before = probed(html, ds, read)
+        self.assertFalse({"v3", "v5"} & set(before["rows"]), before["rows"])  # v3 failed to generate, v5 to run
+        self.assertEqual(before["button"], "Show failed versions (2)")
+        self.assertIn("Failed to run (2, hidden)", before["key"])
+        after = probed(html, ds, read, act="[].filter.call(document.querySelectorAll('[data-card=\"table\"] .tools button'), function (x) { return /failed versions/.test(x.textContent); })[0].click();")
+        self.assertTrue({"v3", "v5"} <= set(after["rows"]), after["rows"])
+        self.assertEqual(sorted(after["cross"]), ["Failed: execution failed", "Failed: generation failed"])
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_trade_off_joins_the_front_fades_the_beaten_and_spares_a_close_call(self) -> None:
+        read = """var c = document.querySelector('[data-card="tradeoff"]'); if (!c) return null;
+          return { means: [].map.call(c.querySelectorAll('.means li'), function (l) { return l.textContent; }).join(' | '),
+                   faded: [].filter.call(c.querySelectorAll('g[opacity]'), function (g) { return g.getAttribute('opacity') === '0.35'; }).length,
+                   labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.textContent; }) };"""
+        sure = build_studio.build([two_targets()])
+        got = probed(sure, embedded(sure)["datasets"][0]["id"], read)
+        self.assertIn("On the front: v4, v2", got["means"])  # in order across
+        self.assertEqual(got["faded"], 1, "v1 is beaten for sure: v4 clears it on latency")
+        self.assertIn("Top v2", got["labels"], "the front's top across is labelled")
+        self.assertIn("Original", got["labels"])
+        near = build_studio.build([two_targets(close=True)])
+        got = probed(near, embedded(near)["datasets"][0]["id"], read)
+        self.assertIn("Within noise of the front: v1", got["means"])
+        self.assertEqual(got["faded"], 0, "an edge inside the intervals is never drawn as beaten")
+        one = build_studio.build([run_snapshot()])
+        self.assertIsNone(probed(one, embedded(one)["datasets"][0]["id"], read), "one measured metric: no trade-off card")
 
 
 if __name__ == "__main__":

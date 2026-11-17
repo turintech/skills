@@ -188,12 +188,12 @@ def parse_failed(specs: list[str], datasets: list[dict]) -> None:
 
 
 #: The studio's cards, for --only: one chart drawn exactly as the studio draws it.
-CARDS = ("best", "ranked", "forest", "time", "box", "table", "pareto", "ai", "sessions")
+CARDS = ("best", "ranked", "forest", "time", "box", "table", "tradeoff", "pareto", "ai", "sessions")
 
 
 def drawable(card: str, ds: dict) -> str | None:
-    """Why the first view of `ds` has no `card` to draw, or None. Only sessions, ai and pareto can be missing: this mirrors
-    the page's pareto() and hasAIScores(), so --only refuses at build time. The other cards always draw, and say in a
+    """Why the first view of `ds` has no `card` to draw, or None. Only sessions, tradeoff, ai and pareto can be missing: this mirrors
+    the page's tradeOff(), pareto() and hasAIScores(), so --only refuses at build time. The other cards always draw, and say in a
     sentence when they have nothing to show (no intervals yet, no individual iterations)."""
     if card == "sessions":
         if "sessions" not in ds:
@@ -207,6 +207,11 @@ def drawable(card: str, ds: dict) -> str | None:
     snap = ds["sessions"][0] if "sessions" in ds else ds["snapshot"]
     metrics = [m for m in snap.get("metrics") or [] if isinstance(m, dict)]
     means = lambda key: [((v.get("metrics") or {}).get(key) or {}).get("mean") for v in snap.get("versions") or []]
+    if card == "tradeoff":
+        # As the page's tradeMetrics(): measured targets with a direction that Artemis compared on two or more versions; two or more of them.
+        compared = lambda key: sum(1 for v in snap.get("versions") or [] if ((((v.get("metrics") or {}).get(key) or {}).get("vsBaseline") or {}).get("improvementPct")) is not None)
+        keys = [m["key"] for m in metrics if m.get("kind") == "target" and m.get("higherIsBetter") is not None and compared(m["key"]) >= 2]
+        return None if len(keys) >= 2 else "a trade-off needs two measured metrics that Artemis compared on two or more versions"
     if card == "ai":
         judged = [m["key"] for m in metrics if m.get("kind") == "quality"]
         return None if any(x is not None for k in judged for x in means(k)) else "no version has an AI Metric score"
