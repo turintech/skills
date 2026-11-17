@@ -610,6 +610,15 @@ class OneCardPageAndHeadlineTests(unittest.TestCase):
         snap["bestLines"]["notes"]["compile_runtime"] = "v2 has no reading on compile_runtime; v4 is best on it"
         self.assertEqual(check_report.studio_render_checks(build_studio.build([snap], only="ranked"), CHROME), [])
 
+    def test_a_page_that_draws_late_is_checked_once_it_has_drawn(self) -> None:
+        # React draws after its scheduler runs, which under load came after the probe's fixed wait: a page that drew fine
+        # read as "did not report the view it drew". The probe now waits for the drawn view; a 3 s late first draw passes.
+        html = build_studio.build([run_snapshot()], only="ranked")
+        root = 'try { ReactDOM.createRoot(document.getElementById("root")).render(h(Guard, null, h(App))); }'
+        late = html.replace(root, "setTimeout(function () { " + root + " catch (e) {} }, 3000); if (0) try {}", 1)
+        self.assertNotEqual(late, html)
+        self.assertEqual(check_report.studio_render_checks(late, CHROME), [])
+
     def test_no_best_version_says_why_never_that_none_beat_the_original(self) -> None:
         snap = run_snapshot()
         for v in snap["versions"]:

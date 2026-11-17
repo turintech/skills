@@ -100,7 +100,10 @@ STUDIO_PROBE = """
 <script>
 // Measure only once the web fonts are in: labels laid out in the fallback font are wider, and the page lays them out
 // again when the fonts arrive (document.fonts.ready), so measuring before that reported overlaps that never show.
-(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { setTimeout(function () {
+// React draws after its scheduler runs, which under load can come after any fixed wait: wait for the page to report the view it
+// drew (STUDIO_VIEW_DRAWN), then let layout settle. A page that never reports still gets checked, after 15 s, and says so.
+var whenDrawn = function (go) { var t0 = Date.now(); (function poll() { if (!window.__STUDIO_START || window.STUDIO_VIEW_DRAWN || Date.now() - t0 > 15000) setTimeout(go, 2500); else setTimeout(poll, 50); })(); };
+(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { whenDrawn(function () {
   var out = [], view = (window.__STUDIO_VIEW || '') + (window.innerWidth < 500 ? ', ' + window.innerWidth + 'px' : '');
   var say = function (m) { out.push(m + (view ? ' [' + view + ']' : '')); };
   // A throw in this probe still reports, with its cause, and never passes for a clean page.
@@ -307,7 +310,7 @@ STUDIO_PROBE = """
   };
   next();
   } catch (e) { bail(e); }
-}, 2500); });
+}); });
 </script>
 """
 CATCHER = ('<script>window.__AR_ERRORS=[];window.addEventListener("error",function(e){window.__AR_ERRORS.push("SCRIPT ERROR: "+e.message+" (line "+e.lineno+")")});'
