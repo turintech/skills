@@ -170,7 +170,7 @@ class ForestCardTests(unittest.TestCase):
         snap = with_intervals(run_snapshot())
         by_label(snap)["v4"]["metrics"][KEY]["vsBaseline"] = None
         html = build_studio.build([snap], only="forest")
-        text = probed(html, ds(html), "return document.querySelector('[data-card=\"forest\"]').textContent;")
+        text = probed(html, ds(html), "var c = document.querySelector('[data-card=\"forest\"]'); return c.textContent + ' ' + [].map.call(c.querySelectorAll('.info'), function (i) { return i.title; }).join(' ');")
         self.assertIn("No Artemis comparison: v4", text)
         self.assertRegex(text, r"\d of 3 ")
         self.assertNotRegex(text, r"\d of 2 ")
@@ -364,9 +364,9 @@ class MissingValueTests(unittest.TestCase):
         st.update(pctBetter=None, vsBaseline=None)
         snap["rankings"][KEY] = [r for r in snap["rankings"][KEY] if r["label"] != "v1"]
         html = build_studio.build([with_intervals(snap)])
-        got = probed(html, ds(html), "var t = function (id) { return document.querySelector('[data-card=\"' + id + '\"]').textContent; }; return { ranked: t('ranked'), table: t('table') };")
+        got = probed(html, ds(html), "var t = function (id) { var c = document.querySelector('[data-card=\"' + id + '\"]'); return c.textContent + ' ' + [].map.call(c.querySelectorAll('.info'), function (i) { return i.title; }).join(' '); }; return { ranked: t('ranked'), table: t('table') };")
         forest = build_studio.build([with_intervals(snap)], only="forest")
-        got["forest"] = probed(forest, ds(forest), "return document.querySelector('[data-card=\"forest\"]').textContent;")
+        got["forest"] = probed(forest, ds(forest), "var c = document.querySelector('[data-card=\"forest\"]'); return c.textContent + ' ' + [].map.call(c.querySelectorAll('.info'), function (i) { return i.title; }).join(' ');")
         for card in ("ranked", "forest"):
             self.assertIn("No Artemis comparison: v1", got[card], card)
         self.assertNotIn("Not measured: v1", got["ranked"])
@@ -530,7 +530,8 @@ class MoreWordingTests(unittest.TestCase):
 
     def test_a_one_series_export_has_no_legend(self) -> None:
         snap = run_snapshot()
-        snap["webUiBest"] = None  # the Overall score view then draws one series: no Best ring
+        snap["webUiBest"] = None  # the Overall score view then draws one series: no Best ring,
+        snap["versions"] = [v for v in snap["versions"] if v["label"] not in ("v3", "v5")]  # and no failed version's ✗
         html = build_studio.build([snap])
         act = ExportTests.CAPTURE + click("time", "Overall score") + " setTimeout(function () { " + click("time", "Download") + " setTimeout(function () { " + click("time", "SVG") + " }, 200); }, 300);"
         svg = probed(html, ds(html), "return window.__saved || '';", act=act)
@@ -790,7 +791,7 @@ class BrokenDataTests(unittest.TestCase):
         snap["metrics"].append(dict(next(m for m in snap["metrics"] if m["key"] == KEY), key="speedup_x", label="speedup_x", unit=None, higherIsBetter=True))
         html = build_studio.build([snap])
         act = click("ranked", "Versions") + " setTimeout(function () { document.querySelector('[data-card=ranked] .pop input[type=checkbox]').click(); }, 200);"
-        got = probed(html, ds(html), "var t = function (id) { return document.querySelector('[data-card=' + id + ']').textContent; }; return { ranked: t('ranked'), best: t('best') };", act=act)
+        got = probed(html, ds(html), "var t = function (id) { var c = document.querySelector('[data-card=' + id + ']'); return c.textContent + ' ' + [].map.call(c.querySelectorAll('.info'), function (i) { return i.title; }).join(' '); }; return { ranked: t('ranked'), best: t('best') };", act=act)
         self.assertRegex(got["ranked"], r"Hidden here: v\d \(Versions\)")
         self.assertIn("Hidden here: Speedup x (Metrics)", got["best"])  # the default: a ratio of the same timing says it twice
 
@@ -1104,8 +1105,8 @@ class NoPercentAndNoBestTests(unittest.TestCase):
         no_pct(snap, "v1")  # v1 is "better" in with_intervals
         snap["rankings"][KEY] = [r for r in snap["rankings"][KEY] if r["label"] != "v1"]
         html, forest = build_studio.build([snap]), build_studio.build([snap], only="forest")
-        got = probed(html, ds(html), "var t = function (id) { return document.querySelector('[data-card=' + id + ']').textContent; }; return { ranked: t('ranked'), table: t('table') };")
-        got["forest"] = probed(forest, ds(forest), "return document.querySelector('[data-card=forest]').textContent;")
+        got = probed(html, ds(html), "var t = function (id) { var c = document.querySelector('[data-card=' + id + ']'); return c.textContent + ' ' + [].map.call(c.querySelectorAll('.info'), function (i) { return i.title; }).join(' '); }; return { ranked: t('ranked'), table: t('table') };")
+        got["forest"] = probed(forest, ds(forest), "var c = document.querySelector('[data-card=forest]'); return c.textContent + ' ' + [].map.call(c.querySelectorAll('.info'), function (i) { return i.title; }).join(' ');")
         for card in ("ranked", "forest"):
             self.assertIn("No % change from Artemis: v1 (\u25b2 Significantly improved)", got[card], card)
             self.assertNotIn("No Artemis comparison: v1", got[card], card)

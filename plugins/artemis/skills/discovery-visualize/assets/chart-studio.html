@@ -80,6 +80,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .legend button[aria-pressed="false"] .sw { opacity: .3; }
 .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .sw.dot { border-radius: 50%; }
+.sw.sw-mark { background: none !important; overflow: visible; width: 14px; height: 14px; }
 .sw.ring { border-radius: 50%; background: transparent !important; border: 2px solid currentColor; }
 .sw.dash { background: transparent !important; border: 2px dashed currentColor; }
 .sw.outline { background: transparent !important; border: 2px solid currentColor; }
@@ -106,7 +107,9 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .checks label { font-size: 13px; display: flex; gap: 8px; align-items: center; color: var(--fg); min-width: 0; }
 .checks label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .checks label.off { color: var(--text-2); }
-.info { display: inline-block; margin-left: 4px; color: var(--text-2); cursor: help; font-size: 13px; }
+.tp .wh { opacity: 0; transition: opacity .15s; }
+.tp:hover .wh, .tp:focus-within .wh { opacity: 0.8; }
+.info { display: inline-block; margin-left: 4px; color: var(--text-2); cursor: help; font-size: 15px; align-self: center; }
 .tip { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; box-shadow: 0 4px 12px #00000026; max-width: min(340px, calc(100vw - 64px)); overflow-wrap: anywhere; line-height: 1.45; }
 .tip b { font-weight: 600; }
 .tip .t2 { color: var(--text-2); }
@@ -457,7 +460,9 @@ function buildSVG(card, title, series, hidden) {
   });
   // The card's own notes go with the image ("Not measured: ...", "Hidden here: ...", series hidden in the legend), so a
   // saved chart never drops data without saying so.
-  var notes = [].map.call(card.querySelectorAll(":scope > .missing, :scope > .warn, :scope > .hint"), function (e) { return e.textContent.trim(); })
+  // The info mark's text travels with the image: a saved chart still says what it leaves out.
+  var notes = [].map.call(card.querySelectorAll(":scope > .head .info"), function (e) { return e.getAttribute("title") || ""; }).filter(Boolean)
+    .concat([].map.call(card.querySelectorAll(":scope > .missing, :scope > .warn, :scope > .hint"), function (e) { return e.textContent.trim(); }))
     .concat([].map.call(plot.querySelectorAll(".missing:not(.xt), .sparse:not(.xt)"), function (e) {
       var t = e.parentNode && e.parentNode.querySelector(":scope > .ptitle"); return (t ? t.textContent.trim() + ": " : "") + e.textContent.trim(); }))
     .filter(Boolean);
@@ -581,7 +586,7 @@ function Legend(props) {
   return html`<div class="legend" role="group" aria-label="Series">${props.series.map(function (s, i) {
     var on = !props.hidden[s.key];
     return html`<button key=${s.key} type="button" style=${{ "--i": i }} aria-pressed=${on ? "true" : "false"} onClick=${function () { props.toggle(s.key); }} title=${on ? "Hide " + s.label : "Show " + s.label}>
-      <span class=${"sw " + (s.shape || "")} style=${{ background: s.color, color: s.color }}></span>${s.label}</button>`;
+      ${s.mark ? h("svg", { className: "sw sw-mark", width: 14, height: 14, viewBox: "-7 -7 14 14", "aria-hidden": "true", style: { color: s.color } }, s.mark) : html`<span class=${"sw " + (s.shape || "")} style=${{ background: s.color, color: s.color }}></span>`}${s.label}</button>`;
   })}</div>`;
 }
 function Popover(props) {
@@ -638,6 +643,7 @@ function Card(props) {
   var hidM = (c.offM || []).map(function (k) { return (mlist || []).filter(function (m) { return m.key === k; })[0]; }).filter(Boolean).map(mlabel);
   var hidV = (c.offV || []).filter(function (l) { return vlist.indexOf(l) >= 0; });
   var hiddenSay = [hidM.length ? (hidM.length > 3 ? hidM.length + " metrics" : hidM.join(", ")) + " (Metrics)" : null, hidV.length ? hidV.join(", ") + " (Versions)" : null].filter(Boolean).join("; ");
+  var infoText = [props.info || null, none || !hiddenSay ? null : "Hidden here: " + hiddenSay].filter(Boolean).join(". ");
   var pop = function (k, label, body) { return open === k ? html`<${Popover} id=${props.id + "-" + k} label=${label} onClose=${function () { setOpen(null); }}>${body}<//>` : null; };
   var opener = function (k, label) { return html`<button type="button" class="btn" data-pop=${props.id + "-" + k} aria-expanded=${open === k} onClick=${function () { setOpen(open === k ? null : k); }}>${label}</button>`; };
   return html`<section class=${"card" + (phase === "done" ? "" : " " + phase)} style=${phase === "playing" ? { "--rd": rise + "ms" } : null} ref=${ref} data-card=${props.id}>
@@ -645,6 +651,7 @@ function Card(props) {
       <img class="mark" src=${ICON} alt="" aria-hidden="true"/>
       <h2>${title}</h2>
       <div class="tools">
+        ${infoText ? html`<span class="info" tabindex="0" role="img" aria-label=${infoText} title=${infoText}>ⓘ</span>` : null}
         ${props.tag ? html`<span class="tag">${props.tag}</span>` : null}
         ${props.controls || null}
         ${mlist ? opener("m", "Metrics") : null}
@@ -665,7 +672,6 @@ function Card(props) {
     ${props.series && props.series.length > 1 ? html`<${Legend} series=${props.series} hidden=${c.hidden || {}} toggle=${toggle}/>` : null}
     <div class="plot">${none ? html`<div class="sparse">${NONE}</div>` : props.children}</div>
     ${none ? null : props.after || null}
-    ${none || !hiddenSay ? null : html`<p class="missing">Hidden here: ${hiddenSay}</p>`}
     ${FAILED_NOW.length && ["ranked", "sessions"].indexOf(props.id) < 0 ? html`<p class="missing">✕ Failed your correctness check: ${FAILED_NOW.map(function (n) { return "v" + n; }).join(", ")}. Measured, but not usable.</p>` : null}
     <${Means} text=${none ? NONE : props.means && (Array.isArray(props.means.text) ? props.means.text.filter(Boolean).slice(0, 3) : props.means.text)}/>
   </section>`;
@@ -876,6 +882,7 @@ function linked(href, label, child, mouseOnly) {  // an SVG <a>: a real link, ne
   var say = "Open " + label + "'s code change in Artemis";
   return h("a", { href: href, target: "_blank", rel: "noopener", className: "vlink", "aria-label": say + " (new tab)", tabIndex: mouseOnly ? -1 : undefined, "aria-hidden": mouseOnly ? "true" : undefined }, h("title", null, say), child);
 }
+function notRun(v) { return v.executionStatus === "failed" ? "execution failed" : v.lifecycle === "generation_failed" ? "generation failed" : v.displayStatus || v.lifecycle || "not measured"; }
 function hbarShape(T, colors) {
   return function (sp) {
     var x = Math.min(sp.x, sp.x + sp.width), w = Math.max(Math.abs(sp.width), 1), p = sp.payload || {}, fill = colors(p), pend = p.verdict === "pending", none = !p.verdict || p.verdict === "none";
@@ -910,6 +917,7 @@ function RankedCard(props) {
   var judged = function (v) { var x = vsb(v, key); return !!(x && x.verdict); };
   var noCmpV = unranked.filter(function (v) { return !judged(v); }), noPctV = unranked.filter(judged);
   var missing = D.versions.filter(function (v) { return measuredLabels.indexOf(v.label) < 0 && !hasMean(v); });
+  var unplaced = {}; noCmpV.forEach(function (v) { unplaced[v.label] = "No Artemis comparison on " + mlabel(m); }); noPctV.forEach(function (v) { unplaced[v.label] = "No % change from Artemis on " + mlabel(m); }); missing.forEach(function (v) { unplaced[v.label] = "Not measured (" + notRun(v) + ")"; });
   var far = farOutliers(rows.map(function (r) { return { key: r.label, lo: Math.min(0, r.pct), hi: Math.max(0, r.pct) }; })), near = rows.filter(function (r) { return far.indexOf(r.label) < 0; });
   var lo = Math.min.apply(null, [0].concat(near.map(function (r) { return r.pct; }))), hi = Math.max.apply(null, [0].concat(near.map(function (r) { return r.pct; })));
   rows.forEach(function (r) { if (far.indexOf(r.label) >= 0) { if (r.pct < 0) lo = Math.min(lo, -hi / 4); else hi = Math.max(hi, -lo / 4); } });  // a clipped bar keeps room for its arrow
@@ -931,9 +939,11 @@ function RankedCard(props) {
   return html`<${Card} id="ranked" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
     question=${"Which versions moved " + mlabel(m) + " the most?"} series=${series}
     controls=${html`${props.viewSeg || null}<${MetricSelect} list=${list} value=${key} onChange=${setMetric}/>`}
-    versionChoices=${measuredLabels}
+    versionChoices=${D.versions.map(function (v) { return v.label; })} versionDisabled=${unplaced}
+    info=${[noCmpV.length ? "No Artemis comparison: " + noCmpV.map(function (v) { return v.label; }).join(", ") : null, noPctV.length ? "No % change from Artemis: " + noPctV.map(function (v) { return v.label + " (" + vWord(vsb(v, key).verdict) + ")"; }).join(", ") : null,
+      missing.length ? "Not measured: " + missing.map(function (v) { return v.label + " (" + notRun(v) + ")"; }).join(", ") : null].filter(Boolean).join(". ")}
     rows=${function () { return rows.map(function (r) { return { version: r.v, metric: key, pct_better: r.pct, verdict: VERDICT[r.verdict], failed_correctness_check: r.failed }; }); }} means=${means}
-    after=${html`${noCmpV.length ? html`<p class="missing">No Artemis comparison: ${noCmpV.map(function (v) { return v.label; }).join(", ")}</p>` : null}${noPctV.length ? html`<p class="missing">No % change from Artemis: ${noPctV.map(function (v) { return v.label + " (" + vWord(vsb(v, key).verdict) + ")"; }).join(", ")}</p>` : null}${missing.length ? html`<p class="missing">Not measured: ${missing.map(function (v) { return v.label + " (" + (v.executionStatus === "failed" ? "execution failed" : v.lifecycle === "generation_failed" ? "generation failed" : v.displayStatus || v.lifecycle || "not measured") + ")"; }).join(", ")}</p>` : null}${D.failed.length ? html`<p class="missing">✕ Failed your correctness check: ${D.failed.map(function (x) { return "v" + x; }).join(", ")}. The check is yours, outside the snapshot; their changes are measured but not usable.</p>` : null}`}>
+    after=${html`${D.failed.length ? html`<p class="missing">✕ Failed your correctness check: ${D.failed.map(function (x) { return "v" + x; }).join(", ")}. The check is yours, outside the snapshot; their changes are measured but not usable.</p>` : null}`}>
     ${rows.length ? html`<${RC.BarChart} width=${width} height=${height} data=${rows} layout="vertical" margin=${{ top: 10, right: labelRoom(rows, narrow, m, narrow ? 118 : 260), left: 4, bottom: 26 }}>
       <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
       <${RC.XAxis} type="number" domain=${dom} ticks=${ax.ticks} interval=${0} allowDataOverflow=${true} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${function (v) { return fmtPct(v).replace(".0%", "%"); }}
@@ -1043,7 +1053,9 @@ function ForestCard(props) {
       <${Seg} label="Scale" value=${log ? "log" : "lin"} onChange=${function (v) { cs[1]({ scale: v }); }} options=${[["lin", "Linear"], ["log", "Log (×)", bounded, bounded ? "A bounded score reads in points, not ×" : "Log scale, × better"]]}/>`}
     versionChoices=${ranks.map(function (r) { return r.label; })}
     rows=${function () { return rows.map(function (r) { return { version: r.label, metric: key, pct_better: r.pct, ci_low_pct: r.ciLo, ci_high_pct: r.ciHi, times_better: r.tb, verdict: VERDICT[r.verdict], scale: log ? "log" : "linear" }; }); }}
-    means=${means} after=${html`${noCmp.length ? html`<p class="missing">No Artemis comparison: ${noCmp.map(function (r) { return r.label; }).join(", ")}</p>` : null}${noPctF.length ? html`<p class="missing">No % change from Artemis: ${noPctF.map(function (v) { return v.label + " (" + vWord(vsb(v, key).verdict) + ")"; }).join(", ")}</p>` : null}${noRatio.length ? html`<p class="missing">${log ? "No × ratio from Artemis" : "No % change from Artemis"}: ${noRatio.map(function (r) { return r.label; }).join(", ")}</p>` : null}${huge ? html`<p class="hint">Very large changes: view as × better (<button type="button" class="link" onClick=${function () { cs[1]({ scale: "log" }); }}>log</button>)</p>` : null}`}>
+    info=${[noCmp.length ? "No Artemis comparison: " + noCmp.map(function (r) { return r.label; }).join(", ") : null, noPctF.length ? "No % change from Artemis: " + noPctF.map(function (v) { return v.label + " (" + vWord(vsb(v, key).verdict) + ")"; }).join(", ") : null,
+      noRatio.length ? (log ? "No × ratio from Artemis" : "No % change from Artemis") + ": " + noRatio.map(function (r) { return r.label; }).join(", ") : null].filter(Boolean).join(". ")}
+    means=${means} after=${html`${huge ? html`<p class="hint">Very large changes: view as × better (<button type="button" class="link" onClick=${function () { cs[1]({ scale: "log" }); }}>log</button>)</p>` : null}`}>
     ${!anyCI ? html`<div class="sparse">No intervals yet. The ranked bars show the changes.</div>`
     : rows.length ? html`<${RC.ScatterChart} width=${width} height=${height} margin=${{ top: narrow ? 22 : 12, right: right, left: 4, bottom: 30 }}>
       ${L < 0 ? html`<${RC.ReferenceArea} x1=${L} x2=${0} fill=${T.worse} fillOpacity=${0.08} stroke="none" ifOverflow="hidden"/>` : null}
@@ -1062,7 +1074,7 @@ function ForestCard(props) {
 }
 
 /* ---------- 4. Over time, in generation order, steers marked ---------- */
-var TIME_H = 300;  // the chart's height; Best's label sits above its ring, or below it near the top
+var TIME_H = 340;  // the chart's height; Best's label sits above its ring, or below it near the top
 function TimeCard(props) {
   var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "time", { mode: "pct" }), c = cs[0], hd = c.hidden || {};
   var list = rankedMetrics(D).concat(D.measured.filter(function (m) { return m.higherIsBetter == null; })), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key];
@@ -1073,8 +1085,11 @@ function TimeCard(props) {
   var col = { line: T.accent, steer: T.fg };
   var data = D.versions.filter(function (v) { return off.indexOf(v.label) < 0; }).map(function (v) {
     var st = mstat(v, key), vb = vsb(v, key), y = mode === "pct" ? (st ? st.pctBetter : null) : mode === "mean" ? (st ? st.mean : null) : (v.fitness != null && v.displayStatus === "scored" ? v.fitness : null);
-    return { v: v.version, label: v.label, y: y == null ? null : y, verdict: mode === "fit" ? null : verdictOf(vb), tip: versionTip(v, key, m).concat(mode === "fit" && v.fitness != null ? ["~Composite score " + v.fitness.toFixed(3)] : []) };
+    return { v: v.version, label: v.label, y: y == null ? null : y, verdict: mode === "fit" ? null : verdictOf(vb), failed: y == null && (v.executionStatus === "failed" || v.lifecycle === "generation_failed"), tip: versionTip(v, key, m).concat(mode === "fit" && v.fitness != null ? ["~Composite score " + v.fitness.toFixed(3)] : []) };
   });
+  // The best so far, version by version: the classic view of a search's progress. A mean of a lower-is-better metric runs down.
+  var lowWins = mode === "mean" && m.higherIsBetter === false, run = null;
+  data.forEach(function (d) { if (d.y != null && (run == null || (lowWins ? d.y < run : d.y > run))) run = d.y; d.run = run; });
   var vis = data;  // every version on one chart, no zoom strip
   var steers = ((D.s.steering || {}).points || []).filter(function (p) { return p.firstVersion != null; });
   // Versions are separate tries, so dots, never a joining line; coloured by verdict, so the legend names the verdicts.
@@ -1082,7 +1097,10 @@ function TimeCard(props) {
     : verdictSeries(T, data.filter(function (d) { return d.y != null; }).map(function (d) { return d.verdict; })).map(function (x) { return Object.assign({}, x, { shape: x.shape || "dot" }); });
   var bestAt = mode === "fit" ? head : rawMark;
   if (bestAt != null) series.push({ key: "best", label: mode === "fit" ? headWord.trim() : "Top on " + mlabel(m), color: T.accent, shape: "ring" });  // Best is the Composite pick; one metric's leader is its Top
-  if (steers.length) series.push({ key: "steer", label: "Steer (you redirected the search)", color: col.steer, shape: "dots" });
+  if (mode !== "fit") series.push({ key: "run", label: "Leader so far", color: T.accent, shape: "line" });  // "Best" is the Composite pick's word
+  if (steers.length) series.push({ key: "steer", label: "Steers (numbered stretches)", color: col.steer, shape: "dots" });
+  var failedV = data.filter(function (d) { return d.failed; });
+  if (failedV.length) series.push({ key: "failed", label: "Failed to run", color: T.worse, mark: [h("line", { key: 1, x1: -4, y1: -4, x2: 4, y2: 4, stroke: "currentColor", strokeWidth: 2 }), h("line", { key: 2, x1: -4, y1: 4, x2: 4, y2: -4, stroke: "currentColor", strokeWidth: 2 })] });
   var base = D.s.baseline.metrics[key], width = Math.max(W, 300), N = D.versions.length;
   var yLabel = mode === "pct" ? "% better than the original" : mode === "mean" ? mlabel(m) + ", mean" : "Overall score (Composite)";
   var ys = vis.map(function (d) { return d.y; }).filter(function (y) { return y != null; });
@@ -1102,7 +1120,10 @@ function TimeCard(props) {
       contiguous ? "It was the " + ordinal(pos) + " of " + N + " versions" : "It was the " + ordinal(winner.version) + " version made; this snapshot holds " + N + " versions",
       D.byLabel[winner.label]._failed ? vw("worse", "It failed your correctness check") : null,
       steerText] }; }
-  var gaps = data.filter(function (d) { return d.y == null; }).map(function (d) { return d.label; });
+  var gaps = data.filter(function (d) { return d.y == null && !d.failed; }).map(function (d) { return d.label; });
+  // The stretches between steers, numbered from the first steer; the stretch before any steer has no number.
+  var cuts = steers.map(function (p) { return p.firstVersion - 0.5; }).filter(function (x) { return x > xd[0] && x < xd[1]; }).sort(function (a, b) { return a - b; });
+  var stretches = cuts.length ? [xd[0]].concat(cuts).map(function (a, i, all) { return [a, i + 1 < all.length ? all[i + 1] : xd[1]]; }) : [];
   var valText = function (y) { return mode === "pct" ? chg(m, y) : mode === "mean" ? fmtNum(y) : y.toFixed(3); };
   var yFmt = function (v) { return mode === "pct" ? fmtPct(v).replace(".0%", "%") : mode === "fit" ? (+v.toFixed(3)).toString() : fmtTickNum(v); };
   // Room for the widest tick plus the rotated title (one line high) and a gap, so the two never overlap.
@@ -1128,8 +1149,10 @@ function TimeCard(props) {
     versionChoices=${D.versions.map(function (v) { return v.label; })}
     rows=${function () { var anyShown = series.some(function (x) { return ["better", "noise", "worse", "pending", "none"].indexOf(x.key) >= 0 && !hd[x.key]; });  // a gap row goes once no dots show
       return vis.filter(function (d) { return mode === "fit" ? !hd.line : d.y == null ? anyShown : !hd[d.verdict]; }).map(function (d) { return { version: d.label, value: d.y, series: mode === "pct" ? "pct_better" : mode === "mean" ? "mean" : "composite_score", metric: mode === "fit" ? "" : key }; }); }}
-    means=${means} after=${html`${gaps.length ? html`<p class="missing">Gaps, not zeroes: ${gaps.join(", ")} ${gaps.length === 1 ? "has" : "have"} no value</p>` : null}`}>
-    <${RC.LineChart} width=${width} height=${TIME_H} data=${data} margin=${{ top: 30, right: 28, left: 8, bottom: 10 }}>
+    means=${means} info=${gaps.length ? "No value (a gap, not a zero): " + gaps.join(", ") : null}>
+    <${RC.LineChart} width=${width} height=${TIME_H} data=${data} margin=${{ top: 40, right: 28, left: 8, bottom: 10 }}>
+      ${!hd.steer ? stretches.map(function (b, i) { return i % 2 ? html`<${RC.ReferenceArea} key=${"band" + i} className="col-band" x1=${b[0]} x2=${b[1]} fill=${T.fg} fillOpacity=${0.04} stroke="none" ifOverflow="hidden"/>` : null; }) : null}
+      ${!hd.steer ? stretches.map(function (b, i) { return i ? html`<${RC.ReferenceLine} key=${"bn" + i} x=${(b[0] + b[1]) / 2} stroke="none" label=${function (lp) { return h("text", { x: lp.viewBox.x, y: lp.viewBox.y - 8, textAnchor: "middle", fontSize: 12, fontWeight: 600, fill: T["text-2"] }, String(i)); }}/>` : null; }) : null}
       <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
       <${RC.XAxis} dataKey="v" type="number" domain=${xd} ticks=${xticks} tickFormatter=${function (n) { return "v" + n; }} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} allowDecimals=${false} allowDataOverflow=${true}/>
       <${RC.YAxis} width=${yAxisW} tick=${axisTick(T)} tickLine=${false} axisLine=${false} domain=${ax.domain} ticks=${ax.ticks}
@@ -1138,8 +1161,10 @@ function TimeCard(props) {
       ${mode === "pct" ? html`<${RC.ReferenceLine} y=${0} stroke=${T.fg} strokeWidth=${1.5} label=${{ value: "original", position: "insideBottomLeft", fill: T["text-2"], fontSize: 13 }}/>` : null}
       ${mode === "mean" && base ? html`<${RC.ReferenceLine} y=${base.mean} stroke=${T.baseline} strokeWidth=${2.5} label=${{ value: "original " + fmtNum(base.mean), position: "insideBottomLeft", fill: T["text-2"], fontSize: 13 }}/>` : null}
       ${!hd.steer ? steers.filter(function (p) { return p.firstVersion - 0.5 > xd[0] && p.firstVersion - 0.5 < xd[1]; }).map(function (p, i) { return html`<${RC.ReferenceLine} key=${"s" + i} x=${p.firstVersion - 0.5} stroke=${col.steer} strokeWidth=${1.5} strokeDasharray="2 4"/>`; }) : null}
-      ${good ? html`<${RC.ReferenceLine} y=${ax.domain[1]} stroke="none" label=${{ value: good, position: "insideTopRight", fill: T.fg, fontSize: 13, fontWeight: 600 }}/>` : null}
+      ${good ? html`<${RC.ReferenceLine} y=${ax.domain[0]} stroke="none" label=${{ value: good, position: "insideTopRight", fill: T.fg, fontSize: 13, fontWeight: 600 }}/>` : null}
       <${RC.Tooltip} position=${tipPos()} content=${Tip} isAnimationActive=${false}/>
+      ${mode !== "fit" && !hd.run ? html`<${RC.Line} className="late run-line" type="stepAfter" dataKey="run" stroke=${T.accent} strokeWidth=${2} strokeOpacity=${0.55} dot=${false} activeDot=${false} connectNulls=${true} isAnimationActive=${false}/>` : null}
+      ${!hd.failed ? failedV.map(function (d) { return html`<${RC.ReferenceDot} key=${"x" + d.v} x=${d.v} y=${ax.domain[0]} ifOverflow="visible" shape=${function (sp) { var cx = sp.cx, cy = sp.cy - 7; return h("g", { stroke: T.worse, strokeWidth: 2 }, h("title", null, d.label + ": failed to run"), h("line", { x1: cx - 4, y1: cy - 4, x2: cx + 4, y2: cy + 4 }), h("line", { x1: cx - 4, y1: cy + 4, x2: cx + 4, y2: cy - 4 })); }}/>`; }) : null}
       ${mode !== "fit" || !hd.line ? html`<${RC.Line} type="linear" dataKey="y" stroke="none" strokeWidth=${0} connectNulls=${false} isAnimationActive=${false} dot=${dot} activeDot=${{ r: 6 }}/>` : null}
     <//>
   <//>`;
@@ -1327,6 +1352,34 @@ function tradeOff(D) {
 }
 var TRADE_KIND = { better: "▲ Improved on one or both, worse on neither", trade: "◆ Trade-off: better on one, worse on the other", noise: "● No significant difference on either", worse: "▼ Regressed on one or both, better on neither" };
 function tradeKind(vx, vy) { var b = vx === "better" || vy === "better", w = vx === "worse" || vy === "worse"; return b && w ? "trade" : b ? "better" : w ? "worse" : "noise"; }
+/* pareto-mc:start */
+/* Each version's chance of being on the Pareto front, COMPUTED HERE from Artemis's intervals, not a falcon verdict.
+   TODO: move to falcon (statistics live there); ticket draft ~/artemis-handoffs/specs/2026-11-17-falcon-pareto-probability-ticket.md.
+   pts: [{ x, y, xlo, xhi, ylo, yhi }], each a direction-adjusted % better (right and up is better) with Artemis's 95% interval.
+   Each draw samples every version's two changes from normals: mean = Artemis's estimate, sd = the interval's half-width / 1.96
+   (0 with no interval). A version is on the front in a draw when no other is at least as good on both and better on one.
+   Seeded (mulberry32), so the page and the tests get the same numbers. Returns { p: [share of draws on the front],
+   dominated: [[i, j], ...] where version i is ahead of version j in at least 95% of draws }. */
+function paretoChances(pts, draws, seed) {
+  var n = pts.length, N = draws || 2000, a = (seed == null ? 20261117 : seed) >>> 0;
+  var rnd = function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  var normal = function () { var u = 0; while (u === 0) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
+  var sd = function (lo, hi) { return lo != null && hi != null && hi > lo ? (hi - lo) / 2 / 1.96 : 0; };
+  var sx = pts.map(function (q) { return sd(q.xlo, q.xhi); }), sy = pts.map(function (q) { return sd(q.ylo, q.yhi); });
+  var wins = pts.map(function () { return 0; }), ahead = pts.map(function () { return pts.map(function () { return 0; }); }), xs = [], ys = [];
+  for (var d = 0; d < N; d++) {
+    for (var i = 0; i < n; i++) { xs[i] = pts[i].x + sx[i] * normal(); ys[i] = pts[i].y + sy[i] * normal(); }
+    for (i = 0; i < n; i++) {
+      var front = true;
+      for (var j = 0; j < n; j++) if (j !== i && xs[j] >= xs[i] && ys[j] >= ys[i] && (xs[j] > xs[i] || ys[j] > ys[i])) { ahead[j][i]++; front = false; }
+      if (front) wins[i]++;
+    }
+  }
+  var dominated = [];
+  for (i = 0; i < n; i++) for (j = 0; j < n; j++) if (i !== j && ahead[i][j] >= 0.95 * N) dominated.push([i, j]);
+  return { p: wins.map(function (w) { return w / N; }), dominated: dominated };
+}
+/* pareto-mc:end */
 function TradeOffCard(props) {
   var D = props.D, T = props.T, W = props.W, dflt = tradeOff(D) || {}, ms = tradeMetrics(D);
   var cs = useCard(props.scope, "tradeoff", {}), c = cs[0], hd = c.hidden || {}, off = c.offV || [];
@@ -1339,8 +1392,8 @@ function TradeOffCard(props) {
   // The Pareto front: no other version at least as good on both and better on one. Beaten for sure only when the version that
   // edges it is clear of it on that axis (its interval above this one's, both Artemis's); an edge inside the intervals is within noise.
   var edges = function (a, b) { return a.x >= b.x && a.y >= b.y && (a.x > b.x || a.y > b.y); };
-  var clear = function (a, b) { return (a.x > b.x && a.xlo != null && b.xhi != null && a.xlo > b.xhi) || (a.y > b.y && a.ylo != null && b.yhi != null && a.ylo > b.yhi); };
-  pts.forEach(function (p) { var by = pts.filter(function (o) { return o !== p && edges(o, p); }); p.status = !by.length ? "front" : by.some(function (o) { return clear(o, p); }) ? "beaten" : "close"; });
+  var mc = paretoChances(pts), sure = {}; mc.dominated.forEach(function (d) { sure[d[1]] = true; });
+  pts.forEach(function (p, i) { p.prob = mc.p[i]; var by = pts.filter(function (o) { return o !== p && edges(o, p); }); p.status = !by.length ? "front" : sure[i] ? "beaten" : "close"; });
   var front = pts.filter(function (p) { return p.status === "front"; }).sort(function (a, b) { return a.x - b.x; }), close = pts.filter(function (p) { return p.status === "close"; }), beaten = pts.filter(function (p) { return p.status === "beaten"; });
   var notOn = D.versions.filter(function (v) { return off.indexOf(v.label) < 0 && !pts.some(function (p) { return p.v === v; }); }).map(function (v) { return v.label; });
   // Axes: the estimates set the span; an interval may reach half as far again, then is cut at the edge. "All" keeps 0 (the original) in view;
@@ -1367,7 +1420,8 @@ function TradeOffCard(props) {
     p.ey = p.ylo != null && p.yhi != null ? [p.y - Math.max(p.ylo, Y[0]), Math.min(p.yhi, Y[1]) - p.y] : null;
     p.tip = [p.v.label + (p.v.experimentTitle ? ": " + p.v.experimentTitle : ""), mlabel(mx) + ": " + chg(mx, p.x) + (p.xlo != null ? " (95% CI " + ivl(mx, p.xlo, p.xhi) + ")" : "") + ", " + VERDICT_SAY[p.vx || "none"],
       mlabel(my) + ": " + chg(my, p.y) + (p.ylo != null ? " (95% CI " + ivl(my, p.ylo, p.yhi) + ")" : "") + ", " + VERDICT_SAY[p.vy || "none"],
-      "~" + (p.status === "front" ? "Pareto-optimal: no version is at least as good on both and better on one" : p.status === "close" ? "Not significantly dominated: the versions ahead of it overlap it within their 95% intervals" : "Dominated: another version is ahead on both, clear of it on one by its 95% interval")];
+      (p.status === "front" ? "On the Pareto front: no version is at least as good on both and better on one" : p.status === "close" ? "Tied with the front (within noise): versions ahead of it are not ahead in 95% of draws" : "Behind the front: another version is ahead on both in at least 95% of draws"),
+      "~Chance of being on the front: " + Math.round(p.prob * 100) + "% (computed here from Artemis's intervals, 2,000 draws)"];
   });
   // Every front version is labelled. Each label takes the first free spot around its marker (never over a marker or another label,
   // never outside the plot); a label moved away gets a leader line back to its marker.
@@ -1375,29 +1429,35 @@ function TradeOffCard(props) {
   if (origin) boxes.push([px(0) - 9, py(0) - 9, px(0) + 9 + textW("Original", 13) + 6, py(0) + 26]);
   var hit = function (b) { return b[0] < L0 || b[2] > R0 || b[1] < T0 || b[3] > B0 || boxes.some(function (o) { return b[0] < o[2] && o[0] < b[2] && b[1] < o[3] && o[1] < b[3]; }); };
   var SPOTS = [[0, -15], [16, -12], [-16, -12], [20, 5], [-20, 5], [0, 24], [26, -28], [-26, -28], [36, 0], [-36, 0], [0, -38], [40, -36], [-40, -36], [0, 44], [48, 20], [-48, 20]];
-  front.filter(function (p) { return shown.indexOf(p) >= 0; }).slice().sort(function (a, b) { return b.x + b.y - a.x - a.y; }).forEach(function (p) {
+  (view === "front" ? shown.filter(function (p) { return p.status !== "beaten"; }) : front.filter(function (p) { return shown.indexOf(p) >= 0; })).slice().sort(function (a, b) { return (a.status === "front" ? 0 : 1) - (b.status === "front" ? 0 : 1) || b.prob - a.prob; }).forEach(function (p) {
     var w = textW(p.label, 13, 600), cx = px(p.x), cy = py(p.y), pick = null;
     for (var k = 0; k < SPOTS.length && !pick; k++) { var lx = cx + SPOTS[k][0], ly = cy + SPOTS[k][1], b = [lx - w / 2 - 2, ly - 11, lx + w / 2 + 2, ly + 3]; if (!hit(b)) pick = { dx: SPOTS[k][0], dy: SPOTS[k][1], b: b }; }
-    if (!pick) pick = { dx: 0, dy: -15, b: [cx - w / 2, cy - 26, cx + w / 2, cy - 12] };
+    if (!pick) return;  // no free spot: no label rather than one drawn over another; the tooltip still names it
     boxes.push(pick.b); p.lab = pick;
   });
   var mark = function (p, i) { return function (sp) {
-    var cl = p.status === "beaten" ? T.accent : T.accent, r = R, cx = sp.cx, cy = sp.cy, dash = p.status === "close", k = p.kind;
-    var shape = k === "better" ? h("polygon", { points: [cx, cy - r - 1, cx + r, cy + r - 1, cx - r, cy + r - 1].join(" ") }) : k === "worse" ? h("polygon", { points: [cx, cy + r + 1, cx + r, cy - r + 1, cx - r, cy - r + 1].join(" ") })
-      : k === "trade" ? h("polygon", { points: [cx, cy - r - 1, cx + r + 1, cy, cx, cy + r + 1, cx - r - 1, cy].join(" ") }) : h("circle", { cx: cx, cy: cy, r: r - 0.5 });
-    var styled = React.cloneElement(shape, { fill: dash ? T.card : cl, stroke: cl, strokeWidth: 2, strokeDasharray: dash ? "3 2" : null });
+    var r = R, cx = sp.cx, cy = sp.cy, k = p.status;
+    var styled = h("polygon", { points: [cx, cy - r - 1, cx + r, cy + r - 1, cx - r, cy + r - 1].join(" "), fill: k === "front" ? T.accent : T.card, stroke: T.accent, strokeWidth: 2, strokeLinejoin: "round" });
+    var cx0 = function (v) { return px(Math.max(X[0], Math.min(X[1], v))); }, cy0 = function (v) { return py(Math.max(Y[0], Math.min(Y[1], v))); };
+    var box = k !== "beaten" && p.xlo != null && p.ylo != null ? h("rect", { x: cx0(p.xlo), y: cy0(p.yhi), width: Math.max(1, cx0(p.xhi) - cx0(p.xlo)), height: Math.max(1, cy0(p.ylo) - cy0(p.yhi)), fill: T.accent, fillOpacity: k === "front" ? 0.06 : 0.03, stroke: "none", rx: 3 }) : null;  // subtle: overlapping boxes stay light
+    var whiskers = p.xlo != null || p.ylo != null ? h("g", { className: "wh", stroke: T.accent, strokeWidth: 1.2 },
+      p.xlo != null ? h("line", { x1: cx0(p.xlo), y1: cy, x2: cx0(p.xhi), y2: cy }) : null, p.ylo != null ? h("line", { x1: cx, y1: cy0(p.ylo), x2: cx, y2: cy0(p.yhi) }) : null) : null;
+    var ring = k !== "beaten" && p.prob >= 0.2 ? h("circle", { cx: cx, cy: cy, r: r + 5, fill: "none", stroke: T.accent, strokeWidth: 1 + 2 * p.prob, strokeOpacity: 0.25 + 0.6 * p.prob }) : null;
     var lab = p.lab, far = lab && (Math.abs(lab.dx) > 18 || Math.abs(lab.dy) > 18);
     var text = lab ? h("text", { x: cx + lab.dx, y: cy + lab.dy, textAnchor: "middle", fontSize: 13, fontWeight: 600, fill: T["accent-text"] }, p.label) : null;
     var lead = far ? h("line", { x1: cx, y1: cy, x2: cx + lab.dx, y2: cy + lab.dy + (lab.dy < 0 ? 3 : -11), stroke: T.accent, strokeWidth: 1, strokeOpacity: 0.7 }) : null;
-    return h("g", { opacity: p.status === "beaten" ? 0.18 : 1 }, h("g", { className: "pop", style: { "--d": Math.round(i * 300 / Math.max(1, shown.length - 1)) + "ms" } }, lead, linked(p.href, p.v.label, styled, true), text));
+    return h("g", { opacity: p.status === "beaten" ? 0.18 : 1, className: "tp" }, box, h("g", { className: "pop", style: { "--d": Math.round(i * 300 / Math.max(1, shown.length - 1)) + "ms" } }, whiskers, ring, lead, linked(p.href, p.v.label, styled, true), text));
   }; };
   var stairs = []; front.filter(function (p) { return inView(p); }).forEach(function (p, i, f) { stairs.push({ x: p.x, y: p.y }); if (f[i + 1]) stairs.push({ x: f[i + 1].x, y: p.y }); });
-  var series = [{ key: "front", label: "Pareto-optimal", color: T.accent, shape: "line" }, { key: "close", label: "Not significantly dominated", color: T.accent, shape: "dash" },
-    { key: "beaten", label: "Dominated", color: T.accent, shape: "outline" }].filter(function (x) { return pts.some(function (p) { return p.status === x.key; }); }).concat([{ key: "baseline", label: "Original", color: T.baseline }]);
+  var tri = function (fill, op) { return [h("polygon", { key: "t", points: "0,-6 6,5 -6,5", fill: fill, stroke: "currentColor", strokeWidth: 1.6, strokeLinejoin: "round", opacity: op })]; };
+  var series = [{ key: "front", label: "On the Pareto front", color: T.accent, mark: tri("currentColor", 1) }, { key: "close", label: "Tied with the front (within noise)", color: T.accent, mark: tri(T.card, 1) },
+    { key: "beaten", label: "Behind the front", color: T.accent, mark: tri(T.card, 0.3) }].filter(function (x) { return pts.some(function (p) { return p.status === x.key; }); })
+    .concat([{ key: "baseline", label: "Original", color: T.baseline, mark: [h("rect", { key: "o", x: -5.5, y: -5.5, width: 11, height: 11, rx: 2, fill: "currentColor" })] }]);
   var few = function (list) { var n = list.map(function (p) { return p.v.label; }); return n.length > 6 ? n.slice(0, 5).join(", ") + " and " + (n.length - 5) + " more" : n.join(", "); };
-  var means = { text: [html`Pareto-optimal: ${numSpan(few(front) || "none")}`,
-      close.length ? html`Not significantly dominated: ${few(close)}` : null,
-      html`Dominated: ${numSpan(beaten.length + " of " + pts.length)}`] };
+  var likely = pts.filter(function (p) { return p.prob >= 0.2; }).sort(function (a, b) { return b.prob - a.prob; }).slice(0, 4);
+  var means = { text: [html`On the Pareto front: ${numSpan(few(front) || "none")}${likely.length ? "; most likely there: " + likely.map(function (p) { return p.v.label + " " + Math.round(p.prob * 100) + "%"; }).join(", ") : ""}`,
+      close.length ? html`Tied with the front (within noise): ${few(close)}` : null,
+      html`Behind the front: ${numSpan(beaten.length + " of " + pts.length)}`] };
   var sel = function (val, k) { return html`<${Ctl} label=${k === "x" ? "X axis" : "Y axis"}><select value=${val} onChange=${function (e) { var o = {}; o[k] = e.target.value; cs[1](o); }}>${ms.map(function (m) { return html`<option key=${m.key} value=${m.key}>${mlabel(m)}</option>`; })}</select><//>`; };
   var tick = function (v) { return fmtPct(v).replace(".0%", "%"); };
   // 3 + 4. No notes under the chart: what is out of view sits behind one quiet info mark, and a version with no value on
@@ -1409,9 +1469,10 @@ function TradeOffCard(props) {
     question="Trade-off: which versions are on the Pareto front?" series=${series}
     controls=${html`${sel(kx, "x")}${sel(ky, "y")}${zoom ? html`<${Seg} label="View" value=${view} onChange=${function (v) { cs[1]({ view: v }); }} options=${[["front", "Front", false, "Zoom to the Pareto front"], ["all", "All", false, "Every version and the original"]]}/>` : null}`}
     versionChoices=${D.versions.map(function (v) { return v.label; })} versionDisabled=${noValue}
+    info=${[info, "The chance each version is on the front, and Behind the front, are computed here from Artemis's 95% intervals (2,000 seeded draws), not an Artemis verdict"].filter(Boolean).join(". ")}
     rows=${function () { return pts.map(function (p) { return { version: p.v.label, x_metric: kx, x_pct_better: p.x, x_ci_low_pct: p.xlo, x_ci_high_pct: p.xhi, y_metric: ky, y_pct_better: p.y, y_ci_low_pct: p.ylo, y_ci_high_pct: p.yhi, verdicts: TRADE_KIND[p.kind].slice(2), pareto: p.status }; }); }}
     means=${means}>
-    <p class="psub xt">Pareto-optimal: no other version is at least as good on both ${mlabel(mx)} and ${mlabel(my)} and better on one. Dominated: ahead of it on both, clear by a 95% interval on one. Right and up is better.${info ? html` <span class="info" tabindex="0" role="img" aria-label=${info} title=${info}>ⓘ</span>` : null}</p>
+    <p class="psub xt">On the Pareto front: no other version is at least as good on both ${mlabel(mx)} and ${mlabel(my)} and better on one. Right and up is better.</p>
     ${pts.length ? html`<${RC.ScatterChart} width=${width} height=${height} margin=${M}>
       ${origin ? html`<${RC.ReferenceArea} x1=${0} x2=${X[1]} y1=${0} y2=${Y[1]} fill=${T.better} fillOpacity=${0.06} stroke="none" ifOverflow="hidden"/>` : null}
       <${RC.CartesianGrid} strokeDasharray="2 3" stroke=${T.grid}/>
@@ -1425,10 +1486,7 @@ function TradeOffCard(props) {
       <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${false} isAnimationActive=${false}/>
       ${stairs.length > 1 && !hd.front ? html`<${RC.Scatter} className="front-line" data=${stairs} line=${{ stroke: T.accent, strokeWidth: 2.5 }} lineType="joint" isAnimationActive=${false} shape=${function () { return h("g"); }}/>` : null}
       ${origin ? html`<${RC.Scatter} data=${[{ x: 0, y: 0, tip: ["Original", "0% on both: every change is measured from here"] }]} isAnimationActive=${false} shape=${function (sp) { return h("g", null, h("rect", { x: sp.cx - 8, y: sp.cy - 8, width: 16, height: 16, rx: 3, fill: T.baseline, stroke: T.card, strokeWidth: 2 }), h("text", { x: sp.cx + 12, y: sp.cy + 20, fontSize: 13, fill: T.fg }, "Original")); }}/>` : null}
-      ${shown.slice().sort(function (a, b) { return (a.status === "beaten" ? 0 : a.status === "close" ? 1 : 2) - (b.status === "beaten" ? 0 : b.status === "close" ? 1 : 2) || a.x - b.x; }).map(function (p, i) { return html`<${RC.Scatter} key=${p.v.label} data=${[p]} isAnimationActive=${false} shape=${mark(p, i)}>
-        ${p.ex && p.status !== "beaten" ? html`<${RC.ErrorBar} dataKey="ex" direction="x" width=${5} stroke=${T.accent} strokeWidth=${1.2} strokeOpacity=${0.6} isAnimationActive=${false}/>` : null}
-        ${p.ey && p.status !== "beaten" ? html`<${RC.ErrorBar} dataKey="ey" direction="y" width=${5} stroke=${T.accent} strokeWidth=${1.2} strokeOpacity=${0.6} isAnimationActive=${false}/>` : null}
-      <//>`; })}
+      ${shown.slice().sort(function (a, b) { return (a.status === "beaten" ? 0 : a.status === "close" ? 1 : 2) - (b.status === "beaten" ? 0 : b.status === "close" ? 1 : 2) || a.x - b.x; }).map(function (p, i) { return html`<${RC.Scatter} key=${p.v.label} data=${[p]} isAnimationActive=${false} shape=${mark(p, i)}/>`; })}
     <//>` : html`<div class="sparse">No version has an Artemis change on both ${mlabel(mx)} and ${mlabel(my)}.</div>`}
   <//>`;
 }

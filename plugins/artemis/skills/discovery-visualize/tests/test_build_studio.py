@@ -8,6 +8,8 @@ import copy
 import io
 import json
 import re
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -724,7 +726,7 @@ class OutlierAndAxisTests(unittest.TestCase):
     def test_the_trend_draws_versions_as_dots_not_a_joined_line(self) -> None:
         html = build_studio.build([self.shop_shape()])
         got = probed(html, embedded(html)["datasets"][0]["id"], """
-          var curve = document.querySelector('[data-card="time"] .recharts-line-curve');
+          var curve = document.querySelector('[data-card="time"] .recharts-line:not(.run-line) .recharts-line-curve');  // the dots' own line, not the leader-so-far steps
           return { stroke: curve ? curve.getAttribute('stroke') : 'none', dots: document.querySelectorAll('[data-card="time"] .recharts-line-dots circle, [data-card="time"] .recharts-line-dots > g circle').length };""", more=True)
         self.assertEqual(got["stroke"], "none", "independent versions are never joined into a trend line")
         self.assertGreater(got["dots"], 0, got)
@@ -1002,17 +1004,63 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
                    labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.textContent; }) };"""
         sure = build_studio.build([two_targets()])
         got = probed(sure, embedded(sure)["datasets"][0]["id"], read)
-        self.assertIn("Pareto-optimal: v4, v2", got["means"])  # in order across
+        self.assertIn("On the Pareto front: v4, v2", got["means"])  # in order across
         self.assertIn("Pareto front", got["h2"])
         self.assertEqual(got["faded"], 1, "v1 is beaten for sure: v4 clears it on latency")
         self.assertTrue({"v2", "v4"} <= set(got["labels"]), "every front version is labelled")
         self.assertIn("Original", got["labels"])
         near = build_studio.build([two_targets(close=True)])
         got = probed(near, embedded(near)["datasets"][0]["id"], read)
-        self.assertIn("Not significantly dominated: v1", got["means"])
+        self.assertIn("Tied with the front (within noise): v1", got["means"])
         self.assertEqual(got["faded"], 0, "an edge inside the intervals is never drawn as beaten")
         one = build_studio.build([run_snapshot()])
         self.assertIsNone(probed(one, embedded(one)["datasets"][0]["id"], read), "one measured metric: no trade-off card")
+
+
+NODE = shutil.which("node")
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class ParetoChanceTests(unittest.TestCase):
+    """The studio's seeded Monte Carlo for P(on the Pareto front), run on the template's own function."""
+
+    @staticmethod
+    def chances(points: list[dict], draws: int = 2000, seed: int | None = None) -> dict:
+        page = (Path(build_studio.__file__).resolve().parent.parent / "assets" / "chart-studio.html").read_text(encoding="utf-8")
+        fn = page[page.index("/* pareto-mc:start */"):page.index("/* pareto-mc:end */")]
+        call = f"console.log(JSON.stringify(paretoChances({json.dumps(points)}, {draws}, {json.dumps(seed)})));"
+        out = subprocess.run([NODE, "-e", fn + call], capture_output=True, text=True, timeout=60, check=True).stdout
+        return json.loads(out)
+
+    @staticmethod
+    def pt(x: float, y: float, half: float | None = None) -> dict:
+        return {"x": x, "y": y, "xlo": None if half is None else x - half, "xhi": None if half is None else x + half,
+                "ylo": None if half is None else y - half, "yhi": None if half is None else y + half}
+
+    def test_a_version_clearly_ahead_on_both_dominates(self) -> None:
+        got = self.chances([self.pt(10, 10, 1), self.pt(0, 0, 1)])
+        self.assertEqual(got["p"][0], 1)
+        self.assertLess(got["p"][1], 0.01)
+        self.assertEqual(got["dominated"], [[0, 1]])
+
+    def test_exact_ties_are_both_on_the_front(self) -> None:
+        got = self.chances([self.pt(5, 5), self.pt(5, 5)])
+        self.assertEqual(got, {"p": [1, 1], "dominated": []})
+
+    def test_each_better_on_one_axis_are_both_on_the_front(self) -> None:
+        got = self.chances([self.pt(10, 0, 1), self.pt(0, 10, 1)])
+        self.assertTrue(all(p > 0.99 for p in got["p"]), got)
+        self.assertEqual(got["dominated"], [])
+
+    def test_a_lead_inside_the_intervals_is_never_called_dominance(self) -> None:
+        got = self.chances([self.pt(5, 5, 10), self.pt(4, 4, 10)])
+        self.assertEqual(got["dominated"], [], "ahead on the estimates, but not in 95% of draws")
+        self.assertTrue(0.3 < got["p"][1] < 0.9, got)
+
+    def test_the_draws_are_seeded(self) -> None:
+        points = [self.pt(5, 5, 10), self.pt(4, 4, 10), self.pt(6, 2, 4)]
+        self.assertEqual(self.chances(points), self.chances(points))
+        self.assertNotEqual(self.chances(points, seed=1)["p"], self.chances(points, seed=2)["p"])
 
 
 if __name__ == "__main__":
