@@ -132,6 +132,21 @@ footer code, code { font-family: var(--sans); color: var(--fg); }
 footer a { color: var(--accent-text); }
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 10px; font-size: 13px; z-index: 50; }
 .err { padding: 24px; color: var(--fg); }
+/* Motion, under 600ms and once per card, as it first scrolls into view (Card adds .playing): bars grow from zero,
+   trend dots pop in order and the leader's ring and label come last, the Bar / Forest switch morphs. Transforms and
+   opacity only, so no label or axis moves and the layout pass is untouched. */
+@keyframes dvGrowY { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes dvGrowX { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes dvPop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: none; } }
+@keyframes dvFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dvMorph { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: none; } }
+.card.playing[data-card="best"] .recharts-bar-rectangle { transform-box: fill-box; transform-origin: 50% 100%; animation: dvGrowY 520ms cubic-bezier(.2,.7,.2,1) both; }
+.card.playing .grow-x { transform-box: fill-box; transform-origin: 0 50%; animation: dvGrowX 520ms cubic-bezier(.2,.7,.2,1) both; }
+.card.playing .grow-x.neg { transform-origin: 100% 50%; }
+.card.playing .pop { transform-box: fill-box; transform-origin: center; animation: dvPop 160ms ease-out both; animation-delay: var(--d, 0ms); }
+.card.playing .late { animation: dvFade 140ms ease-out 460ms both; }
+.morph { animation: dvMorph 260ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .card.playing *, .morph { animation: none !important; } }
 /* Download PDF: the browser's print dialog, light, with the controls left out and each card kept on one page where it fits. */
 @media print {
   :root, :root[data-theme="dark"] { --bg: #ffffff; --card: #ffffff; --fg: #0f172a; --text-2: #475569; --line: #e2e8f0; --grid: #e2e8f0; --subtle: #f1f5f9; --shadow: none; color-scheme: light; }
@@ -141,6 +156,7 @@ footer a { color: var(--accent-text); }
   .card { break-inside: avoid; box-shadow: none; }
   .plot { overflow: visible; }
   .legend button { cursor: default; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 @media (max-width: 520px) { h1 { font-size: 20px; } .tools { justify-content: flex-start; } .means p { font-size: 14px; } }
 </style>
@@ -490,6 +506,25 @@ function vbWord(vb) { return !vb ? "no verdict" : identical(vb) ? "≈ Unchanged
 var ICON = "data:image/png;base64,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";
 
 /* ---------- shared bits ---------- */
+var MOTION = !!(window.IntersectionObserver && window.matchMedia && !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+function firstView(el, play) {  // play() once, when el first scrolls into view; returns the cleanup
+  var io = new IntersectionObserver(function (es) { if (!es.some(function (e) { return e.isIntersecting; })) return; io.disconnect(); play(); });
+  io.observe(el); return function () { io.disconnect(); };
+}
+function CountUp(props) {  // "12.7% less" counts up from 0 in 500ms on first view; the final text is what the page holds
+  var ref = useRef(null), t = String(props.text), m = /^([^\d]*)(\d+(?:\.\d+)?)([\s\S]*)$/.exec(t);
+  useEffect(function () {
+    var el = ref.current, node = el && el.firstChild; if (!MOTION || !m || !node || node.nodeType !== 3 || window.matchMedia("print").matches) return;
+    var target = parseFloat(m[2]), dp = (m[2].split(".")[1] || "").length, raf = 0;
+    var stop = firstView(el, function () {
+      var t0 = performance.now(), step = function (now) { var k = Math.min(1, (now - t0) / 500), e = 1 - Math.pow(1 - k, 3);
+        node.nodeValue = k < 1 ? m[1] + (target * e).toFixed(dp) + m[3] : t; if (k < 1) raf = requestAnimationFrame(step); };
+      raf = requestAnimationFrame(step);
+    });
+    return function () { stop(); cancelAnimationFrame(raf); node.nodeValue = t; };
+  }, [t]);
+  return html`<span ref=${ref}>${t}</span>`;
+}
 function Tip(props) {
   if (!props.active || !props.payload || !props.payload.length) return null;
   var p = props.payload[0].payload; if (!p || !p.tip) return null;
@@ -539,6 +574,12 @@ function Means(props) {  // every Conclusion looks the same: one green-bordered 
 function Card(props) {
   var c = props.card, set = props.set, ref = useRef(null);
   var st = useState(null), open = st[0], setOpen = st[1];
+  var pl = useState(false), playing = pl[0], setPlaying = pl[1];
+  useEffect(function () {
+    if (!MOTION || !ref.current) return;
+    var tm = 0, stop = firstView(ref.current, function () { setPlaying(true); tm = setTimeout(function () { setPlaying(false); }, 800); });
+    return function () { stop(); clearTimeout(tm); };
+  }, []);
   var title = props.question, toast = props.toast;
   var sp = props.scope.split(":"), fileBase = (sp[0] + (/^s\d+$/.test(sp[2] || "") ? "-" + sp[2] : "") + "-" + props.id).replace(/[^a-z0-9-]+/gi, "-");
   function dl(kind) {
@@ -561,7 +602,7 @@ function Card(props) {
   var hiddenSay = [hidM.length ? hidM.join(", ") + " (Metrics)" : null, hidV.length ? hidV.join(", ") + " (Versions)" : null].filter(Boolean).join("; ");
   var pop = function (k, label, body) { return open === k ? html`<${Popover} id=${props.id + "-" + k} label=${label} onClose=${function () { setOpen(null); }}>${body}<//>` : null; };
   var opener = function (k, label) { return html`<button type="button" class="btn" data-pop=${props.id + "-" + k} aria-expanded=${open === k} onClick=${function () { setOpen(open === k ? null : k); }}>${label}</button>`; };
-  return html`<section class="card" ref=${ref} data-card=${props.id}>
+  return html`<section class=${"card" + (playing ? " playing" : "")} ref=${ref} data-card=${props.id}>
     <div class="head">
       <img class="mark" src=${ICON} alt="" aria-hidden="true"/>
       <h2>${title}</h2>
@@ -739,7 +780,7 @@ function BestCard(props) {
       var vt = p.vb ? vText(T, p.vb.verdict) : T.fg;
       return html`<div class="panel" key=${p.m.key}>
         <p class="ptitle xt">${mlabel(p.m)}</p>
-        <p class="psub xt">${p.vb ? html`<span class="val" style=${{ color: p.one ? T.fg : vt }}>${identical(p.vb) ? "0.0%" : changePhrase(p.m, p.vb.improvementPct) || NO_PCT}</span>${!identical(p.vb) && p.vb.ciLowPct != null ? html` <span class="ci">(95% CI ${ivl(p.m, p.vb.ciLowPct, p.vb.ciHighPct)})</span>` : null}, <span style=${{ color: p.one ? T.fg : vt }}>${p.one ? "1 run each, not confirmed" : vbWord(p.vb)}</span>` : p.noReading ? bestV.label + " has no reading on " + mlabel(p.m) : NO_PCT}${", " + dirText(p.m)}</p>
+        <p class="psub xt">${p.vb ? html`<span class="val" style=${{ color: p.one ? T.fg : vt }}><${CountUp} text=${identical(p.vb) ? "0.0%" : changePhrase(p.m, p.vb.improvementPct) || NO_PCT}/></span>${!identical(p.vb) && p.vb.ciLowPct != null ? html` <span class="ci">(95% CI ${ivl(p.m, p.vb.ciLowPct, p.vb.ciHighPct)})</span>` : null}, <span style=${{ color: p.one ? T.fg : vt }}>${p.one ? "1 run each, not confirmed" : vbWord(p.vb)}</span>` : p.noReading ? bestV.label + " has no reading on " + mlabel(p.m) : NO_PCT}${", " + dirText(p.m)}</p>
         <${RC.BarChart} width=${pw} height=${240} data=${p.rows} margin=${{ top: 30, right: 12, left: 12, bottom: 8 }} accessibilityLayer=${true}>
           <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${32}/>
           <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
@@ -797,7 +838,7 @@ function hbarShape(T, colors) {
   return function (sp) {
     var x = Math.min(sp.x, sp.x + sp.width), w = Math.max(Math.abs(sp.width), 1), p = sp.payload || {}, fill = colors(p), pend = p.verdict === "pending", none = !p.verdict || p.verdict === "none";
     var tip = p.clip < 0 ? x : x + w, back = p.clip < 0 ? 12 : -12, cy = sp.y + sp.height / 2;  // a clipped bar ends in an arrowhead at the axis edge
-    return linked(p.href, p.v || p.label, h("g", null,
+    return linked(p.href, p.v || p.label, h("g", { className: "grow-x" + (p.shown < 0 ? " neg" : "") },
       h("rect", { x: x, y: sp.y, width: w, height: sp.height, rx: 4, fill: pend || none ? T.card : fill, stroke: none ? T.neutral : fill, strokeWidth: pend || none ? 2 : 0, strokeDasharray: pend ? "5 3" : null }),
       p.clip ? h("polygon", { className: "clip-arrow", points: [tip, cy, tip + back, sp.y + 3, tip + back, sp.y + sp.height - 3].join(" "), fill: T.card, stroke: "none" }) : null), true);
   };
@@ -868,9 +909,10 @@ function RankedCard(props) {
 /* ---------- 2+3. One card for every version's change: ranked bars or the forest, one toggle, one metric ---------- */
 function ChangeCard(props) {
   var cs = useCard(props.scope, "change", { view: "bar" }), c = cs[0], view = c.view === "forest" ? "forest" : "bar";
+  var first = useRef(view), switched = first.current !== view || first.switched; if (switched) first.switched = true;  // morph only after a switch, never on load
   var seg = html`<${Seg} label="Chart" value=${view} onChange=${function (v) { cs[1]({ view: v }); }} options=${[["bar", "Bar"], ["forest", "Forest", false, "Each change with its 95% interval"]]}/>`;
   var C = view === "forest" ? ForestCard : RankedCard;
-  return html`<div data-card="change">${h(C, Object.assign({}, props, { viewSeg: seg, metric: c.metric, onMetric: function (k) { cs[1]({ metric: k }); } }))}</div>`;
+  return html`<div data-card="change" key=${view} class=${switched && MOTION ? "morph" : ""}>${h(C, Object.assign({}, props, { viewSeg: seg, metric: c.metric, onMetric: function (k) { cs[1]({ metric: k }); } }))}</div>`;
 }
 
 /* ---------- 3. Forest: Artemis's change and 95% interval, in verdict colours, Linear or Log (x) ---------- */
@@ -1025,16 +1067,17 @@ function TimeCard(props) {
   var yAxisW = Math.max(66, Math.ceil(lineH(13) + 12 + Math.max.apply(null, [0].concat((ax.ticks || []).map(function (v) { return textW(yFmt(v), 13); })))));
   var dot = function (p) {
     var pl = p.payload; if (pl.y == null || p.cy == null || (mode !== "fit" && hd[pl.verdict])) return h("g", { key: p.index });
+    var order = { className: "pop", style: { "--d": Math.round(p.index * 420 / Math.max(1, data.length - 1)) + "ms" } };
     var isBest = pl.v === bestAt && !hd.best, cl = mode === "fit" ? col.line : pl.verdict === "pending" ? pendInk(T, pl.y) : vFill(T, pl.verdict) || T.neutral, hollow = mode !== "fit" && (pl.verdict === "pending" || pl.verdict === "none"), parts = [];
-    if (isBest) parts.push(h("circle", { key: "r", cx: p.cx, cy: p.cy, r: 10, fill: "none", stroke: T.accent, strokeWidth: 2.5 }));
-    parts.push(h("circle", { key: "d", cx: p.cx, cy: p.cy, r: isBest ? 6 : 5, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 1.5 }));
+    parts.push(h("circle", Object.assign({ key: "d", cx: p.cx, cy: p.cy, r: isBest ? 6 : 5, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 1.5 }, order)));
     if (!isBest) return h("g", { key: p.index }, parts);
+    var late = [h("circle", { key: "r", cx: p.cx, cy: p.cy, r: 10, fill: "none", stroke: T.accent, strokeWidth: 2.5 })];
     // The leader is labelled and pointed at: a short line from its ring to "Top v12: 15.7% less" (Best on the Overall score), above it, or below near the top.
     var lab = (mode === "fit" ? headWord : "Top ") + pl.label + ": " + valText(pl.y), lw = textW(lab, 13, 600), px0 = yAxisW + 8 - 4, px1 = width - 28 + 4;
     var lx = Math.max(px0, Math.min(px1 - lw, p.cx - lw / 2)), up = p.cy > 30 + 44, ty = up ? p.cy - 34 : p.cy + 44;
-    parts.push(h("line", { key: "l", x1: p.cx, y1: up ? p.cy - 11 : p.cy + 11, x2: p.cx, y2: up ? ty + 5 : ty - 14, stroke: T.accent, strokeWidth: 1.5 }));
-    parts.push(h("text", { key: "t", x: lx, y: ty, textAnchor: "start", fontSize: 13, fill: T["accent-text"], fontWeight: 600, fontFamily: NUMFONT }, lab));
-    return h("g", { key: p.index }, parts);
+    late.push(h("line", { key: "l", x1: p.cx, y1: up ? p.cy - 11 : p.cy + 11, x2: p.cx, y2: up ? ty + 5 : ty - 14, stroke: T.accent, strokeWidth: 1.5 }));
+    late.push(h("text", { key: "t", x: lx, y: ty, textAnchor: "start", fontSize: 13, fill: T["accent-text"], fontWeight: 600, fontFamily: NUMFONT }, lab));
+    return h("g", { key: p.index }, parts.concat([h("g", { key: "late", className: "late" }, late)]));
   };
   return html`<${Card} id="time" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
     question="How did the search go, version by version?" series=${series}

@@ -860,6 +860,15 @@ class TidierStudioTests(unittest.TestCase):
         self.assertNotIn("RC.Brush", html)
         self.assertNotIn('value: "Steer"', html)
 
+    def test_motion_is_short_first_view_only_and_off_for_reduced_motion_and_print(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        css = html[:html.index("</style>")]
+        self.assertIn("@media (prefers-reduced-motion: reduce) { .card.playing *, .morph { animation: none !important; } }", css)
+        self.assertRegex(css, r"@media print \{[\s\S]*\*, \*::before, \*::after \{ animation: none !important; transition: none !important; \}")
+        for rule in re.findall(r"animation: dv\w+ (\d+)ms[^;]*?(?: (\d+)ms)? both", css):
+            self.assertLessEqual(int(rule[0]) + int(rule[1] or 0), 600, rule)
+        self.assertIn("firstView(ref.current", html, "a card plays once, when it first scrolls into view")
+
     @unittest.skipUnless(CHROME, "no Chrome")
     def test_bar_and_forest_are_one_card_with_a_toggle_and_one_metric(self) -> None:
         html = build_studio.build([with_intervals(run_snapshot())])
