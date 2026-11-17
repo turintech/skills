@@ -18,7 +18,7 @@ rejections; a view other than the one asked for; a card with no chart, table or 
 project view without its sessions card; a value label or category name hidden, shortened, cut off or
 overlapping another; a sideways scroll with no cue; a page wider than the window; no "Best = ..." line, or a
 metric whose own best is not named with its version; and a probe that throws says why (PROBE ERROR). The
-studio is set in IBM Plex Sans with tabular figures, no monospace; its PNG and SVG downloads may fetch Google
+studio is set in Archivo (the Artemis UI's face) with tabular figures, no monospace; its PNG and SVG downloads may fetch Google
 Fonts to embed them, and nothing else may be fetched apart from the chart libraries' pinned script URLs.
 """
 

@@ -3,7 +3,7 @@
 <title>__TITLE__</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap">
 <style>
 /* Baseline orange and Artemis purple are the product's colours. Neutral and verdict tokens follow artemis-ui (slate, teal, poppy, amber).
    Validated with the dataviz validator: orange vs purple CVD dE 34.5 light, 28.7 dark. Orange is under 3:1 on white (2.45),
@@ -14,7 +14,7 @@
   --better: #14b8a6; --worse: #fb4a38; --better-text: #0f766e; --worse-text: #dc2626; --noise-text: #a16207; --noise: #facc15; --pending: #94a3b8;
   --up: #14b8a6; --down: #fb4a38; --eq: #d97706;
   --focus: #6d28d9; --shadow: 0 1px 3px #0000001a, 0 1px 2px -1px #0000001a;
-  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --sans: Archivo, ui-sans-serif, system-ui, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -30,46 +30,46 @@
 [hidden] { display: none !important; }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--fg); }
-body { font: 400 15px/1.55 var(--sans); font-variant-numeric: tabular-nums; }
+body { font: 400 14px/1.5 var(--sans); font-variant-numeric: tabular-nums; }
 svg { fill: var(--fg); }
-.page { max-width: 1240px; margin: 0 auto; padding: 28px 16px 72px; display: flex; flex-direction: column; gap: 20px; }
+.page { max-width: 1240px; margin: 0 auto; padding: 24px 16px 56px; display: flex; flex-direction: column; gap: 16px; }
 .brand { display: flex; gap: 12px; align-items: center; }
 .brand img { width: 36px; height: 36px; flex: none; }
-.eyebrow { font-size: 15px; color: var(--text-2); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-h1 { font-size: 28px; line-height: 1.25; font-weight: 600; margin: 8px 0 0; }
-.lede { margin: 8px 0 0; color: var(--text-2); font-size: 16px; min-height: calc(2 * 1.55em); }
+.eyebrow { font-size: 13px; color: var(--text-2); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+h1 { font-size: 24px; line-height: 1.25; font-weight: 600; margin: 8px 0 0; }
+.lede { margin: 8px 0 0; color: var(--text-2); font-size: 14px; min-height: calc(2 * 1.55em); }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-.chip { font-size: 15px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; color: var(--fg); background: var(--card); }
+.chip { font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; color: var(--fg); background: var(--card); }
 .chip b { font-weight: 600; }
-.warn { margin: 10px 0 0; font-size: 16px; color: var(--fg); }
+.warn { margin: 10px 0 0; font-size: 14px; color: var(--fg); }
 .means { border: 1.5px solid var(--better); border-radius: 12px; padding: 14px 16px; margin-top: 16px; background: var(--card); }
-.means h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--better-text); }
-.means p { margin: 0; font-size: 16px; line-height: 1.5; }
+.means h3 { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--better-text); }
+.means p { margin: 0; font-size: 14px; line-height: 1.5; }
 .means .num { font-weight: 600; }
-.means ul.cl { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 16px; line-height: 1.5; }
+.means ul.cl { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 1.5; }
 .bar { display: flex; gap: 12px 20px; flex-wrap: wrap; align-items: flex-end; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.ctl { display: inline-flex; flex-direction: column; gap: 4px; font-size: 15px; color: var(--text-2); font-weight: 500; }
+.ctl { display: inline-flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-2); font-weight: 500; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
-.seg button { font: 500 15px var(--sans); color: var(--fg); background: transparent; border: 0; padding: 7px 14px; cursor: pointer; min-height: 38px; }
+.seg button { font: 500 13px var(--sans); color: var(--fg); background: transparent; border: 0; padding: 5px 12px; cursor: pointer; min-height: 32px; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--subtle); box-shadow: inset 0 0 0 1.5px var(--fg); font-weight: 600; }
 .seg button:disabled { color: var(--text-2); cursor: not-allowed; }
-.btn { font: 500 15px var(--sans); color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 7px 14px; min-height: 38px; cursor: pointer; white-space: nowrap; }
+.btn { font: 500 13px var(--sans); color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 5px 12px; min-height: 32px; cursor: pointer; white-space: nowrap; }
 .btn:hover, .seg button:hover { background: var(--subtle); }
 .link { font: inherit; color: var(--accent-text); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
-select { font: 500 15px var(--sans); color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; min-height: 38px; max-width: 260px; }
+select { font: 500 13px var(--sans); color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 5px 8px; min-height: 32px; max-width: 260px; }
 button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visible, th button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px 20px 22px; box-shadow: var(--shadow); min-width: 0; }
+.card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 16px 18px; box-shadow: var(--shadow); min-width: 0; }
 .vlink { cursor: pointer; }
 .vlink:focus { outline: none; }
 .vlink:hover > text, .vlink:focus-visible > text { fill: var(--accent-text); text-decoration: underline; font-weight: 700; }
 .head .mark { width: 22px; height: 22px; flex: none; align-self: center; }
 .head { display: flex; gap: 10px 14px; align-items: flex-end; flex-wrap: wrap; }
-.head h2 { flex: 1 1 260px; margin: 0; font-size: 19px; font-weight: 600; line-height: 1.35; min-width: 0; border-radius: 4px; align-self: center; }
+.head h2 { flex: 1 1 260px; margin: 0; font-size: 17px; font-weight: 600; line-height: 1.35; min-width: 0; border-radius: 4px; align-self: center; }
 .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end; position: relative; }
-.tag { font-size: 15px; color: var(--text-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; white-space: nowrap; align-self: center; }
+.tag { font-size: 13px; color: var(--text-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; white-space: nowrap; align-self: center; }
 .legend { display: flex; gap: 6px 18px; flex-wrap: wrap; margin: 14px 0 6px; }
-.legend button { font: 400 15px var(--sans); color: var(--fg); background: none; border: 0; padding: 2px 0; display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
+.legend button { font: 400 13px var(--sans); color: var(--fg); background: none; border: 0; padding: 2px 0; display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
 .legend button[aria-pressed="false"] { color: var(--text-2); text-decoration: line-through; }
 .legend button[aria-pressed="false"] .sw { opacity: .3; }
 .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
@@ -78,6 +78,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .sw.dash { background: transparent !important; border: 2px dashed currentColor; }
 .sw.outline { background: transparent !important; border: 2px solid currentColor; }
 .sw.line { height: 3px; width: 16px; border-radius: 2px; }
+.sw.dots { height: 0; width: 16px; border-radius: 0; background: transparent !important; border-top: 2px dotted currentColor; }
 .plot { overflow-x: auto; overflow-y: hidden; margin: 0 -4px; padding: 0 4px; }
 .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 28px; }
 .one { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
@@ -85,44 +86,63 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .two > .panel:last-child:nth-child(odd) .ptitle, .two > .panel:last-child:nth-child(odd) .psub, .two > .panel:last-child:nth-child(odd) .palone { text-align: center; }
 .panel { min-width: 0; }
 .multi { display: grid; gap: 20px 16px; }
-.ptitle { font-size: 16px; font-weight: 600; margin: 0; }
-.psub { font-size: 16px; color: var(--text-2); margin: 2px 0 0; }
+.ptitle { font-size: 14px; font-weight: 600; margin: 0; }
+.psub { font-size: 14px; color: var(--text-2); margin: 2px 0 0; }
 .psub .val, .val { font-weight: 600; }
-.palone { font-size: 16px; color: var(--fg); margin: 4px 0 0; }
-.missing { font-size: 15px; color: var(--text-2); margin: 6px 0 0; }
-.sparse { padding: 24px 8px; color: var(--fg); font-size: 16px; border-top: 1px solid var(--line); margin-top: 10px; }
-.hint { font-size: 15px; color: var(--text-2); text-align: right; margin: 6px 0 0; }
+.palone { font-size: 14px; color: var(--fg); margin: 4px 0 0; }
+.missing { font-size: 13px; color: var(--text-2); margin: 6px 0 0; }
+.sparse { padding: 24px 8px; color: var(--fg); font-size: 14px; border-top: 1px solid var(--line); margin-top: 10px; }
+.hint { font-size: 13px; color: var(--text-2); text-align: right; margin: 6px 0 0; }
 .pop { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; width: 300px; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px #0000002e; display: flex; flex-direction: column; gap: 10px; }
-.pop h3 { margin: 0; font-size: 15px; font-weight: 600; }
-.pop .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 15px; }
+.pop h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.pop .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 13px; }
 .checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; max-height: 260px; overflow: auto; }
-.checks label { font-size: 15px; display: flex; gap: 8px; align-items: center; color: var(--fg); min-width: 0; }
+.checks label { font-size: 13px; display: flex; gap: 8px; align-items: center; color: var(--fg); min-width: 0; }
 .checks label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tip { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 15px; box-shadow: 0 4px 12px #00000026; max-width: min(340px, calc(100vw - 64px)); overflow-wrap: anywhere; line-height: 1.45; }
+.tip { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; box-shadow: 0 4px 12px #00000026; max-width: min(340px, calc(100vw - 64px)); overflow-wrap: anywhere; line-height: 1.45; }
 .tip b { font-weight: 600; }
 .tip .t2 { color: var(--text-2); }
 .v-better { color: var(--better-text); } .v-worse { color: var(--worse-text); } .v-noise { color: var(--noise-text); } .v-pending { color: var(--fg); } .v-none { color: var(--text-2); }
-table.sum { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 16px; }
-table.sum th { text-align: left; font-size: 15px; font-weight: 600; color: var(--text-2); border-bottom: 1px solid var(--line); padding: 0; white-space: nowrap; }
-table.sum th button { font: inherit; color: inherit; background: none; border: 0; padding: 10px 10px; cursor: pointer; width: 100%; text-align: inherit; }
+table.sum { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px; }
+table.sum th { text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--text-2); border-bottom: 1.5px solid var(--line); padding: 0; white-space: nowrap; }
+table.sum th button { font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; background: none; border: 0; padding: 7px 8px; cursor: pointer; width: 100%; text-align: inherit; }
 table.sum th[aria-sort] button { color: var(--fg); }
-table.sum td { padding: 10px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-table.sum .sub { display: none; font-size: 15px; color: var(--text-2); font-family: var(--sans); font-weight: 400; margin-top: 2px; }
-@media (max-width: 600px) { table.sum { min-width: 0; font-size: 15px; } table.sum .wide { display: none; } table.sum .sub { display: block; } table.sum th { white-space: normal; } table.sum th button, table.sum td { padding: 8px 3px; } table.sum td:first-child { overflow-wrap: anywhere; } }
+table.sum td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.4; }
+table.sum tbody tr:hover td { background: var(--subtle); }
+table.sum td.what { color: var(--text-2); max-width: 420px; }
+table.sum td.n:nth-child(3) { white-space: nowrap; font-weight: 500; }
+table.sum td.ic, table.sum th.ic { text-align: center; width: 64px; }
+.vicon { font-size: 15px; font-weight: 700; line-height: 1; }
+.ci { font-size: 12px; color: var(--text-2); font-weight: 400; white-space: nowrap; }
+table.sum .st { font-size: 12px; color: var(--text-2); }
+.ikey { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 10px 0 0; font-size: 13px; }
+.ikey .t2 { color: var(--text-2); }
+table.sum .sub { display: none; font-size: 13px; color: var(--text-2); font-family: var(--sans); font-weight: 400; margin-top: 2px; }
+@media (max-width: 600px) { table.sum { min-width: 0; font-size: 13px; } table.sum .wide { display: none; } table.sum .sub { display: block; } table.sum th { white-space: normal; } table.sum th button, table.sum td { padding: 8px 3px; } table.sum td:first-child { overflow-wrap: anywhere; } }
 table.sum td.n, table.sum th.n { text-align: right; }
 table.sum td.n { font-variant-numeric: tabular-nums; }
 details.more { border-top: 1px solid var(--line); padding-top: 4px; }
-details.more > summary { cursor: pointer; font-size: 16px; font-weight: 600; padding: 12px 0; list-style: none; display: flex; gap: 10px; align-items: center; }
+details.more > summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 12px 0; list-style: none; display: flex; gap: 10px; align-items: center; }
 details.more > summary::before { content: "+"; display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 8px; }
 details.more[open] > summary::before { content: "\2212"; }
 details.more > summary::-webkit-details-marker { display: none; }
 details.more .stack { display: flex; flex-direction: column; gap: 20px; }
-footer { font-size: 15px; color: var(--text-2); display: flex; gap: 6px 18px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+footer { font-size: 13px; color: var(--text-2); display: flex; gap: 6px 18px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
 footer code, code { font-family: var(--sans); color: var(--fg); }
 footer a { color: var(--accent-text); }
-.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 10px; font-size: 15px; z-index: 50; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 10px; font-size: 13px; z-index: 50; }
 .err { padding: 24px; color: var(--fg); }
-@media (max-width: 520px) { h1 { font-size: 22px; } .tools { justify-content: flex-start; } .means p { font-size: 16px; } }
+/* Download PDF: the browser's print dialog, light, with the controls left out and each card kept on one page where it fits. */
+@media print {
+  :root, :root[data-theme="dark"] { --bg: #ffffff; --card: #ffffff; --fg: #0f172a; --text-2: #475569; --line: #e2e8f0; --grid: #e2e8f0; --subtle: #f1f5f9; --shadow: none; color-scheme: light; }
+  body { background: #fff; }
+  .bar, .tools, .toast, details.more > summary::before { display: none !important; }
+  .page { max-width: none; padding: 0; gap: 12px; }
+  .card { break-inside: avoid; box-shadow: none; }
+  .plot { overflow: visible; }
+  .legend button { cursor: default; }
+}
+@media (max-width: 520px) { h1 { font-size: 20px; } .tools { justify-content: flex-start; } .means p { font-size: 14px; } }
 </style>
 <div id="root"><div class="err">Loading the chart studio...</div></div>
 <script type="application/json" id="studio-data">__STUDIO_DATA__</script>
@@ -283,7 +303,7 @@ function dirText(m) { return m.higherIsBetter == null ? "no stored direction" : 
 
 /* ---------- formatting ---------- */
 var MINUS = "−";
-var NUMFONT = "IBM Plex Sans, ui-sans-serif, system-ui, sans-serif";  // numbers in the text face; the page sets tabular figures
+var NUMFONT = "Archivo, ui-sans-serif, system-ui, sans-serif";  // numbers in the text face; the page sets tabular figures
 // Text is sized by measuring it in the font the browser draws, never by counting characters: with Google Fonts out of
 // reach a wider or taller system sans draws instead, and the App draws again once the web font arrives.
 var measurer = null;
@@ -377,7 +397,7 @@ function buildSVG(card, title, series, hidden) {
   // The legend as on screen: only with two or more series, the same keys, wrapped to the chart's width.
   var lx = 0, ly = 0, leg = "", shown = series.length > 1 ? series.filter(function (s) { return !hidden[s.key]; }) : [];
   shown.forEach(function (s) {
-    var w = 34 + textW(s.label, 15);  // 15px, as the on-screen legend
+    var w = 34 + textW(s.label, 13);  // 15px, as the on-screen legend
     if (lx && lx + w > W) { lx = 0; ly += 26; }
     // A ring, a dashed outline (needs more runs) or a plain outline (no comparison) is hollow; a line is a short bar.
     var hollow = s.shape === "ring" || s.shape === "dash" || s.shape === "outline";
@@ -397,20 +417,20 @@ function buildSVG(card, title, series, hidden) {
   var foot = notes.map(function (n, k) { return '<text x="0" y="' + (k * 20) + '" font-size="13" fill="' + T["text-2"] + '">' + esc(n) + "</text>"; }).join("");
   var footH = notes.length ? notes.length * 20 + 8 : 0;
   var legendH = shown.length ? ly + 28 : 0, Wt = W + pad * 2, Ht = Hc + top + legendH + footH + pad;
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + Wt + '" height="' + Ht + '" viewBox="0 0 ' + Wt + " " + Ht + '" font-family="IBM Plex Sans, system-ui, sans-serif" fill="' + T.fg + '">' +
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + Wt + '" height="' + Ht + '" viewBox="0 0 ' + Wt + " " + Ht + '" font-family="Archivo, system-ui, sans-serif" style="font-variant-numeric: tabular-nums" fill="' + T.fg + '">' +
     '<rect width="100%" height="100%" fill="' + T.card + '"/><text x="' + pad + '" y="' + (pad + 6) + '" font-size="16" font-weight="500" fill="' + T.fg + '">' + esc(title) + "</text>" +
     '<g transform="translate(' + pad + "," + (top + 12) + ')">' + leg + "</g>" +
     '<g transform="translate(' + pad + "," + (top + legendH) + ')">' + body + "</g>" +
     (foot ? '<g transform="translate(' + pad + "," + (top + legendH + Hc + 18) + ')">' + foot + "</g>" : "") + "</svg>";
 }
-/* Exports carry IBM Plex Sans inline, so a saved file measures text as the page does; without the network, a system font. */
+/* Exports carry Archivo (the Artemis UI's face) inline, so a saved file measures text as the page does; without the network, a system font. */
 var fontCss = null;
 function exportFonts() {
   if (fontCss) return fontCss;
-  fontCss = fetch("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap").then(function (r) { if (!r.ok) throw new Error("fonts " + r.status); return r.text(); }).then(function (css) {
+  fontCss = fetch("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap").then(function (r) { if (!r.ok) throw new Error("fonts " + r.status); return r.text(); }).then(function (css) {
     var blocks = css.split("@font-face").slice(1).filter(function (b) { return /U\+0000-00FF/.test(b); });
     return Promise.all(blocks.map(function (b) {
-      var url = (/url\((https:[^)]+)\)/.exec(b) || [])[1], wt = (/font-weight:\s*(\d+)/.exec(b) || [])[1] || "400", fam = (/font-family:\s*'([^']+)'/.exec(b) || [])[1] || "IBM Plex Sans";
+      var url = (/url\((https:[^)]+)\)/.exec(b) || [])[1], wt = (/font-weight:\s*(\d+)/.exec(b) || [])[1] || "400", fam = (/font-family:\s*'([^']+)'/.exec(b) || [])[1] || "Archivo";
       if (!url) return "";
       return fetch(url).then(function (r) { if (!r.ok) throw new Error("font " + r.status); return r.arrayBuffer(); }).then(function (buf) {
         var bin = "", u = new Uint8Array(buf); for (var i = 0; i < u.length; i += 32768) bin += String.fromCharCode.apply(null, u.subarray(i, i + 32768));
@@ -458,6 +478,7 @@ function useCard(scope, id, dflt) {
    Green improved, amber no significant difference, red regressed (the Web UI's labels). Needs more runs is an
    outline, never a fill. Text uses the darker text tokens in light mode. Purple is only ever the Artemis Best. */
 var GLYPH = { better: "▲", worse: "▼", noise: "≈", pending: "○", none: "·" };
+var ICON_OF = { better: "✓", pending: "○", noise: "≈", worse: "▼", none: "·" };  // the table's verdict signs: shape and colour, never colour alone
 function vFill(T, v) { return v === "better" ? T.better : v === "worse" ? T.worse : v === "noise" ? T.noise : null; }
 function vText(T, v) { return v === "better" ? T["better-text"] : v === "worse" ? T["worse-text"] : v === "noise" ? T["noise-text"] : v === "none" ? T["text-2"] : T.fg; }
 function pendInk(T, pct) { return pct != null && pct < 0 ? T.worse : T.better; }  // a pending outline leans the way its estimate does
@@ -570,7 +591,7 @@ function Card(props) {
     <${Means} text=${none ? NONE : props.means && props.means.text}/>
   </section>`;
 }
-function axisTick(T) { return { fill: T["text-2"], fontSize: 15 }; }
+function axisTick(T) { return { fill: T["text-2"], fontSize: 13 }; }
 function niceUp(x) { if (!(x > 0)) return 1; var p = Math.pow(10, Math.floor(Math.log10(x))), n = x / p; return ([1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].filter(function (k) { return n <= k + 1e-9; })[0]) * p; }
 function niceStep(x) { if (!(x > 0)) return 1; var p = Math.pow(10, Math.floor(Math.log10(x))), n = x / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
 function sideDomain(lo, hi) {  // linear, 0 always in view, and each side as long as its own data: so a -440% loss does not shrink +16% gains to slivers
@@ -674,10 +695,10 @@ function pareto(D) {  // the default pair: the collector's --pareto, else a meas
 function artemisTick(T, head) {
   return function (tp) {
     var v = tp.payload.value, isA = v === head;
-    var tw = textW(v, 15, isA ? 600 : 500);
+    var tw = textW(v, 13, isA ? 600 : 500);
     return h("g", { transform: "translate(" + tp.x + "," + tp.y + ")" },
       isA ? h("image", { href: ICON, x: -tw / 2 - 12, y: 5, width: 18, height: 18 }) : null,
-      h("text", { x: isA ? 10 : 0, y: 19, textAnchor: "middle", fontSize: 15, fontWeight: isA ? 600 : 500, fill: isA ? T["accent-text"] : T.fg }, v));
+      h("text", { x: isA ? 10 : 0, y: 19, textAnchor: "middle", fontSize: 13, fontWeight: isA ? 600 : 500, fill: isA ? T["accent-text"] : T.fg }, v));
   };
 }
 function BestCard(props) {
@@ -702,7 +723,7 @@ function BestCard(props) {
   var pm = D.byKey[D.primary], means = null;
   if (bestV && pm) {
     var pvb = vsb(bestV, pm.key), alone = panels.filter(function (p) { return p.m.key === pm.key; })[0];
-    means = { text: ms.filter(function (m) { return m.key === pm.key; }).concat(ms.filter(function (m) { return m.key !== pm.key; })).map(function (m) {  // the lead first, unless the reader hid it
+    means = { text: ms.filter(function (m) { return m.key === pm.key; }).map(function (m) {  // the lead only: every panel carries its own change, 95% CI and verdict
       var x = vsb(bestV, m.key), xs = mstat(bestV, m.key);
       if (!xs || xs.mean == null) return html`${mlabel(m)}: ${bestV.label} has no reading on it`;  // never measured, not "no change"
       if (!x) return null;
@@ -718,17 +739,17 @@ function BestCard(props) {
       var vt = p.vb ? vText(T, p.vb.verdict) : T.fg;
       return html`<div class="panel" key=${p.m.key}>
         <p class="ptitle xt">${mlabel(p.m)}</p>
-        <p class="psub xt">${p.vb ? html`<span class="val" style=${{ color: p.one ? T.fg : vt }}>${identical(p.vb) ? "0.0%" : changePhrase(p.m, p.vb.improvementPct) || NO_PCT}</span>, <span style=${{ color: p.one ? T.fg : vt }}>${p.one ? "1 run each, not confirmed" : vbWord(p.vb)}</span>` : p.noReading ? bestV.label + " has no reading on " + mlabel(p.m) : NO_PCT}${", " + dirText(p.m)}</p>
-        <${RC.BarChart} width=${pw} height=${300} data=${p.rows} margin=${{ top: 30, right: 12, left: 12, bottom: 8 }} accessibilityLayer=${true}>
+        <p class="psub xt">${p.vb ? html`<span class="val" style=${{ color: p.one ? T.fg : vt }}>${identical(p.vb) ? "0.0%" : changePhrase(p.m, p.vb.improvementPct) || NO_PCT}</span>${!identical(p.vb) && p.vb.ciLowPct != null ? html` <span class="ci">(95% CI ${ivl(p.m, p.vb.ciLowPct, p.vb.ciHighPct)})</span>` : null}, <span style=${{ color: p.one ? T.fg : vt }}>${p.one ? "1 run each, not confirmed" : vbWord(p.vb)}</span>` : p.noReading ? bestV.label + " has no reading on " + mlabel(p.m) : NO_PCT}${", " + dirText(p.m)}</p>
+        <${RC.BarChart} width=${pw} height=${240} data=${p.rows} margin=${{ top: 30, right: 12, left: 12, bottom: 8 }} accessibilityLayer=${true}>
           <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${32}/>
           <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
           <${RC.YAxis} domain=${[0, p.ax.domain[1]]} ticks=${p.ax.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${fmtTickNum}
             width=${Math.max(44, Math.ceil(Math.max.apply(null, p.ax.ticks.map(function (t) { return String(fmtTickNum(t)).length; })) * 9) + (p.m.unit ? 22 : 8))}
-            label=${p.m.unit ? { value: p.m.unit, angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } } : undefined}/>
+            label=${p.m.unit ? { value: p.m.unit, angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 13, style: { textAnchor: "middle" } } : undefined}/>
           <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.4 }} isAnimationActive=${false}/>
           <${RC.Bar} dataKey="mean" isAnimationActive=${false} maxBarSize=${110} radius=${[6, 6, 0, 0]}>
             ${p.rows.map(function (r, i) { return html`<${RC.Cell} key=${i} fill=${r.color}/>`; })}
-            <${RC.LabelList} dataKey="mean" position="top" formatter=${function (v) { return fmtNum(v) + unitOf(p.m); }} fill=${T.fg} fontSize=${16} fontWeight=${600} fontFamily=${NUMFONT}/>
+            <${RC.LabelList} dataKey="mean" position="top" formatter=${function (v) { return fmtNum(v) + unitOf(p.m); }} fill=${T.fg} fontSize=${14} fontWeight=${600} fontFamily=${NUMFONT}/>
           <//>
         <//>
         ${p.alone ? html`<p class="palone xt">Best on this metric alone: ${p.alone.label}, ${chg(p.m, p.alone.pctBetter)}${(vsb(D.byLabel[p.alone.label], p.m.key) || {}).verdict ? ", " + VERDICT_SAY[vsb(D.byLabel[p.alone.label], p.m.key).verdict] : ""}</p>` : null}
@@ -744,17 +765,17 @@ function BestCard(props) {
 // floor. A far value clipped at the axis edge still prints in full beside its arrow, never hidden past the chart.
 function labelRoom(rows, narrow, M, floor) {
   return Math.max(floor, Math.ceil(Math.max.apply(null, [0].concat(rows.map(function (r) {
-    return 8 + textW(chg(M, r.pct), 15, 600) + (r.verdict ? 8 + textW(narrow ? GLYPH[r.verdict] : vWord(r.verdict), 15) : 0);
+    return 8 + textW(chg(M, r.pct), 13, 600) + (r.verdict ? 8 + textW(narrow ? GLYPH[r.verdict] : vWord(r.verdict), 13) : 0);
   }))) + 6));
 }
 function barLabel(T, rows, narrow, M) {
   return function (lp) {
     var r = rows[lp.index]; if (!r) return null;
     var end = Math.max(lp.x, lp.x + lp.width), inside = narrow && Math.abs(lp.width) > 96 && vFill(T, r.verdict), y = lp.y + lp.height / 2 + 5;
-    if (inside) return h("text", { x: end - 8, y: y, fontSize: 15, fill: "#0f172a", textAnchor: "end" }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600 }, chg(M, r.pct)), r.verdict ? h("tspan", { dx: 6 }, GLYPH[r.verdict]) : null);
+    if (inside) return h("text", { x: end - 8, y: y, fontSize: 13, fill: "#0f172a", textAnchor: "end" }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600 }, chg(M, r.pct)), r.verdict ? h("tspan", { dx: 6 }, GLYPH[r.verdict]) : null);
     var x = end + 8;
-    return h("text", { x: x, y: y, fontSize: 15, fill: T.fg }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600 }, chg(M, r.pct)),
-      r.verdict ? h("tspan", { fill: vText(T, r.verdict), fontSize: 15, dx: 8 }, narrow ? GLYPH[r.verdict] : vWord(r.verdict)) : null,
+    return h("text", { x: x, y: y, fontSize: 13, fill: T.fg }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600 }, chg(M, r.pct)),
+      r.verdict ? h("tspan", { fill: vText(T, r.verdict), fontSize: 13, dx: 8 }, narrow ? GLYPH[r.verdict] : vWord(r.verdict)) : null,
       null);
   };
 }
@@ -788,7 +809,8 @@ function verdictSeries(T, present) {
 }
 function RankedCard(props) {
   var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "ranked", {}), c = cs[0], hd = c.hidden || {};
-  var list = rankedMetrics(D), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key];
+  var pick = props.metric || c.metric, setMetric = props.onMetric || function (k) { cs[1]({ metric: k }); };
+  var list = rankedMetrics(D), key = pick && D.byKey[pick] ? pick : D.primary, m = D.byKey[key];
   var ranks = (D.s.rankings || {})[key] || [], winner = ((D.s.perMetricWinners || {})[key] || {}).raw, off = c.offV || [], narrow = W < 560;  // Best is the Composite pick, so one metric's chart never marks it
   var all = ranks.filter(function (r) { return off.indexOf(r.label) < 0; }).map(function (r) {
     var v = D.byLabel[r.label], vb = vsb(v, key);
@@ -810,7 +832,7 @@ function RankedCard(props) {
   rows.forEach(function (r) { if (far.indexOf(r.label) >= 0) { if (r.pct < 0) lo = Math.min(lo, -hi / 4); else hi = Math.max(hi, -lo / 4); } });  // a clipped bar keeps room for its arrow
   var ax = evenAxis(sideDomain(lo, hi), pctCap(m, D.s.baseline.metrics[key]), narrow), dom = ax.domain;
   rows.forEach(function (r) { r.shown = clampTo(r.pct, dom); r.clip = r.pct < dom[0] ? -1 : r.pct > dom[1] ? 1 : 0; });
-  var width = Math.max(W, 300), height = 50 + rows.length * 44;
+  var width = Math.max(W, 300), height = 50 + rows.length * 34;
   var n = { better: 0, noise: 0, worse: 0, pending: 0, none: 0 }; all.forEach(function (r) { n[r.verdict]++; });
   var means;
   if (winner) {
@@ -822,32 +844,41 @@ function RankedCard(props) {
       winner.eligible ? null : winner.label + " fails the eligibility gate (experiment " + winner.experimentStatus + ")",
       D.byLabel[winner.label]._failed ? vw("worse", winner.label + " failed your correctness check") : null] };
   } else means = { text: "No winner on " + mlabel(m) + ": " + (((D.s.perMetricWinners || {})[key] || {}).reason || "no change from Artemis yet") + "." };
-  var yTick = function (tp) { var r = rows[tp.index] || {}; return linked(r.href, r.v, h("text", { x: tp.x - 6, y: tp.y + 5, textAnchor: "end", fontSize: 15, fontWeight: 500, fill: T.fg }, tp.payload.value)); };
+  var yTick = function (tp) { var r = rows[tp.index] || {}; return linked(r.href, r.v, h("text", { x: tp.x - 6, y: tp.y + 5, textAnchor: "end", fontSize: 13, fontWeight: 500, fill: T.fg }, tp.payload.value)); };
   return html`<${Card} id="ranked" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
     question=${"Which versions moved " + mlabel(m) + " the most?"} series=${series}
-    controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>`}
+    controls=${html`${props.viewSeg || null}<${MetricSelect} list=${list} value=${key} onChange=${setMetric}/>`}
     versionChoices=${measuredLabels}
     rows=${function () { return rows.map(function (r) { return { version: r.v, metric: key, pct_better: r.pct, verdict: VERDICT[r.verdict], failed_correctness_check: r.failed }; }); }} means=${means}
     after=${html`${noCmpV.length ? html`<p class="missing">No Artemis comparison: ${noCmpV.map(function (v) { return v.label; }).join(", ")}</p>` : null}${noPctV.length ? html`<p class="missing">No % change from Artemis: ${noPctV.map(function (v) { return v.label + " (" + vWord(vsb(v, key).verdict) + ")"; }).join(", ")}</p>` : null}${missing.length ? html`<p class="missing">Not measured: ${missing.map(function (v) { return v.label + " (" + (v.executionStatus === "failed" ? "execution failed" : v.lifecycle === "generation_failed" ? "generation failed" : v.displayStatus || v.lifecycle || "not measured") + ")"; }).join(", ")}</p>` : null}${D.failed.length ? html`<p class="missing">✕ Failed your correctness check: ${D.failed.map(function (x) { return "v" + x; }).join(", ")}. The check is yours, outside the snapshot; their changes are measured but not usable.</p>` : null}`}>
     ${rows.length ? html`<${RC.BarChart} width=${width} height=${height} data=${rows} layout="vertical" margin=${{ top: 10, right: labelRoom(rows, narrow, m, narrow ? 118 : 260), left: 4, bottom: 26 }}>
       <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
       <${RC.XAxis} type="number" domain=${dom} ticks=${ax.ticks} interval=${0} allowDataOverflow=${true} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${function (v) { return fmtPct(v).replace(".0%", "%"); }}
-        label=${{ value: narrow ? "% better →" : "← worse     % better than the original     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
+        label=${{ value: narrow ? "% better →" : "← worse     % better than the original     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 13 }}/>
       <${RC.YAxis} type="category" dataKey="label" width=${76} tick=${yTick} tickLine=${false} axisLine=${false} interval=${0}/>
       <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.5}/>
       <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.4 }} isAnimationActive=${false}/>
-      <${RC.Bar} dataKey="shown" isAnimationActive=${false} barSize=${24} shape=${hbarShape(T, colorOf)}>
+      <${RC.Bar} dataKey="shown" isAnimationActive=${false} barSize=${20} shape=${hbarShape(T, colorOf)}>
         <${RC.LabelList} dataKey="shown" content=${barLabel(T, rows, narrow, m)}/>
       <//>
     <//>` : html`<div class="sparse">${all.length ? "Every series is hidden." : "No version has a change on " + mlabel(m) + " yet."}</div>`}
   <//>`;
 }
 
+/* ---------- 2+3. One card for every version's change: ranked bars or the forest, one toggle, one metric ---------- */
+function ChangeCard(props) {
+  var cs = useCard(props.scope, "change", { view: "bar" }), c = cs[0], view = c.view === "forest" ? "forest" : "bar";
+  var seg = html`<${Seg} label="Chart" value=${view} onChange=${function (v) { cs[1]({ view: v }); }} options=${[["bar", "Bar"], ["forest", "Forest", false, "Each change with its 95% interval"]]}/>`;
+  var C = view === "forest" ? ForestCard : RankedCard;
+  return html`<div data-card="change">${h(C, Object.assign({}, props, { viewSeg: seg, metric: c.metric, onMetric: function (k) { cs[1]({ metric: k }); } }))}</div>`;
+}
+
 /* ---------- 3. Forest: Artemis's change and 95% interval, in verdict colours, Linear or Log (x) ---------- */
 function ratioFromPct(p, hib) { if (p == null) return null; if (hib) return 1 + p / 100; return p >= 100 ? Infinity : 1 / (1 - p / 100); }  // unit change only: Artemis's interval read as a better-ratio
 function ForestCard(props) {
   var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "forest", { scale: "lin" }), c = cs[0], hd = c.hidden || {};
-  var list = rankedMetrics(D), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key], hib = !!m.higherIsBetter, bounded = isBounded(m, D.s), log = c.scale === "log" && !bounded;
+  var pick = props.metric || c.metric, setMetric = props.onMetric || function (k) { cs[1]({ metric: k }); };
+  var list = rankedMetrics(D), key = pick && D.byKey[pick] ? pick : D.primary, m = D.byKey[key], hib = !!m.higherIsBetter, bounded = isBounded(m, D.s), log = c.scale === "log" && !bounded;
   var ranks = (D.s.rankings || {})[key] || [], off = c.offV || [], narrow = W < 560;  // Best is the Composite pick, so one metric's chart never marks it
   var all = ranks.map(function (r) {
     var v = D.byLabel[r.label], vb = vsb(v, key); if (!vb) return null;
@@ -899,12 +930,12 @@ function ForestCard(props) {
   var huge = !log && !bounded && all.some(function (r) { return r.tb && (r.tb >= 10 || r.tb <= 0.1); });
   var anyCI = all.some(function (r) { return r.lo != null || r.hi != null; });
   // The value (16px) and verdict (15px) share one line; widen the column for the longest pair rather than let them overlap.
-  var pairW = Math.max.apply(null, [0].concat(rows.map(function (r) { return textW(log ? xlabels[r.label] : chg(m, r.pct), 16, 600) + 10 + textW(vWord(r.verdict), 15); })));
-  var width = Math.max(W, 300), right = narrow ? 40 : Math.max(270, Math.ceil(pairW) + 28), height = 56 + rows.length * (narrow ? 54 : 40);
+  var pairW = Math.max.apply(null, [0].concat(rows.map(function (r) { return textW(log ? xlabels[r.label] : chg(m, r.pct), 14, 600) + 10 + textW(vWord(r.verdict), 13); })));
+  var width = Math.max(W, 300), right = narrow ? 40 : Math.max(270, Math.ceil(pairW) + 28), height = 56 + rows.length * (narrow ? 46 : 32);
   var colorOf = function (r) { if (r.verdict === "pending") return pendInk(T, r.pct); var s = series.filter(function (x) { return x.key === r.verdict; })[0]; return s ? s.color : T.better; };
   var x0 = 4 + 76, x1 = width - right, pxOf = function (v) { return x0 + (Math.max(L, Math.min(R, v)) - L) / (R - L) * (x1 - x0); };
   // On a phone the value sits on its own line above its row, so it never covers a mark or an interval.
-  var phoneLabel = function (sp, p, text, ink) { return h("text", { x: x0, y: sp.cy - 13, textAnchor: "start", fontSize: 15, fill: ink, fontWeight: 600, fontFamily: NUMFONT }, text); };
+  var phoneLabel = function (sp, p, text, ink) { return h("text", { x: x0, y: sp.cy - 13, textAnchor: "start", fontSize: 13, fill: ink, fontWeight: 600, fontFamily: NUMFONT }, text); };
   var shape = function (sp) {
     var p = sp.payload, cl = colorOf(p), pend = p.verdict === "pending", val = log ? xlabels[p.label] : chg(m, p.pct), ink = vText(T, p.verdict);
     var k = (x1 - x0) / (R - L), edge = function (side) { var x = sp.cx + ((side < 0 ? L : R) - p.est) * k; return h("polygon", { key: "e" + side, className: "ci-open", points: [x + side * 6, sp.cy, x - side * 4, sp.cy - 7, x - side * 4, sp.cy + 7].join(" "), fill: cl }); };
@@ -912,7 +943,7 @@ function ForestCard(props) {
       linked(p.href, p.label, p.clip ? h("polygon", { className: "clip-arrow", points: [sp.cx + p.clip * 2, sp.cy, sp.cx - p.clip * 12, sp.cy - 8, sp.cx - p.clip * 12, sp.cy + 8].join(" "), fill: cl })
         : h("circle", { cx: sp.cx, cy: sp.cy, r: 6.5, fill: pend ? T.card : cl, stroke: cl, strokeWidth: 2.2 }), true),
       narrow ? phoneLabel(sp, p, val + " " + GLYPH[p.verdict], ink)
-        : h("text", { x: width - right + 16, y: sp.cy + 5, fill: ink }, h("tspan", { fontSize: 16, fontWeight: 600, fontFamily: NUMFONT }, val), h("tspan", { fontSize: 15, dx: 10 }, vWord(p.verdict))));
+        : h("text", { x: width - right + 16, y: sp.cy + 5, fill: ink }, h("tspan", { fontSize: 14, fontWeight: 600, fontFamily: NUMFONT }, val), h("tspan", { fontSize: 13, dx: 10 }, vWord(p.verdict))));
   };
   var sig = all.filter(function (r) { return r.verdict === "better"; });
   var maxN = Math.max.apply(null, [0].concat(ranks.map(function (r) { var vb = vsb(D.byLabel[r.label], key); return vb && isFinite(vb.readings) ? vb.readings : 0; })));
@@ -921,10 +952,10 @@ function ForestCard(props) {
   else { var floor = sig.slice().sort(function (a, b) { return b.ciLo - a.ciLo; })[0]; means = { text: verdictLines(all, m, shownRanks.length + outside.length).concat([
       floor ? html`Surest gain: ${numSpan(floor.label + ", at least " + (log ? fmtX(ratioFromPct(floor.ciLo, hib)) : chg(m, floor.ciLo)))}, the low end of its 95% interval` : null,
       all.some(function (r) { return r.det; }) ? "Identical readings on both sides: a deterministic eval, so the interval leaves out test-set sampling" : null]) }; }
-  var yTick = function (tp) { var r = rows[tp.index] || {}; return linked(r.href, r.label, h("text", { x: tp.x - 4, y: tp.y + 5, textAnchor: "end", fontSize: 15, fontWeight: 500, fill: T.fg }, (r.failed ? "✕ " : "") + (r.label || ""))); };
+  var yTick = function (tp) { var r = rows[tp.index] || {}; return linked(r.href, r.label, h("text", { x: tp.x - 4, y: tp.y + 5, textAnchor: "end", fontSize: 13, fontWeight: 500, fill: T.fg }, (r.failed ? "✕ " : "") + (r.label || ""))); };
   return html`<${Card} id="forest" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
     question=${"How sure is each change on " + mlabel(m) + "?"} series=${anyCI ? series : []}
-    controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>
+    controls=${html`${props.viewSeg || null}<${MetricSelect} list=${list} value=${key} onChange=${setMetric}/>
       <${Seg} label="Scale" value=${log ? "log" : "lin"} onChange=${function (v) { cs[1]({ scale: v }); }} options=${[["lin", "Linear"], ["log", "Log (×)", bounded, bounded ? "A bounded score reads in points, not ×" : "Log scale, × better"]]}/>`}
     versionChoices=${ranks.map(function (r) { return r.label; })}
     rows=${function () { return rows.map(function (r) { return { version: r.label, metric: key, pct_better: r.pct, ci_low_pct: r.ciLo, ci_high_pct: r.ciHi, times_better: r.tb, verdict: VERDICT[r.verdict], scale: log ? "log" : "linear" }; }); }}
@@ -935,9 +966,9 @@ function ForestCard(props) {
       ${R > 0 ? html`<${RC.ReferenceArea} x1=${0} x2=${R} fill=${T.better} fillOpacity=${0.08} stroke="none" ifOverflow="hidden"/>` : null}
       <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
       <${RC.XAxis} type="number" dataKey="est" domain=${[L, R]} ticks=${ticks} interval=${0} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${fmtTick}
-        label=${{ value: log ? "× better than the original" : narrow ? "% better →" : "← worse     % better than the original, 95% interval     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
+        label=${{ value: log ? "× better than the original" : narrow ? "% better →" : "← worse     % better than the original, 95% interval     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 13 }}/>
       <${RC.YAxis} type="number" dataKey="y" domain=${[0.4, rows.length + 0.6]} reversed=${true} ticks=${rows.map(function (r) { return r.y; })} width=${76} tick=${yTick} tickLine=${false} axisLine=${false} interval=${0}/>
-      <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.5} label=${narrow ? undefined : { value: "original", position: "top", fill: T["text-2"], fontSize: 15 }}/>
+      <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.5} label=${narrow ? undefined : { value: "original", position: "top", fill: T["text-2"], fontSize: 13 }}/>
       <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${false} isAnimationActive=${false}/>
       ${rows.map(function (r) { return html`<${RC.Scatter} key=${r.label} data=${[r]} isAnimationActive=${false} shape=${shape}>
         <${RC.ErrorBar} dataKey="err" direction="x" width=${8} stroke=${colorOf(r)} strokeWidth=${2.2} strokeDasharray=${r.verdict === "pending" ? "5 3" : undefined} isAnimationActive=${false}/>
@@ -947,7 +978,7 @@ function ForestCard(props) {
 }
 
 /* ---------- 4. Over time, in generation order, steers marked ---------- */
-var TIME_H = 360;  // the chart's height; Best's label flips above its ring in the bottom 90px of the chart
+var TIME_H = 300;  // the chart's height; Best's label sits above its ring, or below it near the top
 function TimeCard(props) {
   var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "time", { mode: "pct" }), c = cs[0], hd = c.hidden || {};
   var list = rankedMetrics(D).concat(D.measured.filter(function (m) { return m.higherIsBetter == null; })), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key];
@@ -960,10 +991,14 @@ function TimeCard(props) {
     var st = mstat(v, key), vb = vsb(v, key), y = mode === "pct" ? (st ? st.pctBetter : null) : mode === "mean" ? (st ? st.mean : null) : (v.fitness != null && v.displayStatus === "scored" ? v.fitness : null);
     return { v: v.version, label: v.label, y: y == null ? null : y, verdict: mode === "fit" ? null : verdictOf(vb), tip: versionTip(v, key, m).concat(mode === "fit" && v.fitness != null ? ["~Composite score " + v.fitness.toFixed(3)] : []) };
   });
-  var bs = c.brush && c.brush[1] < data.length ? c.brush : [0, Math.max(0, data.length - 1)], vis = data.slice(bs[0], bs[1] + 1);
+  var vis = data;  // every version on one chart, no zoom strip
   var steers = ((D.s.steering || {}).points || []).filter(function (p) { return p.firstVersion != null; });
-  var series = [{ key: "line", label: mode === "fit" ? "Overall score (Composite)" : mode === "mean" ? mlabel(m) + ", mean" : mlabel(m) + ", % better", color: mode === "fit" ? col.line : T.neutral, shape: "dot" }];  // versions are separate tries, so dots, never a joining line
-  if (steers.length) series.push({ key: "steer", label: "Steer", color: col.steer, shape: "line" });
+  // Versions are separate tries, so dots, never a joining line; coloured by verdict, so the legend names the verdicts.
+  var series = mode === "fit" ? [{ key: "line", label: "Overall score (Composite)", color: col.line, shape: "dot" }]
+    : verdictSeries(T, data.filter(function (d) { return d.y != null; }).map(function (d) { return d.verdict; })).map(function (x) { return Object.assign({}, x, { shape: x.shape || "dot" }); });
+  var bestAt = mode === "fit" ? head : rawMark;
+  if (bestAt != null) series.push({ key: "best", label: mode === "fit" ? headWord.trim() : "Top on " + mlabel(m), color: T.accent, shape: "ring" });  // Best is the Composite pick; one metric's leader is its Top
+  if (steers.length) series.push({ key: "steer", label: "Steer (you redirected the search)", color: col.steer, shape: "dots" });
   var base = D.s.baseline.metrics[key], width = Math.max(W, 300), N = D.versions.length;
   var yLabel = mode === "pct" ? "% better than the original" : mode === "mean" ? mlabel(m) + ", mean" : "Overall score (Composite)";
   var ys = vis.map(function (d) { return d.y; }).filter(function (y) { return y != null; });
@@ -971,6 +1006,9 @@ function TimeCard(props) {
   var ax = ys.length ? niceAxis(Math.min.apply(null, ys), Math.max.apply(null, ys), 5, mode !== "pct" && Math.min.apply(null, ys) >= 0 ? 0 : null) : { domain: [0, 1], ticks: [0, 1] };
   if (mode === "pct") { var tcap = pctCap(m, D.s.baseline.metrics[key]); ax.domain = [Math.max(ax.domain[0], tcap[0]), Math.min(ax.domain[1], tcap[1])]; ax.ticks = ax.ticks.filter(function (t) { return t >= ax.domain[0] && t <= ax.domain[1]; }); }
   var xd = vis.length ? [vis[0].v - 0.5, vis[vis.length - 1].v + 0.5] : [0.5, N + 0.5];
+  var every = N > 30 ? 5 : N > 15 ? 2 : 1, xticks = vis.filter(function (d, i) { return i === 0 || d.v % every === 0 || d.v === bestAt; }).map(function (d) { return d.v; });
+  // Which way is good, on the chart itself: % change and the overall score read up; a mean reads the metric's own way.
+  var good = mode === "mean" ? (m.higherIsBetter === false ? "↓ lower is better" : m.higherIsBetter ? "↑ higher is better" : null) : "↑ higher is better";
   var sp = D.s.steering || {}, means;
   // The steer's own words are collected text (marked .data), quoted as written.
   var steerText = sp.reason ? "This Discovery session's chat could not be read, so its steers are unknown." : steers.length ? html`A steer came before ${steers[0].firstLabel}: “<span class="data">${clip(steers[0].guidance, 110)}</span>”` : "Nobody steered this Discovery session.";
@@ -984,16 +1022,18 @@ function TimeCard(props) {
   var valText = function (y) { return mode === "pct" ? chg(m, y) : mode === "mean" ? fmtNum(y) : y.toFixed(3); };
   var yFmt = function (v) { return mode === "pct" ? fmtPct(v).replace(".0%", "%") : mode === "fit" ? (+v.toFixed(3)).toString() : fmtTickNum(v); };
   // Room for the widest tick plus the rotated title (one line high) and a gap, so the two never overlap.
-  var yAxisW = Math.max(66, Math.ceil(lineH(15) + 12 + Math.max.apply(null, [0].concat((ax.ticks || []).map(function (v) { return textW(yFmt(v), 15); })))));
+  var yAxisW = Math.max(66, Math.ceil(lineH(13) + 12 + Math.max.apply(null, [0].concat((ax.ticks || []).map(function (v) { return textW(yFmt(v), 13); })))));
   var dot = function (p) {
-    var pl = p.payload; if (pl.y == null || p.cy == null) return h("g", { key: p.index });
-    var isHead = pl.v === head, isRaw = pl.v === rawMark && rawMark !== head, cl = mode === "fit" ? col.line : pl.verdict === "pending" ? pendInk(T, pl.y) : vFill(T, pl.verdict) || T.neutral, hollow = mode !== "fit" && (pl.verdict === "pending" || pl.verdict === "none"), parts = [];
-    if (isHead) parts.push(h("circle", { key: "r", cx: p.cx, cy: p.cy, r: 11, fill: "none", stroke: T.accent, strokeWidth: 2.5 }));
-    parts.push(h("circle", { key: "d", cx: p.cx, cy: p.cy, r: isHead ? 7 : 6, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 2 }));
-    // Never past the plot's edge. Best sits under its ring, or over it near the x axis.
-    var lab = (isHead ? headWord : "") + valText(pl.y), lw = textW(lab, 15, 600), px0 = yAxisW + 8 - 4, px1 = width - 28 + 4;
-    var lx = Math.max(px0, Math.min(px1 - lw, p.cx - lw / 2));  // centred on the point, then pulled inside the plot
-    if (isHead || isRaw) parts.push(h("text", { key: "t", x: lx, y: isHead ? (p.cy > TIME_H - 40 - 50 ? p.cy - 18 : p.cy + 28) : p.cy - 16, textAnchor: "start", fontSize: 15, fill: T.fg, fontWeight: 600, fontFamily: NUMFONT }, (isHead ? headWord : "") + valText(pl.y)));
+    var pl = p.payload; if (pl.y == null || p.cy == null || (mode !== "fit" && hd[pl.verdict])) return h("g", { key: p.index });
+    var isBest = pl.v === bestAt && !hd.best, cl = mode === "fit" ? col.line : pl.verdict === "pending" ? pendInk(T, pl.y) : vFill(T, pl.verdict) || T.neutral, hollow = mode !== "fit" && (pl.verdict === "pending" || pl.verdict === "none"), parts = [];
+    if (isBest) parts.push(h("circle", { key: "r", cx: p.cx, cy: p.cy, r: 10, fill: "none", stroke: T.accent, strokeWidth: 2.5 }));
+    parts.push(h("circle", { key: "d", cx: p.cx, cy: p.cy, r: isBest ? 6 : 5, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 1.5 }));
+    if (!isBest) return h("g", { key: p.index }, parts);
+    // The leader is labelled and pointed at: a short line from its ring to "Top v12: 15.7% less" (Best on the Overall score), above it, or below near the top.
+    var lab = (mode === "fit" ? headWord : "Top ") + pl.label + ": " + valText(pl.y), lw = textW(lab, 13, 600), px0 = yAxisW + 8 - 4, px1 = width - 28 + 4;
+    var lx = Math.max(px0, Math.min(px1 - lw, p.cx - lw / 2)), up = p.cy > 30 + 44, ty = up ? p.cy - 34 : p.cy + 44;
+    parts.push(h("line", { key: "l", x1: p.cx, y1: up ? p.cy - 11 : p.cy + 11, x2: p.cx, y2: up ? ty + 5 : ty - 14, stroke: T.accent, strokeWidth: 1.5 }));
+    parts.push(h("text", { key: "t", x: lx, y: ty, textAnchor: "start", fontSize: 13, fill: T["accent-text"], fontWeight: 600, fontFamily: NUMFONT }, lab));
     return h("g", { key: p.index }, parts);
   };
   return html`<${Card} id="time" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
@@ -1001,20 +1041,20 @@ function TimeCard(props) {
     controls=${html`${mode !== "fit" ? html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>` : null}
       <${Seg} label="Show" value=${mode} onChange=${function (v) { cs[1]({ mode: v }); }} options=${[["pct", "% change"], ["mean", "Mean"], ["fit", "Overall score"]]}/>`}
     versionChoices=${D.versions.map(function (v) { return v.label; })}
-    rows=${function () { return (hd.line ? [] : vis).map(function (d) { return { version: d.label, value: d.y, series: mode === "pct" ? "pct_better" : mode === "mean" ? "mean" : "composite_score", metric: mode === "fit" ? "" : key }; }); }}
-    means=${means} after=${html`${N > 12 ? html`<p class="missing">Drag either purple handle on the strip under the chart to zoom into a range of versions.</p>` : null}${gaps.length ? html`<p class="missing">Gaps, not zeroes: ${gaps.join(", ")} ${gaps.length === 1 ? "has" : "have"} no value</p>` : null}`}>
+    rows=${function () { return vis.map(function (d) { return { version: d.label, value: d.y, series: mode === "pct" ? "pct_better" : mode === "mean" ? "mean" : "composite_score", metric: mode === "fit" ? "" : key }; }); }}
+    means=${means} after=${html`${gaps.length ? html`<p class="missing">Gaps, not zeroes: ${gaps.join(", ")} ${gaps.length === 1 ? "has" : "have"} no value</p>` : null}`}>
     <${RC.LineChart} width=${width} height=${TIME_H} data=${data} margin=${{ top: 30, right: 28, left: 8, bottom: 10 }}>
       <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
-      <${RC.XAxis} dataKey="v" type="number" domain=${xd} ticks=${vis.map(function (d) { return d.v; })} tickFormatter=${function (n) { return "v" + n; }} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} allowDecimals=${false} allowDataOverflow=${true}/>
+      <${RC.XAxis} dataKey="v" type="number" domain=${xd} ticks=${xticks} tickFormatter=${function (n) { return "v" + n; }} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} allowDecimals=${false} allowDataOverflow=${true}/>
       <${RC.YAxis} width=${yAxisW} tick=${axisTick(T)} tickLine=${false} axisLine=${false} domain=${ax.domain} ticks=${ax.ticks}
         tickFormatter=${yFmt}
-        label=${{ value: yLabel, angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } }}/>
-      ${mode === "pct" ? html`<${RC.ReferenceLine} y=${0} stroke=${T.fg} strokeWidth=${1.5} label=${{ value: "original", position: "insideBottomLeft", fill: T["text-2"], fontSize: 15 }}/>` : null}
-      ${mode === "mean" && base ? html`<${RC.ReferenceLine} y=${base.mean} stroke=${T.baseline} strokeWidth=${2.5} label=${{ value: "original " + fmtNum(base.mean), position: "insideBottomLeft", fill: T["text-2"], fontSize: 15 }}/>` : null}
-      ${!hd.steer ? steers.filter(function (p) { return p.firstVersion - 0.5 > xd[0] && p.firstVersion - 0.5 < xd[1]; }).map(function (p, i) { return html`<${RC.ReferenceLine} key=${"s" + i} x=${p.firstVersion - 0.5} stroke=${col.steer} strokeWidth=${1} strokeDasharray="4 4" label=${{ value: "Steer", position: "insideTopLeft", fill: T.fg, fontSize: 15 }}/>`; }) : null}
+        label=${{ value: yLabel, angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 13, style: { textAnchor: "middle" } }}/>
+      ${mode === "pct" ? html`<${RC.ReferenceLine} y=${0} stroke=${T.fg} strokeWidth=${1.5} label=${{ value: "original", position: "insideBottomLeft", fill: T["text-2"], fontSize: 13 }}/>` : null}
+      ${mode === "mean" && base ? html`<${RC.ReferenceLine} y=${base.mean} stroke=${T.baseline} strokeWidth=${2.5} label=${{ value: "original " + fmtNum(base.mean), position: "insideBottomLeft", fill: T["text-2"], fontSize: 13 }}/>` : null}
+      ${!hd.steer ? steers.filter(function (p) { return p.firstVersion - 0.5 > xd[0] && p.firstVersion - 0.5 < xd[1]; }).map(function (p, i) { return html`<${RC.ReferenceLine} key=${"s" + i} x=${p.firstVersion - 0.5} stroke=${col.steer} strokeWidth=${1.5} strokeDasharray="2 4"/>`; }) : null}
+      ${good ? html`<${RC.ReferenceLine} y=${ax.domain[1]} stroke="none" label=${{ value: good, position: "insideTopRight", fill: T.fg, fontSize: 13, fontWeight: 600 }}/>` : null}
       <${RC.Tooltip} position=${tipPos()} content=${Tip} isAnimationActive=${false}/>
-      ${!hd.line ? html`<${RC.Line} type="linear" dataKey="y" stroke="none" strokeWidth=${0} connectNulls=${false} isAnimationActive=${false} dot=${dot} activeDot=${{ r: 6 }}/>` : null}
-      ${N > 12 ? html`<${RC.Brush} dataKey="v" height=${22} travellerWidth=${10} stroke=${T.accent} fill=${T.card} startIndex=${bs[0]} endIndex=${bs[1]} tickFormatter=${function (n) { return "v" + n; }} onChange=${function (r) { if (r && r.startIndex != null) cs[1]({ brush: [r.startIndex, r.endIndex] }); }}/>` : null}
+      ${mode !== "fit" || !hd.line ? html`<${RC.Line} type="linear" dataKey="y" stroke="none" strokeWidth=${0} connectNulls=${false} isAnimationActive=${false} dot=${dot} activeDot=${{ r: 6 }}/>` : null}
     <//>
   <//>`;
 }
@@ -1027,7 +1067,8 @@ function hasMachines(D, key) {
   var any = function (st) { return st && (st.runs || []).some(function (r) { return runMachine(r) != null; }); };
   return any(D.s.baseline.metrics[key]) || D.versions.some(function (v) { return any(mstat(v, key)); });
 }
-function hasRuns(D, key) { var n = function (st) { return st && st.runs ? st.runs.length : 0; }; return n(D.s.baseline.metrics[key]) > 1 && D.versions.some(function (v) { return n(mstat(v, key)) > 1; }); }
+// Box plots earn their place only when at least two versions have BOX_MIN or more iterations on the metric; then they sit under More charts.
+function enoughForBoxes(D, key) { return D.versions.filter(function (v) { var st = mstat(v, key); return st && st.runs && st.runs.filter(function (r) { return runValue(r) != null; }).length >= BOX_MIN; }).length >= 2; }
 function boxShape(T, showPoints) {
   return function (sp) {
     var p = sp.payload, x = sp.x, w = sp.width, y = sp.y, hh = sp.height, cx = x + w / 2, bw = Math.min(w * 0.6, 56), parts = [];
@@ -1069,7 +1110,7 @@ function phoneName(n) {  // 52px groups on a phone: commits show 4 characters (t
   return s === "Original" ? "Orig." : s;
 }
 // A group name wider than its slot (a long runner name, say) is cut with an ellipsis rather than hidden; its tooltip has it whole.
-function fitName(s, slot) { s = String(s); if (textW(s, 15, 500) <= slot - 6) return s; var n = s.length; while (n > 1 && textW(s.slice(0, n) + "…", 15, 500) > slot - 6) n--; return s.slice(0, n) + "…"; }  // 15px, measured
+function fitName(s, slot) { s = String(s); if (textW(s, 13, 500) <= slot - 6) return s; var n = s.length; while (n > 1 && textW(s.slice(0, n) + "…", 13, 500) > slot - 6) n--; return s.slice(0, n) + "…"; }  // 15px, measured
 function BoxCard(props) {
   var D = props.D, T = props.T, W = props.W, cs = useCard(props.scope, "box", { by: "version", scale: "shared" }), c = cs[0], hd = c.hidden || {};
   var list = D.measured, key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key], machines = hasMachines(D, key);
@@ -1111,13 +1152,13 @@ function BoxCard(props) {
   if (base && valuesOf(base).length === 1) means = { text: [html`One iteration on the original: ${numSpan(fmtNum(valuesOf(base)[0]) + unitOf(m))}, so no spread to show yet`] };
   else if (base && valuesOf(base).length) means = { text: [html`Original: ${numSpan(fmtNum(Math.min.apply(null, valuesOf(base))) + " to " + fmtNum(Math.max.apply(null, valuesOf(base))) + unitOf(m))} over ${runsWord(valuesOf(base).length)}`, wv ? overlapText(mstat(wv, key), base, m, wv.label).trim() || null : null] };
   var shape = boxShape(T, !hd.points);
-  var tick = function (tp) { var g = groups.filter(function (x) { return x.name === tp.payload.value; })[0]; return h("g", { transform: "translate(" + tp.x + "," + tp.y + ")" }, h("title", null, tp.payload.value), h("text", { textAnchor: "middle", y: 14, fontSize: 15, fill: T.fg, fontWeight: 500 }, fitName(W < 560 ? phoneName(tp.payload.value) : tp.payload.value, tp.payload.offset ? tp.payload.offset * 2 : 80)), h("text", { textAnchor: "middle", y: 14 + Math.ceil(lineH(15)) + 1, fontSize: 15, fill: T["text-2"] }, g ? "n=" + g.n : "")); };
+  var tick = function (tp) { var g = groups.filter(function (x) { return x.name === tp.payload.value; })[0]; return h("g", { transform: "translate(" + tp.x + "," + tp.y + ")" }, h("title", null, tp.payload.value), h("text", { textAnchor: "middle", y: 14, fontSize: 13, fill: T.fg, fontWeight: 500 }, fitName(W < 560 ? phoneName(tp.payload.value) : tp.payload.value, tp.payload.offset ? tp.payload.offset * 2 : 80)), h("text", { textAnchor: "middle", y: 14 + Math.ceil(lineH(13)) + 1, fontSize: 13, fill: T["text-2"] }, g ? "n=" + g.n : "")); };
   var chartOf = function (data, w, ax, showY) {
     return html`<${RC.BarChart} width=${w} height=${own ? 260 : 380} data=${data} margin=${{ top: 14, right: 10, left: 6, bottom: 6 }}>
       <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
-      <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${Math.max(40, Math.ceil(8 + 2 * lineH(15)))}/>
+      <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${Math.max(40, Math.ceil(8 + 2 * lineH(13)))}/>
       <${RC.YAxis} width=${Math.max(showY ? 66 : 52, Math.ceil(Math.max.apply(null, ax.ticks.map(function (t) { return String(fmtTickNum(t)).length; })) * 9) + (showY ? 26 : 10))} domain=${ax.domain} ticks=${ax.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${fmtTickNum}
-        label=${showY ? { value: mlabel(m), angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } } : undefined}/>
+        label=${showY ? { value: mlabel(m), angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 13, style: { textAnchor: "middle" } } : undefined}/>
       <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.35 }} isAnimationActive=${false}/>
       <${RC.Bar} dataKey="range" isAnimationActive=${false} shape=${shape}/>
     <//>`;
@@ -1161,12 +1202,13 @@ function SummaryCard(props) {
     question=${"Every version on " + mlabel(m)} controls=${html`<${MetricSelect} list=${list} value=${key} onChange=${function (k) { cs[1]({ metric: k }); }}/>`}
     rows=${function () { return sorted.map(function (r) { return { version: r.label, what_changed: r.what, metric: key, pct_better: r.pct, change: r.pct == null ? "" : chg(m, r.pct), ci_low_pct: r.lo, ci_high_pct: r.hi, verdict: r.verdict ? VERDICT[r.verdict] : r.status, iterations: r.runs, commit: r.commit, failed_correctness_check: r.failed }; }); }} means=${means}>
     <table class="sum">
-      <thead><tr>${th("version", "Version")}${th("what", "What changed", false, "wide")}${th("pct", "Change vs the original", true)}${th("lo", "95% interval", true, "wide")}${th("verdict", "Verdict")}${th("runs", "Itera\u00ADtions", true)}${th("commit", "Commit", false, "wide")}</tr></thead>
+      <thead><tr>${th("version", "Version")}${th("what", "What changed", false, "wide")}${th("pct", "Δ% vs original", true)}${th("verdict", "Verdict", false, "ic")}${th("runs", "Itera\u00ADtions", true)}${th("commit", "Commit", false, "wide")}</tr></thead>
       <tbody>${sorted.map(function (r) { return html`<tr key=${r.label}>
-        <td>${r.failed ? "✕ " : ""}${r.label}<span class="sub">${softBreaks(r.what) || "no title"}</span></td><td class="wide">${softBreaks(r.what) || "no title"}</td>
-        <td class="n">${r.pct == null ? "" : chg(m, r.pct)}${r.lo == null ? null : html`<span class="sub">${ivl(m, r.lo, r.hi)}</span>`}</td><td class="n wide">${r.lo == null ? "" : ivl(m, r.lo, r.hi)}</td>
-        <td class=${r.verdict ? "v-" + r.verdict : ""}>${r.verdict ? vWord(r.verdict) : r.status}</td><td class="n">${r.runs || ""}</td><td class="wide">${r.commit}</td></tr>`; })}</tbody>
+        <td>${r.failed ? "✕ " : ""}${r.label}<span class="sub">${softBreaks(r.what) || "no title"}</span></td><td class="wide what">${softBreaks(r.what) || "no title"}</td>
+        <td class="n">${r.pct == null ? "" : chg(m, r.pct)}${r.lo == null ? null : html` <span class="ci">(${ivl(m, r.lo, r.hi)})</span>`}</td>
+        <td class=${"ic" + (r.verdict ? " v-" + r.verdict : "")}>${r.verdict ? html`<span class="vicon" role="img" aria-label=${VERDICT[r.verdict]} title=${VERDICT[r.verdict]}>${ICON_OF[r.verdict]}</span>` : html`<span class="st">${r.status}</span>`}</td><td class="n">${r.runs || ""}</td><td class="wide">${r.commit}</td></tr>`; })}</tbody>
     </table>
+    <div class="ikey" aria-label="Verdict signs">${["better", "pending", "noise", "worse"].map(function (k) { return html`<span key=${k} class=${"v-" + k}><span class="vicon" aria-hidden="true">${ICON_OF[k]}</span> ${VERDICT[k]}</span>`; })}<span class="t2">Δ% in brackets: the 95% interval</span></div>
   <//>`;
 }
 
@@ -1204,7 +1246,7 @@ function ParetoCard(props) {
   var sel = function (val, k) { return html`<${Ctl} label=${k === "x" ? "Across" : "Up"}><select value=${val} onChange=${function (e) { var o = {}; o[k] = e.target.value; cs[1](o); }}>${allM.map(function (m) { return html`<option key=${m.key} value=${m.key}>${mlabel(m)}</option>`; })}</select><//>`; };
   var ptShape = function (filled) { return function (p) { var d = p.payload; return h("g", null,
     h("circle", { cx: p.cx, cy: p.cy, r: 7, fill: filled ? T.accent : T.card, stroke: T.accent, strokeWidth: 2.2 }),
-    h("text", { x: p.cx, y: p.cy - 13, textAnchor: "middle", fontSize: 15, fill: T.fg, fontWeight: d.front ? 600 : 400 }, d.label)); }; };
+    h("text", { x: p.cx, y: p.cy - 13, textAnchor: "middle", fontSize: 13, fill: T.fg, fontWeight: d.front ? 600 : 400 }, d.label)); }; };
   var means = { text: [
       html`Not beaten on both: ${numSpan(front.map(function (d) { return d.label; }).join(", ") || "none")}`,
       html`Beaten on both by another version: ${numSpan(String(rest.length))}`,
@@ -1219,12 +1261,12 @@ function ParetoCard(props) {
     ${data.length ? html`<${RC.ScatterChart} width=${width} height=${380} margin=${{ top: 28, right: 28, left: 8, bottom: 30 }}>
       <${RC.CartesianGrid} strokeDasharray="2 3" stroke=${T.grid}/>
       <${RC.XAxis} type="number" dataKey="x" name=${mlabel(mx)} domain=${axX.domain} ticks=${axX.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${fmtTickNum}
-        label=${{ value: axisName(mx), position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
+        label=${{ value: axisName(mx), position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 13 }}/>
       <${RC.YAxis} type="number" dataKey="y" name=${mlabel(my)} domain=${axY.domain} ticks=${axY.ticks} width=${Math.max(66, Math.ceil(Math.max.apply(null, axY.ticks.map(function (t) { return String(fmtTickNum(t)).length; })) * 9) + 26)} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${fmtTickNum}
-        label=${{ value: axisName(my), angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 15, style: { textAnchor: "middle" } }}/>
+        label=${{ value: axisName(my), angle: -90, position: "insideLeft", fill: T["text-2"], fontSize: 13, style: { textAnchor: "middle" } }}/>
       <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${false} isAnimationActive=${false}/>
       ${!hd.other ? html`<${RC.Scatter} data=${rest} isAnimationActive=${false} shape=${ptShape(false)}/>` : null}
-      ${!hd.baseline && basePt.length ? html`<${RC.Scatter} data=${basePt} isAnimationActive=${false} shape=${function (p) { return h("g", null, h("rect", { x: p.cx - 7, y: p.cy - 7, width: 14, height: 14, rx: 3, fill: T.baseline, stroke: T.card, strokeWidth: 2 }), h("text", { x: p.cx, y: p.cy + 24, textAnchor: "middle", fontSize: 15, fill: T.fg }, "Original")); }}/>` : null}
+      ${!hd.baseline && basePt.length ? html`<${RC.Scatter} data=${basePt} isAnimationActive=${false} shape=${function (p) { return h("g", null, h("rect", { x: p.cx - 7, y: p.cy - 7, width: 14, height: 14, rx: 3, fill: T.baseline, stroke: T.card, strokeWidth: 2 }), h("text", { x: p.cx, y: p.cy + 24, textAnchor: "middle", fontSize: 13, fill: T.fg }, "Original")); }}/>` : null}
       ${!hd.front ? html`<${RC.Scatter} data=${front} isAnimationActive=${false} shape=${ptShape(true)}/>` : null}
     <//>` : html`<div class="sparse">No version has both ${mlabel(mx)} and ${mlabel(my)}.</div>`}
   <//>`;
@@ -1266,8 +1308,8 @@ function AICard(props) {
     var tip = p.clip < 0 ? x : x + ww, back = p.clip < 0 ? 10 : -10;
     return h("g", null, h("rect", { x: p.dir === "eq" ? x - 1.5 : x, y: sp.y, width: ww, height: sp.height, rx: 3, fill: cl }),
       p.clip ? h("polygon", { className: "clip-arrow", points: [tip, cy, tip + back, sp.y + 2, tip + back, sp.y + sp.height - 2].join(" "), fill: T.card, stroke: "none" }) : null); };
-  var lblOf = function (rows) { return function (lp) { var r = rows[lp.index]; if (!r || r.raw == null) return null; var v = r.raw, neg = v < 0, xEnd = neg ? Math.min(lp.x, lp.x + lp.width) - 6 : Math.max(lp.x, lp.x + lp.width) + 6; if (v === 0) return h("text", { x: lp.x + 8, y: lp.y + lp.height / 2 + 5, textAnchor: "start", fontSize: 15, fill: T["text-2"], fontFamily: NUMFONT }, "0%");  // the same score: plain, not the amber of a verdict
-    return h("text", { x: xEnd, y: lp.y + lp.height / 2 + 5, textAnchor: neg ? "end" : "start", fontSize: 15, fill: T.fg, fontFamily: NUMFONT }, fmtPct(v).replace(".0%", "%")); }; };
+  var lblOf = function (rows) { return function (lp) { var r = rows[lp.index]; if (!r || r.raw == null) return null; var v = r.raw, neg = v < 0, xEnd = neg ? Math.min(lp.x, lp.x + lp.width) - 6 : Math.max(lp.x, lp.x + lp.width) + 6; if (v === 0) return h("text", { x: lp.x + 8, y: lp.y + lp.height / 2 + 5, textAnchor: "start", fontSize: 13, fill: T["text-2"], fontFamily: NUMFONT }, "0%");  // the same score: plain, not the amber of a verdict
+    return h("text", { x: xEnd, y: lp.y + lp.height / 2 + 5, textAnchor: neg ? "end" : "start", fontSize: 13, fill: T.fg, fontFamily: NUMFONT }, fmtPct(v).replace(".0%", "%")); }; };
   return html`<${Card} id="ai" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast}
     question="What did the AI judge think of each version?" series=${series} tag="Opinions, not verdicts"
     metricChoices=${D.quality} versionChoices=${D.versions.map(function (v) { return v.label; })} rows=${function () { return rowsAll; }} means=${noneOn ? null : means}>
@@ -1371,12 +1413,12 @@ function SessionsCard(props) {
     ${mode === "ranked" ? html`<${RC.BarChart} width=${width} height=${50 + rows.length * (narrow ? 58 : 44)} data=${rows} layout="vertical" margin=${{ top: 10, right: labelRoom(rows, narrow, m, narrow ? 118 : 270), left: 4, bottom: 26 }}>
       <${RC.CartesianGrid} horizontal=${false} strokeDasharray="2 3" stroke=${T.grid}/>
       <${RC.XAxis} type="number" domain=${dom} ticks=${ax.ticks} interval=${0} allowDataOverflow=${true} tick=${axisTick(T)} tickLine=${false} axisLine=${{ stroke: T.line }} tickFormatter=${function (v) { return fmtPct(v).replace(".0%", "%"); }}
-        label=${{ value: narrow ? "% better →" : "← worse     % better than its own " + SESSION + "'s original     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 15 }}/>
+        label=${{ value: narrow ? "% better →" : "← worse     % better than its own " + SESSION + "'s original     better →", position: "insideBottom", offset: -18, fill: T["text-2"], fontSize: 13 }}/>
       ${rows.filter(function (r) { return r.session === sel; }).map(function (r) { return html`<${RC.ReferenceArea} key=${"sel" + r.label} y1=${r.label} y2=${r.label} fill=${T.grid} fillOpacity=${0.55} stroke="none" ifOverflow="hidden"/>`; })}
       <${RC.YAxis} type="category" dataKey="label" width=${narrow ? 92 : 156} tick=${function (tp) {
         // "Discovery session N" over "version M"; a phone breaks the first line after "Discovery".
         var l = String(tp.payload.value).split("|"), on = (rows[tp.index] || {}).session === sel, head = narrow ? l[0].replace(/^((?:✕ )?Discovery) /, "$1|").split("|") : [l[0]], lines = head.concat([l[1]]);
-        return h("text", { x: tp.x - 6, y: tp.y + 5 - (lines.length - 1) * 7.5, textAnchor: "end", fontSize: 15, fill: T.fg }, lines.map(function (t, i) { return h("tspan", { key: i, x: tp.x - 6, dy: i ? 15 : 0, fontWeight: i < head.length ? (on ? 700 : 500) : (on ? 600 : 400) }, t); })); }} tickLine=${false} axisLine=${false} interval=${0}/>
+        return h("text", { x: tp.x - 6, y: tp.y + 5 - (lines.length - 1) * 7.5, textAnchor: "end", fontSize: 13, fill: T.fg }, lines.map(function (t, i) { return h("tspan", { key: i, x: tp.x - 6, dy: i ? 15 : 0, fontWeight: i < head.length ? (on ? 700 : 500) : (on ? 600 : 400) }, t); })); }} tickLine=${false} axisLine=${false} interval=${0}/>
       <${RC.ReferenceLine} x=${0} stroke=${T.fg} strokeWidth=${1.5}/>
       <${RC.Tooltip} position=${tipPos()} content=${Tip} cursor=${{ fill: T.grid, opacity: 0.4 }} isAnimationActive=${false}/>
       <${RC.Bar} dataKey="shown" isAnimationActive=${false} barSize=${22} shape=${hbarShape(T, colorOf)}>
@@ -1388,7 +1430,7 @@ function SessionsCard(props) {
       <${RC.YAxis} width=${78} domain=${lineAx.domain} ticks=${lineAx.ticks} tick=${axisTick(T)} tickLine=${false} axisLine=${false} tickFormatter=${function (v) { return v === 0 ? "original" : fmtPct(v).replace(".0%", "%"); }}/>
       <${RC.ReferenceLine} y=${0} stroke=${T.fg} strokeWidth=${1.5}/>
       <${RC.Tooltip} position=${tipPos()} content=${Tip} isAnimationActive=${false}/>
-      ${snaps.map(function (sn, i) { return hd["s" + (i + 1)] ? null : html`<${RC.Line} key=${i} type="linear" dataKey=${"s" + (i + 1)} stroke=${colors[i % 2]} strokeWidth=${i + 1 === sel ? 3 : 1.5} strokeDasharray=${(many ? patOf(i)[0] : dashes[i % 2]) || undefined} connectNulls=${false} isAnimationActive=${false} label=${many ? function (lp) { var last = -1; line.forEach(function (r, j) { if (r["s" + (i + 1)] != null) last = j; }); return lp.index === last && lp.y != null ? h("text", { key: "end" + i, x: lp.x + 10, y: lp.y + 5 + (endY[i] || 0), fontSize: 15, fontWeight: 600, fill: T.fg }, SESSION + " " + (i + 1)) : h("g", { key: "e" + lp.index }); } : undefined} dot=${function (dp) { var vv = (snaps[i].versions || []).filter(function (x) { return x.version === dp.payload.v; })[0], vb = vsb(vv, key); if (dp.payload["s" + (i + 1)] == null || dp.cy == null) return h("g", { key: dp.index }); var vd = verdictOf(vb), cl = vd === "pending" ? pendInk(T, dp.payload["s" + (i + 1)]) : vFill(T, vd) || T.neutral, hollow = vd === "pending" || vd === "none"; return h("circle", { key: dp.index, cx: dp.cx, cy: dp.cy, r: 6, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 2 }); }}/>`; })}
+      ${snaps.map(function (sn, i) { return hd["s" + (i + 1)] ? null : html`<${RC.Line} key=${i} type="linear" dataKey=${"s" + (i + 1)} stroke=${colors[i % 2]} strokeWidth=${i + 1 === sel ? 3 : 1.5} strokeDasharray=${(many ? patOf(i)[0] : dashes[i % 2]) || undefined} connectNulls=${false} isAnimationActive=${false} label=${many ? function (lp) { var last = -1; line.forEach(function (r, j) { if (r["s" + (i + 1)] != null) last = j; }); return lp.index === last && lp.y != null ? h("text", { key: "end" + i, x: lp.x + 10, y: lp.y + 5 + (endY[i] || 0), fontSize: 13, fontWeight: 600, fill: T.fg }, SESSION + " " + (i + 1)) : h("g", { key: "e" + lp.index }); } : undefined} dot=${function (dp) { var vv = (snaps[i].versions || []).filter(function (x) { return x.version === dp.payload.v; })[0], vb = vsb(vv, key); if (dp.payload["s" + (i + 1)] == null || dp.cy == null) return h("g", { key: dp.index }); var vd = verdictOf(vb), cl = vd === "pending" ? pendInk(T, dp.payload["s" + (i + 1)]) : vFill(T, vd) || T.neutral, hollow = vd === "pending" || vd === "none"; return h("circle", { key: dp.index, cx: dp.cx, cy: dp.cy, r: 6, fill: hollow ? T.card : cl, stroke: hollow ? cl : T.card, strokeWidth: 2 }); }}/>`; })}
     <//>`}
   <//>`;
 }
@@ -1469,10 +1511,10 @@ function App() {
   var leftOut = LEFT_OUT[dataset].length ? html`<p class="warn">Not shown: ${LEFT_OUT[dataset].map(function (r) { return html`${r.id ? "run " + String(r.id).slice(0, 8) : "a run with no id"} (<span class="data">${r.reason}</span>)`; }).map(function (x, i) { return i ? html`; ${x}` : x; })}.</p>` : null;
   var nonFinite = (D.s.nonFinite || []).length ? html`<p class="warn">Artemis sent ${D.s.nonFinite.length} value${D.s.nonFinite.length === 1 ? "" : "s"} that ${D.s.nonFinite.length === 1 ? "is" : "are"} not a number; read as missing: <span class="data">${D.s.nonFinite.slice(0, 3).join(", ")}${D.s.nonFinite.length > 3 ? " and " + (D.s.nonFinite.length - 3) + " more" : ""}</span>.</p>` : null;
   var cp = { D: D, T: T, W: cardW, scope: scope, toast: toast };
-  var boxDefault = hasRuns(D, D.primary), pp = pareto(D), ai = hasAIScores(D);
-  var multi = !!ds.multi;  // the sessions card leads, then best, ranked and forest, and the table
-  var main = [["best", BestCard], ["ranked", RankedCard], ["forest", ForestCard]].concat(multi ? [] : [["time", TimeCard]], !multi && boxDefault ? [["box", BoxCard]] : [], [["table", SummaryCard]]);
-  var more = [].concat(multi ? [["time", TimeCard]] : [], multi || !boxDefault ? [["box", BoxCard]] : [], pp ? [["pareto", ParetoCard]] : [], ai ? [["ai", AICard]] : []);
+  var boxes = enoughForBoxes(D, D.primary), pp = pareto(D), ai = hasAIScores(D);
+  var multi = !!ds.multi;  // the sessions card leads, then best, the change card (bar or forest), and the table
+  var main = [["best", BestCard], ["change", ChangeCard]].concat(multi ? [] : [["time", TimeCard]], [["table", SummaryCard]]);
+  var more = [].concat(multi ? [["time", TimeCard]] : [], boxes ? [["box", BoxCard]] : [], pp ? [["pareto", ParetoCard]] : [], ai ? [["ai", AICard]] : []);
   if (D.plan.modelLed && pp) { main.splice(1, 0, ["pareto", ParetoCard]); more = more.filter(function (x) { return x[0] !== "pareto"; }); }
   window.STUDIO_CARDS = ONLY ? [ONLY] : (ds.multi ? ["sessions"] : []).concat(main.concat(moreOpen ? more : []).map(function (x) { return x[0]; }));  // the cards this view must draw, for the checker
   var render = function (x) { var C = x[1]; return h(Guard, { key: dataset + si + x[0] + resetKey, chart: true }, html`<${C} ...${cp}/>`); };  // one broken chart shows its own message
@@ -1482,7 +1524,7 @@ function App() {
     </footer>`;
   // build_studio.py --only: one chart, drawn by the same card as in the studio, with no other cards or switchers.
   if (ONLY) {
-    var pick = (ds.multi ? [["sessions", null]] : []).concat(main, more).filter(function (x) { return x[0] === ONLY; })[0];
+    var pick = (ds.multi ? [["sessions", null]] : []).concat(main, more, [["ranked", RankedCard], ["forest", ForestCard], ["box", BoxCard]]).filter(function (x) { return x[0] === ONLY; })[0];
     var onlyCard = !pick ? html`<div class="err">This ${ds.multi ? "project" : "run"} has no ${ONLY} chart to draw.</div>`
       : ONLY === "sessions" ? h(Guard, { key: dataset + "sessions", chart: true }, html`<${SessionsCard} ds=${ds} sel=${si} T=${T} W=${cardW} scope=${dataset + ":sessions"} toast=${toast}/>`) : render(pick);
     // A one-card page has no headline, so it says how Best was chosen in one line that names the version, as the studio does.
@@ -1504,12 +1546,13 @@ function App() {
       ${ds.multi ? (ds.sessions.length > 4 ? html`<${Ctl} label="Discovery session"><select value=${si} onChange=${function (e) { setSess(Number(e.target.value)); }}>${ds.sessions.map(function (x, i) { return html`<option key=${i} value=${i}>${"Discovery session " + (i + 1)}</option>`; })}</select><//>` : html`<${Seg} label="Discovery session" value=${si} onChange=${setSess} options=${ds.sessions.map(function (x, i) { return [i, String(i + 1), false, "Discovery session " + (i + 1)]; })}/>`) : null}
       <${Seg} label="Theme" value=${theme} onChange=${setTheme} options=${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]]}/>
       <span style=${{ flex: 1 }}></span>
+      <button type="button" class="btn" title="Opens the print dialog: choose Save as PDF" onClick=${function () { var was = theme; if (was !== "light") setTheme("light"); setTimeout(function () { try { window.print(); } catch (e) { toast("This browser blocked printing here; open the page on its own and try again"); } if (was !== "light") setTheme(was); }, 350); }}>Download PDF</button>
       <button type="button" class="btn" title="Clears the metrics, views and versions you picked here" onClick=${function () { forget(dataset + ":"); setResetKey(function (x) { return x + 1; }); toast("Picks reset"); }}>Reset</button>
     </div>
     ${ds.multi ? h(Guard, { key: dataset + "sessions" + resetKey, chart: true }, html`<${SessionsCard} ds=${ds} sel=${si} T=${T} W=${cardW} scope=${dataset + ":sessions"} toast=${toast}/>`) : null}
     ${main.map(render)}
     ${more.length ? html`<details class="more" open=${moreOpen} onToggle=${function (e) { setMore(e.target.open); store("more", e.target.open); }}>
-      <summary>More charts (${more.length}): ${more.map(function (x) { return { time: "over time", box: "box plots", pareto: "trade-off", ai: "AI Metrics" }[x[0]]; }).join(", ")}</summary>
+      <summary>More charts (${more.length}): ${more.map(function (x) { return { time: "over time", box: "box plots of every iteration", pareto: "trade-off", ai: "AI Metrics" }[x[0]]; }).join(", ")}</summary>
       <div class="stack">${moreOpen ? more.map(render) : null}</div>
     </details>` : null}
     ${foot}

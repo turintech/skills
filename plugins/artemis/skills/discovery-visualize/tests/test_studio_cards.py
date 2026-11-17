@@ -159,7 +159,7 @@ class ForestCardTests(unittest.TestCase):
         snap = with_intervals(run_snapshot())
         next(m for m in snap["metrics"] if m["key"] == KEY)["higherIsBetter"] = True
         by_label(snap)["v1"]["metrics"][KEY]["vsBaseline"].update(ciLowPct=-150.0, ciHighPct=60.0, verdict="noise")
-        html = build_studio.build([snap])
+        html = build_studio.build([snap], only="forest")
         js = ("var c = document.querySelector('[data-card=\"forest\"]'), area = c.querySelector('.recharts-reference-area-rect').getBoundingClientRect();"
               "var xs = [].map.call(c.querySelectorAll('.recharts-errorBar line'), function (l) { return l.getBoundingClientRect().left; });"
               "return { edge: area.left, left: Math.min.apply(null, xs) };")
@@ -364,7 +364,9 @@ class MissingValueTests(unittest.TestCase):
         st.update(pctBetter=None, vsBaseline=None)
         snap["rankings"][KEY] = [r for r in snap["rankings"][KEY] if r["label"] != "v1"]
         html = build_studio.build([with_intervals(snap)])
-        got = probed(html, ds(html), "var t = function (id) { return document.querySelector('[data-card=\"' + id + '\"]').textContent; }; return { ranked: t('ranked'), forest: t('forest'), table: t('table') };")
+        got = probed(html, ds(html), "var t = function (id) { return document.querySelector('[data-card=\"' + id + '\"]').textContent; }; return { ranked: t('ranked'), table: t('table') };")
+        forest = build_studio.build([with_intervals(snap)], only="forest")
+        got["forest"] = probed(forest, ds(forest), "return document.querySelector('[data-card=\"forest\"]').textContent;")
         for card in ("ranked", "forest"):
             self.assertIn("No Artemis comparison: v1", got[card], card)
         self.assertNotIn("Not measured: v1", got["ranked"])
@@ -393,8 +395,8 @@ class MissingValueTests(unittest.TestCase):
         snap["baseline"]["metrics"][KEY]["runs"] = [{"value": 10.0, "runner": "a"}, {"value": None, "runner": "b"}]
         for label, value, runner in (("v1", 8.0, "a"), ("v2", 6.0, "b"), ("v4", 7.0, "a")):
             by_label(snap)[label]["metrics"][KEY]["runs"] = [{"value": value, "runner": runner}]
-        html = build_studio.build([snap])
-        dots = probed(html, ds(html), "return document.querySelectorAll('[data-card=\"box\"] .recharts-bar circle').length;", act=click("box", "Machine"), more=True)
+        html = build_studio.build([snap], only="box")  # one iteration each: the studio leaves box plots out, its own page still draws them
+        dots = probed(html, ds(html), "return document.querySelectorAll('[data-card=\"box\"] .recharts-bar circle').length;", act=click("box", "Machine"))
         self.assertEqual(dots, 4)
 
 
@@ -788,7 +790,7 @@ class CsvTests(unittest.TestCase):
         return probed(html, ds(html), "return window.__saved || '';", act=act)
 
     def test_the_forest_csv_leaves_out_a_series_hidden_in_the_legend(self) -> None:
-        html = build_studio.build([with_intervals(run_snapshot())])
+        html = build_studio.build([with_intervals(run_snapshot())], only="forest")
         shown = self.csv(html, "forest")
         hidden = self.csv(html, "forest", act=click("forest", "\u2248 No significant difference"))
         self.assertIn("No significant difference", shown)
@@ -865,8 +867,8 @@ class DirectionWarningAndVerdictTests(unittest.TestCase):
     def test_a_version_with_no_commit_keeps_its_label(self) -> None:
         snap = run_snapshot()
         by_label(snap)["v1"]["versionSha"] = None
-        html = build_studio.build([snap])
-        ticks = probed(html, ds(html), "return [].map.call(document.querySelectorAll('[data-card=box] .recharts-xAxis-tick-labels text'), function (t) { return t.textContent; });", act=click("box", "Commit"), more=True)
+        html = build_studio.build([snap], only="box")
+        ticks = probed(html, ds(html), "return [].map.call(document.querySelectorAll('[data-card=box] .recharts-xAxis-tick-labels text'), function (t) { return t.textContent; });", act=click("box", "Commit"))
         self.assertIn("v1 (no commit)", " ".join(ticks))
 
 
@@ -1086,8 +1088,9 @@ class NoPercentAndNoBestTests(unittest.TestCase):
         snap = with_intervals(run_snapshot())
         no_pct(snap, "v1")  # v1 is "better" in with_intervals
         snap["rankings"][KEY] = [r for r in snap["rankings"][KEY] if r["label"] != "v1"]
-        html = build_studio.build([snap])
-        got = probed(html, ds(html), "var t = function (id) { return document.querySelector('[data-card=' + id + ']').textContent; }; return { ranked: t('ranked'), forest: t('forest'), table: t('table') };")
+        html, forest = build_studio.build([snap]), build_studio.build([snap], only="forest")
+        got = probed(html, ds(html), "var t = function (id) { return document.querySelector('[data-card=' + id + ']').textContent; }; return { ranked: t('ranked'), table: t('table') };")
+        got["forest"] = probed(forest, ds(forest), "return document.querySelector('[data-card=forest]').textContent;")
         for card in ("ranked", "forest"):
             self.assertIn("No % change from Artemis: v1 (\u25b2 Significantly improved)", got[card], card)
             self.assertNotIn("No Artemis comparison: v1", got[card], card)
@@ -1404,7 +1407,7 @@ if __name__ == "__main__":
 def without_web_font(html: str, family: str | None) -> str:
     """The page as a viewer sees it when Google Fonts is out of reach: the system's own sans, or the named one."""
     html = re.sub(r'<link rel="stylesheet" href="https://fonts\.googleapis\.com/[^"]*">', "", html)
-    return html.replace("IBM Plex Sans", family) if family else html
+    return html.replace("Archivo", family) if family else html
 
 
 def installed(family: str) -> bool:
@@ -1418,7 +1421,7 @@ def installed(family: str) -> bool:
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class FallbackFontTests(unittest.TestCase):
     def test_no_label_overlaps_in_a_fallback_font(self) -> None:
-        # A viewer who cannot reach Google Fonts sees the system's sans: DejaVu Sans is wider than IBM Plex Sans and
+        # A viewer who cannot reach Google Fonts sees the system's sans: DejaVu Sans is wider than Archivo and
         # Noto Sans taller, so text sized by counting characters ran into its neighbour (CI, 12 Nov).
         html = build_studio.build([project_snapshot(3)])
         for family in (None, "DejaVu Sans", "Noto Sans"):

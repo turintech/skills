@@ -215,8 +215,8 @@ class RenderTests(unittest.TestCase):
                         m["family"] = family
                 html = build_studio.build([snap])
                 self.assertEqual(check_report.studio_render_checks(html, CHROME), [])
-                order = probed(html, embedded(html)["datasets"][0]["id"], "return [].map.call(document.querySelectorAll('.page > section.card'), function (c) { return c.getAttribute('data-card'); });")
-                self.assertEqual(order[:3], ["best", "ranked", "forest"])
+                order = probed(html, embedded(html)["datasets"][0]["id"], "return [].map.call(document.querySelectorAll('.page section.card'), function (c) { return c.getAttribute('data-card'); });")
+                self.assertEqual(order[:3], ["best", "ranked", "time"])  # ranked is the change card's default view
 
     def test_sessions_of_different_tasks_say_their_changes_do_not_compare(self) -> None:
         def card(html):
@@ -257,12 +257,12 @@ class RenderTests(unittest.TestCase):
             if m["key"] == "compile_runtime":
                 m["kind"] = "target"  # a second ranked metric, so the forest's menu has another option
         html = build_studio.build([snap])
-        forest = 'useCard(props.scope, "forest", { scale: "lin" }), c = cs[0], hd = c.hidden || {};'
+        ranked = 'var list = rankedMetrics(D), key = pick && D.byKey[pick] ? pick : D.primary, m = D.byKey[key];'  # the change card's default view
         best = 'useCard(props.scope, "best", { offM: derived }), c = cs[0], hd = c.hidden || {};'
-        self.assertEqual((html.count(forest), html.count(best)), (1, 1))
-        menu = html.replace(forest, forest + ' if (c.metric && c.metric !== D.primary) throw new Error("other metric broke");')
+        self.assertEqual((html.count(ranked), html.count(best)), (1, 1))
+        menu = html.replace(ranked, ranked + ' if (key !== D.primary) throw new Error("other metric broke");')
         problems = check_report.studio_render_checks(menu, CHROME)
-        self.assertTrue(any(p.startswith("SCRIPT ERROR: other metric broke (after How sure is each change") for p in problems), problems)
+        self.assertTrue(any(p.startswith("SCRIPT ERROR: other metric broke (after Which versions moved") for p in problems), problems)
         legend = html.replace(best, best + ' if (Object.keys(hd).some(function (k) { return hd[k]; })) throw new Error("hidden series broke");')
         problems = check_report.studio_render_checks(legend, CHROME)
         self.assertTrue(any(p.startswith("SCRIPT ERROR: hidden series broke (after ") and "> legend " in p for p in problems), problems)
@@ -279,7 +279,7 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(check_report.studio_render_checks(html, CHROME), [])
         css = "table.sum .wide { display: none; }"
         self.assertEqual(html.count(css), 1)
-        hidden = html.replace(css, "", 1).replace("table.sum { min-width: 0; font-size: 15px; }", "", 1)
+        hidden = html.replace(css, "", 1).replace("table.sum { min-width: 0; font-size: 13px; }", "", 1)
         problems = check_report.studio_render_checks(hidden, CHROME)
         self.assertTrue(any(p.startswith("HIDDEN BEHIND A SIDEWAYS SCROLL, NO CUE: Every version on") and "390px" in p for p in problems), problems)
 
@@ -536,14 +536,16 @@ class RealRunTests(unittest.TestCase):
     def test_ai_metrics_stay_out_of_the_measured_cards(self) -> None:
         snap = self.snapshot()
         html = build_studio.build([snap])
-        js = """var out = {}; ["best", "ranked", "forest", "time", "box", "table"].forEach(function (id) {
+        js = """var out = {}; ["best", "ranked", "time", "box", "table"].forEach(function (id) {
   var c = document.querySelector('[data-card="' + id + '"]'); if (!c) return;
   out[id] = [].map.call(c.querySelectorAll('select option, .ptitle'), function (o) { return o.textContent.trim(); });
 }); return { cards: out, names: window.STUDIO_LABELS };"""
         got = probed(html, embedded(html)["datasets"][0]["id"], js)
         ai = {got["names"][m["key"]] for m in snap["metrics"] if m["kind"] == "quality"}
         self.assertEqual(len(ai), 6)
-        self.assertEqual(set(got["cards"]), {"best", "ranked", "forest", "time", "box", "table"})
+        self.assertLessEqual({"best", "ranked", "time", "table"}, set(got["cards"]))
+        forest = build_studio.build([snap], only="forest")
+        got["cards"]["forest"] = probed(forest, embedded(forest)["datasets"][0]["id"], "return [].map.call(document.querySelectorAll('[data-card=\"forest\"] select option'), function (o) { return o.textContent.trim(); });")
         for card, shown in got["cards"].items():
             self.assertTrue(shown, card)
             self.assertFalse(ai & set(shown), (card, ai & set(shown)))

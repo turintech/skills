@@ -195,19 +195,20 @@ class PhoneAndDesktopLayoutTests(unittest.TestCase):
             v["experimentTitle"] = title
         html = build_studio.build([project])
         got = probed(html, "p-proj-1", VISIBLE + """
-          return { ranked: texts('ranked'), forest: texts('forest'), swipe: !!card('box').querySelector('.hint'),
-                   wide: document.documentElement.scrollWidth, table: card('table').querySelector('table').getBoundingClientRect().width,
-                   box: card('box').getBoundingClientRect().width, inner: innerWidth, tableText: card('table').textContent };""", phone=True, more=True)
+          return { ranked: texts('ranked'), wide: document.documentElement.scrollWidth, table: card('table').querySelector('table').getBoundingClientRect().width,
+                   card: card('table').getBoundingClientRect().width, inner: innerWidth, tableText: card('table').textContent };""", phone=True, more=True)
+        boxes = build_studio.build([project], only="box")
+        swipe = probed(boxes, "p-proj-1", VISIBLE + "return !!card('box').querySelector('.hint');", phone=True)
         self.assertIn("0%", got["ranked"])
         self.assertFalse(any("Best" in t for t in got["ranked"]), "Best is the Composite pick; one metric's chart never marks it")
-        run = build_studio.build([with_intervals(run_snapshot())])
+        run = build_studio.build([with_intervals(run_snapshot())], only="forest")
         forest = probed(run, embedded(run)["datasets"][0]["id"], VISIBLE + "return texts('forest');", phone=True)
         # A phone shows each verdict as its mark beside the change; every version keeps one.
         self.assertTrue(any(t.endswith("▲") for t in forest) and any(t.endswith("≈") for t in forest), forest)
-        self.assertFalse(got["swipe"], "five box groups should fit a phone with no Swipe hint")
+        self.assertFalse(swipe, "five box groups should fit a phone with no Swipe hint")
         self.assertEqual(got["inner"], 390)
         self.assertLessEqual(got["wide"], 390)
-        self.assertLessEqual(got["table"], got["box"], "a long code name in a title pushed the table off the screen")
+        self.assertLessEqual(got["table"], got["card"], "a long code name in a title pushed the table off the screen")
         self.assertIn("query_\u200bplanner.\u200boptimize", got["tableText"], "a code name should break at its _ and . first")
 
     def test_a_desktop_shows_the_verdict_wording_and_marks_the_chosen_session(self) -> None:
@@ -230,7 +231,7 @@ class PhoneAndDesktopLayoutTests(unittest.TestCase):
         self.assertNotIn("Top by", got["sessions"])
 
     def test_the_forest_log_scale_reads_one_times_at_no_change(self) -> None:
-        html = build_studio.build([with_intervals(run_snapshot())])
+        html = build_studio.build([with_intervals(run_snapshot())], only="forest")
         ds = embedded(html)["datasets"][0]["id"]
         got = probed(html, ds, VISIBLE + "return { ticks: texts('forest'), log: card('forest').querySelector('.seg button[aria-pressed=true]').textContent };",
                      act="[].filter.call(document.querySelectorAll('[data-card=\"forest\"] .seg button'), function (x) { return /^Log/.test(x.textContent); })[0].click();")
@@ -332,13 +333,13 @@ class LeadMetricAndTypeTests(unittest.TestCase):
         self.assertEqual(sum(per_row), 9, rows)
         self.assertEqual(sorted(per_row), [4, 5], f"rows should be as even as nine allows: {per_row}")
 
-    def test_conclusions_are_called_conclusion_and_no_text_is_under_15px(self) -> None:
+    def test_conclusions_are_called_conclusion_and_no_text_is_under_12px(self) -> None:
         html = build_studio.build([run_snapshot()])
         got = probed(html, embedded(html)["datasets"][0]["id"], """
           var small = []; var walk = document.createTreeWalker(document.getElementById('root'), NodeFilter.SHOW_TEXT);
           for (var n = walk.nextNode(); n; n = walk.nextNode()) { var el = n.parentElement; if (!n.data.trim() || !el || el.closest('[hidden]')) continue;
             var cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
-            if (parseFloat(cs.fontSize) < 15) small.push(n.data.trim().slice(0, 30) + ' ' + cs.fontSize); }
+            if (parseFloat(cs.fontSize) < 12) small.push(n.data.trim().slice(0, 30) + ' ' + cs.fontSize); }
           var heads = [].map.call(document.querySelectorAll('.means h3'), function (h) { return h.textContent; });
           var mono = [].filter.call(document.querySelectorAll('svg text, svg tspan, table.sum td.n'), function (t) { return /Mono|monospace/.test(getComputedStyle(t).fontFamily); }).length;
           return { small: small.slice(0, 5), heads: heads, mono: mono, old: document.getElementById('root').textContent.indexOf('What this means') };""")
@@ -371,7 +372,7 @@ class LeadMetricAndTypeTests(unittest.TestCase):
         for v in snap["versions"]:
             if v["metrics"].get("latency_ms"):
                 scale(v["metrics"]["latency_ms"])
-        html = build_studio.build([snap])
+        html = build_studio.build([snap], only="box")
         got = probed(html, embedded(html)["datasets"][0]["id"], """
           var card = document.querySelector('[data-card="box"]'), title = card.querySelector('svg text[transform]');
           if (!title) return { title: false };
@@ -408,7 +409,7 @@ class SessionNamingAndOnlyTests(unittest.TestCase):
             build_studio.build([run_snapshot()], only="pie")
 
     def test_the_forest_shades_the_better_side_green_and_the_worse_side_red(self) -> None:
-        html = build_studio.build([with_intervals(run_snapshot())])
+        html = build_studio.build([with_intervals(run_snapshot())], only="forest")
         got = probed(html, embedded(html)["datasets"][0]["id"], """
           var svg = document.querySelector('[data-card="forest"] svg.recharts-surface'), zero = null;
           var areas = [].map.call(svg.querySelectorAll('.recharts-reference-area rect, .recharts-reference-area path'), function (r) { var b = r.getBoundingClientRect(); return { left: b.left, right: b.right, fill: r.getAttribute('fill') }; });
@@ -477,7 +478,7 @@ class ValueAxisAndVerdictTests(unittest.TestCase):
         moved = [v for v in snap["versions"] if (v["metrics"].get("latency_ms") or {}).get("vsBaseline")]
         moved[0]["metrics"]["latency_ms"]["vsBaseline"].update(improvementPct=99.9, ciLowPct=99.8, ciHighPct=99.95, verdict="better")
         moved[-1]["metrics"]["latency_ms"]["vsBaseline"].update(improvementPct=-500.0, ciLowPct=-900.0, ciHighPct=-150.0, verdict="worse")
-        html = build_studio.build([snap])
+        html = build_studio.build([snap], only="forest")
         widths = probed(html, embedded(html)["datasets"][0]["id"], """
           var rects = [].map.call(document.querySelectorAll('[data-card="forest"] .recharts-reference-area rect, [data-card="forest"] .recharts-reference-area path'), function (r) { return r.getBoundingClientRect().width; });
           return rects;""")
@@ -499,10 +500,10 @@ class ValueAxisAndVerdictTests(unittest.TestCase):
             for r in snap["rankings"].get("latency_ms", []):
                 if r["version"] == v["version"]:
                     r["pctBetter"] = pct
-        html = build_studio.build([snap])
-        got = probed(html, embedded(html)["datasets"][0]["id"], """
-          var lines = function (id) { var c = document.querySelector('[data-card="' + id + '"]'); return c ? [].map.call(c.querySelectorAll('.means li'), function (l) { return l.textContent; }) : null; };
-          return { forest: lines('forest'), table: lines('table') };""", more=True)
+        lines = """var lines = function (id) { var c = document.querySelector('[data-card="' + id + '"]'); return c ? [].map.call(c.querySelectorAll('.means li'), function (l) { return l.textContent; }) : null; };"""
+        html, forest = build_studio.build([snap]), build_studio.build([snap], only="forest")
+        got = {"table": probed(html, embedded(html)["datasets"][0]["id"], lines + "return lines('table');", more=True),
+               "forest": probed(forest, embedded(forest)["datasets"][0]["id"], lines + "return lines('forest');")}
         worst = moved[-1]["label"]
         for card in ("forest", "table"):
             text = " | ".join(got[card] or [])
@@ -628,8 +629,11 @@ class BestOnlyOverallTests(unittest.TestCase):
           var cards = ['ranked', 'forest', 'time', 'box', 'table', 'pareto', 'ai'].filter(card);
           return { marked: cards.filter(function (id) { return /\bBest\b/.test(card(id).innerText); }),
                    best: /\bBest\b/.test(card('best').innerText), cards: cards };""", more=True)
-        self.assertGreaterEqual(len(got["cards"]), 6, got)
+        for drawn in ("ranked", "time", "table"):
+            self.assertIn(drawn, got["cards"], got)
         self.assertEqual(got["marked"], [], "a per-metric chart marks the Composite Best")
+        forest = build_studio.build([with_intervals(run_snapshot())], only="forest")
+        self.assertNotRegex(probed(forest, embedded(forest)["datasets"][0]["id"], "return document.querySelector('[data-card=\"forest\"]').innerText;"), r"\bBest\b", "the forest marks the Composite Best")
         self.assertTrue(got["best"], "the Is-it-better card still names Best")
         project = build_studio.build([project_snapshot(2)])
         sessions = probed(project, embedded(project)["datasets"][0]["id"], "return document.querySelector('[data-card=\"sessions\"]').innerText;")
@@ -671,10 +675,12 @@ class OutlierAndAxisTests(unittest.TestCase):
         return float(t.replace("−", "-").replace("+", "").replace("%", ""))
 
     def test_a_far_outlier_is_clipped_at_the_edge_with_its_value_and_the_axis_fits_the_rest(self) -> None:
-        html = build_studio.build([self.shop_shape()])
+        html, fp = build_studio.build([self.shop_shape()]), build_studio.build([self.shop_shape()], only="forest")
         got = probed(html, embedded(html)["datasets"][0]["id"], self.TICKS + """
-          return { forest: ticks('forest'), ranked: ticks('ranked'), box: yticks('box'), arrows: [arrows('forest'), arrows('ranked'), arrows('box')],
-                   forestText: txt('forest'), boxText: txt('box'), h1: document.querySelector('h1').textContent };""", more=True)
+          return { ranked: ticks('ranked'), box: yticks('box'), arrows: [0, arrows('ranked'), arrows('box')],
+                   boxText: txt('box'), h1: document.querySelector('h1').textContent };""", more=True)
+        f = probed(fp, embedded(fp)["datasets"][0]["id"], self.TICKS + "return { ticks: ticks('forest'), arrows: arrows('forest'), text: txt('forest') };")
+        got.update(forest=f["ticks"], forestText=f["text"]); got["arrows"][0] = f["arrows"]
         forest = [self.pct(t) for t in got["forest"]]
         self.assertEqual(got["arrows"][0], 1, "the forest clips v4 at its edge")
         self.assertGreaterEqual(min(forest), -200, f"the forest axis fits the rest, not v4: {forest}")
@@ -689,9 +695,10 @@ class OutlierAndAxisTests(unittest.TestCase):
         self.assertIn("to 99,053", got["boxText"].replace("\\n", " "))
 
     def test_no_axis_shows_an_impossible_value_and_ticks_step_evenly(self) -> None:
-        html = build_studio.build([self.shop_shape()])
+        html, fp = build_studio.build([self.shop_shape()]), build_studio.build([self.shop_shape()], only="forest")
         got = probed(html, embedded(html)["datasets"][0]["id"], self.TICKS + """
-          return { forest: ticks('forest'), ranked: ticks('ranked'), time: yticks('time') };""", more=True)
+          return { ranked: ticks('ranked'), time: yticks('time') };""", more=True)
+        got["forest"] = probed(fp, embedded(fp)["datasets"][0]["id"], self.TICKS + "return ticks('forest');")
         for card in ("forest", "ranked"):
             vals = [self.pct(t) for t in got[card]]
             with self.subTest(card=card):
@@ -701,7 +708,7 @@ class OutlierAndAxisTests(unittest.TestCase):
         self.assertLessEqual(max(self.pct(t) for t in got["time"]), 100, got["time"])
 
     def test_a_phone_forest_keeps_values_clear_of_the_marks(self) -> None:
-        html = build_studio.build([self.shop_shape()])
+        html = build_studio.build([self.shop_shape()], only="forest")
         hits = probed(html, embedded(html)["datasets"][0]["id"], """
           var c = document.querySelector('[data-card="forest"] svg.recharts-surface'), box = function (e) { return e.getBoundingClientRect(); };
           var marks = [].slice.call(c.querySelectorAll('.recharts-scatter-symbol circle, .recharts-scatter-symbol polygon, .recharts-errorBar line'));
@@ -720,10 +727,10 @@ class OutlierAndAxisTests(unittest.TestCase):
         self.assertGreater(got["dots"], 0, got)
 
     def test_conclusions_say_each_count_once_in_plain_words(self) -> None:
-        html = build_studio.build([self.shop_shape()])
-        got = probed(html, embedded(html)["datasets"][0]["id"], """
-          var lines = function (id) { return [].map.call(document.querySelectorAll('[data-card="' + id + '"] .means li'), function (l) { return l.textContent; }); };
-          return { forest: lines('forest'), table: lines('table') };""", more=True)
+        lines = """var lines = function (id) { return [].map.call(document.querySelectorAll('[data-card="' + id + '"] .means li'), function (l) { return l.textContent; }); };"""
+        html, fp = build_studio.build([self.shop_shape()]), build_studio.build([self.shop_shape()], only="forest")
+        got = {"table": probed(html, embedded(html)["datasets"][0]["id"], lines + "return lines('table');", more=True),
+               "forest": probed(fp, embedded(fp)["datasets"][0]["id"], lines + "return lines('forest');")}
         text = " | ".join(got["forest"] + got["table"])
         self.assertNotIn("Highest floor", text)
         self.assertIn("Surest gain: v1, at least 99.8% less, the low end of its 95% interval", text)
@@ -816,8 +823,10 @@ class VersionLinkTests(unittest.TestCase):
         snap["run"]["webUrl"] = url
         for v in snap["versions"]:
             v["id"] = f"ver-{v['version']}" if ids else None
-        html = build_studio.build([snap])
-        return probed(html, embedded(html)["datasets"][0]["id"], self.JS)
+        html, fp = build_studio.build([snap]), build_studio.build([snap], only="forest")
+        got, f = probed(html, embedded(html)["datasets"][0]["id"], self.JS), probed(fp, embedded(fp)["datasets"][0]["id"], self.JS)
+        got.update(forest=f["forest"], stops=[got["stops"][0], f["stops"][1]], rows=[got["rows"][0], f["rows"][1]])
+        return got
 
     def test_a_bar_and_a_forest_row_open_the_versions_code_in_a_new_tab(self) -> None:
         got = self.page(self.BASE)
@@ -835,6 +844,73 @@ class VersionLinkTests(unittest.TestCase):
                 got = self.page(url, ids)
                 self.assertEqual((got["ranked"], got["forest"]), ([], []))
                 self.assertTrue(all(got["rows"]), f"a card drew no rows, so there was nothing to link: {got['rows']}")
+
+
+class TidierStudioTests(unittest.TestCase):
+    """Eoin's 17 Nov pass: one change card, box plots only when they earn it, a tidy table, one trend chart, a PDF."""
+
+    def test_the_page_offers_a_pdf_and_prints_without_its_controls(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        self.assertIn("Download PDF", html)
+        self.assertRegex(html, r"@media print \{[^}]*\{[^}]*--bg: #ffffff")
+        self.assertIn(".bar, .tools, .toast", html)
+
+    def test_the_trend_has_no_zoom_strip_and_steers_carry_no_text(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        self.assertNotIn("RC.Brush", html)
+        self.assertNotIn('value: "Steer"', html)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_bar_and_forest_are_one_card_with_a_toggle_and_one_metric(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        ds = embedded(html)["datasets"][0]["id"]
+        before = probed(html, ds, "return { ranked: !!document.querySelector('[data-card=\"change\"] [data-card=\"ranked\"]'), forest: !!document.querySelector('[data-card=\"forest\"]') };")
+        self.assertEqual(before, {"ranked": True, "forest": False})
+        after = probed(html, ds, "return { ranked: !!document.querySelector('[data-card=\"ranked\"]'), forest: !!document.querySelector('[data-card=\"change\"] [data-card=\"forest\"]') };",
+                       act="[].filter.call(document.querySelectorAll('[data-card=\"change\"] .seg button'), function (b) { return b.textContent === 'Forest'; })[0].click();")
+        self.assertEqual(after, {"ranked": False, "forest": True})
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_box_plots_are_an_extra_only_when_two_versions_have_five_iterations(self) -> None:
+        few = build_studio.build([run_snapshot()])
+        cards = "return [].map.call(document.querySelectorAll('[data-card]'), function (c) { return c.getAttribute('data-card'); });"
+        self.assertNotIn("box", probed(few, embedded(few)["datasets"][0]["id"], cards, more=True))
+        many = build_studio.build([OutlierAndAxisTests.shop_shape()])
+        ds = embedded(many)["datasets"][0]["id"]
+        self.assertNotIn("box", probed(many, ds, cards), "box plots sit under More charts, closed by default")
+        self.assertIn("box", probed(many, ds, cards, more=True))
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_table_shows_verdict_signs_with_a_key_and_the_interval_beside_the_change(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var c = document.querySelector('[data-card="table"]');
+          return { heads: [].map.call(c.querySelectorAll('th'), function (t) { return t.textContent; }), signs: [].map.call(c.querySelectorAll('td .vicon'), function (i) { return i.getAttribute('aria-label'); }),
+                   key: c.querySelector('.ikey').textContent, ci: c.querySelectorAll('td.n .ci').length };""")
+        self.assertIn("Δ% vs original", got["heads"])
+        self.assertFalse(any("95% interval" in h for h in got["heads"]), got["heads"])
+        self.assertTrue(got["signs"] and all(got["signs"]), "every sign carries its verdict in words for a screen reader")
+        for word in ("Significantly improved", "Needs more runs", "No significant difference", "Significantly regressed"):
+            self.assertIn(word, got["key"])
+        self.assertGreater(got["ci"], 0)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_trend_fits_every_version_points_at_best_and_says_which_way_is_good(self) -> None:
+        html = build_studio.build([OutlierAndAxisTests.shop_shape()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], VISIBLE + """
+          var t = texts('time');
+          return { best: t.filter(function (x) { return /^Top v\d+: /.test(x); }), up: t.indexOf('↑ higher is better') >= 0, steer: t.indexOf('Steer') >= 0,
+                   legend: card('time').querySelector('.legend') ? card('time').querySelector('.legend').textContent : '' };""", more=True)
+        self.assertEqual(len(got["best"]), 1, got)
+        self.assertTrue(got["up"], "the % chart says up is better")
+        self.assertFalse(got["steer"], "steers are dotted lines in the legend, not text on the chart")
+        self.assertIn("Top on", got["legend"])
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_each_best_panel_gives_its_95_ci_beside_the_change(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        got = probed(html, embedded(html)["datasets"][0]["id"], "return [].map.call(document.querySelectorAll('[data-card=\"best\"] .psub .ci'), function (c) { return c.textContent; });")
+        self.assertTrue(got and all(t.startswith("(95% CI ") for t in got), got)
 
 
 if __name__ == "__main__":
