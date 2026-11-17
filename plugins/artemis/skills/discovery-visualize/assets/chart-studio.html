@@ -1161,7 +1161,7 @@ function TimeCard(props) {
       ${mode === "pct" ? html`<${RC.ReferenceLine} y=${0} stroke=${T.fg} strokeWidth=${1.5} label=${{ value: "original", position: "insideBottomLeft", fill: T["text-2"], fontSize: 13 }}/>` : null}
       ${mode === "mean" && base ? html`<${RC.ReferenceLine} y=${base.mean} stroke=${T.baseline} strokeWidth=${2.5} label=${{ value: "original " + fmtNum(base.mean), position: "insideBottomLeft", fill: T["text-2"], fontSize: 13 }}/>` : null}
       ${!hd.steer ? steers.filter(function (p) { return p.firstVersion - 0.5 > xd[0] && p.firstVersion - 0.5 < xd[1]; }).map(function (p, i) { return html`<${RC.ReferenceLine} key=${"s" + i} x=${p.firstVersion - 0.5} stroke=${col.steer} strokeWidth=${1.5} strokeDasharray="2 4"/>`; }) : null}
-      ${good ? html`<${RC.ReferenceLine} y=${ax.domain[0]} stroke="none" label=${{ value: good, position: "insideTopRight", fill: T.fg, fontSize: 13, fontWeight: 600 }}/>` : null}
+      ${good ? html`<${RC.ReferenceLine} y=${ax.domain[1]} stroke="none" label=${{ value: good, position: "insideTopLeft", fill: T.fg, fontSize: 13, fontWeight: 600 }}/>` : null}  ${/* top left: early versions sit low and the leader usually comes late, so that corner stays clear */ null}
       <${RC.Tooltip} position=${tipPos()} content=${Tip} isAnimationActive=${false}/>
       ${mode !== "fit" && !hd.run ? html`<${RC.Line} className="late run-line" type="stepAfter" dataKey="run" stroke=${T.accent} strokeWidth=${2} strokeOpacity=${0.55} dot=${false} activeDot=${false} connectNulls=${true} isAnimationActive=${false}/>` : null}
       ${!hd.failed ? failedV.map(function (d) { return html`<${RC.ReferenceDot} key=${"x" + d.v} x=${d.v} y=${ax.domain[0]} ifOverflow="visible" shape=${function (sp) { var cx = sp.cx, cy = sp.cy - 7; return h("g", { stroke: T.worse, strokeWidth: 2 }, h("title", null, d.label + ": failed to run"), h("line", { x1: cx - 4, y1: cy - 4, x2: cx + 4, y2: cy + 4 }), h("line", { x1: cx - 4, y1: cy + 4, x2: cx + 4, y2: cy - 4 })); }}/>`; }) : null}
@@ -1469,10 +1469,9 @@ function TradeOffCard(props) {
     question="Trade-off: which versions are on the Pareto front?" series=${series}
     controls=${html`${sel(kx, "x")}${sel(ky, "y")}${zoom ? html`<${Seg} label="View" value=${view} onChange=${function (v) { cs[1]({ view: v }); }} options=${[["front", "Front", false, "Zoom to the Pareto front"], ["all", "All", false, "Every version and the original"]]}/>` : null}`}
     versionChoices=${D.versions.map(function (v) { return v.label; })} versionDisabled=${noValue}
-    info=${[info, "The chance each version is on the front, and Behind the front, are computed here from Artemis's 95% intervals (2,000 seeded draws), not an Artemis verdict"].filter(Boolean).join(". ")}
+    info=${["On the Pareto front: no other version is at least as good on both " + mlabel(mx) + " and " + mlabel(my) + " and better on one; right and up is better", info, "The chance each version is on the front, and Behind the front, are computed here from Artemis's 95% intervals (2,000 seeded draws), not an Artemis verdict"].filter(Boolean).join(". ")}
     rows=${function () { return pts.map(function (p) { return { version: p.v.label, x_metric: kx, x_pct_better: p.x, x_ci_low_pct: p.xlo, x_ci_high_pct: p.xhi, y_metric: ky, y_pct_better: p.y, y_ci_low_pct: p.ylo, y_ci_high_pct: p.yhi, verdicts: TRADE_KIND[p.kind].slice(2), pareto: p.status }; }); }}
     means=${means}>
-    <p class="psub xt">On the Pareto front: no other version is at least as good on both ${mlabel(mx)} and ${mlabel(my)} and better on one. Right and up is better.</p>
     ${pts.length ? html`<${RC.ScatterChart} width=${width} height=${height} margin=${M}>
       ${origin ? html`<${RC.ReferenceArea} x1=${0} x2=${X[1]} y1=${0} y2=${Y[1]} fill=${T.better} fillOpacity=${0.06} stroke="none" ifOverflow="hidden"/>` : null}
       <${RC.CartesianGrid} strokeDasharray="2 3" stroke=${T.grid}/>
