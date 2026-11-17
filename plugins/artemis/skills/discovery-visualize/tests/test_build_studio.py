@@ -868,10 +868,12 @@ class TidierStudioTests(unittest.TestCase):
     def test_motion_is_short_first_view_only_and_off_for_reduced_motion_and_print(self) -> None:
         html = build_studio.build([run_snapshot()])
         css = html[:html.index("</style>")]
-        self.assertIn("@media (prefers-reduced-motion: reduce) { .card.playing *, .morph { animation: none !important; } }", css)
+        self.assertIn("@media (prefers-reduced-motion: reduce) { .card.playing, .card.playing *, .morph { animation: none !important; } .card.pre { opacity: 1; } }", css)
         self.assertRegex(css, r"@media print \{[\s\S]*\*, \*::before, \*::after \{ animation: none !important; transition: none !important; \}")
-        for rule in re.findall(r"animation: dv\w+ (\d+)ms[^;]*?(?: (\d+)ms)? both", css):
-            self.assertLessEqual(int(rule[0]) + int(rule[1] or 0), 600, rule)
+        self.assertIn(".card.pre { opacity: 1 !important; }", css, "print shows a card that was never scrolled to")
+        # Each animation's length plus its fixed delay, plus the 150ms stagger and 300ms spread a delay can add: about 700ms at most.
+        for rule in re.findall(r"animation: dv\w+ (\d+)ms[^;]*; animation-delay: calc\(var\(--rd, 0ms\)(?: \+ (\d+)ms)?", css):
+            self.assertLessEqual(int(rule[0]) + int(rule[1] or 0) + 150, 760, rule)
         self.assertIn("firstView(ref.current", html, "a card plays once, when it first scrolls into view")
 
     @unittest.skipUnless(CHROME, "no Chrome")
@@ -953,6 +955,17 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
             build_studio.build([run_snapshot()], only="tradeoff")
 
     @unittest.skipUnless(CHROME, "no Chrome")
+    def test_box_columns_alternate_faint_bands_and_the_trade_off_has_none(self) -> None:
+        boxes = build_studio.build([run_snapshot()], only="box")
+        got = probed(boxes, embedded(boxes)["datasets"][0]["id"], """
+          var c = document.querySelector('[data-card="box"]'), groups = c.querySelectorAll('.recharts-xAxis-tick-labels .recharts-cartesian-axis-tick').length;
+          return { groups: groups, bands: c.querySelectorAll('.col-band').length, op: [].map.call(c.querySelectorAll('.col-band path, .col-band rect'), function (r) { return r.getAttribute('fill-opacity'); }) };""")
+        self.assertGreaterEqual(got["bands"], 1, got)  # every other column of the original and the versions
+        self.assertTrue(all(o in ("0.035", "0.05") for o in got["op"]), got)
+        two = build_studio.build([two_targets()])
+        self.assertEqual(probed(two, embedded(two)["datasets"][0]["id"], "return document.querySelectorAll('[data-card=\"tradeoff\"] .col-band').length;"), 0)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
     def test_failed_versions_are_hidden_counted_and_shown_as_a_cross(self) -> None:
         html = build_studio.build([run_snapshot()])
         ds = embedded(html)["datasets"][0]["id"]
@@ -971,13 +984,14 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
     def test_the_trade_off_joins_the_front_fades_the_beaten_and_spares_a_close_call(self) -> None:
         read = """var c = document.querySelector('[data-card="tradeoff"]'); if (!c) return null;
           return { means: [].map.call(c.querySelectorAll('.means li'), function (l) { return l.textContent; }).join(' | '),
-                   faded: [].filter.call(c.querySelectorAll('g[opacity]'), function (g) { return g.getAttribute('opacity') === '0.35'; }).length,
+                   faded: [].filter.call(c.querySelectorAll('g[opacity]'), function (g) { return g.getAttribute('opacity') === '0.18'; }).length, h2: c.querySelector('h2').textContent,
                    labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.textContent; }) };"""
         sure = build_studio.build([two_targets()])
         got = probed(sure, embedded(sure)["datasets"][0]["id"], read)
-        self.assertIn("On the front: v4, v2", got["means"])  # in order across
+        self.assertIn("On the Pareto front: v4, v2", got["means"])  # in order across
+        self.assertIn("Pareto front", got["h2"])
         self.assertEqual(got["faded"], 1, "v1 is beaten for sure: v4 clears it on latency")
-        self.assertIn("Top v2", got["labels"], "the front's top across is labelled")
+        self.assertTrue({"v2", "v4"} <= set(got["labels"]), "every front version is labelled")
         self.assertIn("Original", got["labels"])
         near = build_studio.build([two_targets(close=True)])
         got = probed(near, embedded(near)["datasets"][0]["id"], read)

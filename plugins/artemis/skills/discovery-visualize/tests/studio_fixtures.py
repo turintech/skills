@@ -57,7 +57,7 @@ def dump(html: str, dataset: str, session: int = 0, after: str = "", width: int 
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "view.html"
         path.write_text(page, encoding="utf-8")
-        return subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
+        return subprocess.run([CHROME, "--headless=new", "--force-prefers-reduced-motion", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
                                f"--window-size={width},900", "--virtual-time-budget=8000", "--dump-dom", path.as_uri()],
                               env=check_report.chrome_env(tmp), capture_output=True, text=True, timeout=120, check=False).stdout
 
@@ -89,7 +89,7 @@ def probed(html: str, dataset: str, js: str, act: str = "", phone: bool = False,
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "phone.html"
             path.write_text(outer, encoding="utf-8")
-            out = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
+            out = subprocess.run([CHROME, "--headless=new", "--force-prefers-reduced-motion", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
                                   "--window-size=600,900", "--virtual-time-budget=10000", "--dump-dom", path.as_uri()],
                                  env=check_report.chrome_env(tmp), capture_output=True, text=True, timeout=120, check=False).stdout
         found = re.search(r'<pre id="probe">(.*?)</pre>', out, re.S)

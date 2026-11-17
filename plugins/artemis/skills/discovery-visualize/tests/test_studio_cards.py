@@ -136,7 +136,7 @@ class TimeCardTests(unittest.TestCase):
         snap["bestLines"].update(version=4, label="v4", byComposite=False)
         html = build_studio.build([snap])
         got = probed(html, ds(html), VISIBLE + "return texts('time').filter(function (t) { return /Best /.test(t); });", act=click("time", "Overall score"))
-        self.assertEqual(got, ["Web UI Best 0.900"])  # the page's Best is v4 here, so the ring says whose Best it is
+        self.assertEqual(got, ["Web UI Best v2: 0.900"])  # the page's Best is v4 here, so the ring says whose Best it is
 
 
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
@@ -169,7 +169,7 @@ class ForestCardTests(unittest.TestCase):
     def test_a_version_with_no_comparison_is_listed_and_counted(self) -> None:
         snap = with_intervals(run_snapshot())
         by_label(snap)["v4"]["metrics"][KEY]["vsBaseline"] = None
-        html = build_studio.build([snap])
+        html = build_studio.build([snap], only="forest")
         text = probed(html, ds(html), "return document.querySelector('[data-card=\"forest\"]').textContent;")
         self.assertIn("No Artemis comparison: v4", text)
         self.assertRegex(text, r"\d of 3 ")
@@ -257,7 +257,7 @@ class MetricNameTests(unittest.TestCase):
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class CheckerTests(unittest.TestCase):
     def problems(self, html: str) -> list[str]:
-        return check_report.render_checks(html, CHROME, "", check_report.studio_probe(), 8000)
+        return check_report.render_checks(html, CHROME, "", check_report.studio_probe(), 20000)  # a page with the trade-off card needs more than 8s of virtual time
 
     def test_an_unhandled_promise_rejection_fails(self) -> None:
         html = build_studio.build([run_snapshot()]).replace("var fontCss = null;", 'var fontCss = null; Promise.reject(new Error("lost save"));', 1)
@@ -316,8 +316,8 @@ class CheckerTests(unittest.TestCase):
 
     def test_a_control_that_vanishes_mid_walk_is_said(self) -> None:
         html = build_studio.build([run_snapshot()])
-        # Once the walk starts clicking, the forest's buttons stop being found where the walk listed them.
-        gone = html + late('document.addEventListener("click", function () { [].forEach.call(document.querySelectorAll("[data-card=forest] .seg"), function (s) { s.className = "gone"; }); }, true);')
+        # Once the walk starts clicking, the trend's buttons stop being found where the walk listed them.
+        gone = html + late('document.addEventListener("click", function () { [].forEach.call(document.querySelectorAll("[data-card=time] .seg"), function (s) { s.className = "gone"; }); }, true);')
         problems = check_report.studio_render_checks(gone, CHROME)
         self.assertTrue(any(p.startswith("WALK: the control for ") for p in problems), problems)
 
@@ -405,7 +405,7 @@ class ClippedIntervalTests(unittest.TestCase):
     def test_an_interval_past_the_axis_ends_in_an_arrow(self) -> None:
         snap = with_intervals(run_snapshot())
         by_label(snap)["v1"]["metrics"][KEY]["vsBaseline"].update(ciLowPct=-10.0, ciHighPct=130.0)  # past the +100% cap of a time
-        html = build_studio.build([snap])
+        html = build_studio.build([snap], only="forest")
         got = probed(html, ds(html), "var c = document.querySelector('[data-card=\"forest\"]'); return c.querySelectorAll('.ci-open').length;")
         self.assertEqual(got, 1)
 
@@ -497,7 +497,8 @@ class MoreWordingTests(unittest.TestCase):
         snap = run_snapshot()
         snap["steering"] = {"points": [{"firstVersion": 2, "firstLabel": "v2", "guidance": "Try a cache."}]}  # a steer, so the legend shows
         html = build_studio.build([snap])
-        legend = probed(html, ds(html), "return document.querySelector('[data-card=time] .legend').textContent;", act=click("time", "Mean"))
+        # The dots carry verdict colours, so the legend names the verdicts; the axis title says it is the mean.
+        legend = probed(html, ds(html), "var c = document.querySelector('[data-card=time]'); return c.querySelector('.legend').textContent + ' | ' + [].map.call(c.querySelectorAll('svg text[transform]'), function (t) { return t.textContent; }).join(' ');", act=click("time", "Mean"))
         self.assertIn("Latency (ms), mean", legend)
         self.assertNotIn("% better", legend)
 
@@ -528,8 +529,10 @@ class MoreWordingTests(unittest.TestCase):
         self.assertEqual(probed(html, ds(html), FooterLinkTests.JS), ["https://artemis.turintech.ai/projects/p-1"])
 
     def test_a_one_series_export_has_no_legend(self) -> None:
-        html = build_studio.build([run_snapshot()])
-        act = ExportTests.CAPTURE + click("time", "Download") + " setTimeout(function () { " + click("time", "SVG") + " }, 200);"
+        snap = run_snapshot()
+        snap["webUiBest"] = None  # the Overall score view then draws one series: no Best ring
+        html = build_studio.build([snap])
+        act = ExportTests.CAPTURE + click("time", "Overall score") + " setTimeout(function () { " + click("time", "Download") + " setTimeout(function () { " + click("time", "SVG") + " }, 200); }, 300);"
         svg = probed(html, ds(html), "return window.__saved || '';", act=act)
         self.assertTrue(svg.startswith("<svg"), svg[:80])
         self.assertNotIn('y="-9" width="10"', svg)
@@ -801,8 +804,10 @@ class CsvTests(unittest.TestCase):
         snap = run_snapshot()
         snap["steering"] = {"points": [{"firstVersion": 2, "firstLabel": "v2", "guidance": "Try a cache."}]}  # two series, so a legend
         html = build_studio.build([snap])
-        act = (click("time", "Latency (ms), % better") + " setTimeout(function () { " + click("time", "Download")
-               + " setTimeout(function () { " + click("time", "CSV of the plotted data") + " }, 200); }, 300);")
+        # Every verdict's dots, one click at a time, as a reader would.
+        hide = "[].filter.call(document.querySelectorAll('[data-card=time] .legend button'), function (b) { return !/^(Top|Steer)/.test(b.textContent); }).forEach(function (b, i) { setTimeout(function () { b.click(); }, i * 150); });"
+        act = (hide + " setTimeout(function () { " + click("time", "Download")
+               + " setTimeout(function () { " + click("time", "CSV of the plotted data") + " }, 200); }, 600);")
         toast = probed(html, ds(html), "var t = document.querySelector('.toast'); return t ? t.textContent : null;", act=act)
         self.assertEqual(toast, "Nothing plotted to export")
 
@@ -972,8 +977,8 @@ class TradeOffBoxAndSaveTests(unittest.TestCase):
     def test_a_version_whose_readings_are_all_null_is_named_under_the_box_plot(self) -> None:
         snap = run_snapshot()
         by_label(snap)["v2"]["metrics"][KEY]["runs"] = [None]
-        html = build_studio.build([snap])
-        self.assertRegex(probed(html, ds(html), "return document.querySelector('[data-card=box]').textContent;", more=True), r"No runs: [^.]*v2")
+        html = build_studio.build([snap], only="box")  # few iterations: the studio leaves box plots out, their own page draws them
+        self.assertRegex(probed(html, ds(html), "return document.querySelector('[data-card=box]').textContent;"), r"No runs: [^.]*v2")
 
 
 class SchemaAndAxisTests(unittest.TestCase):
@@ -1057,7 +1062,8 @@ class SessionsOnlyParityTests(unittest.TestCase):
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class WalkNoiseTests(unittest.TestCase):
     def test_one_broken_view_is_one_problem(self) -> None:
-        html = build_studio.build([with_intervals(run_snapshot())]).replace("function ratioFromPct(p, hib) {", 'function ratioFromPct(p, hib) { throw new Error("log broke");', 1)
+        # The forest sits behind the change card's Chart toggle, so its Log view is walked on its own page.
+        html = build_studio.build([with_intervals(run_snapshot())], only="forest").replace("function ratioFromPct(p, hib) {", 'function ratioFromPct(p, hib) { throw new Error("log broke");', 1)
         problems = check_report.studio_render_checks(html, CHROME)
         self.assertTrue(any("log broke" in p for p in problems), problems)
         self.assertFalse([p for p in problems if p.startswith("WALK: the control for")], problems)
@@ -1099,7 +1105,7 @@ class NoPercentAndNoBestTests(unittest.TestCase):
     @unittest.skipUnless(CHROME, "no Chrome or Chromium")
     def test_a_broken_value_in_a_conclusion_fails(self) -> None:
         html = build_studio.build([run_snapshot()])
-        broken = html.replace('return r.label + " " + r.status; }).join(", ")', 'return r.label + " " + r.statu; }).join(", ")', 1)
+        broken = html.replace('nFail ? nFail + " failed to run"', 'nFail ? nFail.n + " failed to run"', 1)  # "undefined failed to run"
         self.assertNotEqual(broken, html)
         self.assertTrue(any(p.startswith("BROKEN VALUE: ") for p in check_report.render_checks(broken, CHROME, "", check_report.studio_probe(), 8000)))
 
@@ -1150,7 +1156,7 @@ class DashDecodeAndExportTests(unittest.TestCase):
         snap["bestLines"]["metric"] = rename
         html = build_studio.build([snap])
         self.assertEqual(check_report.studio_render_checks(html, CHROME), [])
-        self.assertIn("P50 to p99 (ms)", probed(html, ds(html), "return document.querySelector('h1').textContent;"))
+        self.assertIn("P50 to P99 (ms)", probed(html, ds(html), "return document.querySelector('h1').textContent;"))
         raw = html.replace('.replace(/^\\s*[\\u2013\\u2014]\\s*|\\s*[\\u2013\\u2014]\\s*$/g, "").replace(/(\\w*\\d)\\s*\\u2013\\s*(?=[\\u2013\\u2212-]?\\w*\\d)/g, "$1 to ").replace(/\\s*[\\u2013\\u2014]\\s*/g, ", ")', "", 1)
         self.assertNotEqual(raw, html)
         self.assertTrue(any(p.startswith("DASH ON PAGE") for p in check_report.studio_render_checks(raw, CHROME)))
@@ -1343,8 +1349,8 @@ class LastPassTests(unittest.TestCase):
     def test_the_box_range_comes_from_the_readings_it_draws(self) -> None:
         snap = run_snapshot()
         snap["baseline"]["metrics"][KEY].update(runs=[10.0, 12.0], min=5.0, max=20.0, count=5)
-        html = build_studio.build([snap])
-        text = probed(html, ds(html), "return document.querySelector('[data-card=box] .means').textContent;", more=True)
+        html = build_studio.build([snap], only="box")
+        text = probed(html, ds(html), "return document.querySelector('[data-card=box] .means').textContent;")
         self.assertRegex(text, r"Original: 10\.00 to 12\.00\D[^.]*over 2 iterations")
 
     @unittest.skipUnless(CHROME, "no Chrome or Chromium")
