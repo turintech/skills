@@ -258,7 +258,7 @@ class RenderTests(unittest.TestCase):
                 m["kind"] = "target"  # a second ranked metric, so the forest's menu has another option
         html = build_studio.build([snap])
         ranked = 'var list = rankedMetrics(D), key = pick && D.byKey[pick] ? pick : D.primary, m = D.byKey[key];'  # the change card's default view
-        best = 'useCard(props.scope, "best", { offM: derived }), c = cs[0], hd = c.hidden || {};'
+        best = 'useCard(props.scope, "best", { offM: derived.concat(helpers.filter(function (k) { return derived.indexOf(k) < 0; })) }), c = cs[0], hd = c.hidden || {};'
         self.assertEqual((html.count(ranked), html.count(best)), (1, 1))
         menu = html.replace(ranked, ranked + ' if (key !== D.primary) throw new Error("other metric broke");')
         problems = check_report.studio_render_checks(menu, CHROME)

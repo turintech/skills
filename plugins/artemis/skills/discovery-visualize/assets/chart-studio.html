@@ -316,7 +316,17 @@ function mlabel(m) {  // a plain name: "downstream_build_ms" with unit ms reads 
   var l = w.join(" "); if (!ACR[w[0].toLowerCase()]) l = l.charAt(0).toUpperCase() + l.slice(1);
   return u ? l + " (" + u + ")" : l;
 }
-function isTime(m) { return !!m && (/(^|_)(ms|s|sec|secs|seconds|time|latency|wall|duration)(_|$)/i.test(m.key) || /^(ms|s|sec|seconds)$/i.test(m.unit || "")); }
+function isTime(m) {  // "less time" only for a time unit: a CPU-over-wall ratio is not a time, whatever its key says
+  if (!m) return false;
+  if (m.unit) return /^(ms|s|sec|secs|seconds|us|µs|ns)$/i.test(m.unit);
+  return /(^|_)(ms|s|sec|secs|seconds|us|ns)$/i.test(m.key);
+}
+// A tier (0, 1, 2) is a category, not a quantity: never drawn as bars.
+function isTier(D, m) {
+  if (!/(^|_)(tier|grade|level|class)$/i.test(m.key)) return false;
+  var vals = [D.s.baseline.metrics[m.key]].concat(D.versions.map(function (v) { return mstat(v, m.key); })).filter(function (st) { return st && st.mean != null; }).map(function (st) { return st.mean; });
+  return vals.length > 0 && vals.every(function (x) { return x === Math.round(x) && x >= 0 && x <= 9; });
+}
 var NO_PCT = "no % change from Artemis";  // falcon gave no % (an original of 0, say): never printed as 0.0%
 function chg(m, p) {  // a change in the reader's words: "44.7% less" on a lower-is-better metric, "+97.0%" on a higher-is-better one
   if (p == null || !isFinite(p)) return NO_PCT;
@@ -625,7 +635,7 @@ function Card(props) {
   // Picks are saved per card, so a returning reader is told what this card leaves out, and where to bring it back.
   var hidM = (c.offM || []).map(function (k) { return (mlist || []).filter(function (m) { return m.key === k; })[0]; }).filter(Boolean).map(mlabel);
   var hidV = (c.offV || []).filter(function (l) { return vlist.indexOf(l) >= 0; });
-  var hiddenSay = [hidM.length ? hidM.join(", ") + " (Metrics)" : null, hidV.length ? hidV.join(", ") + " (Versions)" : null].filter(Boolean).join("; ");
+  var hiddenSay = [hidM.length ? (hidM.length > 3 ? hidM.length + " metrics" : hidM.join(", ")) + " (Metrics)" : null, hidV.length ? hidV.join(", ") + " (Versions)" : null].filter(Boolean).join("; ");
   var pop = function (k, label, body) { return open === k ? html`<${Popover} id=${props.id + "-" + k} label=${label} onClose=${function () { setOpen(null); }}>${body}<//>` : null; };
   var opener = function (k, label) { return html`<button type="button" class="btn" data-pop=${props.id + "-" + k} aria-expanded=${open === k} onClick=${function () { setOpen(open === k ? null : k); }}>${label}</button>`; };
   return html`<section class=${"card" + (phase === "done" ? "" : " " + phase)} style=${phase === "playing" ? { "--rd": rise + "ms" } : null} ref=${ref} data-card=${props.id}>
@@ -771,7 +781,9 @@ function artemisTick(T, head) {
 function BestCard(props) {
   var D = props.D, T = props.T, W = props.W;
   var derived = D.measured.some(function (m) { return m.higherIsBetter === false && isTime(m); }) ? D.measured.filter(function (m) { return /speedup|speed_up/i.test(m.key); }).map(function (m) { return m.key; }) : [];  // a ratio of the same timing says it twice
-  var cs = useCard(props.scope, "best", { offM: derived }), c = cs[0], hd = c.hidden || {};
+  var ranks = D.measured.some(function (m) { return IMPORTANCE[m.importance] != null; });
+  var helpers = D.measured.filter(function (m) { return m.key !== D.primary && ((ranks && IMPORTANCE[m.importance] == null) || isTier(D, m)); }).map(function (m) { return m.key; });
+  var cs = useCard(props.scope, "best", { offM: derived.concat(helpers.filter(function (k) { return derived.indexOf(k) < 0; })) }), c = cs[0], hd = c.hidden || {};
   var bestV = D.best ? D.byLabel[D.best.label] : null;
   var col = { baseline: T.baseline, head: T.accent };
   var headName = bestV ? "Artemis " + bestV.label : "Artemis";
@@ -823,6 +835,8 @@ function BestCard(props) {
       </div>`;
     })}</div>
     ${noOriginal.length ? html`<p class="missing">No reading on the original: ${noOriginal.map(mlabel).join(", ")}</p>` : null}
+    ${bestV ? D.measured.filter(function (m) { return isTier(D, m) && (c.offM || []).indexOf(m.key) >= 0; }).map(function (m) { var st = mstat(bestV, m.key), b = D.s.baseline.metrics[m.key];
+      return st && st.mean != null ? html`<p class="missing" key=${m.key}>${mlabel(m)}: ${bestV.label} is tier ${fmtTickNum(st.mean)}${b && b.mean != null ? ", the original tier " + fmtTickNum(b.mean) : ""}. A category, not a quantity, so it is not drawn.</p>` : null; }) : null}
     ${!ms.length && !noOriginal.length ? html`<div class="sparse">No measured metric is selected.</div>` : null}
   <//>`;
 }
@@ -1318,7 +1332,7 @@ function TradeOffCard(props) {
   if (!mx || !my) return null;
   var pts = D.versions.filter(function (v) { return off.indexOf(v.label) < 0; }).map(function (v) {
     var a = vsb(v, kx), b = vsb(v, ky); if (!a || !b || a.improvementPct == null || b.improvementPct == null) return null;
-    return { label: (v._failed ? "✕ " : "") + v.label, v: v, x: a.improvementPct, y: b.improvementPct, xlo: a.ciLowPct, xhi: a.ciHighPct, ylo: b.ciLowPct, yhi: b.ciHighPct, kind: tradeKind(a.verdict, b.verdict), vx: a.verdict, vy: b.verdict, href: versionHref(D, v) };
+    return { label: (v._failed ? "✕ " : "") + v.label, v: v, x: a.improvementPct, y: b.improvementPct, xlo: a.ciLowPct, xhi: a.ciHighPct, ylo: b.ciLowPct, yhi: b.ciHighPct, kind: tradeKind(a.verdict, b.verdict), vx: a.verdict, vy: b.verdict, href: versionHref(D, v), n: Math.min(a.readings || 0, b.readings || 0) };
   }).filter(Boolean);
   // The Pareto front: no other version at least as good on both and better on one. Beaten for sure only when the version that
   // edges it is clear of it on that axis (its interval above this one's, both Artemis's); an edge inside the intervals is within noise.
@@ -1334,7 +1348,9 @@ function TradeOffCard(props) {
       ci.forEach(function (x) { if (x != null) { lo = Math.min(lo, Math.max(x, lo - w / 2)); hi = Math.max(hi, Math.min(x, hi + w / 2)); } }); var pad = (hi - lo) * 0.1 || 1; return niceAxis(lo - pad, hi + pad, W < 560 ? 4 : 6); };
     return { x: axis(list.map(function (p) { return p.x; }), [].concat.apply([], list.map(function (p) { return [p.xlo, p.xhi]; }))), y: axis(list.map(function (p) { return p.y; }), [].concat.apply([], list.map(function (p) { return [p.ylo, p.yhi]; }))) };
   };
-  var all = pts.length ? fit(pts, true) : null, near = front.concat(close), zoom = near.length >= 2 ? fit(near, false) : null;
+  var near = front.concat(close).filter(function (p) { return p.n > 1; });  // a one-iteration version's interval is too wide to size the zoom by
+  if (!near.length) near = front.slice();
+  var all = pts.length ? fit(pts, true) : null, zoom = near.length >= 2 || (near.length === 1 && pts.length > 3) ? fit(near.length === 1 ? near.concat(near) : near, false) : null;
   var cornered = !!(zoom && all && (zoom.x.domain[1] - zoom.x.domain[0]) < 0.4 * (all.x.domain[1] - all.x.domain[0]) && (zoom.y.domain[1] - zoom.y.domain[0]) < 0.4 * (all.y.domain[1] - all.y.domain[0]));
   var view = c.view === "all" || !zoom ? "all" : c.view === "front" ? "front" : cornered ? "front" : "all", ax = view === "front" ? zoom : all;
   var X = ax ? ax.x.domain : [0, 1], Y = ax ? ax.y.domain : [0, 1];
