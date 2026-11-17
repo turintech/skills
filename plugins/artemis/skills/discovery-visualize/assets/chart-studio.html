@@ -105,6 +105,8 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; max-height: 260px; overflow: auto; }
 .checks label { font-size: 13px; display: flex; gap: 8px; align-items: center; color: var(--fg); min-width: 0; }
 .checks label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.checks label.off { color: var(--text-2); }
+.info { display: inline-block; margin-left: 4px; color: var(--text-2); cursor: help; font-size: 13px; }
 .tip { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; box-shadow: 0 4px 12px #00000026; max-width: min(340px, calc(100vw - 64px)); overflow-wrap: anywhere; line-height: 1.45; }
 .tip b { font-weight: 600; }
 .tip .t2 { color: var(--text-2); }
@@ -649,7 +651,7 @@ function Card(props) {
         ${vlist.length ? opener("v", "Versions") : null}
         ${opener("d", "Download")}
         ${pop("v", "Versions", html`<h3>Versions</h3>
-          <div class="checks">${vlist.map(function (l) { var off = (c.offV || []).indexOf(l) >= 0; return html`<label key=${l}><input type="checkbox" checked=${!off} onChange=${function () { var o = (c.offV || []).filter(function (x) { return x !== l; }); if (!off) o.push(l); set({ offV: o }); }}/><span>${l}</span></label>`; })}</div>
+          <div class="checks">${vlist.map(function (l) { var why = (props.versionDisabled || {})[l], off = !!why || (c.offV || []).indexOf(l) >= 0; return html`<label key=${l} title=${why || ""} class=${why ? "off" : ""}><input type="checkbox" checked=${!off} disabled=${!!why} onChange=${function () { var o = (c.offV || []).filter(function (x) { return x !== l; }); if (!off) o.push(l); set({ offV: o }); }}/><span>${l}</span></label>`; })}</div>
           <div class="row"><button type="button" class="link" onClick=${function () { set({ offV: [] }); }}>All</button><button type="button" class="link" onClick=${function () { set({ offV: vlist.slice() }); }}>None</button></div>`)}
         ${pop("m", "Metrics", html`<h3>Metrics</h3>
           <div class="checks" style=${{ gridTemplateColumns: "1fr" }}>${(mlist || []).map(function (m) { var off = (c.offM || []).indexOf(m.key) >= 0; return html`<label key=${m.key}><input type="checkbox" checked=${!off} onChange=${function () { var o = (c.offM || []).filter(function (x) { return x !== m.key; }); if (!off) o.push(m.key); set({ offM: o }); }}/><span title=${m.key}>${mlabel(m)}</span></label>`; })}</div>
@@ -1365,7 +1367,7 @@ function TradeOffCard(props) {
     p.ey = p.ylo != null && p.yhi != null ? [p.y - Math.max(p.ylo, Y[0]), Math.min(p.yhi, Y[1]) - p.y] : null;
     p.tip = [p.v.label + (p.v.experimentTitle ? ": " + p.v.experimentTitle : ""), mlabel(mx) + ": " + chg(mx, p.x) + (p.xlo != null ? " (95% CI " + ivl(mx, p.xlo, p.xhi) + ")" : "") + ", " + VERDICT_SAY[p.vx || "none"],
       mlabel(my) + ": " + chg(my, p.y) + (p.ylo != null ? " (95% CI " + ivl(my, p.ylo, p.yhi) + ")" : "") + ", " + VERDICT_SAY[p.vy || "none"],
-      "~" + (p.status === "front" ? "On the Pareto front: no version is as good on both and better on one" : p.status === "close" ? "Within noise of the front: the version that edges it overlaps it" : "Beaten for sure on both by another version")];
+      "~" + (p.status === "front" ? "Pareto-optimal: no version is at least as good on both and better on one" : p.status === "close" ? "Not significantly dominated: the versions ahead of it overlap it within their 95% intervals" : "Dominated: another version is ahead on both, clear of it on one by its 95% interval")];
   });
   // Every front version is labelled. Each label takes the first free spot around its marker (never over a marker or another label,
   // never outside the plot); a label moved away gets a leader line back to its marker.
@@ -1390,22 +1392,26 @@ function TradeOffCard(props) {
     return h("g", { opacity: p.status === "beaten" ? 0.18 : 1 }, h("g", { className: "pop", style: { "--d": Math.round(i * 300 / Math.max(1, shown.length - 1)) + "ms" } }, lead, linked(p.href, p.v.label, styled, true), text));
   }; };
   var stairs = []; front.filter(function (p) { return inView(p); }).forEach(function (p, i, f) { stairs.push({ x: p.x, y: p.y }); if (f[i + 1]) stairs.push({ x: f[i + 1].x, y: p.y }); });
-  var series = [{ key: "front", label: "Pareto front (joined, labelled)", color: T.accent, shape: "line" }, { key: "close", label: "Within noise of the front (dashed)", color: T.accent, shape: "dash" },
-    { key: "beaten", label: "Beaten for sure (faded)", color: T.accent, shape: "outline" }].filter(function (x) { return pts.some(function (p) { return p.status === x.key; }); }).concat([{ key: "baseline", label: "Original (0, 0)", color: T.baseline }]);
+  var series = [{ key: "front", label: "Pareto-optimal", color: T.accent, shape: "line" }, { key: "close", label: "Not significantly dominated", color: T.accent, shape: "dash" },
+    { key: "beaten", label: "Dominated", color: T.accent, shape: "outline" }].filter(function (x) { return pts.some(function (p) { return p.status === x.key; }); }).concat([{ key: "baseline", label: "Original", color: T.baseline }]);
   var few = function (list) { var n = list.map(function (p) { return p.v.label; }); return n.length > 6 ? n.slice(0, 5).join(", ") + " and " + (n.length - 5) + " more" : n.join(", "); };
-  var means = { text: [html`On the Pareto front: ${numSpan(few(front) || "none")}`,
-      close.length ? html`Within noise of the front: ${few(close)}` : null,
-      html`Beaten for sure on both: ${numSpan(beaten.length + " of " + pts.length)}`] };
-  var sel = function (val, k) { return html`<${Ctl} label=${k === "x" ? "Across" : "Up"}><select value=${val} onChange=${function (e) { var o = {}; o[k] = e.target.value; cs[1](o); }}>${ms.map(function (m) { return html`<option key=${m.key} value=${m.key}>${mlabel(m)}</option>`; })}</select><//>`; };
+  var means = { text: [html`Pareto-optimal: ${numSpan(few(front) || "none")}`,
+      close.length ? html`Not significantly dominated: ${few(close)}` : null,
+      html`Dominated: ${numSpan(beaten.length + " of " + pts.length)}`] };
+  var sel = function (val, k) { return html`<${Ctl} label=${k === "x" ? "X axis" : "Y axis"}><select value=${val} onChange=${function (e) { var o = {}; o[k] = e.target.value; cs[1](o); }}>${ms.map(function (m) { return html`<option key=${m.key} value=${m.key}>${mlabel(m)}</option>`; })}</select><//>`; };
   var tick = function (v) { return fmtPct(v).replace(".0%", "%"); };
+  // 3 + 4. No notes under the chart: what is out of view sits behind one quiet info mark, and a version with no value on
+  // these metrics is unticked and disabled in Versions, with the reason.
+  var noValue = {}; notOn.forEach(function (l) { noValue[l] = "No Artemis change on " + mlabel(mx) + " or " + mlabel(my); });
+  var info = [outside.length ? outside.length + (outside.length === 1 ? " version is" : " versions are") + " outside this view" + (view === "front" ? "; All shows every one" : "") : null,
+    notOn.length ? notOn.length + (notOn.length === 1 ? " version has" : " versions have") + " no Artemis change on both metrics (unticked in Versions)" : null].filter(Boolean).join(". ");
   return html`<${Card} id="tradeoff" scope=${props.scope} card=${c} set=${cs[1]} toast=${props.toast} tag="Analysis of Artemis's changes"
     question="Trade-off: which versions are on the Pareto front?" series=${series}
     controls=${html`${sel(kx, "x")}${sel(ky, "y")}${zoom ? html`<${Seg} label="View" value=${view} onChange=${function (v) { cs[1]({ view: v }); }} options=${[["front", "Front", false, "Zoom to the Pareto front"], ["all", "All", false, "Every version and the original"]]}/>` : null}`}
-    versionChoices=${D.versions.map(function (v) { return v.label; })}
-    after=${html`${outside.length ? html`<p class="missing">${outside.length} version${outside.length === 1 ? " is" : "s are"} outside this view${view === "front" ? "; View All shows every one" : ""}.</p>` : null}${notOn.length ? html`<p class="missing">Not on this chart (no Artemis change on ${mlabel(mx)} or ${mlabel(my)}): ${notOn.join(", ")}</p>` : null}`}
+    versionChoices=${D.versions.map(function (v) { return v.label; })} versionDisabled=${noValue}
     rows=${function () { return pts.map(function (p) { return { version: p.v.label, x_metric: kx, x_pct_better: p.x, x_ci_low_pct: p.xlo, x_ci_high_pct: p.xhi, y_metric: ky, y_pct_better: p.y, y_ci_low_pct: p.ylo, y_ci_high_pct: p.yhi, verdicts: TRADE_KIND[p.kind].slice(2), pareto: p.status }; }); }}
     means=${means}>
-    <p class="psub xt">The Pareto front: versions no other version beats on both ${mlabel(mx)} and ${mlabel(my)}. Right and up is better.</p>
+    <p class="psub xt">Pareto-optimal: no other version is at least as good on both ${mlabel(mx)} and ${mlabel(my)} and better on one. Dominated: ahead of it on both, clear by a 95% interval on one. Right and up is better.${info ? html` <span class="info" tabindex="0" role="img" aria-label=${info} title=${info}>ⓘ</span>` : null}</p>
     ${pts.length ? html`<${RC.ScatterChart} width=${width} height=${height} margin=${M}>
       ${origin ? html`<${RC.ReferenceArea} x1=${0} x2=${X[1]} y1=${0} y2=${Y[1]} fill=${T.better} fillOpacity=${0.06} stroke="none" ifOverflow="hidden"/>` : null}
       <${RC.CartesianGrid} strokeDasharray="2 3" stroke=${T.grid}/>

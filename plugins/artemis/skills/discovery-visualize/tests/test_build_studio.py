@@ -955,6 +955,20 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
             build_studio.build([run_snapshot()], only="tradeoff")
 
     @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_trade_off_keeps_no_notes_and_unticks_versions_it_cannot_place(self) -> None:
+        html = build_studio.build([two_targets()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var c = document.querySelector('[data-card="tradeoff"]');
+          return { notes: c.querySelectorAll('.missing').length, info: (c.querySelector('.info') || {}).title || '', labels: [].map.call(c.querySelectorAll('.ctl > span'), function (x) { return x.textContent; }),
+                   off: [].filter.call(c.querySelectorAll('.pop label'), function (l) { return l.querySelector('input').disabled; }).map(function (l) { return [l.textContent, l.title]; }) };""",
+                     act="[].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .tools button'), function (x) { return x.textContent === 'Versions'; })[0].click();")
+        self.assertEqual(got["notes"], 0, "no list of left-out versions under the chart")
+        self.assertIn("no Artemis change on both metrics", got["info"])
+        self.assertTrue({"X axis", "Y axis"} <= set(got["labels"]), got["labels"])
+        self.assertEqual(sorted(x[0] for x in got["off"]), ["v3", "v5"], got)
+        self.assertTrue(all(x[1].startswith("No Artemis change on ") for x in got["off"]), got)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
     def test_box_columns_alternate_faint_bands_and_the_trade_off_has_none(self) -> None:
         boxes = build_studio.build([run_snapshot()], only="box")
         got = probed(boxes, embedded(boxes)["datasets"][0]["id"], """
@@ -988,14 +1002,14 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
                    labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.textContent; }) };"""
         sure = build_studio.build([two_targets()])
         got = probed(sure, embedded(sure)["datasets"][0]["id"], read)
-        self.assertIn("On the Pareto front: v4, v2", got["means"])  # in order across
+        self.assertIn("Pareto-optimal: v4, v2", got["means"])  # in order across
         self.assertIn("Pareto front", got["h2"])
         self.assertEqual(got["faded"], 1, "v1 is beaten for sure: v4 clears it on latency")
         self.assertTrue({"v2", "v4"} <= set(got["labels"]), "every front version is labelled")
         self.assertIn("Original", got["labels"])
         near = build_studio.build([two_targets(close=True)])
         got = probed(near, embedded(near)["datasets"][0]["id"], read)
-        self.assertIn("Within noise of the front: v1", got["means"])
+        self.assertIn("Not significantly dominated: v1", got["means"])
         self.assertEqual(got["faded"], 0, "an edge inside the intervals is never drawn as beaten")
         one = build_studio.build([run_snapshot()])
         self.assertIsNone(probed(one, embedded(one)["datasets"][0]["id"], read), "one measured metric: no trade-off card")
