@@ -1896,7 +1896,7 @@ function SessionsCard(props) {
       rows.push({ label: (bad ? "✕ " : "") + SESSION + " " + (i + 1) + "|version " + r.label.replace(/^v/, ""), pct: r.pctBetter, session: i + 1, version: r.label, verdict: verdictOf(vb), failed: bad, tip: [SESSION + " " + (i + 1)].concat(versionTip(bad ? Object.assign({}, v, { _failed: true }) : v, key, m)) });
     });
   });
-  rows.sort(function (a, b) { return b.pct - a.pct; });
+  rows.sort(function (a, b) { return (b.verdict === "better") - (a.verdict === "better") || b.pct - a.pct; });  // as one run's rankings and the Web UI: significantly improved first
   var series = mode === "time" ? snaps.map(function (sn, i) { return { key: "s" + (i + 1), label: SESSION + " " + (i + 1) + " (" + (many ? patOf(i)[1] : i ? "dashed" : "solid") + ")", color: T.fg, shape: "line" }; })
     : verdictSeries(T, rows.map(function (r) { return r.verdict; }));
   rows = rows.filter(function (r) { return mode === "time" || !hd[r.verdict]; });

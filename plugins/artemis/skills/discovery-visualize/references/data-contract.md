@@ -14,7 +14,7 @@
 | `baseline.readings` | Readings per metric that falcon compared against |
 | `versions[]` | Lifecycle, execution, fitness, experiment fields (title, status, conclusion), `overallVerdict` (falcon's, across the version's metrics), per-metric stats + `runs` (only when the collector had each reading, as for the baseline), `pctBetter`, `timesBetter`, `vsBaseline`, `eligible` |
 | `experiments[]` | Title, status, confidence, parents, linked version |
-| `rankings[metric]` | Best-first rows with `eligible` and experiment status, ordered by falcon's `pctBetter` (computed from the metric's own aggregator, as the Web UI does). Versions falcon has no change for are left out |
+| `rankings[metric]` | Best-first rows with `eligible`, falcon's `verdict` and experiment status, ordered as the Web UI ranks one metric: falcon's "better" verdicts first, then the largest `pctBetter` (from the metric's own aggregator), a tie in version order. Versions falcon has no change for are left out |
 | `runningBest[metric]` | Generation order, by `mean` (a plot of means); `mean` is `null` on gaps; `bestVersion`/`bestMean` carry forward |
 | `perMetricWinners[metric]` | `{raw, eligible, unranked}`, the first rows of `rankings`, plus the labels left unranked because falcon has no change for them; `raw` and `eligible` may be `null`. When `raw` is `null` (no stored direction, or no change from falcon yet), `reason` says why |
 | `executionSummary` | Completed / generation_failed / scoring_failed / execution_* / `missingTargetMetrics` |

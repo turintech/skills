@@ -1060,6 +1060,7 @@ def build_snapshot(
                     "label": version["label"],
                     "mean": stat["mean"],
                     "pctBetter": stat.get("pctBetter"),
+                    "verdict": (stat.get("vsBaseline") or {}).get("verdict"),
                     "timesBetter": stat.get("timesBetter"),
                     "eligible": version["eligible"],
                     "lifecycle": version["lifecycle"],
@@ -1067,8 +1068,10 @@ def build_snapshot(
                     "experimentStatus": version.get("experimentStatus"),
                 }
             )
-        # Falcon's change, on the metric's own aggregator, as the Web UI ranks.
-        ranked.sort(key=lambda row: -row["pctBetter"])
+        # As the Web UI ranks one metric (artemis-ui src/routes/_authenticated/projects.$id.discover.$runId.versions.index.tsx,
+        # the compared version): falcon's "better" verdicts first, then the largest change on the metric's own aggregator;
+        # a tie keeps version order. Pending and no-verdict versions rank by their change; no change, no rank.
+        ranked.sort(key=lambda row: (row["verdict"] != "better", -row["pctBetter"]))
         rankings[name] = ranked
         raw = ranked[0] if ranked else None
         eligible_rows = [row for row in ranked if row["eligible"]]

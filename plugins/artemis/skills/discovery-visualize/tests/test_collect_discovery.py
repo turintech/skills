@@ -787,6 +787,20 @@ class FalconComparisonTests(unittest.TestCase):
         self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [2, 1])
         self.assertEqual(snap["perMetricWinners"]["simulation_fps"]["raw"]["version"], 2)
 
+    def test_one_metric_ranks_as_the_web_ui_falcons_better_verdict_first(self) -> None:
+        # The Web UI's compared version on one metric (artemis-ui versions.index.tsx): significantly improved first, then the
+        # largest change. v1's +12% is within noise, v2's +6% is significant, so v2 leads; ranking by change alone picks v1.
+        snap = collector.build_snapshot(self.two_versions(self.falcon_row(12.0, "noise"), self.falcon_row(6.0, "better")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [2, 1])
+        self.assertEqual(snap["perMetricWinners"]["simulation_fps"]["raw"]["version"], 2)
+        self.assertEqual([row["verdict"] for row in snap["rankings"]["simulation_fps"]], ["better", "noise"])
+
+    def test_a_pending_change_ranks_after_a_significant_one_and_a_tie_keeps_version_order(self) -> None:
+        pending = collector.build_snapshot(self.two_versions(self.falcon_row(20.0, "pending"), self.falcon_row(3.0, "better")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in pending["rankings"]["simulation_fps"]], [2, 1])
+        tie = collector.build_snapshot(self.two_versions(self.falcon_row(6.0, "better"), self.falcon_row(6.0, "better")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in tie["rankings"]["simulation_fps"]], [1, 2], "a tie keeps version order, as the Web UI's")
+
     def test_without_a_baseline_row_no_change_is_claimed(self) -> None:
         empty = self.falcon_row(None, None)
         snap = collector.build_snapshot(self.two_versions(empty, dict(empty), baseline=False), collected_at="2026-01-01T00:00:00Z")
