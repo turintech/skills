@@ -172,6 +172,8 @@ done; printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); 
 
 A `skip` run executes nothing, so it never gets a `baselineVersionSha`; the loop waits only for its `metricsSchema`.
 
+When the user or a calling skill names which metric ranks versions, set that once the baseline has finalized: take the run's `metricsSchema` from `artemis --output-format json discovery get "<run_id>"`, change only `higherIsBetter` and `importance` (the ranking metric `high`; a secondary `medium` or `low`, which still counts in the Composite score behind Best, or `none` when the ranking metric alone should decide; every other `worker` metric `none`; `agent` metrics as they are), write it to a file and pass it back with `artemis discovery metrics-schema set "<run_id>" --file "<schema-file>"`, which recomputes version scores.
+
 If baseline finalization is delayed, use `discovery-inspect` to compare the run record with runner activity. Large task logs can delay ingestion; see [advanced log control](../repo-command-setup/ADVANCED.md#control-log-volume).
 
 Use **`discovery baseline set`** only with a hand-authored schema whose `metricId` values are real project metric UUIDs, never placeholders:
