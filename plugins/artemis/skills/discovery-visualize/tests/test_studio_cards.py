@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_studio  # noqa: E402
 import check_report  # noqa: E402
 import collect_discovery  # noqa: E402
-from studio_fixtures import CHROME, VISIBLE, embedded, late, low_then_high, probed, project_snapshot, run_snapshot, with_intervals  # noqa: E402
+from studio_fixtures import CHROME, VISIBLE, WHEN_DRAWN, embedded, late, low_then_high, probed, project_snapshot, run_snapshot, with_intervals  # noqa: E402
 
 KEY = "latency_ms"
 
@@ -143,12 +143,12 @@ class TimeCardTests(unittest.TestCase):
 class FooterLinkTests(unittest.TestCase):
     JS = "return [].map.call(document.querySelectorAll('footer a'), function (a) { return a.getAttribute('href'); });"
 
-    def test_only_an_artemis_link_is_a_link(self) -> None:
-        for url, links in (("javascript:alert(1)", []), ("https://example.com/projects/p/discover/r", []),
-                           ("https://artemis.turintech.ai/projects/p/discover/r", ["https://artemis.turintech.ai/projects/p/discover/r"])):
+    def test_only_the_runs_own_origin_is_linked(self) -> None:
+        own = "https://artemis.acme.example/projects/p/discover/r"
+        for url, links in (("javascript:alert(1)", []), ("https://artemis.turintech.ai/projects/p/discover/r", []), (own, [own])):
             with self.subTest(url=url):
                 snap = run_snapshot()
-                snap["run"]["webUrl"] = url
+                snap["run"].update(webOrigin="https://artemis.acme.example", webUrl=url)
                 html = build_studio.build([snap])
                 self.assertEqual(probed(html, ds(html), self.JS), links)
 
@@ -179,12 +179,13 @@ class ForestCardTests(unittest.TestCase):
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class RankedCardTests(unittest.TestCase):
     def test_no_comparison_is_not_called_needs_more_runs(self) -> None:
-        snap = run_snapshot()
+        snap = run_snapshot()  # 1 run each: the bars read the estimate's direction, with one note and no verdict word per bar
         by_label(snap)["v4"]["metrics"][KEY]["vsBaseline"] = None
         html = build_studio.build([snap])
         got = probed(html, ds(html), VISIBLE + "return { text: card('ranked').textContent, bars: texts('ranked') };")
-        self.assertIn("2 need more runs", got["text"])
-        self.assertNotIn("3 need more runs", got["text"])
+        self.assertIn("1 run each, so no significance", got["text"])
+        self.assertNotIn("need more runs", got["text"].lower())
+        self.assertFalse(any("Needs more runs" in t or "Significantly" in t for t in got["bars"]), got["bars"])
         self.assertIn("1 with no Artemis comparison", got["text"])
         self.assertTrue(any("No Artemis comparison" in t for t in got["bars"]), got["bars"])
 
@@ -260,7 +261,7 @@ class CheckerTests(unittest.TestCase):
         return check_report.render_checks(html, CHROME, "", check_report.studio_probe(), 20000)  # a page with the trade-off card needs more than 8s of virtual time
 
     def test_an_unhandled_promise_rejection_fails(self) -> None:
-        html = build_studio.build([run_snapshot()]).replace("var fontCss = null;", 'var fontCss = null; Promise.reject(new Error("lost save"));', 1)
+        html = build_studio.build([run_snapshot()]).replace("var fontFor = {};", 'var fontFor = {}; Promise.reject(new Error("lost save"));', 1)
         self.assertIn("UNHANDLED REJECTION: lost save", self.problems(html))
 
     def test_one_empty_card_fails_while_the_others_draw(self) -> None:
@@ -297,7 +298,8 @@ class CheckerTests(unittest.TestCase):
         html = build_studio.build([snap])
         self.assertFalse([p for p in self.problems(html) if "BEST NOTE" in p])
         # The header's line names v1 where the note says v4; v4 still appears elsewhere in the same bullet.
-        swapped = html.replace('return x ? x[1] + " on " + mlabel(D.byKey[k]) : null;', 'return x ? "v1 on " + mlabel(D.byKey[k]) + " (not " + x[1] + ")" : null;', 1)
+        swapped = html.replace('return /^(\\S+) is best on /.exec(D.best.notes[k])[1] + " on " + mlabel(D.byKey[k]);',
+                               'return "v1 on " + mlabel(D.byKey[k]) + " (not " + /^(\\S+) is best on /.exec(D.best.notes[k])[1] + ")";', 1)
         self.assertNotEqual(swapped, html)
         self.assertTrue(any(p.startswith("MISSING BEST NOTE") for p in self.problems(swapped)))
 
@@ -487,7 +489,7 @@ class ProjectTests(unittest.TestCase):
         remembered = html.replace('var DATA = readSnap("studio-data")', 'try { localStorage.setItem("dv-studio:v1:session", "1"); } catch (e) {} var DATA = readSnap("studio-data")', 1)
         self.assertNotEqual(remembered, html)
         # Opened as a reader opens it: no start view from the checker, so only the page decides what it draws.
-        probe = "<script>setTimeout(function () { var d = document.createElement('pre'); d.id = '__ar_probe'; d.textContent = document.querySelector('[data-card=ai]') ? 'AI CARD' : 'NO AI CARD'; document.body.appendChild(d); }, 3000);</script>"
+        probe = '<script>' + WHEN_DRAWN + "whenDrawn(function () { var d = document.createElement('pre'); d.id = '__ar_probe'; d.textContent = document.querySelector('[data-card=ai]') ? 'AI CARD' : 'NO AI CARD'; document.body.appendChild(d); }, 3000);</script>"
         self.assertEqual(check_report.render_checks(remembered, CHROME, "", probe, 8000), ["AI CARD"])
 
 
@@ -524,7 +526,7 @@ class MoreWordingTests(unittest.TestCase):
 
     def test_a_project_link_is_the_footers_fallback(self) -> None:
         snap = run_snapshot()
-        snap["run"].update(webUrl="https://example.com/x", projectUrl="https://artemis.turintech.ai/projects/p-1/")
+        snap["run"].update(webOrigin="https://artemis.turintech.ai", webUrl="https://example.com/x", projectUrl="https://artemis.turintech.ai/projects/p-1/")
         html = build_studio.build([snap])
         self.assertEqual(probed(html, ds(html), FooterLinkTests.JS), ["https://artemis.turintech.ai/projects/p-1"])
 
@@ -1330,7 +1332,7 @@ class FinalRoundTests(unittest.TestCase):
     def test_a_remembered_session_that_is_gone_is_said(self) -> None:
         html = build_studio.build([project_snapshot(2)])
         remembered = html.replace('var DATA = readSnap("studio-data")', 'try { localStorage.setItem("dv-studio:v1:session", "5"); } catch (e) {} var DATA = readSnap("studio-data")', 1)
-        probe = "<script>setTimeout(function () { var d = document.createElement('pre'); d.id = '__ar_probe'; d.textContent = document.querySelector('header').textContent; document.body.appendChild(d); }, 3000);</script>"
+        probe = '<script>' + WHEN_DRAWN + "whenDrawn(function () { var d = document.createElement('pre'); d.id = '__ar_probe'; d.textContent = document.querySelector('header').textContent; document.body.appendChild(d); }, 3000);</script>"
         out = " ".join(check_report.render_checks(remembered, CHROME, "", probe, 8000))
         self.assertIn("The Discovery session you last opened is gone; showing session 2.", out)
 

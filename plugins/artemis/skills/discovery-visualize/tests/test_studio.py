@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_studio  # noqa: E402
 import check_report  # noqa: E402
 import collect_discovery  # noqa: E402
-from studio_fixtures import CHROME, dump, embedded, late, probed, project_snapshot, run_snapshot, with_data  # noqa: E402
+from studio_fixtures import CHROME, WHEN_DRAWN, dump, embedded, late, probed, project_snapshot, run_snapshot, with_data  # noqa: E402
 
 
 class StaticCheckTests(unittest.TestCase):
@@ -36,25 +36,25 @@ class StaticCheckTests(unittest.TestCase):
     def test_a_data_fetch_fails_but_the_font_fetch_passes(self) -> None:
         html = build_studio.build([run_snapshot()])
         self.assertIn('fetch("https://fonts.googleapis.com/', html)
-        bad = html.replace("var fontCss = null;", 'var fontCss = null; fetch("https://example.com/snap.json");')
+        bad = html.replace("var fontFor = {};", 'var fontFor = {}; fetch("https://example.com/snap.json");')
         self.assertTrue(any(p.startswith("LIVE FETCH") for p in check_report.studio_static_checks(bad)))
-        bad = html.replace("var fontCss = null;", "var fontCss = null; fetch(url);")
+        bad = html.replace("var fontFor = {};", "var fontFor = {}; fetch(url);")
         self.assertTrue(any(p.startswith("LIVE FETCH") for p in check_report.studio_static_checks(bad)))
 
     def test_any_monospace_fails(self) -> None:
         html = build_studio.build([run_snapshot()])
         for bad in ('--mono: "Courier New", monospace;', "IBM Plex Mono"):
             with self.subTest(bad=bad):
-                mutant = html.replace("var fontCss = null;", "var fontCss = null; /* " + bad + " */", 1)
+                mutant = html.replace("var fontFor = {};", "var fontFor = {}; /* " + bad + " */", 1)
                 self.assertTrue(any(p.startswith("MONOSPACE") for p in check_report.studio_static_checks(mutant)))
 
     def test_a_moved_font_loader_fails(self) -> None:
         html = build_studio.build([run_snapshot()]).replace("function exportFonts()", "function loadFonts()")
-        html = html.replace("var fontCss = null;", 'var fontCss = null; var url = "https://evil.example"; fetch(url);', 1)
+        html = html.replace("var fontFor = {};", 'var fontFor = {}; var url = "https://evil.example"; fetch(url);', 1)
         self.assertTrue(any("font loader" in p for p in check_report.studio_static_checks(html)))
 
     def test_a_spaced_fetch_fails(self) -> None:
-        html = build_studio.build([run_snapshot()]).replace("var fontCss = null;", 'var fontCss = null; fetch ("https://example.com/x");', 1)
+        html = build_studio.build([run_snapshot()]).replace("var fontFor = {};", 'var fontFor = {}; fetch ("https://example.com/x");', 1)
         self.assertTrue(any(p.startswith("LIVE FETCH") for p in check_report.studio_static_checks(html)))
 
     def test_no_datasets_is_no_data(self) -> None:
@@ -62,7 +62,7 @@ class StaticCheckTests(unittest.TestCase):
         self.assertIn("NO DATA: the page holds no snapshot to draw", check_report.studio_static_checks(html))
 
     def test_an_xhr_fails(self) -> None:
-        html = build_studio.build([run_snapshot()]).replace("var fontCss = null;", "var fontCss = null; new XMLHttpRequest();", 1)
+        html = build_studio.build([run_snapshot()]).replace("var fontFor = {};", "var fontFor = {}; new XMLHttpRequest();", 1)
         self.assertTrue(any(p.startswith("LIVE FETCH") for p in check_report.studio_static_checks(html)))
 
     def test_unreadable_data_says_why(self) -> None:
@@ -135,7 +135,7 @@ class RenderTests(unittest.TestCase):
         self.assertTrue(any("WIDER THAN THE WINDOW" in p and "390px" in p for p in problems), problems)
 
     def test_six_sessions_rank_each_sessions_top_version_until_show_all(self) -> None:
-        probe = """<script>setTimeout(function () {
+        probe = '<script>' + WHEN_DRAWN + """whenDrawn(function () {
   var card = function () { return document.querySelector('[data-card="sessions"]'); };
   var bars = function () { return [].filter.call(card().querySelectorAll("tspan"), function (t) { return /^version /.test(t.textContent); }).length; };
   var out = { top: bars(), labels: [].map.call(card().querySelectorAll('.seg[aria-label="Show"] button'), function (b) { return b.textContent; }) };
@@ -160,7 +160,7 @@ class RenderTests(unittest.TestCase):
 
     def test_three_sessions_each_get_a_line_and_a_summary(self) -> None:
         html = build_studio.build([project_snapshot(3)])
-        click = '<script>setTimeout(function () { [].filter.call(document.querySelectorAll("button"), function (b) { return b.textContent === "Over time"; })[0].click(); }, 1500);</script>'
+        click = '<script>' + WHEN_DRAWN + 'whenDrawn(function () { [].filter.call(document.querySelectorAll("button"), function (b) { return b.textContent === "Over time"; })[0].click(); }, 1500);</script>'
         dom = dump(html, "p-proj-1", 0, click)
         for text in ("Discovery session 3 (dotted)", "session 3"):
             self.assertIn(text, dom)
@@ -174,7 +174,7 @@ class RenderTests(unittest.TestCase):
                     if stat and stat.get("pctBetter") is not None:
                         stat["pctBetter"] = -40.0
         html = build_studio.build([project])
-        probe = """<script>setTimeout(function () {
+        probe = '<script>' + WHEN_DRAWN + """whenDrawn(function () {
   [].filter.call(document.querySelectorAll("button"), function (b) { return b.textContent === "Over time"; })[0].click();
   setTimeout(function () {
     var grid = document.querySelector(".recharts-cartesian-grid").getBoundingClientRect(), out = [];
@@ -202,25 +202,9 @@ class RenderTests(unittest.TestCase):
         dark = html.replace("function App() {", 'function App() { if (document.documentElement.getAttribute("data-theme") === "dark") throw new Error("dark broke");', 1)
         self.assertTrue(any(p.startswith("SCRIPT ERROR: dark broke (after Theme > Dark)") for p in check_report.studio_render_checks(dark, CHROME)))
 
-    def test_an_unknown_family_or_profile_falls_back_to_the_default(self) -> None:
-        # An unknown family on every metric, or an unknown run profile: the default layout, never the model one
-        # (which would move the trade-off card up among the lead cards).
-        for family, profile in (("speech", None), (None, "speech")):
-            with self.subTest(family=family, profile=profile):
-                snap = run_snapshot()
-                if profile:
-                    snap["profile"] = profile
-                for m in snap["metrics"]:
-                    if family:
-                        m["family"] = family
-                html = build_studio.build([snap])
-                self.assertEqual(check_report.studio_render_checks(html, CHROME), [])
-                order = probed(html, embedded(html)["datasets"][0]["id"], "return [].map.call(document.querySelectorAll('.page section.card'), function (c) { return c.getAttribute('data-card'); });")
-                self.assertEqual(order[:3], ["best", "ranked", "time"])  # ranked is the change card's default view
-
     def test_sessions_of_different_tasks_say_their_changes_do_not_compare(self) -> None:
         def card(html):
-            probe = '<script>setTimeout(function () { var c = document.querySelector("[data-card=sessions]"); var d = document.createElement("pre"); d.id = "s"; d.textContent = c.querySelector("h2").textContent + " || " + c.querySelector(".means").textContent; document.body.appendChild(d); }, 2500);</script>'
+            probe = '<script>' + WHEN_DRAWN + 'whenDrawn(function () { var c = document.querySelector("[data-card=sessions]"); var d = document.createElement("pre"); d.id = "s"; d.textContent = c.querySelector("h2").textContent + " || " + c.querySelector(".means").textContent; document.body.appendChild(d); }, 2500);</script>'
             found = re.search(r'<pre id="s">(.*?)</pre>', dump(html, "p-proj-1", 0, probe), re.S)
             return found.group(1).replace("&#39;", "'")
         same = card(build_studio.build([project_snapshot(2)]))
@@ -290,7 +274,7 @@ class RenderTests(unittest.TestCase):
         for r in snap["rankings"][key][-1:]:
             r["pctBetter"] = -440.0
         html = build_studio.build([snap])
-        probe = '<script>setTimeout(function () { var out = [].map.call(document.querySelectorAll(".card"), function (c) { var h = c.querySelector("h2"), xs = [].map.call(c.querySelectorAll("svg text"), function (t) { return t.textContent; }); return (h ? h.textContent : "") + "=" + xs.join("|"); }); var d = document.createElement("pre"); d.id = "ax"; d.textContent = JSON.stringify(out); document.body.appendChild(d); }, 2500);</script>'
+        probe = '<script>' + WHEN_DRAWN + 'whenDrawn(function () { var out = [].map.call(document.querySelectorAll(".card"), function (c) { var h = c.querySelector("h2"), xs = [].map.call(c.querySelectorAll("svg text"), function (t) { return t.textContent; }); return (h ? h.textContent : "") + "=" + xs.join("|"); }); var d = document.createElement("pre"); d.id = "ax"; d.textContent = JSON.stringify(out); document.body.appendChild(d); }, 2500);</script>'
         found = re.search(r'<pre id="ax">(.*?)</pre>', dump(html, embedded(html)["datasets"][0]["id"], 0, probe))
         cards = json.loads(found.group(1).replace("&quot;", '"'))
         ranked = [c for c in cards if c.startswith("Which versions moved")]
@@ -322,7 +306,7 @@ class RenderTests(unittest.TestCase):
 
     def test_an_empty_versions_filter_says_so(self) -> None:
         html = build_studio.build([run_snapshot()])
-        probe = """<script>setTimeout(function () {
+        probe = '<script>' + WHEN_DRAWN + """whenDrawn(function () {
   var card = document.querySelector('[data-card="ranked"]');
   [].filter.call(card.querySelectorAll("button"), function (b) { return b.textContent === "Versions"; })[0].click();
   setTimeout(function () {
@@ -338,7 +322,7 @@ class RenderTests(unittest.TestCase):
     def test_a_tick_cut_by_the_chart_edge_is_moved_inside_or_hidden(self) -> None:
         # At 390px the last commit label of a box plot hung past the chart's right edge.
         html = build_studio.build([run_snapshot()])
-        probe = """<script>setTimeout(function () {
+        probe = '<script>' + WHEN_DRAWN + """whenDrawn(function () {
   var ns = "http://www.w3.org/2000/svg", root = document.getElementById("root"), host = document.createElement("div");
   host.innerHTML = '<svg class="recharts-surface" width="200" height="60"><g class="recharts-cartesian-axis-tick-labels"><g class="recharts-cartesian-axis-tick-label"><text x="20" y="20" text-anchor="middle" font-size="14">5760917</text></g><g class="recharts-cartesian-axis-tick-label"><text x="196" y="20" text-anchor="middle" font-size="14">9595b39</text></g></g></svg>';
   root.appendChild(host);
@@ -362,7 +346,7 @@ class RenderTests(unittest.TestCase):
             "LIVE FETCH: loaded https://example.com/pixel.gif": 'new Image().src = "https://example.com/pixel.gif";',
         }
         # One page makes every request; the checker must name each.
-        page = html.replace("var fontCss = null;", "var fontCss = null; " + " ".join(calls.values()), 1)
+        page = html.replace("var fontFor = {};", "var fontFor = {}; " + " ".join(calls.values()), 1)
         problems = check_report.render_checks(page, CHROME, "", check_report.studio_probe(), 8000)
         for expected in calls:
             with self.subTest(expected=expected):
@@ -372,7 +356,7 @@ class RenderTests(unittest.TestCase):
         html = build_studio.build([run_snapshot()])
         for url in check_report.STUDIO_SCRIPTS:
             self.assertIn(f'<script src="{url}"', html)
-        other = html.replace("var fontCss = null;", 'var fontCss = null; var s = document.createElement("script"); s.src = "https://unpkg.com/htm@3.1.0/dist/htm.umd.js"; document.head.appendChild(s);', 1)
+        other = html.replace("var fontFor = {};", 'var fontFor = {}; var s = document.createElement("script"); s.src = "https://unpkg.com/htm@3.1.0/dist/htm.umd.js"; document.head.appendChild(s);', 1)
         problems = check_report.studio_render_checks(other, CHROME)
         self.assertTrue(any(p.startswith("LIVE FETCH: loaded https://unpkg.com/htm@3.1.0") for p in problems), problems)
 
@@ -435,7 +419,7 @@ class RenderTests(unittest.TestCase):
         self.assertTrue(any(p.startswith("CLOSED SECTION, NOT CHECKED: More charts") for p in problems), problems)
 
     def test_the_checker_keeps_the_page_in_standards_mode(self) -> None:
-        mode = "<script>setTimeout(function () { var d = document.createElement('pre'); d.id = '__ar_probe'; d.textContent = document.compatMode; document.body.appendChild(d); }, 300);</script>"
+        mode = '<script>' + WHEN_DRAWN + "whenDrawn(function () { var d = document.createElement('pre'); d.id = '__ar_probe'; d.textContent = document.compatMode; document.body.appendChild(d); }, 300);</script>"
         self.assertEqual(check_report.render_checks(build_studio.build([run_snapshot()]), CHROME, "", mode), ["CSS1Compat"])
 
     def test_main_runs_the_studio_mode(self) -> None:

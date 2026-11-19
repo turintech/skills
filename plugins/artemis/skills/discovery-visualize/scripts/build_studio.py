@@ -29,6 +29,7 @@ from collect_discovery import SCHEMA_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "assets" / "chart-studio.html"
+CORE = ROOT / "assets" / "studio-core.js"  # the page's pure logic, inlined at /*__STUDIO_CORE__*/; the tests run it in node
 # SCHEMA_VERSION is the collector's, so a schema bump moves both.
 
 
@@ -193,7 +194,7 @@ CARDS = ("best", "ranked", "forest", "time", "box", "table", "tradeoff", "pareto
 
 def drawable(card: str, ds: dict) -> str | None:
     """Why the first view of `ds` has no `card` to draw, or None. Only sessions, tradeoff, ai and pareto can be missing: this mirrors
-    the page's tradeOff(), pareto() and hasAIScores(), so --only refuses at build time. The other cards always draw, and say in a
+    the page's tradeOff() (the collector's tradeoffMetrics), pareto() and hasAIScores(), so --only refuses at build time. The other cards always draw, and say in a
     sentence when they have nothing to show (no intervals yet, no individual iterations)."""
     if card == "sessions":
         if "sessions" not in ds:
@@ -208,10 +209,10 @@ def drawable(card: str, ds: dict) -> str | None:
     metrics = [m for m in snap.get("metrics") or [] if isinstance(m, dict)]
     means = lambda key: [((v.get("metrics") or {}).get(key) or {}).get("mean") for v in snap.get("versions") or []]
     if card == "tradeoff":
-        # As the page's tradeMetrics(): measured targets with a direction that Artemis compared on two or more versions; two or more of them.
-        compared = lambda key: sum(1 for v in snap.get("versions") or [] if ((((v.get("metrics") or {}).get(key) or {}).get("vsBaseline") or {}).get("improvementPct")) is not None)
-        keys = [m["key"] for m in metrics if m.get("kind") == "target" and m.get("higherIsBetter") is not None and compared(m["key"]) >= 2]
-        return None if len(keys) >= 2 else "a trade-off needs two measured metrics that Artemis compared on two or more versions"
+        # The collector's tradeoffMetrics, which the page's tradeMetrics() reads too: nothing is worked out twice.
+        if "tradeoffMetrics" not in snap:  # collected before the collector wrote it: the run may be fine, the snapshot is old
+            return "this snapshot predates tradeoffMetrics; collect it again with this collect_discovery.py"
+        return None if len(snap["tradeoffMetrics"]) >= 2 else "a trade-off needs two measured metrics that Artemis compared on two or more versions that passed the gate"
     if card == "ai":
         judged = [m["key"] for m in metrics if m.get("kind") == "quality"]
         return None if any(x is not None for k in judged for x in means(k)) else "no version has an AI Metric score"
@@ -232,8 +233,21 @@ def drawable(card: str, ds: dict) -> str | None:
     return None
 
 
+def tradeoff_axes(spec: str, datasets: list[dict]) -> dict:
+    """--tradeoff X,Y: the trade-off card opens on these two metrics. Both must be ones that card can draw in the first snapshot."""
+    keys = [k.strip() for k in spec.split(",")]
+    if len(keys) != 2 or not all(keys) or keys[0] == keys[1]:
+        raise ValueError(f"--tradeoff {spec!r}: give two different metric keys, X,Y")
+    ds = datasets[0]
+    snap = ds["sessions"][0] if "sessions" in ds else ds["snapshot"]
+    missing = [k for k in keys if k not in (snap.get("tradeoffMetrics") or [])]  # the collector's list, as the page reads it
+    if missing:
+        raise ValueError(f"--tradeoff: {', '.join(missing)} is not a measured metric with a direction that Artemis compared on two or more versions")
+    return {"x": keys[0], "y": keys[1]}
+
+
 def build(snapshots: list[dict], labels: list[str] | None = None, failed: list[str] | None = None, title: str = "Discovery chart studio",
-          only: str | None = None) -> str:
+          only: str | None = None, tradeoff: str | None = None) -> str:
     labels = labels or []
     if only is not None and only not in CARDS:
         raise ValueError(f"--only must be one of {', '.join(CARDS)}, not {only!r}")
@@ -261,7 +275,8 @@ def build(snapshots: list[dict], labels: list[str] | None = None, failed: list[s
         datasets = datasets[:1]
     if only is not None and (why := drawable(only, datasets[0])):
         raise ValueError(f"--only {only}: {why}")
-    payload = no_dashes({"datasets": datasets, **({"only": only} if only else {})})
+    preset = tradeoff_axes(tradeoff, datasets) if tradeoff else None
+    payload = no_dashes({"datasets": datasets, **({"only": only} if only else {}), **({"tradeoff": preset} if preset else {})})
     # "<" as \u003c, still valid JSON, so data can never close or comment out the script element it sits in.
     try:  # the browser's JSON.parse has no NaN or Infinity, so a page holding one would not load
         data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).replace("<", "\\u003c")
@@ -269,6 +284,9 @@ def build(snapshots: list[dict], labels: list[str] | None = None, failed: list[s
         raise ValueError(f"the snapshot's {non_finite(payload)} is NaN or Infinity, which the page cannot read; collect it again with this "
                          "collect_discovery.py, which writes them as null") from None
     html = TEMPLATE.read_text(encoding="utf-8")
+    if html.count("/*__STUDIO_CORE__*/") != 1:
+        raise ValueError("template placeholder /*__STUDIO_CORE__*/ must appear exactly once")
+    html = html.replace("/*__STUDIO_CORE__*/", CORE.read_text(encoding="utf-8").rstrip("\n"), 1)
     for key, value in (("__TITLE__", str(no_dashes(title)).replace("&", "&amp;").replace("<", "&lt;")), ("__STUDIO_DATA__", data)):
         if html.count(key) != 1:
             raise ValueError(f"template placeholder {key} must appear exactly once")
@@ -283,6 +301,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--failed", action="append", help="N:SESSION:VERSIONS that failed the user's own check, e.g. 1:2:3,4")
     parser.add_argument("--title", default="Discovery chart studio", help="Browser tab title")
     parser.add_argument("--only", choices=CARDS, help="Draw this one chart, as the studio draws it, with no other cards and no switcher but Theme")
+    parser.add_argument("--tradeoff", help="X,Y metric keys the trade-off card opens on, e.g. model_size_mb,pooled_wer_ratio_vs_q8")
     parser.add_argument("--output", required=True, help="Where to write the HTML")
     args = parser.parse_args(argv)
     try:
@@ -294,7 +313,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError(f"{path} is not JSON ({error}); give a collector snapshot") from None
             except UnicodeDecodeError as error:
                 raise ValueError(f"{path} is not UTF-8 text ({error}); give a collector snapshot") from None
-        html = build(snapshots, args.label, args.failed, args.title, args.only)
+        html = build(snapshots, args.label, args.failed, args.title, args.only, args.tradeoff)
         Path(args.output).write_text(html, encoding="utf-8")
     except (OSError, ValueError) as error:
         print(f"build_studio.py: {error}", file=sys.stderr)

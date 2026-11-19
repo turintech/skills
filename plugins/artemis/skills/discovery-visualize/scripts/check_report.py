@@ -373,7 +373,7 @@ def studio_static_checks(html: str) -> list[str]:
         fonts = arg.startswith('"https://fonts.googleapis.com/') or (arg.startswith("url)") and 0 <= start < match.start() < end)
         if not fonts:
             problems.append("LIVE FETCH: only the SVG download's Google Fonts may be fetched; embed the data")
-    if "__STUDIO_DATA__" in html or "__TITLE__" in html:
+    if "__STUDIO_DATA__" in html or "__TITLE__" in html or "__STUDIO_CORE__" in html:
         problems.append("NOT BUILT: run build_studio.py; the template's placeholders are still in the page")
     else:
         try:

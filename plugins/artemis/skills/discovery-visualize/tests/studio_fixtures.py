@@ -24,6 +24,13 @@ def run_snapshot() -> dict:
     return collect_discovery.build_snapshot(collect_discovery.load_from_dir(str(FIXTURE)), collected_at="2026-01-01T00:00:00Z")
 
 
+def redrawable(snap: dict) -> dict:
+    """A snapshot whose metrics or gate a test changed after collecting: the trade-off list the collector would write for it now."""
+    defs = {m["key"]: m for m in snap["metrics"]}
+    snap["tradeoffMetrics"] = collect_discovery.drawable_tradeoff(defs, [v for v in snap["versions"] if not v.get("gateFailed")])
+    return snap
+
+
 def project_snapshot(n: int = 2) -> dict:
     runs = []
     for i in range(n):
@@ -71,17 +78,24 @@ def with_data(html: str, change) -> str:
     return html[:match.start(2)] + raw + html[match.end(2):]
 
 
+# Waits until the page says it drew the view it was asked for (STUDIO_VIEW_DRAWN), as check_report's probe does, then
+# waits a fixed settle time. A fixed timer from page load raced React's first draw on a slow CI runner.
+WHEN_DRAWN = ("var whenDrawn = function (go, settle) { var t0 = Date.now(); (function poll() {"
+              " if (!window.__STUDIO_START || window.STUDIO_VIEW_DRAWN || Date.now() - t0 > 5000) setTimeout(go, settle); else setTimeout(poll, 50); })(); };")
+
+
 def late(js: str) -> str:
     """A script that runs after the page has drawn and before the checker's probe reads it."""
-    return "<script>setTimeout(function () { " + js + " }, 2000);</script>"
+    return "<script>" + WHEN_DRAWN + "whenDrawn(function () { " + js + " }, 1500);</script>"
 
 
 def probed(html: str, dataset: str, js: str, act: str = "", phone: bool = False, **kw) -> dict:
     """Run act after the page draws, then js a second later; js returns a JSON-able value, read back from the DOM.
     phone=True draws the page in a 390px frame, as the checker does, since headless Chrome won't open a window under 500px."""
     target = "(window.parent !== window ? window.parent.document : document).body"
-    script = ("<script>setTimeout(function () { " + act + " }, 2500); setTimeout(function () { var out = (function () { " + js
-              + " })(); var p = document.createElement('pre'); p.id = 'probe'; p.textContent = JSON.stringify(out); " + target + ".appendChild(p); }, 3500);</script>")
+    script = ("<script>" + WHEN_DRAWN + "whenDrawn(function () { setTimeout(function () { var out; try { out = (function () { " + js
+              + " })(); } catch (e) { out = { __probeError: String(e) }; } var p = document.createElement('pre'); p.id = 'probe'; p.textContent = JSON.stringify(out); "
+              + target + ".appendChild(p); }, 1000); " + act + " }, 2000);</script>")
     if phone:
         start = json.dumps({"dataset": dataset, "session": kw.pop("session", 0), **({"more": True} if kw.pop("more", False) else {})})
         inner = html.replace("<!doctype html>\n", f"<!doctype html>\n<script>window.__STUDIO_START={start}</script>", 1) + script
@@ -94,10 +108,16 @@ def probed(html: str, dataset: str, js: str, act: str = "", phone: bool = False,
                                  env=check_report.chrome_env(tmp), capture_output=True, text=True, timeout=120, check=False).stdout
         found = re.search(r'<pre id="probe">(.*?)</pre>', out, re.S)
         assert found, "the probe did not run"
-        return json.loads(found.group(1).replace("&quot;", '"').replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"))
+        return _read_probe(found.group(1))
     found = re.search(r'<pre id="probe">(.*?)</pre>', dump(html, dataset, after=script, **kw), re.S)
     assert found, "the probe did not run"
-    return json.loads(found.group(1).replace("&quot;", '"').replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"))
+    return _read_probe(found.group(1))
+
+
+def _read_probe(raw: str):
+    got = json.loads(raw.replace("&quot;", '"').replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"))
+    assert not (isinstance(got, dict) and "__probeError" in got), f"the probe threw: {got.get('__probeError') if isinstance(got, dict) else ''}"
+    return got
 
 
 VISIBLE = "var vis = function (t) { return getComputedStyle(t).visibility !== 'hidden' && t.getBoundingClientRect().width > 0; }; var card = function (id) { return document.querySelector('[data-card=\"' + id + '\"]'); }; var texts = function (id) { return [].filter.call(card(id).querySelectorAll('svg text'), vis).map(function (t) { return t.textContent; }); };"
