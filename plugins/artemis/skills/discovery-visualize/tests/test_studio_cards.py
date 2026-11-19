@@ -516,6 +516,48 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual(check_report.render_checks(remembered, CHROME, "", probe, 8000), ["AI CARD"])
 
 
+class BrandTests(unittest.TestCase):
+    """The Artemis touches stay outside the charts: the header line, the footer badge, and a small mark under a saved chart."""
+
+    def test_the_mark_is_the_design_systems_own_file(self) -> None:
+        import base64
+        page = build_studio.TEMPLATE.read_text(encoding="utf-8") if hasattr(build_studio, "TEMPLATE") else build_studio.build([run_snapshot()])
+        png = base64.b64decode(re.search(r'var ICON = "data:image/png;base64,([^"]+)"', page).group(1))
+        self.assertEqual((png[:8], int.from_bytes(png[16:20], "big"), int.from_bytes(png[20:24], "big")), (b"\x89PNG\r\n\x1a\n", 96, 96), "artemis-logo-mark.png, 96px")
+        logo = page[page.index('var LOGOTYPE = "'):].split("\n", 1)[0]
+        self.assertIn('aria-label=\\"Artemis\\"', logo, "the vector wordmark, inlined")
+
+    @unittest.skipUnless(CHROME, "no Chrome or Chromium")
+    def test_the_header_and_footer_carry_the_brand_in_both_themes(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        read = """var b = document.querySelector('footer .badge'), w = b && b.querySelector('.wm svg');
+          return { made: document.querySelector('.brand .eyebrow').textContent, logo: !!document.querySelector('.brand img'), badge: b ? b.textContent : null,
+                   mark: b ? b.querySelectorAll('img').length : 0, wm: w ? getComputedStyle(w).color : null, fg: getComputedStyle(document.body).color,
+                   inCharts: document.querySelectorAll('.card .plot img, .card .plot .badge').length };"""
+        for theme in ("Light", "Dark"):
+            with self.subTest(theme=theme):
+                got = probed(html, ds(html), read, act="[].filter.call(document.querySelectorAll('button'), function (b) { return b.textContent === " + json.dumps(theme) + "; })[0].click();")
+                self.assertIn("Made with Artemis Discovery", got["made"])
+                self.assertTrue(got["logo"])
+                self.assertEqual((got["badge"], got["mark"]), ("TurinTech", 1), "the official mark, then the wordmark drawn as SVG")
+                self.assertEqual(got["wm"], got["fg"], "the wordmark takes the text colour, so it reads in this theme")
+                self.assertEqual(got["inCharts"], 0, "no logo inside a chart")
+
+    @unittest.skipUnless(CHROME, "no Chrome or Chromium")
+    def test_a_saved_chart_carries_the_mark_in_its_bottom_corner(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        act = ExportTests.CAPTURE + click("ranked", "Download") + " setTimeout(function () { " + click("ranked", "SVG") + " }, 200);"
+        svg = probed(html, ds(html), "return window.__saved || '';", act=act, wait=3000)
+        w, h = (float(x) for x in re.search(r'<svg[^>]* width="([\d.]+)" height="([\d.]+)"', svg).groups())
+        mark = re.search(r'<image class="artemis-mark" href="data:image/png;base64,[^"]+" x="([\d.]+)" y="([\d.]+)" width="16" height="16"', svg)
+        self.assertIsNotNone(mark, svg[-400:])
+        x, y = float(mark.group(1)), float(mark.group(2))
+        self.assertGreaterEqual(x, w - 40, "right-hand corner")
+        self.assertTrue(h - 30 <= y and y + 16 <= h, "bottom corner, inside the picture")
+        last = max(float(t) for t in re.findall(r'<g transform="translate\([\d.]+,([\d.]+)\)">', svg))
+        self.assertGreater(y, last, "below everything the chart draws")
+
+
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class VersionChartMeanTests(unittest.TestCase):
     """The version chart plots each version's mean, says nothing about more runs, draws no steers, and can hide the original."""

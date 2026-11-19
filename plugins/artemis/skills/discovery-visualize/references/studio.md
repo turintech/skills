@@ -9,6 +9,7 @@ Read this when you change the studio or answer a question about one of its cards
 - Each Conclusion keeps three bullets at most, so a card puts its most important three first.
 - Best (the Composite pick) is marked only on the headline, the Best card and the version chart's Overall score view, never on one metric's chart, where another version can lead.
 
+- Brand, only outside the charts: the Artemis mark and "Made with Artemis Discovery" beside the run name, a TurinTech Artemis badge (mark plus wordmark) by "Open in Artemis", and a 16px mark in a saved PNG or SVG's bottom-right corner, below everything drawn. The mark and wordmark are the Artemis Design System's own files (claude-design `assets/artemis-logo-mark.png` and `assets/logotype.svg`), inlined; the wordmark takes the text colour in both themes. No logos, patterns or banners inside a plot.
 
 ## Version chart
 
