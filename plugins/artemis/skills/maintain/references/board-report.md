@@ -85,7 +85,7 @@ python3 "$KIT/build_report.py" --snapshot /tmp/maintain-snapshot.json --page /tm
 python3 "$KIT/check_report.py" /tmp/maintain-report.html
 ```
 
-Fix everything the checker reports. Publish or open the page as `discovery-visualize`'s workflow step 6 says for your host (Claude Code: [claude-code.md](../../discovery-visualize/references/claude-code.md)). Then hand it over in the shape of its [Hand it over](../../discovery-visualize/SKILL.md#8-hand-it-over): at most four lines (open issues, critical and high, untriaged), then the link in the box, with the board, `<deployment-base-url>/projects/<project-id>/maintain/issues`, as the Artemis link.
+Fix everything the checker reports. Publish or open the page as `discovery-visualize`'s workflow step 6 says for your host (Claude Code: [claude-code.md](../../discovery-visualize/references/claude-code.md)). Then hand it over in the shape of its [Hand it over](../../discovery-visualize/SKILL.md#hand-it-over): at most four lines (open issues, critical and high, untriaged), then the link in the box, with the board, `<deployment-base-url>/projects/<project-id>/maintain/issues`, as the Artemis link.
 
 ## Truth rules
 
