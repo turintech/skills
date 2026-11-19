@@ -7,6 +7,7 @@ Stdlib only. Agents run this, then render the JSON with the host-specific adapte
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -14,6 +15,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
@@ -75,18 +77,34 @@ def as_docs(payload: Any) -> list[dict[str, Any]]:
     raise ValueError(f"unexpected payload type: {type(payload).__name__}")
 
 
+_HOST = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$")
+
+
+def web_origin(url: str) -> str:
+    """The Web UI origin every link is built on: https and a host only, so the page links nothing else."""
+    parsed = urlparse(url.strip())
+    try:
+        port = parsed.port
+    except ValueError:
+        port = -1
+    if (parsed.scheme != "https" or not _HOST.match(parsed.hostname or "") or port == -1 or parsed.username or parsed.password
+            or parsed.path.strip("/") or parsed.params or parsed.query or parsed.fragment):
+        raise ValueError(f"--base-url must be an https origin such as https://artemis.turintech.ai, not {url!r}")
+    return f"https://{parsed.hostname}" + (f":{port}" if port else "")
+
+
 def infer_base_url(status: Any | None = None, explicit: str | None = None) -> str | None:
+    """The run's own Web UI origin: --base-url, else the first https service status names; None links nothing."""
     if explicit:
-        return explicit.rstrip("/")
+        return web_origin(explicit)
     if not isinstance(status, dict):
         return None
     for service in status.get("services") or []:
-        url = (service or {}).get("url")
-        if not url:
+        parsed = urlparse((service or {}).get("url") or "")
+        try:
+            return web_origin(f"{parsed.scheme}://{parsed.netloc}")
+        except ValueError:
             continue
-        parsed = urlparse(url)
-        if parsed.scheme and parsed.netloc:
-            return f"{parsed.scheme}://{parsed.netloc}"
     return None
 
 
@@ -417,6 +435,107 @@ def _eligible(version: dict[str, Any]) -> bool:
     )
 
 
+def parse_reference_specs(values: list[str]) -> list[dict[str, str]]:
+    """--reference label=NAME,file=PATH[,note=PATH][,failures=PATH]: a model scored by the run's own referee outside Discovery
+    (a stock rival, say), so it is not in the platform data. The label and file are required; the paths are kept as the source."""
+    specs = []
+    for value in values:
+        parts = dict(part.split("=", 1) for part in value.split(",") if "=" in part)
+        unknown = set(parts) - {"label", "file", "note", "failures"}
+        if unknown or not parts.get("label") or not parts.get("file"):
+            raise ValueError(f"--reference {value!r}: give label=NAME,file=PATH[,note=PATH][,failures=PATH]")
+        specs.append({k: v.strip() for k, v in parts.items()})
+    return specs
+
+
+def external_references(specs: list[dict[str, str]], metric_defs: dict[str, dict[str, Any]], gate_metric: str | None) -> list[dict[str, Any]]:
+    """Each --reference as the snapshot carries it: its readings on the run's own metrics (only those the run measures, finite
+    numbers only), whether it fails the run's gate, its failures as the referee wrote them, and its source: the file's path and
+    sha256 and the provenance note. Nothing is filled in that the file does not say."""
+    out = []
+    for spec in specs:
+        raw = Path(spec["file"]).read_bytes()
+        doc = json.loads(raw)
+        readings = doc.get("metrics", doc) if isinstance(doc, dict) else {}
+        values = {k: float(v) for k, v in readings.items()
+                  if k in metric_defs and isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)}
+        if not values:
+            raise ValueError(f"--reference {spec['label']}: {spec['file']} has no reading on this run's metrics")
+        gate = values.get(gate_metric) if gate_metric else None
+        out.append({
+            "label": spec["label"],
+            "metrics": values,
+            "gateFailed": gate is not None and gate < 1,
+            "failures": [line.strip() for line in Path(spec["failures"]).read_text(encoding="utf-8").splitlines() if line.strip()] if spec.get("failures") else [],
+            "source": {"file": Path(spec["file"]).name, "sha256": hashlib.sha256(raw).hexdigest(),  # never a local path
+                       "note": Path(spec["note"]).read_text(encoding="utf-8") if spec.get("note") else None},
+        })
+    return out
+
+
+BYTE_UNITS = {"b": 1, "byte": 1, "bytes": 1, "kb": 10**3, "mb": 10**6, "gb": 10**9, "tb": 10**12,
+              "kib": 2**10, "mib": 2**20, "gib": 2**30, "tib": 2**40}
+_CAP_LEAD = (r"at most|no more than|not more than|under|below|max(?:imum)?(?: of)?|(?:size )?cap(?:ped at| of)?:?|"
+             r"limit(?:ed to| of)?:?|fits? (?:in|within|into)|≤|<=")
+_CAP = re.compile(
+    rf"(?:{_CAP_LEAD})\s*(\d[\d,]*(?:\.\d+)?)\s*(bytes?|[kmgt]i?b)\b(?!\s*/)"
+    r"|bytes\s*(?:≤|<=)\s*(\d[\d,]*)", re.IGNORECASE)
+_SIZE = re.compile(r"\s*(\d[\d,]*(?:\.\d+)?)\s*(bytes?|[kmgt]i?b)\s*", re.IGNORECASE)
+
+
+def parse_size_cap(value: str) -> dict[str, Any]:
+    """--size-cap "1.3 GB": the cap given outright, which beats reading it from the brief."""
+    match = _SIZE.fullmatch(value or "")
+    if not match:
+        raise ValueError(f"--size-cap {value!r}: give a size with a unit, e.g. \"1.3 GB\", \"500 MiB\" or \"1319830496 bytes\"")
+    return {"bytes": round(float(match.group(1).replace(",", "")) * BYTE_UNITS[match.group(2).lower()]), "text": f"--size-cap {value.strip()}"}
+
+
+def size_caps(brief: Any) -> dict[int, str]:
+    """Every byte cap a run's brief states, {bytes: the phrase it was read from}: "at most 1,319,830,496 bytes", "under 1.3 GB",
+    "<= 500 MiB", "bytes ≤ N". MB and GB are decimal, MiB and GiB binary; a rate ("under 5 MB/s") is not a cap."""
+    found: dict[int, str] = {}
+    for match in _CAP.finditer(brief if isinstance(brief, str) else ""):
+        number, unit = (match.group(1), match.group(2)) if match.group(1) else (match.group(3), "bytes")
+        found.setdefault(round(float(number.replace(",", "")) * BYTE_UNITS[unit.lower()]), match.group(0).strip())
+    return found
+
+
+def size_cap(brief: Any) -> dict[str, Any] | None:
+    """The size cap a run's brief states, as {bytes, text}, `text` the phrase it was read from so a reader can check it.
+    None when the brief states none, or two that differ: nothing is guessed."""
+    found = size_caps(brief)
+    if len(found) != 1:
+        return None
+    size, text = next(iter(found.items()))
+    return {"bytes": size, "text": text}
+
+
+def is_byte_target(d: dict[str, Any]) -> bool:
+    return d["kind"] == "target" and d.get("role") is None and str(d.get("unit") or "").lower() in BYTE_UNITS
+
+
+def budget_metric(metric_defs: dict[str, dict[str, Any]], cap: dict[str, Any] | None, named: str | None = None) -> str | None:
+    """The target metric the run's size cap applies to, its budget. Only with a stated cap, and only a byte-unit target:
+    the one --budget-metric names, or else the run's only byte-unit target. With several and none named there is no
+    budget (pass --budget-metric). No ratio decides it: a compression run often starts well above its cap."""
+    if named and (named not in metric_defs or not is_byte_target(metric_defs[named])):  # a wrong name is said, cap or not
+        raise ValueError(f"--budget-metric {named}: not a target metric measured in a byte unit (B, KB, MB, GB, KiB, MiB, GiB)")
+    if not cap:
+        return None
+    if named:
+        return named
+    candidates = [name for name, d in metric_defs.items() if is_byte_target(d)]
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def drawable_tradeoff(metric_defs: dict[str, dict[str, Any]], usable: list[dict[str, Any]]) -> list[str]:
+    """The metrics a trade-off can draw: directed targets falcon compared on two or more of `usable` (the versions that
+    passed the gate). The page and build_studio.py read the list; neither works it out again."""
+    compared = lambda name: sum(1 for v in usable if (((v.get("metrics") or {}).get(name) or {}).get("vsBaseline") or {}).get("improvementPct") is not None)
+    return [name for name, d in metric_defs.items() if d["kind"] == "target" and d["higherIsBetter"] is not None and compared(name) >= 2]
+
+
 def web_ui_best(versions: list[dict[str, Any]]) -> dict[str, Any] | None:
     """The version the Web UI badges Best: the highest Composite score among versions that scored, have a sha and
     did not fail, the earlier one on a tie, and none unless that score is above 0 (better than the baseline)."""
@@ -527,6 +646,7 @@ def best_lines(
     versions: list[dict[str, Any]],
     winners: dict[str, dict[str, Any]],
     ui_best: dict[str, Any] | None,
+    gated: tuple[dict[str, Any], str] | None = None,
 ) -> dict[str, Any] | None:
     """The sentences every report and chat answer carries verbatim: which version leads and why, and each
     measured metric whose own best is another version. None when there is no target metric, or the lead metric has no
@@ -560,6 +680,9 @@ def best_lines(
         return None
     if by_composite:
         lede = f"{lead['label']} is the Web UI\u2019s Best: the highest Composite score, the platform\u2019s roll-up of the metrics by importance."
+    elif gated:  # the Web UI's Best failed the run's own gate (gated = (that Best, the gate metric)), so it is not led with
+        lede = (f"The Web UI\u2019s Best is {gated[0]['label']}, by Composite score, but it failed the gate ({gated[1]} = 0) "
+                f"and its values are not usable, so this page leads with the best version on {key}.")
     elif ui_best:
         lede = (f"The Web UI\u2019s Best is {ui_best['label']}, by Composite score, but Artemis has no change on {key} for it, "
                 f"so this page leads with the best version on {key}.")
@@ -705,6 +828,10 @@ def build_snapshot(
     collected_at: str,
     base_url: str | None = None,
     pareto_axes: list[str] | None = None,
+    gate_metric: str | None = None,
+    reference_specs: list[dict[str, str]] | None = None,
+    budget_name: str | None = None,
+    size_cap_given: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     # A NaN or Infinity from Artemis becomes null before anything is ranked or picked from it (a NaN breaks the sort),
     # and each one is named, so a version that loses its % this way is not quietly ranked last.
@@ -895,6 +1022,18 @@ def build_snapshot(
         record["eligible"] = _eligible(record)
         versions.append(record)
 
+    # --gate-metric: a 0/1 metric the run's own gate writes. A version that reads 0 failed it, and its other readings are not
+    # usable (a load failure can write 0 for every error rate), so it is never ranked, never a winner, never on the front.
+    gate = None
+    if gate_metric:
+        if gate_metric not in metric_defs:
+            raise ValueError(f"unknown gate metric: {gate_metric}")
+        for version in versions:
+            reading = ((version.get("metrics") or {}).get(gate_metric) or {}).get("mean")
+            version["gateFailed"] = reading is not None and reading < 1
+        gate = {"metric": gate_metric, "failed": [v["label"] for v in versions if v["gateFailed"]]}
+    usable = [v for v in versions if not v.get("gateFailed")]
+
     rankings: dict[str, list[dict[str, Any]]] = {}
     running_best: dict[str, list[dict[str, Any]]] = {}
     winners: dict[str, dict[str, Any]] = {}
@@ -907,7 +1046,7 @@ def build_snapshot(
         higher = bool(definition["higherIsBetter"])
         ranked: list[dict[str, Any]] = []
         unranked: list[str] = []
-        for version in versions:
+        for version in usable:
             stat = (version.get("metrics") or {}).get(name)
             if not stat or stat.get("mean") is None:
                 continue
@@ -946,7 +1085,7 @@ def build_snapshot(
         series = []
         for version in versions:
             stat = (version.get("metrics") or {}).get(name)
-            mean = stat.get("mean") if stat else None
+            mean = stat.get("mean") if stat and not version.get("gateFailed") else None
             if mean is not None and (best_mean is None or _is_better(mean, best_mean, higher)):
                 best_mean = mean
                 best_version = version["version"]
@@ -1014,10 +1153,29 @@ def build_snapshot(
                 }
                 for axis in pareto_axes
             ],
-            "points": pareto_front(versions, pareto_axes, metric_defs),
+            "points": pareto_front(usable, pareto_axes, metric_defs),
             "note": "Analytical view over the named axes, not an Artemis verdict.",
         }
 
+    ui_best = web_ui_best(versions)
+    ui_gated = bool(ui_best and ui_best["label"] in (gate or {}).get("failed", []))
+    lines = best_lines(metric_defs, usable, winners, None if ui_gated else ui_best, (ui_best, gate_metric) if ui_gated else None)
+    # The size cap and the metric it applies to; and the metrics a trade-off can draw: directed targets falcon compared on
+    # two or more versions that passed the gate. The page and build_studio.py read these and decide nothing themselves.
+    # Each silent way to lose the within-the-cap view says so on stderr, with the flag that fixes it.
+    caps = {} if size_cap_given else size_caps(run.get("taskDescription"))
+    if len(caps) > 1:
+        print(f"collect_discovery.py: the brief states {len(caps)} different size limits ({'; '.join(caps.values())}), so no size cap is set; pass --size-cap", file=sys.stderr)
+    cap = size_cap_given or size_cap(run.get("taskDescription"))
+    budget = budget_metric(metric_defs, cap, budget_name)
+    if budget_name and not cap:
+        print(f"collect_discovery.py: --budget-metric {budget_name} has no size cap to apply to: none found in the brief; pass --size-cap", file=sys.stderr)
+    several = [name for name, d in metric_defs.items() if is_byte_target(d)]
+    if cap and not budget and len(several) > 1:
+        print(f"collect_discovery.py: the size cap ({cap['text']}) could apply to {', '.join(several)}; pass --budget-metric to name one", file=sys.stderr)
+    if budget:  # the cap in the metric's own unit, so a page compares like with like and never converts units itself
+        metric_defs[budget].update(role="budget", cap=cap["bytes"] / BYTE_UNITS[str(metric_defs[budget]["unit"]).lower()])
+    tradeoff_metrics = drawable_tradeoff(metric_defs, usable)
     return {
         "schemaVersion": SCHEMA_VERSION,
         "collectedAt": collected_at,
@@ -1035,6 +1193,7 @@ def build_snapshot(
             "status": run.get("status"),
             "displayStatus": run.get("displayStatus"),
             "taskDescription": run.get("taskDescription"),
+            "sizeCap": cap,
             "targetFiles": run.get("targetFiles") or [],
             "versionCount": run.get("versionCount"),
             "numVersions": run.get("numVersions"),
@@ -1047,6 +1206,7 @@ def build_snapshot(
             "runnerName": run.get("runnerName"),
             "runner": run.get("runnerName") or run.get("runnerId") or run.get("runnerUserId"),
             "projectName": payloads.get("projectName") or run.get("projectName"),
+            "webOrigin": base_url,
             "projectUrl": project_url,
             "webUrl": web_url,
         },
@@ -1062,8 +1222,11 @@ def build_snapshot(
         "rankings": rankings,
         "runningBest": running_best,
         "perMetricWinners": winners,
-        "webUiBest": web_ui_best(versions),
-        "bestLines": best_lines(metric_defs, versions, winners, web_ui_best(versions)),
+        "webUiBest": ui_best,
+        "bestLines": lines,
+        "gate": gate,  # null without --gate-metric
+        "externalReferences": external_references(reference_specs or [], metric_defs, gate_metric),
+        "tradeoffMetrics": tradeoff_metrics,
         # The stored-direction warnings on their own as well, so a page carries them even when no version leads.
         "directionChecks": direction_checks(metric_defs),
         "nonFinite": nulled,  # the values Artemis sent as NaN or Infinity, read as missing
@@ -1085,7 +1248,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--project", help="Project UUID: collect every Discovery run in it, one snapshot each")
     parser.add_argument("--from-dir", help="Load run/versions/metrics/experiments JSON from a directory")
     parser.add_argument("--output", help="Write JSON to this path instead of stdout")
-    parser.add_argument("--base-url", help="Web UI origin, e.g. https://artemis.turintech.ai")
+    parser.add_argument("--base-url", help="Web UI origin the page links to, e.g. https://artemis.turintech.ai")
     parser.add_argument("--cli", default="artemis", help="The artemis binary to run (default: artemis on PATH)")
     parser.add_argument("--config", help="Passed to every artemis call as --config")
     parser.add_argument(
@@ -1093,6 +1256,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="append",
         default=[],
         help="Comma-separated metric keys for an optional Pareto view. Repeatable.",
+    )
+    parser.add_argument(
+        "--size-cap",
+        help='The run\'s size cap, e.g. "1.3 GB" or "500 MiB": used instead of reading one from the brief',
+    )
+    parser.add_argument(
+        "--budget-metric",
+        help="With a size cap in the brief: the byte-unit metric the cap applies to, when the run has more than one (e.g. model_size_mb)",
+    )
+    parser.add_argument(
+        "--reference",
+        action="append",
+        default=[],
+        help="label=NAME,file=PATH[,note=PATH][,failures=PATH]: a model the run's referee scored outside Discovery, drawn as a sourced reference. Repeatable.",
+    )
+    parser.add_argument(
+        "--gate-metric",
+        help="A 0/1 metric the run's own gate writes, e.g. eligible: a version that reads 0 failed it and is never ranked, a winner or on the front",
     )
     return parser.parse_args(argv)
 
@@ -1112,6 +1293,12 @@ def main(argv: list[str] | None = None) -> int:
     if not args.run_id and not args.from_dir and not args.project:
         print("collect_discovery.py: --run-id, --project or --from-dir is required", file=sys.stderr)
         return 2
+    if args.base_url:  # every link is built on it, so a wrong one stops here, before any run is read
+        try:
+            web_origin(args.base_url)
+        except ValueError as error:
+            print(f"collect_discovery.py: {error}", file=sys.stderr)
+            return 2
     collected_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     if args.project:
         if not compare_available(args.cli, args.config):
@@ -1119,10 +1306,16 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         runs, skipped = [], []
         names: dict[str, str | None] = {}
+        try:  # a bad --reference or --size-cap is the user's to fix, once, before any run is read
+            specs = parse_reference_specs(args.reference)
+            given_cap = parse_size_cap(args.size_cap) if args.size_cap else None
+        except ValueError as error:
+            print(f"collect_discovery.py: {error}", file=sys.stderr)
+            return 2
         for item in sorted(list_project_runs(args.project, args.cli, args.config), key=lambda r: r.get("createdAt") or ""):
             try:
-                runs.append(build_snapshot(fetch_cli(item["id"], args.cli, args.config, names), collected_at=collected_at, base_url=args.base_url))
-            except (RuntimeError, ValueError) as error:
+                runs.append(build_snapshot(fetch_cli(item["id"], args.cli, args.config, names), collected_at=collected_at, base_url=args.base_url, gate_metric=args.gate_metric, reference_specs=specs, budget_name=args.budget_metric, size_cap_given=given_cap))
+            except (OSError, RuntimeError, ValueError) as error:
                 skipped.append({"id": item.get("id"), "status": item.get("status"), "reason": str(error)[:200]})
         result = {"schemaVersion": SCHEMA_VERSION, "kind": "project", "projectId": args.project, "collectedAt": collected_at, "runs": runs, "skipped": skipped}
         encoded = write_finite(result)
@@ -1150,8 +1343,12 @@ def main(argv: list[str] | None = None) -> int:
             collected_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             base_url=args.base_url,
             pareto_axes=parse_pareto_axes(args.pareto),
+            gate_metric=args.gate_metric,
+            reference_specs=parse_reference_specs(args.reference),
+            budget_name=args.budget_metric,
+            size_cap_given=parse_size_cap(args.size_cap) if args.size_cap else None,
         )
-    except ValueError as error:
+    except (OSError, ValueError) as error:  # a --reference file that is missing or not JSON is a message, not a traceback
         print(f"collect_discovery.py: {error}", file=sys.stderr)
         return 2
     encoded = write_finite(snapshot)

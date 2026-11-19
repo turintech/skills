@@ -40,8 +40,10 @@
     "runnerName": "redacted",
     "runner": "redacted",
     "projectName": "redacted",
+    "webOrigin": null,
     "projectUrl": null,
-    "webUrl": null
+    "webUrl": null,
+    "sizeCap": null
   },
   "metrics": [
     {
@@ -2187,5 +2189,8 @@
   "pareto": null,
   "references": [],
   "directionChecks": [],
-  "nonFinite": []
+  "nonFinite": [],
+  "gate": null,
+  "externalReferences": [],
+  "tradeoffMetrics": ["rtfx", "wall_ms", "ms_per_chunk", "proc_wall_s", "der_long"]
 }
