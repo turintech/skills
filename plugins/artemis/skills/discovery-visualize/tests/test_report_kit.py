@@ -172,6 +172,10 @@ class FewBarsTests(unittest.TestCase):
         self.assertTrue(any(p.startswith("OFF-CENTRE CHART") for p in problems), problems)
 
 
+# Advice to run again, which a page never gives for one run against one: it states the fact instead.
+NO_MORE_RUNS = r"(?i)\bre-?run\b|\breruns?\b|measure (it )?again\b|run (it )?again\b|to get intervals|to find out"
+
+
 class RecipeTests(unittest.TestCase):
     """The default page in references/report-kit.md repeats falcon's verdict; it never re-judges it."""
 
@@ -188,6 +192,11 @@ class RecipeTests(unittest.TestCase):
             __import__("json").loads(result.stdout),
             [", a real gain", ", a real loss", ", within the noise", ", too few runs to tell yet", ""],
         )
+
+    def test_one_run_against_one_advises_no_more_runs(self) -> None:
+        for path in ("references/report-kit.md", "assets/report-kit.js", "assets/chart-studio.html", "references/studio.md"):
+            with self.subTest(path=path):
+                self.assertNotRegex((ROOT / path).read_text(encoding="utf-8"), NO_MORE_RUNS)
 
     def test_recipe_stops_when_there_is_no_best_version(self) -> None:
         recipe = (ROOT / "references" / "report-kit.md").read_text(encoding="utf-8")
@@ -264,6 +273,9 @@ class RecipeRenderTests(unittest.TestCase):
                     m["vsBaseline"].update({"verdict": "pending", "ciLowPct": None, "ciHighPct": None})
         html = build_report.build(snapshot, self.recipe_page(), "Title")
         self.assertEqual(check_report.render_checks(html, check_report.find_chrome()), [])
+        text = self.page_text(html)
+        self.assertIn("1 run each, so no significance: no version is confirmed better or worse.", text)
+        self.assertNotRegex(text, NO_MORE_RUNS)
 
     # Without readings the page threw "winM.runs is not iterable" and drew nothing.
     @unittest.skipUnless(check_report.find_chrome(), "no Chrome or Chromium")

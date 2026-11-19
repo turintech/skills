@@ -96,7 +96,7 @@ R.headline(f1.top, {
 });
 R.baselineBest(f1.chart, panels);
 f1.bullets([changed]);
-f1.caption(singleRun ? 'One run of each, so no version is confirmed better or worse: rerun the baseline and the versions you like to find out.'
+f1.caption(singleRun ? '1 run each, so no significance: no version is confirmed better or worse.'
   : 'Each panel is one metric: the baseline and ' + winV.label + ', as means. The badge is Artemis’s change, on the metric’s own aggregator, as in the Web UI.');
 
 // Figure 2: every run of the target metric, the baseline against the best version, only when the collector had each reading.
