@@ -140,7 +140,7 @@ artemis maintain issues archive <id>...   # off the board, triage unchanged (won
 
 ## 6. Fix
 
-Three routes. If the user hasn't named one, offer them with a recommendation. The local-agent route spends nothing on the platform.
+Three routes. If the user hasn't named one, offer them with the board's recommendation, the one the Web UI's Fix dialog preselects. Read it from `artemis --output-format json maintain issues get <ISS-n> -p <p>`: `recommendedFixRoute` is `coder` (the fix agent) or `discovery`, and `fixRouteReason` says why (`small_complexity`, `medium_complexity`, `large_complexity` or `discovery_rule`). Every Issue has one, even before anyone tries to fix it. Give that route and reason as the board does, and don't swap in your own: if you would suggest another route, say so as a separate, labelled extra. For several Issues in one fix, recommend Discovery if the board recommends it for any of them, and name which. The local-agent route spends nothing on the platform.
 
 ### The fix agent
 
@@ -157,7 +157,7 @@ artemis maintain issues fix <issue-id>... [--model <model>]
 
 ### Fix in Discovery
 
-For a large fix, or one worth measuring, the Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The command starts the run in one call, from the board: each Issue is confirmed, gets a fix attempt and moves to the `in_progress` lane. Nothing asks about settings: whatever is left unset takes the project's own settings (execution mode, script, runner, model, Benchmark runs) and a budget of 10 versions. Check each Issue with `issues get` first: one that is archived (`Status: closed`), out of date or obsolete (`Sync Status`) or already being fixed (`Fix Status` `pending` or `in_progress`) refuses the call. Agree the settings with the user, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. `--model` takes the same values as for the fix agent. If the user names a metric to improve or an approach to try, pass it as `--focus`: the run sees only the Issues and that line. Then pass them all:
+The board recommends **Fix in Discovery** for an Issue raised by a Discovery Rule or with a large complexity of fix; the user can still choose it for any Issue they want measured. The Web UI's **Fix in Discovery** hands the work to a Discovery run that tries competing fixes and scores them. The command starts the run in one call, from the board: each Issue is confirmed, gets a fix attempt and moves to the `in_progress` lane. Nothing asks about settings: whatever is left unset takes the project's own settings (execution mode, script, runner, model, Benchmark runs) and a budget of 10 versions. Check each Issue with `issues get` first: one that is archived (`Status: closed`), out of date or obsolete (`Sync Status`) or already being fixed (`Fix Status` `pending` or `in_progress`) refuses the call. Agree the settings with the user, as `discovery-start` does for any run: the model, the number of versions, the runner and script, the Benchmark runs per version (decided as in `discovery-start`), and that the run also scores AI Metrics. `--model` takes the same values as for the fix agent. If the user names a metric to improve or an approach to try, pass it as `--focus`: the run sees only the Issues and that line. Then pass them all:
 
 ```bash
 artemis maintain issues fix <ISS-n> --discovery --project <p> \
