@@ -44,6 +44,7 @@ Read this when you change the studio or answer a question about one of its cards
 
 ## Look and motion
 
+- A change label ("29.8% lower") is coloured by good or bad in the metric's own direction, never by up or down, on the ranked bars, forest rows, the Best card and the table: green or red from falcon's verdict; for one run against one, falcon's direction-adjusted estimate in a lighter shade; no significant difference and needs more runs stay neutral. The verdict word, sign or the bar's side of 0 always says it too. Light mode deepens the verdict shade (#115e59, #b91c1c), since the estimate's shade is already at 4.5:1.
 - Cards fade and rise in as they first scroll into view, under 600ms (bars grow, trend dots pop in order, Best's changes count up, the Bar / Forest switch morphs); never under prefers-reduced-motion or in print.
 - Box plots tint every other column faintly, full height; never a continuous scatter.
 - "Download PDF" opens the print dialog in the light theme, without the controls. Charts download as PNG, SVG or CSV.

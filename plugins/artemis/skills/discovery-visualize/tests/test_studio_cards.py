@@ -516,6 +516,47 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual(check_report.render_checks(remembered, CHROME, "", probe, 8000), ["AI CARD"])
 
 
+@unittest.skipUnless(CHROME, "no Chrome or Chromium")
+class ChangeColourTests(unittest.TestCase):
+    """A change label is coloured by good or bad, never by up or down, wherever it is printed."""
+
+    SAME = """var norm = function (c) { var e = document.createElement('i'); e.style.color = c; return e.style.color; };
+      var tok = function (n) { return norm(getComputedStyle(document.documentElement).getPropertyValue(n).trim()); };
+      var name = function (c) { c = norm(c); return ['--gain-text', '--gain-soft', '--loss-text', '--loss-soft'].filter(function (n) { return tok(n) === c; })[0] || (c === norm(getComputedStyle(document.body).color) ? 'fg' : c); };"""
+
+    def test_falcons_verdict_colours_the_change_and_noise_stays_neutral(self) -> None:
+        snap = with_intervals(run_snapshot())  # the first version significantly improved, the rest no significant difference
+        worst = [v for v in snap["versions"] if (v["metrics"].get(KEY) or {}).get("vsBaseline")][-1]
+        vb = worst["metrics"][KEY]["vsBaseline"]
+        vb.update(verdict="worse", improvementPct=-abs(vb["improvementPct"] or 5), ciLowPct=-40, ciHighPct=-2)
+        worst["metrics"][KEY]["pctBetter"] = vb["improvementPct"]
+        html = build_studio.build([snap])
+        got = probed(html, ds(html), self.SAME + """
+          var bars = [].map.call(document.querySelectorAll('[data-card=ranked] svg text'), function (t) { var s = t.querySelectorAll('tspan'); return s.length > 1 ? [s[1].textContent, name(s[0].getAttribute('fill'))] : null; }).filter(Boolean);
+          var table = [].map.call(document.querySelectorAll('[data-card=table] tbody tr'), function (r) { var c = r.querySelector('.chg'), i = r.querySelector('.vicon'); return c && i ? [i.getAttribute('aria-label'), name(c.style.color)] : null; }).filter(Boolean);
+          var best = [].map.call(document.querySelectorAll('[data-card=best] .psub .val'), function (v) { return name(v.style.color); });
+          return { bars: bars, table: table, best: best };""", more=True)
+        want = {"Significantly improved": "--gain-text", "Significantly regressed": "--loss-text", "No significant difference": "fg"}
+        for where in ("bars", "table"):
+            pairs = [(w.replace("\u25b2 ", "").replace("\u25bc ", "").replace("\u2248 ", ""), c) for w, c in got[where]]
+            seen = {w for w, _ in pairs}
+            with self.subTest(where=where):
+                self.assertTrue({"Significantly improved", "Significantly regressed", "No significant difference"} <= seen, pairs)
+                for w, c in pairs:
+                    if w in want:
+                        self.assertEqual(c, want[w], (where, w))
+        self.assertTrue(got["best"] and all(c in ("--gain-text", "--loss-text", "fg") for c in got["best"]), got["best"])
+
+    def test_one_run_against_one_takes_the_lighter_shade_of_its_estimate(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        got = probed(html, ds(html), self.SAME + """
+          return [].map.call(document.querySelectorAll('[data-card=ranked] svg text'), function (t) { var s = t.querySelector('tspan[font-weight="600"]'); return s && /% (less|more)/.test(s.textContent) ? [s.textContent, name(s.getAttribute('fill'))] : null; }).filter(Boolean);""")
+        self.assertTrue(got, "the ranked bars print their changes")
+        for text, colour in got:
+            with self.subTest(label=text):
+                self.assertEqual(colour, "--gain-soft" if text.endswith("less") else "--loss-soft", "lower latency is better, so less is good")
+
+
 class BrandTests(unittest.TestCase):
     """The Artemis touches stay outside the charts: the header line, the footer badge, and a small mark under a saved chart."""
 

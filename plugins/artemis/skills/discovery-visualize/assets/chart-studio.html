@@ -11,7 +11,7 @@
 :root {
   --bg: #f8fafc; --card: #ffffff; --fg: #0f172a; --text-2: #475569; --line: #e2e8f0; --grid: #e2e8f0; --subtle: #f1f5f9;
   --baseline: #d9731a; --accent: #7c3aed; --accent-text: #6d28d9; --neutral: #94a3b8; --ink-mark: #334155; --steer: #0f766e; --s1: #8b5cf6; --s2: #0d9488;
-  --better: #14b8a6; --worse: #fb4a38; --better-text: #0f766e; --worse-text: #dc2626; --noise-text: #a16207; --noise: #facc15; --pending: #94a3b8;
+  --better: #14b8a6; --worse: #fb4a38; --better-text: #0f766e; --worse-text: #dc2626; --gain-text: #115e59; --gain-soft: #0f766e; --loss-text: #b91c1c; --loss-soft: #dc2626; --noise-text: #a16207; --noise: #facc15; --pending: #94a3b8;
   --up: #14b8a6; --down: #fb4a38; --eq: #d97706;
   --focus: #6d28d9; --shadow: 0 1px 3px #0000001a, 0 1px 2px -1px #0000001a;
   --sans: Archivo, ui-sans-serif, system-ui, sans-serif;
@@ -20,12 +20,12 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #020617; --card: #0f172a; --fg: #f1f5f9; --text-2: #cbd5e1; --line: #1e293b; --grid: #1e293b; --subtle: #1e293b;
   --baseline: #f28c28; --accent: #8b5cf6; --accent-text: #c4b5fd; --neutral: #64748b; --ink-mark: #cbd5e1; --steer: #5eead4; --s1: #8b5cf6; --s2: #2dd4bf;
-  --better: #5eead4; --worse: #fb6151; --better-text: #5eead4; --worse-text: #fb6151; --noise-text: #fde047; --noise: #fde047; --pending: #64748b;
+  --better: #5eead4; --worse: #fb6151; --better-text: #5eead4; --worse-text: #fb6151; --gain-text: #5eead4; --gain-soft: #2dd4bf; --loss-text: #fb6151; --loss-soft: #e35d5d; --noise-text: #fde047; --noise: #fde047; --pending: #64748b;
   --up: #5eead4; --down: #fb6151; --eq: #fbbf24; --focus: #c4b5fd; --shadow: none; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #020617; --card: #0f172a; --fg: #f1f5f9; --text-2: #cbd5e1; --line: #1e293b; --grid: #1e293b; --subtle: #1e293b;
   --baseline: #f28c28; --accent: #8b5cf6; --accent-text: #c4b5fd; --neutral: #64748b; --ink-mark: #cbd5e1; --steer: #5eead4; --s1: #8b5cf6; --s2: #2dd4bf;
-  --better: #5eead4; --worse: #fb6151; --better-text: #5eead4; --worse-text: #fb6151; --noise-text: #fde047; --noise: #fde047; --pending: #64748b;
+  --better: #5eead4; --worse: #fb6151; --better-text: #5eead4; --worse-text: #fb6151; --gain-text: #5eead4; --gain-soft: #2dd4bf; --loss-text: #fb6151; --loss-soft: #e35d5d; --noise-text: #fde047; --noise: #fde047; --pending: #64748b;
   --up: #5eead4; --down: #fb6151; --eq: #fbbf24; --focus: #c4b5fd; --shadow: none; color-scheme: dark }
 [hidden] { display: none !important; }
 * { box-sizing: border-box; }
@@ -186,7 +186,7 @@ footer a { color: var(--accent-text); }
 @media (prefers-reduced-motion: reduce) { .card.playing, .card.playing *, .morph { animation: none !important; } .card.pre { opacity: 1; } }
 /* Download PDF: the browser's print dialog, light, with the controls left out and each card kept on one page where it fits. */
 @media print {
-  :root, :root[data-theme="dark"] { --bg: #ffffff; --card: #ffffff; --fg: #0f172a; --text-2: #475569; --line: #e2e8f0; --grid: #e2e8f0; --subtle: #f1f5f9; --shadow: none; color-scheme: light; }
+  :root, :root[data-theme="dark"] { --bg: #ffffff; --card: #ffffff; --fg: #0f172a; --text-2: #475569; --line: #e2e8f0; --grid: #e2e8f0; --subtle: #f1f5f9; --shadow: none; color-scheme: light; --gain-text: #115e59; --gain-soft: #0f766e; --loss-text: #b91c1c; --loss-soft: #dc2626; }
   body { background: #fff; }
   .bar, .tools, .toast, details.more > summary::before { display: none !important; }
   .page { max-width: none; padding: 0; gap: 12px; }
@@ -396,7 +396,7 @@ function forget(prefix) { try { var ls = window.localStorage, drop = []; for (va
 /* ---------- theme tokens, read from CSS so both themes work ---------- */
 function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 function tokens() {
-  var n = ["--fg", "--text-2", "--line", "--grid", "--card", "--bg", "--baseline", "--accent", "--accent-text", "--neutral", "--ink-mark", "--steer", "--s1", "--s2", "--better", "--worse", "--better-text", "--worse-text", "--noise-text", "--noise", "--pending", "--up", "--down", "--eq"], o = {};
+  var n = ["--fg", "--text-2", "--line", "--grid", "--card", "--bg", "--baseline", "--accent", "--accent-text", "--neutral", "--ink-mark", "--steer", "--s1", "--s2", "--better", "--worse", "--better-text", "--worse-text", "--noise-text", "--noise", "--pending", "--up", "--down", "--eq", "--gain-text", "--gain-soft", "--loss-text", "--loss-soft"], o = {};
   n.forEach(function (k) { o[k.slice(2)] = tok(k); }); return o;
 }
 
@@ -540,6 +540,15 @@ function useCard(scope, id, dflt) {
 var GLYPH = { better: "▲", worse: "▼", noise: "≈", pending: "○", none: "·" };
 var ICON_OF = { better: "✓", pending: "○", noise: "≈", worse: "▼", none: "·", failed: "✗", unmeasured: "∅" };  // the table's verdict signs: shape and colour, never colour alone
 function vFill(T, v) { return v === "better" ? T.better : v === "worse" ? T.worse : v === "noise" ? T.noise : null; }
+// A change label's colour says good or bad in the metric's own way, never up or down: falcon's verdict in the full shade; for one
+// run against one, falcon's direction-adjusted estimate in the lighter shade; no significant difference and needs more runs stay
+// neutral. Light mode deepens the verdict shade, since the lighter one is already at 4.5:1. The verdict word or sign rides beside it.
+function changeInk(T, verdict, pct, oneRun) {
+  if (verdict === "better") return T["gain-text"];
+  if (verdict === "worse") return T["loss-text"];
+  if (oneRun && pct != null && pct !== 0) return pct > 0 ? T["gain-soft"] : T["loss-soft"];
+  return T.fg;
+}
 function vText(T, v) { return v === "better" ? T["better-text"] : v === "worse" ? T["worse-text"] : v === "noise" ? T["noise-text"] : v === "none" ? T["text-2"] : T.fg; }
 function pendInk(T, pct) { return pct != null && pct < 0 ? T.worse : T.better; }  // a pending outline leans the way its estimate does
 function vWord(v) { return v ? GLYPH[v] + " " + VERDICT[v] : "no verdict"; }
@@ -850,7 +859,7 @@ function BestCard(props) {
       var vt = p.vb ? vText(T, p.vb.verdict) : T.fg;
       return html`<div class="panel" key=${p.m.key}>
         <p class="ptitle xt">${mlabel(p.m)}</p>
-        <p class="psub xt">${p.vb ? html`<span class="val" style=${{ color: p.one ? T.fg : vt }}><${CountUp} text=${identical(p.vb) ? "0.0%" : changePhrase(p.m, p.vb.improvementPct) || NO_PCT}/></span>${!identical(p.vb) && p.vb.ciLowPct != null ? html` <span class="ci">(95% CI ${ivl(p.m, p.vb.ciLowPct, p.vb.ciHighPct)})</span>` : null}, <span style=${{ color: p.one ? T.fg : vt }}>${p.one ? "1 run each, not confirmed" : vbWord(p.vb)}</span>` : p.noReading ? bestV.label + " has no reading on " + mlabel(p.m) : NO_PCT}${", " + dirText(p.m)}</p>
+        <p class="psub xt">${p.vb ? html`<span class="val" style=${{ color: changeInk(T, p.vb.verdict, p.vb.improvementPct, p.one) }}><${CountUp} text=${identical(p.vb) ? "0.0%" : changePhrase(p.m, p.vb.improvementPct) || NO_PCT}/></span>${!identical(p.vb) && p.vb.ciLowPct != null ? html` <span class="ci">(95% CI ${ivl(p.m, p.vb.ciLowPct, p.vb.ciHighPct)})</span>` : null}, <span style=${{ color: p.one ? T.fg : vt }}>${p.one ? "1 run each, not confirmed" : vbWord(p.vb)}</span>` : p.noReading ? bestV.label + " has no reading on " + mlabel(p.m) : NO_PCT}${", " + dirText(p.m)}</p>
         <${RC.BarChart} width=${pw} height=${240} data=${p.rows} margin=${{ top: 30, right: 12, left: 12, bottom: 8 }} accessibilityLayer=${true}>
           <${RC.XAxis} dataKey="name" tick=${tick} tickLine=${false} axisLine=${{ stroke: T.line }} interval=${0} height=${32}/>
           <${RC.CartesianGrid} vertical=${false} strokeDasharray="2 3" stroke=${T.grid}/>
@@ -887,7 +896,7 @@ function barLabel(T, rows, narrow, M) {
     var end = Math.max(lp.x, lp.x + lp.width), inside = narrow && Math.abs(lp.width) > 96 && vFill(T, r.verdict), y = lp.y + lp.height / 2 + 5;
     if (inside) return h("text", { x: end - 8, y: y, fontSize: 13, fill: "#0f172a", textAnchor: "end" }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600 }, chg(M, r.pct)), r.verdict && !r.oneRun ? h("tspan", { dx: 6 }, GLYPH[r.verdict]) : null);
     var x = end + 8;
-    return h("text", { x: x, y: y, fontSize: 13, fill: T.fg }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600 }, chg(M, r.pct)),
+    return h("text", { x: x, y: y, fontSize: 13, fill: T.fg }, h("tspan", { fontFamily: NUMFONT, fontWeight: 600, fill: changeInk(T, r.verdict, r.pct, r.oneRun) }, chg(M, r.pct)),
       r.verdict && !r.oneRun ? h("tspan", { fill: vText(T, r.verdict), fontSize: 13, dx: 8 }, narrow ? GLYPH[r.verdict] : vWord(r.verdict)) : null,
       null);
   };
@@ -1055,13 +1064,13 @@ function ForestCard(props) {
   // On a phone the value sits on its own line above its row, so it never covers a mark or an interval.
   var phoneLabel = function (sp, p, text, ink) { return h("text", { x: x0, y: sp.cy - 13, textAnchor: "start", fontSize: 13, fill: ink, fontWeight: 600, fontFamily: NUMFONT }, text); };
   var shape = function (sp) {
-    var p = sp.payload, cl = colorOf(p), pend = p.verdict === "pending", val = log ? xlabels[p.label] : chg(m, p.pct), ink = vText(T, p.verdict);
+    var p = sp.payload, cl = colorOf(p), pend = p.verdict === "pending", val = log ? xlabels[p.label] : chg(m, p.pct), ink = changeInk(T, p.verdict, p.pct, false);
     var k = (x1 - x0) / (R - L), edge = function (side) { var x = sp.cx + ((side < 0 ? L : R) - p.est) * k; return h("polygon", { key: "e" + side, className: "ci-open", points: [x + side * 6, sp.cy, x - side * 4, sp.cy - 7, x - side * 4, sp.cy + 7].join(" "), fill: cl }); };
     return h("g", null, p.pastLo ? edge(-1) : null, p.pastHi ? edge(1) : null,
       linked(p.href, p.label, p.clip ? h("polygon", { className: "clip-arrow", points: [sp.cx + p.clip * 2, sp.cy, sp.cx - p.clip * 12, sp.cy - 8, sp.cx - p.clip * 12, sp.cy + 8].join(" "), fill: cl })
         : h("circle", { cx: sp.cx, cy: sp.cy, r: 6.5, fill: pend ? T.card : cl, stroke: cl, strokeWidth: 2.2 }), true),
       narrow ? phoneLabel(sp, p, val + " " + GLYPH[p.verdict], ink)
-        : h("text", { x: width - right + 16, y: sp.cy + 5, fill: ink }, h("tspan", { fontSize: 14, fontWeight: 600, fontFamily: NUMFONT }, val), h("tspan", { fontSize: 13, dx: 10 }, vWord(p.verdict))));
+        : h("text", { x: width - right + 16, y: sp.cy + 5, fill: ink }, h("tspan", { fontSize: 14, fontWeight: 600, fontFamily: NUMFONT }, val), h("tspan", { fontSize: 13, dx: 10, fill: vText(T, p.verdict) }, vWord(p.verdict))));
   };
   var sig = all.filter(function (r) { return r.verdict === "better"; });
   var maxN = Math.max.apply(null, [0].concat(ranks.map(function (r) { var vb = vsb(D.byLabel[r.label], key); return vb && isFinite(vb.readings) ? vb.readings : 0; })));
@@ -1380,7 +1389,7 @@ function SummaryCard(props) {
       <thead><tr>${th("version", "Version")}${th("what", "What changed", false, "wide")}${th("pct", "Δ% vs original", true)}${th("verdict", "Verdict", false, "ic")}${th("runs", "Itera\u00ADtions", true)}${th("commit", "Commit", false, "wide")}</tr></thead>
       <tbody>${sorted.map(function (r) { return html`<tr key=${r.label}>
         <td>${r.failed ? "✕ " : ""}${r.label}<span class="sub">${softBreaks(r.what) || "no title"}</span></td><td class="wide what">${softBreaks(r.what) || "no title"}</td>
-        <td class="n">${r.pct == null ? "" : chg(m, r.pct)}${r.lo == null ? null : html` <span class="ci">(${ivl(m, r.lo, r.hi)})</span>`}</td>
+        <td class="n">${r.pct == null ? "" : html`<span class="chg" style=${{ color: changeInk(T, r.verdict, r.pct, r.verdict === "pending" && (r.runs || 0) <= 1) }}>${chg(m, r.pct)}</span>`}${r.lo == null ? null : html` <span class="ci">(${ivl(m, r.lo, r.hi)})</span>`}</td>
         <td class=${"ic" + (r.verdict ? " v-" + r.verdict : r.gate || (r.ran && r.ran !== "not measured") ? " v-worse" : "")}>${r.verdict ? html`<span class="vicon" role="img" aria-label=${VERDICT[r.verdict]} title=${VERDICT[r.verdict]}>${ICON_OF[r.verdict]}</span>` : r.ran === "not measured" ? html`<span class="vicon" role="img" aria-label="Not measured" title="Not measured">${ICON_OF.unmeasured}</span>` : r.ran ? html`<span class="vicon" role="img" aria-label=${"Failed: " + r.ran} title=${"Failed: " + r.ran}>${ICON_OF.failed}</span>` : html`<span class="st">${r.status}</span>`}</td><td class="n">${r.runs || ""}</td><td class="wide">${r.commit}</td></tr>`; })}</tbody>
     </table>
     <div class="ikey" aria-label="Verdict signs">${["better", "pending", "noise", "worse"].map(function (k) { return html`<span key=${k} class=${"v-" + k}><span class="vicon" aria-hidden="true">${ICON_OF[k]}</span> ${VERDICT[k]}</span>`; })}${nFail ? html`<span class="v-worse"><span class="vicon" aria-hidden="true">${ICON_OF.failed}</span> Failed to run (${nFail}${showFailed ? "" : ", hidden"})</span>` : null}${nUnmeasured ? html`<span><span class="vicon" aria-hidden="true">${ICON_OF.unmeasured}</span> Not measured (${nUnmeasured}${showFailed ? "" : ", hidden"})</span>` : null}<span class="t2">Δ% in brackets: the 95% interval</span></div>
