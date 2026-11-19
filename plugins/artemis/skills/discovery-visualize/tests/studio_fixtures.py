@@ -89,13 +89,13 @@ def late(js: str) -> str:
     return "<script>" + WHEN_DRAWN + "whenDrawn(function () { " + js + " }, 1500);</script>"
 
 
-def probed(html: str, dataset: str, js: str, act: str = "", phone: bool = False, **kw) -> dict:
-    """Run act after the page draws, then js a second later; js returns a JSON-able value, read back from the DOM.
+def probed(html: str, dataset: str, js: str, act: str = "", phone: bool = False, wait: int = 1000, **kw) -> dict:
+    """Run act after the page draws, then js wait ms later (a second by default); js returns a JSON-able value, read back from the DOM.
     phone=True draws the page in a 390px frame, as the checker does, since headless Chrome won't open a window under 500px."""
     target = "(window.parent !== window ? window.parent.document : document).body"
     script = ("<script>" + WHEN_DRAWN + "whenDrawn(function () { setTimeout(function () { var out; try { out = (function () { " + js
               + " })(); } catch (e) { out = { __probeError: String(e) }; } var p = document.createElement('pre'); p.id = 'probe'; p.textContent = JSON.stringify(out); "
-              + target + ".appendChild(p); }, 1000); " + act + " }, 2000);</script>")
+              + target + ".appendChild(p); }, " + str(int(wait)) + "); " + act + " }, 2000);</script>")
     if phone:
         start = json.dumps({"dataset": dataset, "session": kw.pop("session", 0), **({"more": True} if kw.pop("more", False) else {})})
         inner = html.replace("<!doctype html>\n", f"<!doctype html>\n<script>window.__STUDIO_START={start}</script>", 1) + script

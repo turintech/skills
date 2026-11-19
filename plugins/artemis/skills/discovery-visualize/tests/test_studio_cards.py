@@ -517,6 +517,49 @@ class ProjectTests(unittest.TestCase):
 
 
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
+class VersionChartMeanTests(unittest.TestCase):
+    """The version chart plots each version's mean, says nothing about more runs, draws no steers, and can hide the original."""
+
+    @staticmethod
+    def snap() -> dict:
+        snap = run_snapshot()
+        snap["steering"] = {"points": [{"firstVersion": 2, "firstLabel": "v2", "guidance": "Try a cache."}]}
+        for v in snap["versions"]:
+            vb = (v["metrics"].get(KEY) or {}).get("vsBaseline")
+            if vb:
+                vb.update(verdict="pending", ciLowPct=None, ciHighPct=None, readings=1)  # one run against one
+        snap["baseline"]["metrics"][KEY]["mean"] = 100.0  # far above every version, so its line sets the axis
+        return snap
+
+    READ = """var c = document.querySelector('[data-card="time"]');
+      return { text: c.textContent, views: [].map.call(c.querySelectorAll('.seg button'), function (b) { return b.textContent; }),
+               pressed: [].filter.call(c.querySelectorAll('.seg button'), function (b) { return b.getAttribute('aria-pressed') === 'true'; }).map(function (b) { return b.textContent; }),
+               dashed: c.querySelectorAll('line[stroke-dasharray="2 4"]').length, bands: c.querySelectorAll('.col-band').length,
+               legend: [].map.call(c.querySelectorAll('.legend button'), function (b) { return b.textContent; }),
+               ticks: [].map.call(c.querySelectorAll('.recharts-yAxis-tick-labels text'), function (t) { return parseFloat(t.textContent.replace(/,/g, '')); }) };"""
+
+    def test_the_mean_is_the_only_metric_view_and_it_never_asks_for_more_runs_or_draws_steers(self) -> None:
+        html = build_studio.build([self.snap()])
+        got = probed(html, ds(html), self.READ)
+        self.assertEqual(got["views"], ["Mean", "Overall score"])
+        self.assertEqual(got["pressed"], ["Mean"])
+        self.assertNotRegex(got["text"], r"(?i)needs? more runs")
+        self.assertNotRegex(got["text"], r"(?i)steer")
+        self.assertEqual((got["dashed"], got["bands"]), (0, 0), "no steer lines or numbered stretches")
+        self.assertIn("Version", got["legend"])
+
+    def test_the_originals_legend_entry_hides_its_line_and_the_axis_fits_the_versions(self) -> None:
+        html = build_studio.build([self.snap()])
+        shown = probed(html, ds(html), self.READ)
+        self.assertTrue(any(l.startswith("Original 100") for l in shown["legend"]), shown["legend"])
+        self.assertIn("original 100", shown["text"])
+        self.assertGreaterEqual(max(shown["ticks"]), 100)
+        hidden = probed(html, ds(html), self.READ, act="[].filter.call(document.querySelectorAll('[data-card=\"time\"] .legend button'), function (b) { return /^Original/.test(b.textContent.trim()); })[0].click();")
+        self.assertNotIn("original 100", hidden["text"])
+        self.assertLess(max(hidden["ticks"]), 100, hidden["ticks"])
+
+
+@unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class MoreWordingTests(unittest.TestCase):
     def test_the_mean_view_legend_says_mean(self) -> None:
         snap = run_snapshot()
@@ -764,7 +807,7 @@ class CheckerViewTests(unittest.TestCase):
 
     def test_a_card_that_goes_blank_behind_a_control_fails(self) -> None:
         html = build_studio.build([run_snapshot()])
-        blank = html + late('document.addEventListener("click", function (e) { if (e.target.textContent === "Mean") setTimeout(function () { document.querySelector("[data-card=time] .plot").innerHTML = ""; }, 50); }, true);')
+        blank = html + late('document.addEventListener("click", function (e) { if (e.target.textContent === "Overall score") setTimeout(function () { document.querySelector("[data-card=time] .plot").innerHTML = ""; }, 50); }, true);')
         problems = check_report.studio_render_checks(blank, CHROME)
         self.assertTrue(any(p.startswith("EMPTY CARD: How did the search go") and "(after " in p for p in problems), problems)
 
@@ -1242,8 +1285,11 @@ class ExportNotesTests(unittest.TestCase):
         html = build_studio.build([run_snapshot()])
         for item, words in (("PNG, 2x", "PNG export failed"), ("CSV of the plotted data", "CSV export failed")):
             with self.subTest(item=item):
-                act = "URL.createObjectURL = function () { throw new Error('no url'); };" + click("ranked", "Download") + " setTimeout(function () { " + click("ranked", item) + " }, 200);"
-                toast = probed(html, ds(html), "var t = document.querySelector('.toast'); return t ? t.textContent : null;", act=act)
+                # The export fetches its font first, so the toast comes when that settles: the first toast is kept, read up to 3s later.
+                keep = ("window.__toast = null; new MutationObserver(function () { var t = document.querySelector('.toast'); if (t && !window.__toast) window.__toast = t.textContent; })"
+                        ".observe(document.body, { subtree: true, childList: true, characterData: true });")
+                act = keep + "URL.createObjectURL = function () { throw new Error('no url'); };" + click("ranked", "Download") + " setTimeout(function () { " + click("ranked", item) + " }, 200);"
+                toast = probed(html, ds(html), "return window.__toast;", act=act, wait=3000)
                 self.assertTrue(toast and toast.startswith(words), toast)
 
     def test_a_font_that_fails_to_download_is_said(self) -> None:

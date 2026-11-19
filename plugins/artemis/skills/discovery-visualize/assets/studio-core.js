@@ -24,10 +24,9 @@ function hasIntervals(D) {
 }
 /* has-intervals:end */
 /* best-corner:start */
-// The corner that is better on both metrics. Artemis's % better is direction-adjusted, so on a % plot it is always up and right;
-// on a plot of the metrics' own values it follows each one's stored direction (two lower-is-better metrics: down and left).
-function bestCorner(mx, my, mode) {
-  if (mode === "pct") return { x: "right", y: "top", arrow: "↗" };
+// The corner that is better on both metrics, from each one's stored direction (two lower-is-better metrics: down and left).
+// Every trade-off view plots a metric its own way round, its values or its % change, so this one rule places the corner.
+function bestCorner(mx, my) {
   var x = mx.higherIsBetter === false ? "left" : "right", y = my.higherIsBetter === false ? "bottom" : "top";
   return { x: x, y: y, arrow: y === "top" ? (x === "right" ? "↗" : "↖") : (x === "right" ? "↘" : "↙") };
 }
@@ -43,10 +42,15 @@ function dominates(a, b, axes) {
   axes.forEach(function (ax) { var x = a[ax.key], y = b[ax.key]; if (ax.hib ? x < y : x > y) ge = false; if (ax.hib ? x > y : x < y) gt = true; });
   return ge && gt;
 }
+// The front's staircase between two neighbours on it (sorted by x): the corner both of them beat, the worse value on each axis.
+function stairCorner(a, b, axes) {
+  var worse = function (ax, u, v) { return ax.hib ? Math.min(u, v) : Math.max(u, v); };
+  return { x: worse(axes[0], a.x, b.x), y: worse(axes[1], a.y, b.y) };
+}
 function onFront(pts, axes) { return pts.map(function (p) { return !pts.some(function (o) { return o !== p && dominates(o, p, axes); }); }); }
-// The Plot views a pair offers, the first the one it opens on. A pair with the run's budget metric (a stated size cap) opens on the
-// other metric, size as budget used; every pair can be drawn in Artemis's % change and in the metrics' own values.
-function tradeoffViews(mx, my) { return mx.role === "budget" || my.role === "budget" ? ["quality", "values", "pct"] : ["pct", "values"]; }
+// The Plot views a pair offers, the first the one it opens on: every pair opens on the metrics' own values, the original at its real
+// value. A pair with the run's budget metric (a stated size cap) adds the other metric within the cap; every pair has Artemis's % change.
+function tradeoffViews(mx, my) { return mx.role === "budget" || my.role === "budget" ? ["values", "quality", "pct"] : ["values", "pct"]; }
 // Every reading behind these metrics is one run against one: no interval, so nothing can be called significant.
 function measuredOnce(versions, readings, keys) {
   return keys.every(function (k) {
@@ -67,14 +71,15 @@ function tradeoffRefs(refs, kx, ky, budget) {
 /* pareto-mc:start */
 /* Each version's chance of being on the Pareto front, COMPUTED HERE from Artemis's intervals, not a falcon verdict.
    It moves to falcon when falcon reports it (data-contract.md says so).
-   pts: [{ x, y, xlo, xhi, ylo, yhi }], each a direction-adjusted % better (right and up is better) with Artemis's 95% interval.
+   pts: [{ x, y, xlo, xhi, ylo, yhi }], each Artemis's % change with its 95% interval; axes says which way is better on each
+   (PCT_AXES, the default, for a direction-adjusted % better).
    Each draw samples every version's two changes from normals: mean = Artemis's estimate, sd = the interval's half-width / 1.96
    (0 with no interval). A version is on the front in a draw when no other is at least as good on both and better on one.
    Seeded (mulberry32), so the page and the tests get the same numbers. Returns { p: [share of draws on the front],
    dominated: [[i, j], ...] where version i is ahead of version j in at least 95% of draws }. */
 var MC_DRAWS = 2000, MC_SEED = 20261117;  // the draws behind each chance, and the seed that makes them the same on every load
-function paretoChances(pts, draws, seed) {
-  var n = pts.length, N = draws || MC_DRAWS, a = (seed == null ? MC_SEED : seed) >>> 0;
+function paretoChances(pts, draws, seed, axes) {
+  var dir = axes || PCT_AXES, n = pts.length, N = draws || MC_DRAWS, a = (seed == null ? MC_SEED : seed) >>> 0;
   var rnd = function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   var normal = function () { var u = 0; while (u === 0) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
   var sd = function (lo, hi) { return lo != null && hi != null && hi > lo ? (hi - lo) / 2 / 1.96 : 0; };
@@ -84,7 +89,7 @@ function paretoChances(pts, draws, seed) {
     for (var i = 0; i < n; i++) { xs[i] = pts[i].x + sx[i] * normal(); ys[i] = pts[i].y + sy[i] * normal(); }
     for (i = 0; i < n; i++) {
       var front = true;
-      for (var j = 0; j < n; j++) if (j !== i && dominates({ x: xs[j], y: ys[j] }, { x: xs[i], y: ys[i] }, PCT_AXES)) { ahead[j][i]++; front = false; }
+      for (var j = 0; j < n; j++) if (j !== i && dominates({ x: xs[j], y: ys[j] }, { x: xs[i], y: ys[i] }, dir)) { ahead[j][i]++; front = false; }
       if (front) wins[i]++;
     }
   }

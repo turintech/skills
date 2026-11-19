@@ -99,6 +99,27 @@ class StaticCheckTests(unittest.TestCase):
             subprocess.run(["node", "--check", str(path)], check=True)
 
 
+class ShotsTests(unittest.TestCase):
+    """check_report.py --studio --shots DIR: the desktop and phone pictures for the look before hand-over."""
+
+    def test_shots_need_the_studio_check_and_a_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stderr(io.StringIO()) as err:
+            page = Path(tmp) / "studio.html"
+            page.write_text(build_studio.build([run_snapshot()]), encoding="utf-8")
+            self.assertEqual(check_report.main(["--shots", tmp, str(page)]), 2)
+            self.assertEqual(check_report.main(["--studio", str(page), "--shots"]), 2)
+        self.assertIn("--shots needs a folder", err.getvalue())
+
+    @unittest.skipUnless(CHROME, "no Chrome or Chromium")
+    def test_shots_write_a_desktop_and_a_phone_picture(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            got = check_report.screenshots(build_studio.build([run_snapshot()]), CHROME, Path(tmp) / "shots")
+            self.assertEqual(sorted(p.name for p in got), ["studio-desktop.png", "studio-phone.png"])
+            for png in got:
+                self.assertEqual(png.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
+                self.assertGreater(png.stat().st_size, 20000, f"{png.name} looks blank")
+
+
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
 class RenderTests(unittest.TestCase):
     def test_every_view_renders_clean_with_no_label_overlapping_or_cut(self) -> None:
@@ -194,11 +215,11 @@ class RenderTests(unittest.TestCase):
             self.assertLessEqual(b1, t2 + 1)
 
     def test_a_view_behind_a_control_is_drawn_too(self) -> None:
-        a = 'useCard(props.scope, "time", { mode: "pct" }), c = cs[0], hd = c.hidden || {};'
+        a = 'useCard(props.scope, "time", { mode: "mean" }), c = cs[0], hd = c.hidden || {};'
         html = build_studio.build([run_snapshot()])
         self.assertEqual(html.count(a), 1)
-        problems = check_report.studio_render_checks(html.replace(a, a + ' if (c.mode === "mean") throw new Error("mean view broke");'), CHROME)
-        self.assertTrue(any(p.startswith("SCRIPT ERROR: mean view broke (after ") for p in problems), problems)
+        problems = check_report.studio_render_checks(html.replace(a, a + ' if (c.mode === "fit") throw new Error("score view broke");'), CHROME)
+        self.assertTrue(any(p.startswith("SCRIPT ERROR: score view broke (after ") for p in problems), problems)
         dark = html.replace("function App() {", 'function App() { if (document.documentElement.getAttribute("data-theme") === "dark") throw new Error("dark broke");', 1)
         self.assertTrue(any(p.startswith("SCRIPT ERROR: dark broke (after Theme > Dark)") for p in check_report.studio_render_checks(dark, CHROME)))
 
@@ -300,8 +321,11 @@ class RenderTests(unittest.TestCase):
         html = build_studio.build([run_snapshot(), project_snapshot(3)])
         raw = html.replace("function scheduleDeclutter() { clearTimeout(declutterT); declutterT = setTimeout(declutter, 30); }", "function scheduleDeclutter() {}")
         self.assertNotEqual(raw, html)
-        problems = check_report.studio_render_checks(raw, CHROME)
-        self.assertTrue(any(p.startswith("LABEL CUT OFF:") and "390px" in p for p in problems), problems)
+        # A label run past the version chart's right edge, as a long leader label would be on a phone with nothing to move it.
+        past = late("var s = document.querySelector('[data-card=time] svg.recharts-surface'), t = document.createElementNS('http://www.w3.org/2000/svg', 'text');"
+                    " t.setAttribute('x', s.getBoundingClientRect().width - 20); t.setAttribute('y', 60); t.setAttribute('font-size', 13); t.textContent = 'Top v2: a label past the edge'; s.appendChild(t);")
+        problems = check_report.studio_render_checks(raw + past, CHROME)
+        self.assertTrue(any(p.startswith('LABEL CUT OFF: "Top v2: a label past the edge"') and "390px" in p for p in problems), problems)
         self.assertTrue(any(p.startswith("LABELS OVERLAP:") for p in problems), problems)
 
     def test_an_empty_versions_filter_says_so(self) -> None:

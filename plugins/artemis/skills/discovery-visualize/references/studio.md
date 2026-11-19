@@ -9,20 +9,24 @@ Read this when you change the studio or answer a question about one of its cards
 - Each Conclusion keeps three bullets at most, so a card puts its most important three first.
 - Best (the Composite pick) is marked only on the headline, the Best card and the version chart's Overall score view, never on one metric's chart, where another version can lead.
 
+
 ## Version chart
 
 - Its title answers "did the search keep finding better versions, and when did it stop?", e.g. "3 clear new leaders, the last at v36; none clear in the 4 versions since".
-- Clear new leaders are numbered #1, #2. A new leader inside the last clear one's 95% interval gets a dashed ring and counts as within noise; that interval runs on as a faint band in % change view. Without falcon's intervals the title says "new leader" with no claim, and there are no numbers and no band.
-- The metric's leader is ringed and labelled "Top"; steers are dotted lines; the good direction is printed in the metric's own way ("↑ better: lower Model size (MB)"), never a bare "higher is better" beside a lower-is-better metric.
+- Two views: Mean (first), each version's measured mean of one metric in its own values, and Overall score. No % change view.
+- The original is a line at its mean, with a legend entry that hides it; hidden, the axis fits the versions alone.
+- Clear new leaders are numbered #1, #2. A new leader inside the last clear one's 95% interval gets a dashed ring and counts as within noise. Without falcon's intervals the title says "new leader" with no claim, and there are no numbers.
+- A version with no settled verdict is a plain dot named "Version": the chart and its Conclusion never say "needs more runs". Steers are not drawn or quoted here.
+- The metric's leader is ringed and labelled "Top"; the good direction is printed in the metric's own way ("↓ lower is better"), never a bare "higher is better" beside a lower-is-better metric.
 - On a phone (under 560px): no leader numbers or dashed rings (the title and tooltips still say them), the Top ring stays inside the plot, and its label goes on the side that covers no dot, or is left out.
 
 ## Trade-off
 
 - The two metrics are the collector's `tradeoffMetrics`; `build_studio.py --tradeoff X,Y` sets the pair it opens on. The Plot views come from the collector's contract, never from a metric's name:
-  - **Within the cap**, first, when one axis is the run's budget metric (`metrics[].role: "budget"`, a stated size cap): size is a budget to spend, not a goal. Each version on the other metric, best first, against the original and each reference; size as budget used (in the budget metric's own unit, and % of the cap) beside each row and in the tooltip; versions over the cap grey.
-  - **Values**, for every pair: both metrics in their own units, the front as a staircase, the original as a triangle, references as diamonds or dashed lines, and the cap line on the budget axis. "Better on both" sits in the corner each metric's direction gives (two lower-is-better metrics: down and left).
-  - **% change**, the first view of any other pair: Artemis's % better on both (direction-adjusted, so up and right is better), Front / All (All first). The front's chance for each version and "Behind the front" come from `paretoChances()`, a seeded Monte Carlo over falcon's intervals, said on the page to be computed there; with no interval anywhere there is no ring and no chance.
-- One dominance rule (`dominates()`) draws every front: at least as good on both and better on one.
+  - **Values**, first for every pair (the original sits at its real values; at 0% on a % view a reader takes it for a size of 0): both metrics in their own units, the front as a staircase, the original as a triangle, references as diamonds or dashed lines, and the cap line on the budget axis. "Better on both" sits in the corner each metric's direction gives (two lower-is-better metrics: down and left).
+  - **Within the cap**, second, when one axis is the run's budget metric (`metrics[].role: "budget"`, a stated size cap): size is a budget to spend, not a goal. Each version on the other metric, best first, against the original and each reference; size as budget used (in the budget metric's own unit, and % of the cap) beside each row and in the tooltip; versions over the cap grey.
+  - **% change**, last: the one view with falcon's 95% intervals and each version's chance of being on the front; Artemis's % change on both, each axis in its metric's own direction (falcon's % better with the sign turned for a lower-is-better metric, so a model 12.6% larger plots at +12.6%), and each axis tagged "higher is better" or "lower is better". The green shading and "Better on both" sit in the corner the two directions give, as in Values. The original is labelled "no change on either". Front / All (All first). The front's chance for each version and "Behind the front" come from `paretoChances()`, a seeded Monte Carlo over falcon's intervals, said on the page to be computed there; with no interval anywhere there is no ring and no chance.
+- One dominance rule (`dominates()`) draws every front: at least as good on both and better on one. The front's staircase turns at the corner both neighbours beat (`stairCorner()`), so it follows each axis's direction too.
 - References are only the collector's `externalReferences` (`--reference`): a point where the file has both readings, a dashed line where it has one, "Same size: ..." when its budget reading is the cap, red and "fails the gate (...)" when it fails the run's gate.
 - Versions that failed the gate (`--gate-metric`) start hidden in every view; their legend entry shows struck through, and one click brings them back as red crosses, drawn at the edge when a reading is past the axes. They never set an axis on any card.
 - "1 run each, so no significance" is said only when every reading behind the view is one run against one.

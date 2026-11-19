@@ -145,6 +145,32 @@ var whenDrawn = function (go) { var t0 = Date.now(); (function poll() { if (!win
       var said = [].some.call(plot ? plot.querySelectorAll('.sparse, .missing, .err') : [], function (e) { return e.textContent.trim(); });
       if (plot && !plot.querySelector('.recharts-surface, table') && !said) { var t = card.querySelector('h2'); once('EMPTY CARD: ' + (t ? t.textContent.trim().slice(0, 60) : 'a card')); }
     });
+    // A Conclusion bullet that says nothing.
+    [].forEach.call(document.querySelectorAll('.means li'), function (l) { if (!l.textContent.trim()) { var c = l.closest('.card'), t = c && c.querySelector('h2'); once('EMPTY BULLET: ' + (t ? t.textContent.trim().slice(0, 60) : 'a card')); } });
+    // The trade-off follows each metric's stored direction (metrics[].higherIsBetter): "Better on both" points at the corner both
+    // directions give, and each axis title says "higher is better" or "lower is better", the right one for its metric.
+    var tc = document.querySelector('[data-card="tradeoff"]'), sn = window.SNAPSHOT || {}, sel = tc ? tc.querySelectorAll('select') : [];
+    if (tc && sn.metrics && sel.length >= 2) {
+      var dir = {}, names = window.STUDIO_LABELS || {}; sn.metrics.forEach(function (m) { dir[m.key] = m.higherIsBetter; });
+      var kx = sel[0].value, ky = sel[1].value, hx = dir[kx], hy = dir[ky];
+      if (hx != null && hy != null) {
+        var want = hy === false ? (hx === false ? '↙' : '↘') : (hx === false ? '↖' : '↗');
+        [].forEach.call(tc.querySelectorAll('text.both'), function (t) { var s = t.textContent.trim(); if (s.slice(-1) !== want) once('WRONG BETTER CORNER: "' + s + '", but the directions of the two metrics point ' + want); });
+        // Recharts draws every label in one layer, so an axis title is found by its metric's name ("Name: % change, ..." or
+        // "Name, lower is better"); a phone drops the name ("% change, ..."), and then the rotated one is the y axis.
+        var view = [].filter.call(tc.querySelectorAll('.seg button'), function (b) { return b.getAttribute('aria-pressed') === 'true'; }).map(function (b) { return b.textContent; })[0] || '';
+        var budget = sn.metrics.filter(function (m) { return m.role === 'budget'; }).map(function (m) { return m.key; });
+        var need = view === 'Within the cap' ? [kx, ky].filter(function (k) { return budget.indexOf(k) < 0; }) : [kx, ky];
+        var titles = [].map.call(tc.querySelectorAll('.recharts-label'), function (l) { return { s: (l.dataset.full || l.textContent).trim(), up: /rotate/.test(l.getAttribute('transform') || '') }; });
+        if (tc.querySelector('.recharts-surface')) need.forEach(function (k) {
+          var nm = names[k] || k, t = titles.filter(function (x) { return x.s.indexOf(nm + ':') === 0 || x.s.indexOf(nm + ',') === 0; })[0]
+            || titles.filter(function (x) { return /^% (change|better)/.test(x.s) && x.up === (k === ky && need.length > 1); })[0];
+          var tag = dir[k] === false ? 'lower is better' : 'higher is better';
+          if (!t) once('AXIS WITHOUT A TITLE: ' + nm + ' in the ' + (view || 'trade-off') + ' view');
+          else if (t.s.indexOf(tag) < 0) once('WRONG AXIS DIRECTION: "' + t.s.slice(0, 70) + '", but ' + nm + ' is ' + tag);
+        });
+      }
+    }
     // A value the page could not format: "undefined", "NaN" or "null" where the page writes its own words and numbers
     // (the headline, panel lines, numbers, chart labels), never in collected text such as an experiment title.
     // An en or em dash a reader can see (a metric key drawn as its name, say): the page uses commas, colons and "to".
@@ -511,13 +537,39 @@ def phone_checks(html: str, chrome: str, before: str) -> list[str]:
     return probe_page(outer, chrome, 200000, "at 390px")
 
 
+def screenshots(html: str, chrome: str, out: Path) -> list[Path]:
+    """The page as a reader sees it, for the look before hand-over: desktop (1280px) and phone (390px, in a frame), More charts open."""
+    start = "<script>window.__STUDIO_START=" + json.dumps({"more": True}) + ";</script>"
+    page = with_probe(html, start, "")
+    phone = '<!doctype html><body style="margin:0"><iframe style="width:390px;height:6000px;border:0" srcdoc="' + html_lib.escape(page, quote=True) + '"></iframe>'
+    out.mkdir(parents=True, exist_ok=True)
+    written = []
+    for name, doc, width in (("studio-desktop.png", page, 1280), ("studio-phone.png", phone, 600)):
+        with tempfile.TemporaryDirectory() as tmp:
+            src, png = Path(tmp) / "shot.html", out / name
+            src.write_text(doc, encoding="utf-8")
+            subprocess.run([chrome, "--headless=new", "--force-prefers-reduced-motion", "--disable-gpu", "--no-sandbox", f"--user-data-dir={Path(tmp) / 'profile'}",
+                            f"--window-size={width},6000", "--virtual-time-budget=10000", f"--screenshot={png}", src.as_uri()],
+                           env=chrome_env(tmp), capture_output=True, timeout=120, check=False)
+            if png.exists():
+                written.append(png)
+    return written
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(argv if argv is not None else sys.argv[1:])
     studio = "--studio" in args
     if studio:
         args.remove("--studio")
-    if len(args) != 1:
-        print("usage: check_report.py [--studio] page.html", file=sys.stderr)
+    shots = None
+    if "--shots" in args:
+        i = args.index("--shots")
+        if i + 1 >= len(args):
+            print("check_report.py: --shots needs a folder", file=sys.stderr)
+            return 2
+        shots = Path(args.pop(i + 1)); args.pop(i)
+    if len(args) != 1 or (shots and not studio):
+        print("usage: check_report.py [--studio [--shots DIR]] page.html", file=sys.stderr)
         return 2
     try:
         html = Path(args[0]).read_text(encoding="utf-8")
@@ -535,6 +587,9 @@ def main(argv: list[str] | None = None) -> int:
         print("note: no Chrome or Chromium found, so only static checks ran; open the page and look at it")
     for p in problems:
         print("FAIL", p)
+    if shots and chrome:
+        for png in screenshots(html, chrome, shots):
+            print("shot", png)
     print("OK" if not problems else f"{len(problems)} problem(s)")
     return 1 if problems else 0
 

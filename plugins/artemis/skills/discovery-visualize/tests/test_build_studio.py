@@ -20,9 +20,10 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "tests"))
 
 import build_studio  # noqa: E402
+import check_report  # noqa: E402
 import collect_discovery  # noqa: E402
 from studio_fixtures import (  # noqa: E402
-    CHROME, VISIBLE, embedded, failed_run, low_then_high, probed, project_snapshot, redrawable, run_snapshot, with_intervals,
+    CHROME, VISIBLE, embedded, failed_run, late, low_then_high, probed, project_snapshot, redrawable, run_snapshot, with_intervals,
 )
 
 
@@ -719,7 +720,7 @@ class OutlierAndAxisTests(unittest.TestCase):
     def test_no_axis_shows_an_impossible_value_and_ticks_step_evenly(self) -> None:
         html, fp = build_studio.build([self.shop_shape()]), build_studio.build([self.shop_shape()], only="forest")
         got = probed(html, embedded(html)["datasets"][0]["id"], self.TICKS + """
-          return { ranked: ticks('ranked'), time: yticks('time') };""", more=True)
+          return { ranked: ticks('ranked') };""", more=True)
         got["forest"] = probed(fp, embedded(fp)["datasets"][0]["id"], self.TICKS + "return ticks('forest');")
         for card in ("forest", "ranked"):
             vals = [self.pct(t) for t in got[card]]
@@ -727,7 +728,6 @@ class OutlierAndAxisTests(unittest.TestCase):
                 self.assertLessEqual(max(vals), 100, f"a lower-is-better time can't be more than 100% better: {vals}")
                 steps = {round(b - a, 6) for a, b in zip(vals, vals[1:])}
                 self.assertEqual(len(steps), 1, f"one step on both sides of 0: {vals}")
-        self.assertLessEqual(max(self.pct(t) for t in got["time"]), 100, got["time"])
 
     def test_a_phone_forest_keeps_values_clear_of_the_marks(self) -> None:
         html = build_studio.build([self.shop_shape()], only="forest")
@@ -942,10 +942,10 @@ class TidierStudioTests(unittest.TestCase):
         html = build_studio.build([OutlierAndAxisTests.shop_shape()])
         got = probed(html, embedded(html)["datasets"][0]["id"], VISIBLE + """
           var t = texts('time');
-          return { best: t.filter(function (x) { return /^Top v\d+: /.test(x); }), up: t.some(function (x) { return /^↑ (better: (higher|lower) |more % better)/.test(x); }), steer: t.indexOf('Steer') >= 0,
+          return { best: t.filter(function (x) { return /^Top v\d+: /.test(x); }), up: t.some(function (x) { return /^[↑↓] (higher|lower) is better$/.test(x); }), steer: t.indexOf('Steer') >= 0,
                    legend: card('time').querySelector('.legend') ? card('time').querySelector('.legend').textContent : '' };""", more=True)
         self.assertEqual(len(got["best"]), 1, got)
-        self.assertTrue(got["up"], "the % chart says up is better")
+        self.assertTrue(got["up"], "the mean chart says which way is better in the metric's own way")
         self.assertFalse(got["steer"], "steers are dotted lines in the legend, not text on the chart")
         self.assertIn("Top on", got["legend"])
 
@@ -974,13 +974,13 @@ def two_targets(close: bool = False) -> dict:
 class VersionChartAnswerTests(unittest.TestCase):
     """The version-by-version chart says its answer in the title and shows the leader's interval."""
 
-    def test_the_title_answers_when_the_search_stopped_and_the_band_shows_with_intervals(self) -> None:
+    def test_the_title_answers_when_the_search_stopped_from_falcons_intervals(self) -> None:
         html = build_studio.build([with_intervals(run_snapshot())])
         got = probed(html, embedded(html)["datasets"][0]["id"], """var c = document.querySelector('[data-card="time"]');
           return { h2: c.querySelector('h2').textContent, band: c.querySelectorAll('.lead-band path').length, legend: c.querySelector('.legend').textContent };""")
         self.assertRegex(got["h2"], r"^(\d+ clear new leaders?, the last at v\d+|No clear new leader after v\d+)")
-        self.assertGreater(got["band"], 0, "falcon's intervals are there, so the leader's band draws")
-        self.assertIn("95% interval of the last clear leader", got["legend"])
+        self.assertEqual(got["band"], 0, "the mean chart draws no % interval band")
+        self.assertNotIn("95% interval", got["legend"])
 
     def test_without_intervals_the_title_makes_no_clear_claim_and_no_band_draws(self) -> None:
         snap = run_snapshot()
@@ -996,6 +996,7 @@ class VersionChartAnswerTests(unittest.TestCase):
 
 
 class FailedRowsAndTradeOffTests(unittest.TestCase):
+    PCT = "[].filter.call(document.querySelectorAll('[data-card=tradeoff] .seg button'), function (b) { return b.textContent === '% change'; })[0].click();"  # the % change view, one click from Values
     """The table hides failed versions behind a counted toggle; the trade-off card reads Artemis's changes on two metrics."""
 
     def test_the_builder_draws_a_trade_off_only_with_two_compared_metrics(self) -> None:
@@ -1013,7 +1014,7 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
           var c = document.querySelector('[data-card="tradeoff"]');
           return { notes: c.querySelectorAll('.missing').length, info: (c.querySelector('.info') || {}).title || '', labels: [].map.call(c.querySelectorAll('.ctl > span'), function (x) { return x.textContent; }),
                    off: [].filter.call(c.querySelectorAll('.pop label'), function (l) { return l.querySelector('input').disabled; }).map(function (l) { return [l.textContent, l.title]; }) };""",
-                     act="[].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .tools button'), function (x) { return x.textContent === 'Versions'; })[0].click();")
+                     act=self.PCT + " setTimeout(function () { [].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .tools button'), function (x) { return x.textContent === 'Versions'; })[0].click(); }, 300);")
         self.assertEqual(got["notes"], 0, "no list of left-out versions under the chart")
         self.assertIn("no Artemis change on both metrics", got["info"])
         self.assertTrue({"X axis", "Y axis"} <= set(got["labels"]), got["labels"])
@@ -1053,14 +1054,14 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
                    faded: [].filter.call(c.querySelectorAll('g[opacity]'), function (g) { return g.getAttribute('opacity') === '0.18'; }).length, h2: c.querySelector('h2').textContent,
                    labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.textContent; }) };"""
         sure = build_studio.build([two_targets()])
-        got = probed(sure, embedded(sure)["datasets"][0]["id"], read)
-        self.assertIn("On the Pareto front: v4, v2", got["means"])  # in order across
+        got = probed(sure, embedded(sure)["datasets"][0]["id"], read, act=self.PCT)
+        self.assertIn("On the Pareto front: v2, v4", got["means"])  # in order across, left to right: lower latency sits left
         self.assertIn("Pareto front", got["h2"])
         self.assertEqual(got["faded"], 1, "v1 is beaten for sure: v4 clears it on latency")
         self.assertTrue({"v2 · Best", "v4"} <= set(got["labels"]), "every front version is labelled, Best as 'v2 · Best'")
         self.assertIn("Original", got["labels"])
         near = build_studio.build([two_targets(close=True)])
-        got = probed(near, embedded(near)["datasets"][0]["id"], read)
+        got = probed(near, embedded(near)["datasets"][0]["id"], read, act=self.PCT)
         self.assertIn("Tied with the front (within noise): v1", got["means"])
         self.assertEqual(got["faded"], 0, "an edge inside the intervals is never drawn as beaten")
         one = build_studio.build([run_snapshot()])
@@ -1073,12 +1074,14 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
         got = probed(html, embedded(html)["datasets"][0]["id"], """var c = document.querySelector('[data-card="tradeoff"]');
           var pressed = [].filter.call(c.querySelectorAll('.seg button'), function (b) { return b.getAttribute('aria-pressed') === 'true'; }).map(function (b) { return b.textContent; });
           var legend = [].map.call(c.querySelectorAll('.legend button'), function (b) { var m = b.querySelector('svg'); return [b.textContent, m ? [].map.call(m.children, function (x) { return x.tagName; }).join('+') : '']; });
-          return { pressed: pressed, legend: legend, orig: c.querySelectorAll('.orig polygon').length, both: [].map.call(c.querySelectorAll('text.both'), function (t) { return t.textContent; }) };""")
+          return { pressed: pressed, legend: legend, orig: c.querySelectorAll('.orig polygon').length, both: [].map.call(c.querySelectorAll('text.both'), function (t) { return t.textContent; }) };""", act=self.PCT)
         self.assertIn("All", got["pressed"], "All is the first view; Front is the zoom")
         self.assertEqual(got["orig"], 1, "the original is drawn as a triangle")
-        self.assertEqual(got["both"], ["Better on both ↗"])
+        hib = {m["key"]: m["higherIsBetter"] for m in two_targets()["metrics"]}
+        arrow = {(True, True): "↗", (False, True): "↖", (True, False): "↘", (False, False): "↙"}[(hib["latency_ms"], hib["compile_runtime"])]
+        self.assertEqual(got["both"], ["Better on both " + arrow], "the corner each metric's direction gives, as in Values")
         marks = dict(got["legend"])
-        self.assertEqual(marks.get("Original (0% on both)"), "polygon", "the legend's original is the same triangle")
+        self.assertEqual(marks.get("Original (no change on either)"), "polygon", "the legend's original is the same triangle")
         self.assertEqual(marks.get("On the Pareto front (joined by the front line)"), "line+polygon")
         self.assertTrue(any(k.startswith("Ring: chance of being on the front") for k in marks), marks)
 
@@ -1098,26 +1101,92 @@ class FailedRowsAndTradeOffTests(unittest.TestCase):
         return redrawable(snap)
 
     @unittest.skipUnless(CHROME, "no Chrome")
-    def test_a_budget_pair_opens_within_the_cap_and_any_pair_draws_its_values(self) -> None:
+    def test_every_pair_opens_on_its_values_and_a_budget_pair_offers_the_cap_view(self) -> None:
         html = build_studio.build([self.budgeted()], tradeoff="model_size_mb,latency_ms")
         ds = embedded(html)["datasets"][0]["id"]
         read = """var c = document.querySelector('[data-card="tradeoff"]'); return { h2: c.querySelector('h2').textContent,
           pressed: [].filter.call(c.querySelectorAll('.seg button'), function (b) { return b.getAttribute('aria-pressed') === 'true'; }).map(function (b) { return b.textContent; }),
           views: [].map.call(c.querySelectorAll('.seg button'), function (b) { return b.textContent; }), text: c.textContent,
+          orig: [].map.call(c.querySelectorAll('.orig text'), function (t) { return t.textContent; }),
+          menus: [].map.call(c.querySelectorAll('select'), function (m) { return [].map.call(m.options, function (o) { return o.value; }); }),
           labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.dataset.full || t.textContent; }) };"""  # a shortened label keeps its full text
         got = probed(html, ds, read)
-        self.assertIn("within the size cap", got["h2"])
-        self.assertEqual(got["pressed"], ["Within the cap"])
-        self.assertEqual(got["views"], ["Within the cap", "Values", "% change"])
-        self.assertTrue(any(l.startswith("Same size: stock rival") and "fails the gate (nonspeech)" in l for l in got["labels"]), got["labels"])
-        self.assertTrue(any(l.endswith("%") and "MB" in l for l in got["labels"]), "each row shows its size and share of the cap")
-        values = probed(html, ds, read, act="[].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .seg button'), function (b) { return b.textContent === 'Values'; })[0].click();")
-        self.assertIn("in their own values", values["h2"])
-        self.assertIn("Better on both ↙", values["labels"], "two lower-is-better metrics: down and left")
+        self.assertIn("in their own values", got["h2"])
+        self.assertEqual(got["pressed"], ["Values"])
+        self.assertEqual(got["views"], ["Values", "Within the cap", "% change"])
+        self.assertEqual(got["menus"][0].count("latency_ms") + got["menus"][1].count("model_size_mb"), 0, "neither menu offers the other axis's metric")
+        self.assertIn("Better on both ↙", got["labels"], "two lower-is-better metrics: down and left")
+        self.assertEqual(got["orig"], ["Original"], "the original sits at its real values, as a triangle")
+        self.assertTrue(any(l.startswith("Size cap, 120") for l in got["labels"]), "the cap line on the budget axis")
+        cap = probed(html, ds, read, act="[].filter.call(document.querySelectorAll('[data-card=tradeoff] .seg button'), function (b) { return b.textContent === 'Within the cap'; })[0].click();")
+        self.assertIn("within the size cap", cap["h2"])
+        self.assertTrue(any(l.startswith("Same size: stock rival") and "fails the gate (nonspeech)" in l for l in cap["labels"]), cap["labels"])
+        self.assertTrue(any(l.endswith("%") and "MB" in l for l in cap["labels"]), "each row shows its size and share of the cap")
         plain = build_studio.build([two_targets()])
         got = probed(plain, embedded(plain)["datasets"][0]["id"], read)
-        self.assertEqual(got["views"][:2], ["% change", "Values"], "no budget metric: it opens on % change")
-        self.assertNotIn("Within the cap", got["views"], "no budget metric: no within-the-cap view, whatever the names")
+        self.assertEqual(got["views"], ["Values", "% change"], "no budget metric: Values first, no within-the-cap view, whatever the names")
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_percent_view_plots_each_metric_its_own_way_round(self) -> None:
+        # Every version is a larger model than the original (size: lower is better). On % change it plots above the original, and
+        # the shading and "Better on both" sit down and left, where the two lower-is-better directions point; each axis says so.
+        html = build_studio.build([self.budgeted()], tradeoff="latency_ms,model_size_mb")
+        got = probed(html, embedded(html)["datasets"][0]["id"], """var c = document.querySelector('[data-card="tradeoff"]'), box = function (e) { var r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; };
+          var o = box(c.querySelector('.orig polygon')), area = c.querySelector('.both-area path, .both-area rect');
+          return { o: [(o[0] + o[2]) / 2, (o[1] + o[3]) / 2], area: area ? box(area) : null, both: [].map.call(c.querySelectorAll('text.both'), function (t) { return t.textContent; }),
+                   labels: [].map.call(c.querySelectorAll('.recharts-label'), function (t) { return t.textContent; }),
+                   marks: [].map.call(c.querySelectorAll('.tp:not(.gate) polygon'), function (p) { var b = box(p); return (b[1] + b[3]) / 2; }) };""",
+                     act="[].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .seg button'), function (b) { return b.textContent === '% change'; })[0].click();")
+        self.assertEqual(got["both"], ["Better on both ↙"])
+        self.assertTrue(any(l.endswith("% change, lower is better") for l in got["labels"]), got["labels"])
+        self.assertTrue(any(l.endswith("% change, ← lower is better") for l in got["labels"]), got["labels"])
+        ox, oy = got["o"]
+        self.assertIsNotNone(got["area"], "the better quadrant is shaded")
+        self.assertLessEqual(got["area"][2], ox + 1, "the shading sits left of the original: lower latency is better")
+        self.assertGreaterEqual(got["area"][1], oy - 1, "the shading sits below the original: a smaller model is better")
+        self.assertTrue(got["marks"] and all(y < oy for y in got["marks"]), f"every larger model plots above the original: {got['marks']} vs {oy}")
+
+    @staticmethod
+    def in_bytes() -> dict:
+        """The budget pair with the model size in bytes: ticks like 1,200,000,000 and a cap line across the plot."""
+        snap = FailedRowsAndTradeOffTests.budgeted()
+        k = 10_000_000
+        m = next(m for m in snap["metrics"] if m["key"] == "model_size_mb")
+        m.update(cap=m["cap"] * k, unit="bytes")
+        snap["baseline"]["metrics"]["model_size_mb"]["mean"] *= k
+        for v in snap["versions"]:
+            st = v["metrics"].get("model_size_mb")
+            if st:
+                st["mean"] *= k
+        snap["externalReferences"][0]["metrics"]["model_size_mb"] *= k
+        return snap
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_values_view_keeps_long_ticks_and_the_cap_label_clear(self) -> None:
+        html = build_studio.build([self.in_bytes()], tradeoff="latency_ms,model_size_mb")
+        found = [p for p in check_report.studio_render_checks(html, CHROME) if p.startswith(("LABELS OVERLAP", "LABEL HIDDEN", "LABEL CUT OFF")) and " in Trade-off" in p]
+        self.assertEqual(found, [])
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_checker_catches_a_corner_or_axis_title_against_the_metrics_direction(self) -> None:
+        html = build_studio.build([self.budgeted()], tradeoff="latency_ms,model_size_mb")
+        direction = lambda ps: [p for p in ps if p.startswith(("WRONG BETTER CORNER", "WRONG AXIS DIRECTION"))]
+        self.assertEqual(direction(check_report.studio_render_checks(html, CHROME)), [])
+        # A long metric name: the layout pass shortens the axis title with an ellipsis, and the checker reads its whole text.
+        snap = self.budgeted()
+        next(m for m in snap["metrics"] if m["key"] == "model_size_mb")["label"] = "nonspeech words per minute of the parent model size"
+        self.assertEqual(direction(check_report.studio_render_checks(build_studio.build([snap], tradeoff="latency_ms,model_size_mb"), CHROME)), [])
+        # The 19 Nov bug: a fixed up-and-right corner and "% better" axis titles on two lower-is-better metrics.
+        corner, title = 'bothText = "Better on both " + pc.arrow', '"% change, " + (sy > 0 ? "higher is better" : "lower is better")'
+        self.assertEqual((html.count(corner), html.count(title)), (1, 1))
+        found = direction(check_report.studio_render_checks(html.replace(corner, 'bothText = "Better on both \u2197"').replace(title, '"% better \u2192"'), CHROME))
+        self.assertTrue(any(p.startswith('WRONG BETTER CORNER: "Better on both \u2197"') for p in found), found)
+        self.assertTrue(any(p.startswith("WRONG AXIS DIRECTION:") and "model size" in p.lower() for p in found), found)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_checker_catches_an_empty_conclusion_bullet(self) -> None:
+        html = build_studio.build([run_snapshot()]) + late("var ul = document.querySelector('[data-card=time] .means ul'); var li = document.createElement('li'); ul.appendChild(li);")
+        self.assertTrue(any(p.startswith("EMPTY BULLET:") for p in check_report.studio_render_checks(html, CHROME)))
 
     @unittest.skipUnless(CHROME, "no Chrome")
     def test_tooltips_rank_versions_and_the_trade_off_crosses_out_gate_failures_and_names_best(self) -> None:
@@ -1235,24 +1304,33 @@ class TradeOffCoreTests(unittest.TestCase):
     WER = {"key": "pooled_wer_ratio_vs_q8", "unit": None, "higherIsBetter": False}
 
     def test_two_lower_is_better_metrics_are_better_down_and_left(self) -> None:
-        self.assertEqual(self.run_js(f"bestCorner({json.dumps(self.SIZE)}, {json.dumps(self.WER)}, 'values')"), {"x": "left", "y": "bottom", "arrow": "↙"})
+        self.assertEqual(self.run_js(f"bestCorner({json.dumps(self.SIZE)}, {json.dumps(self.WER)})"), {"x": "left", "y": "bottom", "arrow": "↙"})
 
     def test_each_direction_sets_its_own_side(self) -> None:
         fps = {"key": "fps", "higherIsBetter": True}
-        self.assertEqual(self.run_js(f"bestCorner({json.dumps(fps)}, {json.dumps(self.WER)}, 'values')")["arrow"], "↘")
-        self.assertEqual(self.run_js(f"bestCorner({json.dumps(self.SIZE)}, {json.dumps(fps)}, 'values')")["arrow"], "↖")
+        self.assertEqual(self.run_js(f"bestCorner({json.dumps(fps)}, {json.dumps(self.WER)})")["arrow"], "↘")
+        self.assertEqual(self.run_js(f"bestCorner({json.dumps(self.SIZE)}, {json.dumps(fps)})")["arrow"], "↖")
+        self.assertEqual(self.run_js(f"bestCorner({json.dumps(fps)}, {json.dumps(fps)})")["arrow"], "↗")
 
-    def test_a_percent_plot_is_always_better_up_and_right(self) -> None:
-        # Artemis's % better is direction-adjusted, so two lower-is-better metrics still improve up and right.
-        self.assertEqual(self.run_js(f"bestCorner({json.dumps(self.SIZE)}, {json.dumps(self.WER)}, 'pct')")["arrow"], "↗")
+    def test_the_fronts_staircase_turns_at_the_corner_both_neighbours_beat(self) -> None:
+        # Two neighbours on a front, sorted by x: one wins on x, the other on y, for every pair of directions.
+        for hx, hy, want in [(True, True, {"x": 1, "y": 2}), (False, False, {"x": 3, "y": 5}), (True, False, {"x": 1, "y": 5}), (False, True, {"x": 3, "y": 2})]:
+            with self.subTest(hib=(hx, hy)):
+                axes = [{"key": "x", "hib": hx}, {"key": "y", "hib": hy}]
+                a_wins_y = hx  # the larger x wins on x when higher is better, so the smaller x must win on y
+                a, b = ({"x": 1, "y": 5 if hy else 2}, {"x": 3, "y": 2 if hy else 5}) if a_wins_y else ({"x": 1, "y": 2 if hy else 5}, {"x": 3, "y": 5 if hy else 2})
+                corner = self.run_js(f"stairCorner({json.dumps(a)}, {json.dumps(b)}, {json.dumps(axes)})")
+                self.assertEqual(corner, want)
+                for p in (a, b):  # both neighbours are at least as good as the corner on each axis
+                    self.assertTrue(self.run_js(f"dominates({json.dumps(p)}, {json.dumps(corner)}, {json.dumps(axes)})"))
 
-    def test_only_the_collectors_budget_metric_opens_within_the_cap(self) -> None:
-        self.assertEqual(self.run_js(f"tradeoffViews({json.dumps(self.SIZE)}, {json.dumps(self.WER)})"), ["quality", "values", "pct"])
-        self.assertEqual(self.run_js(f"tradeoffViews({json.dumps(self.WER)}, {json.dumps(self.SIZE)})")[0], "quality", "either axis")
-        # Pairs a name rule took for model compression: with no budget role they open on Artemis's % change.
+    def test_every_pair_opens_on_values_and_only_the_budget_metric_adds_the_cap_view(self) -> None:
+        self.assertEqual(self.run_js(f"tradeoffViews({json.dumps(self.SIZE)}, {json.dumps(self.WER)})"), ["values", "quality", "pct"])
+        self.assertEqual(self.run_js(f"tradeoffViews({json.dumps(self.WER)}, {json.dumps(self.SIZE)})"), ["values", "quality", "pct"], "either axis")
+        # Pairs a name rule took for model compression: with no budget role there is no within-the-cap view.
         for x, y in [("bytes_per_op", "ns_per_op"), ("payload_size_kb", "time_per_request_ms"), ("rss_mb", "error_rate"), ("model_size_mb", "pooled_wer")]:
             with self.subTest(pair=(x, y)):
-                self.assertEqual(self.run_js(f"tradeoffViews({{key: '{x}', unit: 'MB', higherIsBetter: false}}, {{key: '{y}', higherIsBetter: false}})"), ["pct", "values"])
+                self.assertEqual(self.run_js(f"tradeoffViews({{key: '{x}', unit: 'MB', higherIsBetter: false}}, {{key: '{y}', higherIsBetter: false}})"), ["values", "pct"])
 
     def test_dominance_is_one_rule_for_every_direction(self) -> None:
         up = [{"key": "a", "hib": True}, {"key": "b", "hib": True}]
@@ -1296,6 +1374,20 @@ class ParetoChanceTests(unittest.TestCase):
     def pt(x: float, y: float, half: float | None = None) -> dict:
         return {"x": x, "y": y, "xlo": None if half is None else x - half, "xhi": None if half is None else x + half,
                 "ylo": None if half is None else y - half, "yhi": None if half is None else y + half}
+
+    def test_an_axis_turned_with_its_direction_keeps_every_chance(self) -> None:
+        # The % change view plots a lower-is-better metric with its sign turned and says lower is better: same fronts, same chances.
+        pts = [self.pt(10, 5, 4), self.pt(8, 7, 3), self.pt(2, 1, 1), self.pt(9, 6, 2)]
+        turned = [dict(p, y=-p["y"], ylo=-p["yhi"], yhi=-p["ylo"]) for p in pts]
+        axes = [{"key": "x", "hib": True}, {"key": "y", "hib": False}]
+        fn = build_studio.CORE.read_text(encoding="utf-8")
+        call = f"console.log(JSON.stringify(paretoChances({json.dumps(turned)}, 2000, null, {json.dumps(axes)})));"
+        got = json.loads(subprocess.run([NODE, "-e", fn + call], capture_output=True, text=True, timeout=60, check=True).stdout)
+        want = self.chances(pts)
+        for g, w in zip(got["p"], want["p"]):
+            self.assertAlmostEqual(g, w, delta=0.04)
+        self.assertEqual(sorted(map(tuple, got["dominated"])), sorted(map(tuple, want["dominated"])))
+        self.assertNotEqual(self.chances(turned)["p"], want["p"], "read as higher is better, the turned axis gives other chances")
 
     def test_a_version_clearly_ahead_on_both_dominates(self) -> None:
         got = self.chances([self.pt(10, 10, 1), self.pt(0, 0, 1)])

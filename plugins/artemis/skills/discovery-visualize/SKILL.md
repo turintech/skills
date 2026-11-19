@@ -82,11 +82,19 @@ python3 "<skill-dir>/scripts/check_report.py" --studio /tmp/discovery-studio.htm
 
 - `--snapshot` is a run snapshot, or a `--project` snapshot whose runs become sessions, oldest first (a run with no measured version is left out and named). Repeat it to put several in one picker, each with a short `--label` in the same order.
 - `--only best|ranked|forest|time|box|table|tradeoff|pareto|ai|sessions` draws that one card on a page of its own. Use it whenever the user names one chart. It exits 2 without writing a page when the data has no such chart; say why and offer the nearest one.
-- `--tradeoff X,Y` sets the two metrics the trade-off card opens on, from the collector's `tradeoffMetrics`. Use it when the lead metric is a composite or penalised objective that would squash an axis. `tradeoff` is the main card, on Artemis's changes; `pareto` (under More charts) plots raw means on the collector's `--pareto` axes.
+- `--tradeoff X,Y` sets the two metrics the trade-off card opens on, from the collector's `tradeoffMetrics`. Use it when the lead metric is a composite or penalised objective that would squash an axis. `tradeoff` is the main card, opening on both metrics' own values (Within the cap and Artemis's % change one click away); `pareto` (under More charts) plots raw means on the collector's `--pareto` axes.
 - `--failed N:SESSION:VERSIONS` marks versions that failed a check of the user's own, outside the snapshot (N is the `--snapshot`'s position, from 1). Use it only when the user names them. `--title` sets the browser tab's title.
 - Run-specific facts come from the collector, never from the page: `--gate-metric` for the run's own gate, a size cap stated in the brief, and `--reference` for models scored outside Discovery (see *Collector flags*).
 - The page says how Best was chosen in one line and names each metric whose own best is another version, in place of `bestLines` word for word; `check_report.py --studio` checks those.
-- `check_report.py --studio` needs Chrome or Chromium; without one it fails with NOT RENDERED. Fix everything it reports, then hand the page over as in step 8. On Claude Code, publish it with `capabilities: {downloads: true}` so the Download buttons save files.
+- `check_report.py --studio` needs Chrome or Chromium; without one it fails with NOT RENDERED. Fix everything it reports. It also fails a "Better on both" corner or an axis title that disagrees with `metrics[].higherIsBetter`, and an empty Conclusion bullet.
+- **Look at it before you hand it over.** Add `--shots /tmp/studio-shots` to the check, open both pictures (desktop and phone width), and check:
+  1. each axis's better direction matches `metrics[].higherIsBetter`;
+  2. no empty bullets;
+  3. no overlapping or clipped labels;
+  4. the headline matches `webUiBest`;
+  5. every number in a title is in the snapshot.
+
+  Fix, rebuild and check again, then hand the page over as in step 8. On Claude Code, publish it with `capabilities: {downloads: true}` so the Download buttons save files.
 
 ## Recipe rules (Cursor canvas only)
 
@@ -143,4 +151,5 @@ The collector already strips logger noise before JSON and joins `observationGrou
 - [ ] Each target metric has a baseline, change and raw winner view; any raw/eligible difference is explained without making eligibility the headline.
 - [ ] Failed and missing versions are accounted for.
 - [ ] The method note or a caption says the verdicts are Artemis's own (`discovery compare`) and gives the runs per side.
+- [ ] Studio only: `check_report.py --studio --shots` passes, and both pictures were checked against the five points under *Interactive studio*.
 - [ ] Handed over with at most four lines of summary and the report link in the box, then the Discovery Web UI link.
