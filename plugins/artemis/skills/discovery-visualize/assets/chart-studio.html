@@ -619,9 +619,11 @@ function Ctl(props) {  // a <label> only around a menu; around buttons, a click 
   var cls = "ctl" + (props.small ? " sm" : "");
   return props.group ? html`<div class=${cls}><span>${props.label}</span>${props.children}</div>` : html`<label class=${cls}><span>${props.label}</span>${props.children}</label>`;
 }
+// Whether a Conclusion line says anything: null, "", blank text and a template of nothing (html`${[]}` is []) are dropped.
+function said(t) { return Array.isArray(t) ? t.some(said) : typeof t === "string" ? !!t.trim() : !!t; }
 function Means(props) {  // every Conclusion looks the same: one green-bordered box of short bullets
   if (!props.text) return null;
-  return html`<div class="means"><h3>${props.title || "Conclusion"}</h3>${Array.isArray(props.text) ? html`<ul class="cl">${props.text.filter(Boolean).map(function (t, k) { return html`<li key=${k}>${t}</li>`; })}</ul>` : html`<p>${props.text}</p>`}</div>`;
+  return html`<div class="means"><h3>${props.title || "Conclusion"}</h3>${Array.isArray(props.text) ? html`<ul class="cl">${props.text.filter(said).map(function (t, k) { return html`<li key=${k}>${t}</li>`; })}</ul>` : html`<p>${props.text}</p>`}</div>`;
 }
 
 /* The card shell: question heading, labelled tools on the heading row, how to read it, legend, chart,
@@ -685,7 +687,7 @@ function Card(props) {
     <div class="plot">${none ? html`<div class="sparse">${NONE}</div>` : props.children}</div>
     ${none ? null : props.after || null}
     ${FAILED_NOW.length && ["ranked", "sessions"].indexOf(props.id) < 0 ? html`<p class="missing">✕ Failed your correctness check: ${FAILED_NOW.map(function (n) { return "v" + n; }).join(", ")}. Measured, but not usable.</p>` : null}
-    <${Means} text=${none ? NONE : props.means && (Array.isArray(props.means.text) ? props.means.text.filter(Boolean).slice(0, 3) : props.means.text)}/>
+    <${Means} text=${none ? NONE : props.means && (Array.isArray(props.means.text) ? props.means.text.filter(said).slice(0, 3) : props.means.text)}/>
   </section>`;
 }
 function axisTick(T) { return { fill: T["text-2"], fontSize: 13 }; }
@@ -773,7 +775,7 @@ function overlapText(st, base, m, label) {
   if (!st || !base || !st.runs || !base.runs || !st.runs.length || !base.runs.length || m.higherIsBetter == null) return "";
   var hib = m.higherIsBetter, bestB = hib ? Math.max.apply(null, base.runs) : Math.min.apply(null, base.runs);
   var beat = st.runs.filter(function (v) { return hib ? v > bestB : v < bestB; }).length, n = st.runs.length;
-  if (n === 1 && base.runs.length === 1) return " With one run on each side, treat it as a lead and measure again.";
+  if (n === 1 && base.runs.length === 1) return " 1 run each, so no significance.";
   if (beat === n) return " All " + n + " of " + label + "'s iterations beat the original's best iteration.";
   return " " + beat + " of " + label + "'s " + n + " iterations beat the original's best iteration, so watch the overlap.";
 }
@@ -943,7 +945,7 @@ function RankedCard(props) {
       html`Top: ${numSpan(winner.label + ", " + chg(m, winner.pctBetter))}${wvb && !(wvb.verdict === "pending" && (wvb.readings || 0) <= 1) ? html`, ${vw(verdictOf(wvb))}` : ""}`,
       next && wvb && verdictOf(vsb(D.byLabel[next.label], key)) === verdictOf(wvb) && overlaps(wvb, vsb(D.byLabel[next.label], key)) ? html`Can't be told apart from ${next.label} (${chg(m, next.pctBetter)}): both against the original only` : null,
       html`${[n.better ? vw("better", n.better + " significantly improved") : null, n.noise ? vw("noise", n.noise + " no significant difference") : null, n.pending ? vw("pending", n.pending + (n.pending === 1 ? " needs more runs" : " need more runs")) : null, n.worse ? vw("worse", n.worse + " significantly regressed") : null, n.none ? vw("none", n.none + " with no Artemis comparison") : null].filter(Boolean).map(function (x, i) { return i ? html`, ${x}` : x; })}`,
-      n.up || n.down ? html`1 run each, so no significance: ${numSpan(n.up + " better")} and ${numSpan(n.down + " worse")} on the estimate. Rerun the best versions and the original to get intervals.` : null,
+      n.up || n.down ? html`1 run each, so no significance: ${numSpan(n.up + " better")} and ${numSpan(n.down + " worse")} on the estimate` : null,
       winner.eligible ? null : winner.label + " fails the eligibility gate (experiment " + winner.experimentStatus + ")",
       D.byLabel[winner.label]._failed ? vw("worse", winner.label + " failed your correctness check") : null] };
   } else means = { text: "No winner on " + mlabel(m) + ": " + (((D.s.perMetricWinners || {})[key] || {}).reason || "no change from Artemis yet") + "." };
@@ -1054,7 +1056,7 @@ function ForestCard(props) {
   var sig = all.filter(function (r) { return r.verdict === "better"; });
   var maxN = Math.max.apply(null, [0].concat(ranks.map(function (r) { var vb = vsb(D.byLabel[r.label], key); return vb && isFinite(vb.readings) ? vb.readings : 0; })));
   var means;
-  if (!anyCI) means = { text: ["No intervals yet: with " + runsWord(maxN) + " per version Artemis can't size one, so every change needs more runs"] };
+  if (!anyCI) means = { text: ["No 95% intervals: with " + runsWord(maxN) + " per version Artemis can't size one"] };
   else { var floor = sig.slice().sort(function (a, b) { return b.ciLo - a.ciLo; })[0]; means = { text: verdictLines(all, m, shownRanks.length + outside.length).concat([
       floor ? html`Surest gain: ${numSpan(floor.label + ", at least " + (log ? fmtX(ratioFromPct(floor.ciLo, hib)) : chg(m, floor.ciLo)))}, the low end of its 95% interval` : null])}; }
   var yTick = function (tp) { var r = rows[tp.index] || {}; return linked(r.href, r.label, h("text", { x: tp.x - 4, y: tp.y + 5, textAnchor: "end", fontSize: 13, fontWeight: 500, fill: T.fg }, (r.failed ? "✕ " : "") + (r.label || ""))); };
@@ -2023,7 +2025,7 @@ function App() {
   if (bestV && vb) {
     var notes = [
       vb.ciLowPct != null ? html`95% interval ${numSpan(ivl(pm, vb.ciLowPct, vb.ciHighPct))}, from ${runsWord(vb.readings)}` : null,
-      one ? vw("pending", "1 iteration each: a lead, not a result; measure again") : null,
+      one ? vw("pending", "1 run each, so no significance") : null,
       bestV._failed ? html`${vw("worse", bestV.label + " failed your correctness check")}, so its change is not usable (failed here: ${D.failed.map(function (n) { return "v" + n; }).join(", ")})` : null,
       null,  // the headline already names the best on the lead metric
       gate];

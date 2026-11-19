@@ -185,9 +185,32 @@ class RankedCardTests(unittest.TestCase):
         got = probed(html, ds(html), VISIBLE + "return { text: card('ranked').textContent, bars: texts('ranked') };")
         self.assertIn("1 run each, so no significance", got["text"])
         self.assertNotIn("need more runs", got["text"].lower())
+        self.assertNotRegex(got["text"], r"(?i)\brerun|measure again|more runs|get intervals", "one run against one states the fact and advises no more runs")
         self.assertFalse(any("Needs more runs" in t or "Significantly" in t for t in got["bars"]), got["bars"])
         self.assertIn("1 with no Artemis comparison", got["text"])
         self.assertTrue(any("No Artemis comparison" in t for t in got["bars"]), got["bars"])
+
+
+@unittest.skipUnless(CHROME, "no Chrome or Chromium")
+class ConclusionTests(unittest.TestCase):
+    """Speech Run A, built at aa854f0: a run measured once drew an empty third bullet in the ranked card's Conclusion."""
+
+    JS = "return [].map.call(document.querySelectorAll('.means li'), function (li) { var c = li.closest('[data-card]'); return [c ? c.getAttribute('data-card') : 'top', li.textContent.trim()]; });"
+
+    def test_no_conclusion_draws_an_empty_bullet(self) -> None:
+        for name, snap in (("1 run each", run_snapshot()), ("intervals", with_intervals(run_snapshot()))):
+            with self.subTest(snapshot=name):
+                html = build_studio.build([snap])
+                items = probed(html, ds(html), self.JS)
+                self.assertIn("ranked", {card for card, _ in items}, items)
+                self.assertEqual([i for i in items if not i[1]], [], items)
+                self.assertTrue(all(len([1 for c, _ in items if c == card]) <= 3 for card, _ in items if card != "top"), "three bullets at most per card")
+
+    def test_a_run_measured_once_gives_the_ranked_card_its_facts_and_no_blank(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        ranked = [text for card, text in probed(html, ds(html), self.JS) if card == "ranked"]
+        self.assertRegex(ranked[0], r"^Top: v\d+")
+        self.assertTrue(any(re.match(r"^1 run each, so no significance: \d+ better and \d+ worse on the estimate$", t) for t in ranked), ranked)
 
 
 @unittest.skipUnless(CHROME, "no Chrome or Chromium")
