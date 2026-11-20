@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import json
 import os
@@ -43,14 +44,33 @@ class DocsAndUrlTests(unittest.TestCase):
     def test_infer_base_url(self) -> None:
         status = {
             "services": [
-                {"name": "Falcon", "url": "https://artemis.turintech.ai/turintech-falcon"},
+                {"name": "Agent", "url": "http://10.0.0.4:8000/agent"},
+                {"name": "Falcon", "url": "https://Artemis.TurinTech.ai/turintech-falcon"},
             ]
         }
-        self.assertEqual(collector.infer_base_url(status), "https://artemis.turintech.ai")
-        self.assertEqual(
-            collector.infer_base_url(status, "https://example.test/"),
-            "https://example.test",
-        )
+        self.assertEqual(collector.infer_base_url(status), "https://artemis.turintech.ai", "the first https service, its origin only")
+        self.assertIsNone(collector.infer_base_url({"services": [{"url": "http://localhost:3000"}]}), "no https origin, no link")
+        self.assertEqual(collector.infer_base_url(status, "https://artemis.acme.example/"), "https://artemis.acme.example")
+
+    def test_the_base_url_is_an_https_origin_or_refused(self) -> None:
+        self.assertEqual(collector.web_origin(" https://ARTEMIS.acme.example:8443/ "), "https://artemis.acme.example:8443")
+        for bad in ("http://artemis.turintech.ai", "artemis.turintech.ai", "https://", "https://user:pw@artemis.turintech.ai",
+                    "https://artemis.turintech.ai/projects", "https://artemis.turintech.ai?x=1", "https://artemis.turintech.ai#top",
+                    "https://artemis.turintech.ai:99999", "https://bad_host.example", "javascript:alert(1)"):
+            with self.subTest(url=bad), self.assertRaisesRegex(ValueError, r"--base-url must be an https origin such as https://artemis\.turintech\.ai"):
+                collector.web_origin(bad)
+
+    def test_a_wrong_base_url_stops_before_any_run_is_read(self) -> None:
+        from unittest import mock
+        for argv in (["--from-dir", str(FIXTURES)], ["--project", "p-1"], ["--run-id", "r-1"]):
+            with self.subTest(argv=argv):
+                err = io.StringIO()
+                with mock.patch.object(collector, "fetch_cli", side_effect=AssertionError("read a run")), \
+                     mock.patch.object(collector, "compare_available", side_effect=AssertionError("called the CLI")), \
+                     mock.patch.object(collector, "load_from_dir", side_effect=AssertionError("read a run")), \
+                     contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(collector.main(argv + ["--base-url", "http://artemis.turintech.ai"]), 2)
+                self.assertIn("--base-url must be an https origin", err.getvalue())
 
 
 class MetricMathTests(unittest.TestCase):
@@ -90,6 +110,7 @@ class SnapshotFixtureTests(unittest.TestCase):
             snap["run"]["webUrl"],
             "https://artemis.example/projects/22222222-2222-2222-2222-222222222222/discover/11111111-1111-1111-1111-111111111111",
         )
+        self.assertEqual(snap["run"]["webOrigin"], "https://artemis.example", "the page links only under the run's own origin")
         kinds = {item["key"]: item["kind"] for item in snap["metrics"]}
         self.assertEqual(kinds["latency_ms"], "target")
         self.assertEqual(kinds["quality_score"], "quality")
@@ -292,11 +313,73 @@ class BestLinesTests(unittest.TestCase):
             ],
         )
         self.assertFalse(defs["simulation_fps"]["higherIsBetter"])
-        lede = collector.best_lines(
+        lines = collector.best_lines(
             {"simulation_fps": {"key": "simulation_fps", **defs["simulation_fps"]}},
             [{"version": 1, "label": "v1", "metrics": {"simulation_fps": {"mean": 1.0, "pctBetter": 5.0}}}],
-            {"simulation_fps": self.winner(1, 5.0)}, None)["lede"]
-        self.assertIn("simulation_fps is set as lower-is-better on this project; check Settings > Metrics.", lede)
+            {"simulation_fps": self.winner(1, 5.0)}, None)
+        self.assertIn("simulation_fps is set as lower-is-better on this project; check Settings > Metrics.", lines["lede"])
+        self.assertEqual(lines["checks"], ["simulation_fps is set as lower-is-better on this project; check Settings > Metrics."])
+
+    def test_the_lead_passes_over_a_more_important_metric_nobody_has_a_reading_on(self) -> None:
+        defs = {
+            "p99_ms": {"kind": "target", "importance": "high", "higherIsBetter": False},
+            "latency_ms": {"kind": "target", "importance": "medium", "higherIsBetter": False},
+        }
+        versions = [{"version": 2, "label": "v2", "metrics": {"latency_ms": {"pctBetter": 40.0}}}]
+        winners = {"p99_ms": {"raw": None}, "latency_ms": {"raw": {"version": 2, "label": "v2", "pctBetter": 40.0}}}
+        self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "latency_ms")
+
+    def test_a_tie_in_importance_leads_with_the_significant_change(self) -> None:
+        # Staging run 470b9ac1: both "high"; answers held at 0.0% while p95 fell 96.7%, significantly.
+        defs = {
+            "answers_match": {"kind": "target", "importance": "high", "higherIsBetter": True},
+            "p95_ms": {"kind": "target", "importance": "high", "higherIsBetter": False},
+            "p50_ms": {"kind": "target", "importance": "high", "higherIsBetter": False},
+        }
+        stat = lambda pct, verdict: {"pctBetter": pct, "vsBaseline": {"verdict": verdict, "improvementPct": pct}}
+        versions = [{"version": 8, "label": "v8", "metrics": {"answers_match": stat(0, "noise"), "p50_ms": stat(3.0, "noise"),
+                                                              "p95_ms": stat(96.7, "better")}}]
+        winners = {"answers_match": {"raw": {"version": 8, "label": "v8", "pctBetter": 0}},
+                   "p50_ms": {"raw": {"version": 8, "label": "v8", "pctBetter": 3.0}},
+                   "p95_ms": {"raw": {"version": 8, "label": "v8", "pctBetter": 96.7}}}
+        self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "p95_ms")
+
+    def test_a_metric_no_version_moved_never_leads_one_that_moved(self) -> None:
+        defs = {
+            "answers_match": {"kind": "target", "importance": "high", "higherIsBetter": True},
+            "p95_ms": {"kind": "target", "importance": "medium", "higherIsBetter": False},
+        }
+        versions = [{"version": 8, "label": "v8", "metrics": {"answers_match": {"pctBetter": 0}, "p95_ms": {"pctBetter": 40.0}}}]
+        winners = {"answers_match": {"raw": {"version": 8, "label": "v8", "pctBetter": 0}},
+                   "p95_ms": {"raw": {"version": 8, "label": "v8", "pctBetter": 40.0}}}
+        self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "p95_ms")
+
+    def test_a_nan_from_artemis_is_missing_before_anything_is_ranked(self) -> None:
+        payloads = collector.load_from_dir(str(FIXTURES))
+        top = next(v for v in payloads["comparison"]["versions"] if v.get("versionNumber") == 2)
+        next(m for m in top["metrics"] if m["name"] == "latency_ms")["improvementPct"] = float("nan")
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([r["label"] for r in snap["rankings"]["latency_ms"]], ["v4", "v1"])
+        self.assertEqual(snap["perMetricWinners"]["latency_ms"]["raw"]["label"], "v4")
+        self.assertIn("run 11111111-1111-1111-1111-111111111111: 1 non-finite value(s) from Artemis read as missing: v2 latency_ms improvementPct", err.getvalue())
+        self.assertEqual(snap["nonFinite"], ["v2 latency_ms improvementPct"])
+
+    def test_every_non_finite_value_is_named_by_what_it_belongs_to(self) -> None:
+        root = {"observations": [{"metricName": "latency_ms", "value": 1.0}], "comparison": {"versions": [{"versionNumber": 2, "metrics": {"latency_ms": {"mean": 1.0}}}]},
+                "odd": [[1.0]]}
+        self.assertEqual(collector.readable_path(root, "observations[0].value"), "latency_ms value")
+        self.assertEqual(collector.readable_path(root, "comparison.versions[0].metrics.latency_ms.mean"), "v2 latency_ms mean")
+        self.assertEqual(collector.readable_path(root, "odd[0][0]"), "odd[0][0]")  # nothing to name it by: the raw path
+        root = {"run": {"baselineGroupId": "g-base"}, "versions": [{"versionNumber": 4, "observationGroupId": "g-4"}],
+                "observations": [{"observationGroupId": "g-base", "metricName": "latency_ms", "value": 1.0}, {"observationGroupId": "g-4", "metricName": "latency_ms", "value": 1.0}]}
+        self.assertEqual([collector.readable_path(root, f"observations[{i}].value") for i in (0, 1)], ["original latency_ms value", "v4 latency_ms value"])
+
+    def test_nan_and_infinity_are_written_as_null_and_named(self) -> None:
+        self.assertEqual(collector.finite({"a": [float("nan"), 1.5, float("inf")], "b": {"c": float("-inf")}}), {"a": [None, 1.5, None], "b": {"c": None}})
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(json.loads(collector.write_finite({"versions": [{"metrics": {"x": {"std": float("nan")}}}]})), {"versions": [{"metrics": {"x": {"std": None}}}]})
+        self.assertIn("1 non-finite value(s) computed by the collector written as null: versions[0].metrics.x.std", err.getvalue())
 
     def test_names_and_unsure_units_never_flag(self) -> None:
         defs = {
@@ -505,6 +588,44 @@ class ClassificationAndReferenceTests(unittest.TestCase):
         self.assertEqual(collector.infer_unit("latency_ms"), "ms")
         self.assertIsNone(collector.infer_unit("score"))
 
+    def test_the_lead_metric_is_the_most_important_target_never_a_reference(self) -> None:
+        defs = {
+            "cublas_ms": {"kind": "target", "role": "reference", "importance": "high", "higherIsBetter": False},
+            "wall_ms": {"kind": "target", "importance": "medium", "higherIsBetter": False},
+            "rtfx": {"kind": "target", "importance": "high", "higherIsBetter": True},
+            "judge": {"kind": "quality", "importance": "high", "higherIsBetter": True},
+        }
+        versions = [{"version": 1, "label": "v1", "metrics": {"rtfx": {"pctBetter": 10.0}, "wall_ms": {"pctBetter": 5.0}}}]
+        winners = {k: {"raw": {"version": 1, "label": "v1", "pctBetter": 10.0}} for k in ("rtfx", "wall_ms", "cublas_ms")}
+        lines = collector.best_lines(defs, versions, winners, None)
+        self.assertEqual(lines["metric"], "rtfx")
+        # A more important target with no direction cannot lead: it has no ranking or winner.
+        defs = dict({"der": {"kind": "target", "importance": "high", "higherIsBetter": None}}, **defs)
+        self.assertEqual(collector.best_lines(defs, versions, winners, None)["metric"], "rtfx")
+        self.assertIn("best version on rtfx", lines["lede"])
+
+    def test_units_from_real_run_names(self) -> None:
+        # NeMo's metrics: a leading unit before "per", and a bare "s" at the end.
+        self.assertEqual(collector.infer_unit("ms_per_chunk"), "ms")
+        self.assertEqual(collector.infer_unit("proc_wall_s"), "s")
+        self.assertEqual(collector.infer_unit("wall_sec"), "s")
+        self.assertEqual(collector.infer_unit("tokens_per_s"), "tokens/s")
+        self.assertEqual(collector.infer_unit("decode_tokens_per_s"), "tokens/s")
+        self.assertEqual(collector.infer_unit("mb_per_s"), "MB/s")
+        for name, unit in (("frames_per_s", "frames/s"), ("images_per_sec", "images/s"), ("requests_per_sec", "requests/s"),
+                           ("samples_per_s", "samples/s"), ("throughput_mb_per_s", "MB/s"), ("tokens_s", "tokens/s"), ("mb_s", None),
+                           ("items_s", None), ("widgets_per_s", None), ("decode_ms_per_token", "ms"), ("wall_s_per_iter", "s"), ("latency ms", "ms"), ("", None), ("_", None),
+                           ("time_per_iter_ms", "ms"), ("latency_per_token_us", "\u00b5s"), ("energy_per_op_ns", "ns"), ("bytes_per_step_mb", "MB"),
+                           ("gpu_memory_per_batch_gb", "GB"), ("tokens_per_second", "tokens/s"), ("requests_per_second", "requests/s"), ("tok_s", "tokens/s"),
+                           ("throughput_s", None), ("tflops_s", None), ("gflops_s", None), ("qps_s", None), ("fps_s", None),
+                           ("gflops_per_s", None), ("tflops_per_s", None),
+                           ("decode_tok_s", "tokens/s"), ("throughput_tok_s", "tokens/s"), ("ttft_s", "s"), ("epoch_s", "s"), ("inference_s", "s"), ("iters_s", None), ("req_s", None), ("bytes_s", None),
+                           ("wall_time_s", "s"), ("elapsed_sec", "s"), ("prefill_tok_s", "tokens/s"), ("tok_per_s", "tokens/s"), ("x_per_s_per", None),
+                           ("tokens_per_s_per_gpu", None), ("samples_per_sec_per_gpu", None), ("req_per_s_per_node", None)):
+            self.assertEqual(collector.infer_unit(name), unit, name)
+        for name in ("der_long", "rtfx", "speaker_prob_parity_safety", "tokens_per_step"):
+            self.assertIsNone(collector.infer_unit(name), name)
+
     def test_reference_pairs(self) -> None:
         names = ["MatMul_triton_tflops", "MatMul_cublas_tflops", "MatMul_triton_ms", "MatMul_cublas_ms", "simulation_fps"]
         pairs = collector.find_references(names)
@@ -566,13 +687,38 @@ class FalconComparisonTests(unittest.TestCase):
             },
         }
 
+    def test_falcons_points_change_is_passed_through(self) -> None:
+        payloads = self.payloads()
+        payloads["comparison"]["versions"][1]["metrics"][0]["improvementPoints"] = 0.12
+        snap = collector.build_snapshot(payloads, collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual(snap["versions"][0]["metrics"]["simulation_fps"]["vsBaseline"]["improvementPoints"], 0.12)
+
+    def test_an_ai_score_has_no_times_better(self) -> None:
+        # A score is an opinion of the code, so no page can print "1.43x worse" for it; its % stays falcon's.
+        snap = collector.build_snapshot(collector.load_from_dir(str(FIXTURES)), collected_at="2026-01-01T00:00:00Z")
+        quality = [m["key"] for m in snap["metrics"] if m["kind"] == "quality"]
+        self.assertTrue(quality, "the fixture needs an AI Metric")
+        for v in snap["versions"]:
+            for key in quality:
+                stat = v["metrics"].get(key)
+                if stat:
+                    self.assertIsNone(stat["timesBetter"], (v["label"], key))
+        for key in quality:
+            for row in snap["rankings"].get(key, []):
+                self.assertIsNone(row["timesBetter"], key)
+            for pick in (snap["perMetricWinners"].get(key) or {}).values():
+                if isinstance(pick, dict):
+                    self.assertIsNone(pick.get("timesBetter"), key)
+        # A measured metric keeps its ratio.
+        self.assertAlmostEqual(snap["versions"][0]["metrics"]["latency_ms"]["timesBetter"], 1.25)
+
     def test_maps_falcons_verdict_and_interval(self) -> None:
         snap = collector.build_snapshot(self.payloads(), collected_at="2026-01-01T00:00:00Z")
         metric = snap["versions"][0]["metrics"]["simulation_fps"]
         self.assertEqual(metric["pctBetter"], 20.0)
         self.assertAlmostEqual(metric["timesBetter"], 1.2)
         self.assertEqual(metric["vsBaseline"], {
-            "source": "falcon", "verdict": "better", "improvementPct": 20.0, "ciLowPct": 12.5, "ciHighPct": 27.5,
+            "source": "falcon", "verdict": "better", "improvementPct": 20.0, "improvementPoints": None, "ciLowPct": 12.5, "ciHighPct": 27.5,
             "readings": 5, "recommendedReadings": None, "recommendedReadingsReason": "settled", "spreadPct": 3.1,
         })
         self.assertEqual(snap["versions"][0]["overallVerdict"]["verdict"], "better")
@@ -641,6 +787,20 @@ class FalconComparisonTests(unittest.TestCase):
         self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [2, 1])
         self.assertEqual(snap["perMetricWinners"]["simulation_fps"]["raw"]["version"], 2)
 
+    def test_one_metric_ranks_as_the_web_ui_falcons_better_verdict_first(self) -> None:
+        # The Web UI's compared version on one metric (artemis-ui versions.index.tsx): significantly improved first, then the
+        # largest change. v1's +12% is within noise, v2's +6% is significant, so v2 leads; ranking by change alone picks v1.
+        snap = collector.build_snapshot(self.two_versions(self.falcon_row(12.0, "noise"), self.falcon_row(6.0, "better")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in snap["rankings"]["simulation_fps"]], [2, 1])
+        self.assertEqual(snap["perMetricWinners"]["simulation_fps"]["raw"]["version"], 2)
+        self.assertEqual([row["verdict"] for row in snap["rankings"]["simulation_fps"]], ["better", "noise"])
+
+    def test_a_pending_change_ranks_after_a_significant_one_and_a_tie_keeps_version_order(self) -> None:
+        pending = collector.build_snapshot(self.two_versions(self.falcon_row(20.0, "pending"), self.falcon_row(3.0, "better")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in pending["rankings"]["simulation_fps"]], [2, 1])
+        tie = collector.build_snapshot(self.two_versions(self.falcon_row(6.0, "better"), self.falcon_row(6.0, "better")), collected_at="2026-01-01T00:00:00Z")
+        self.assertEqual([row["version"] for row in tie["rankings"]["simulation_fps"]], [1, 2], "a tie keeps version order, as the Web UI's")
+
     def test_without_a_baseline_row_no_change_is_claimed(self) -> None:
         empty = self.falcon_row(None, None)
         snap = collector.build_snapshot(self.two_versions(empty, dict(empty), baseline=False), collected_at="2026-01-01T00:00:00Z")
@@ -708,6 +868,31 @@ class FalconComparisonTests(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertIn("comparison.json", err.getvalue())
 
+    def test_project_mode_carries_each_reference_into_every_run(self) -> None:
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            scored, out = Path(tmp) / "rival.json", Path(tmp) / "project.json"
+            scored.write_text(json.dumps({"latency_ms": 9.5}), encoding="utf-8")
+            with mock.patch.object(collector, "compare_available", return_value=True), \
+                 mock.patch.object(collector, "list_project_runs", return_value=[{"id": "r-1", "createdAt": "2026-01-01"}]), \
+                 mock.patch.object(collector, "fetch_cli", side_effect=lambda *a, **k: collector.load_from_dir(str(FIXTURES))), \
+                 contextlib.redirect_stderr(io.StringIO()):
+                code = collector.main(["--project", "p-1", "--reference", f"label=rival,file={scored}", "--output", str(out)])
+            self.assertEqual(code, 0)
+            [run] = json.loads(out.read_text(encoding="utf-8"))["runs"]
+            self.assertEqual([r["label"] for r in run["externalReferences"]], ["rival"])
+            err = io.StringIO()
+            with mock.patch.object(collector, "compare_available", return_value=True), contextlib.redirect_stderr(err):
+                self.assertEqual(collector.main(["--project", "p-1", "--reference", "file=x.json"]), 2, "a bad spec stops before any run is read")
+            self.assertIn("label=NAME", err.getvalue())
+
+    def test_a_missing_reference_file_is_a_message_not_a_traceback(self) -> None:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = collector.main(["--from-dir", str(FIXTURES), "--reference", "label=rival,file=/no/such/file.json"])
+        self.assertEqual(code, 2)
+        self.assertIn("file.json", err.getvalue())
+
     def test_a_bad_pareto_axis_is_a_message_not_a_traceback(self) -> None:
         err = io.StringIO()
         with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
@@ -754,3 +939,209 @@ class ProjectNameTests(unittest.TestCase):
 
     def test_no_project_id_makes_no_call(self) -> None:
         self.assertIsNone(collector.project_name(None, cli="/nonexistent/artemis"))
+
+
+class GateMetricTests(unittest.TestCase):
+    """--gate-metric: a version that reads 0 on the run's own 0/1 gate has no usable readings, so it is never ranked, a winner or on the front."""
+
+    @staticmethod
+    def payloads() -> dict:
+        payloads = collector.load_from_dir(str(FIXTURES))
+        for group in sorted({m["observationGroupId"] for m in payloads["metrics"]}):
+            payloads["metrics"].append({"metricId": "m-gate", "metricName": "gate_ok", "observationGroupId": group,
+                                        "mean": 0.0 if group == "obs-2" else 1.0, "min": 0.0, "max": 1.0, "count": 1})
+        return payloads
+
+    def test_a_gate_failure_is_never_ranked_a_winner_or_on_the_front(self) -> None:
+        plain = collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00", pareto_axes=["latency_ms", "quality_score"])
+        self.assertEqual(plain["perMetricWinners"]["latency_ms"]["raw"]["label"], "v2", "without the flag v2 wins, so the test means something")
+        self.assertIsNone(plain["gate"])
+        snap = collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00", pareto_axes=["latency_ms", "quality_score"], gate_metric="gate_ok")
+        self.assertEqual(snap["gate"], {"metric": "gate_ok", "failed": ["v2"]})
+        self.assertEqual([v["label"] for v in snap["versions"] if v["gateFailed"]], ["v2"])
+        self.assertNotIn("v2", [r["label"] for r in snap["rankings"]["latency_ms"]])
+        self.assertEqual(snap["perMetricWinners"]["latency_ms"]["raw"]["label"], "v4")
+        self.assertNotIn(2, [p["version"] for p in snap["pareto"]["points"]])
+        self.assertNotIn(2, [row["bestVersion"] for row in snap["runningBest"]["latency_ms"]])
+        v2 = next(v for v in snap["versions"] if v["version"] == 2)
+        self.assertIsNotNone(v2["metrics"]["latency_ms"]["mean"], "the snapshot keeps its raw readings; only the picks leave it out")
+
+    def test_a_gated_web_ui_best_is_named_and_not_led_with(self) -> None:
+        snap = collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00", gate_metric="gate_ok")
+        self.assertEqual(snap["webUiBest"]["label"], "v2", "the Web UI's own Best is reported as it is")
+        self.assertEqual(snap["bestLines"]["label"], "v4")
+        self.assertIn("Best is v2, by Composite score, but it failed the gate (gate_ok = 0)", snap["bestLines"]["lede"])
+        self.assertNotIn("no change on", snap["bestLines"]["lede"])
+
+    def test_the_snapshot_draws_its_trade_off_from_versions_that_passed_the_gate(self) -> None:
+        from unittest import mock
+        seen = []
+        real = collector.drawable_tradeoff
+        with mock.patch.object(collector, "drawable_tradeoff", side_effect=lambda defs, usable: seen.append([v["label"] for v in usable]) or real(defs, usable)):
+            collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00", gate_metric="gate_ok")
+        self.assertEqual(len(seen), 1)
+        self.assertNotIn("v2", seen[0], "the gate failure is not counted")
+
+    def test_the_tradeoff_metrics_count_only_versions_that_passed_the_gate(self) -> None:
+        plain = collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00")
+        gated = collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00", gate_metric="gate_ok")
+        count = lambda s, k: sum(1 for v in s["versions"] if not v.get("gateFailed") and ((v["metrics"].get(k) or {}).get("vsBaseline") or {}).get("improvementPct") is not None)
+        for snap in (plain, gated):
+            for key in snap["tradeoffMetrics"]:
+                self.assertGreaterEqual(count(snap, key), 2, key)
+                self.assertIsNotNone(next(m for m in snap["metrics"] if m["key"] == key)["higherIsBetter"])
+            self.assertTrue(all(count(snap, m["key"]) < 2 or m["higherIsBetter"] is None or m["kind"] != "target" or m["key"] in snap["tradeoffMetrics"] for m in snap["metrics"]))
+
+    def test_an_unknown_gate_metric_is_refused(self) -> None:
+        with self.assertRaises(ValueError):
+            collector.build_snapshot(self.payloads(), collected_at="2026-09-02T00:00:00+00:00", gate_metric="no_such_metric")
+
+
+class SizeCapTests(unittest.TestCase):
+    """A run's brief can state a file-size cap; the snapshot carries it only when the brief states exactly one."""
+
+    def test_the_cap_is_read_in_any_common_form(self) -> None:
+        for brief, size in [("whose GGUF file is at most 1,319,830,496 bytes. That is", 1319830496), ("Keep it under 1.3 GB.", 1_300_000_000),
+                            ("no more than 500 MiB", 500 * 2**20), ("Eligible if: bytes <= 1,319,830,496", 1319830496), ("≤ 2 GB", 2_000_000_000)]:
+            with self.subTest(brief=brief):
+                self.assertEqual(collector.size_cap(brief)["bytes"], size)
+        self.assertEqual(collector.size_cap("is at most 1,319,830,496 bytes.")["text"], "at most 1,319,830,496 bytes", "the phrase it was read from")
+        self.assertEqual(collector.size_cap("at most 1,319,830,496 bytes; bytes ≤ 1,319,830,496")["bytes"], 1319830496, "the same cap twice is one cap")
+
+    def test_no_cap_two_caps_or_a_rate_is_none(self) -> None:
+        for brief in ("Make it faster.", None, "at most 1,000,000 bytes, or bytes <= 2,000,000", "stream at under 5 MB/s"):
+            with self.subTest(brief=brief):
+                self.assertIsNone(collector.size_cap(brief))
+
+    def test_a_trade_off_draws_directed_targets_compared_on_two_usable_versions(self) -> None:
+        d = lambda higher=False, kind="target": {"kind": kind, "higherIsBetter": higher}
+        defs = {"two": d(), "one": d(), "undirected": d(None), "judged": d(True, "quality")}
+        cmp = lambda *keys: {"metrics": {k: {"vsBaseline": {"improvementPct": 1.0}} for k in keys}}
+        usable = [cmp("two", "one", "undirected", "judged"), cmp("two", "undirected", "judged"), {"metrics": {"one": {"vsBaseline": {"improvementPct": None}}}}]
+        self.assertEqual(collector.drawable_tradeoff(defs, usable), ["two"])
+        self.assertEqual(collector.drawable_tradeoff(defs, usable[:1]), [], "one compared version is not a trade-off")
+
+    def test_the_budget_is_the_only_byte_metric_or_the_named_one(self) -> None:
+        cap = {"bytes": 1_300_000_000}
+        d = lambda unit, kind="target": {"kind": kind, "unit": unit, "higherIsBetter": False}
+        one = {"model_size_mb": d("MB"), "pooled_wer": d(None)}
+        self.assertEqual(collector.budget_metric(one, cap), "model_size_mb", "the run's only byte metric")
+        self.assertIsNone(collector.budget_metric(one, None), "no stated cap: no budget")
+        two = dict(one, rss_mb=d("MB"))
+        self.assertIsNone(collector.budget_metric(two, cap), "two byte metrics and none named: no budget, never a guess")
+        self.assertEqual(collector.budget_metric(two, cap, "model_size_mb"), "model_size_mb", "--budget-metric names it")
+        for bad in ("pooled_wer", "no_such_metric"):
+            with self.subTest(named=bad), self.assertRaises(ValueError):
+                collector.budget_metric(two, cap, bad)
+        control = {"seed_size_mb": dict(d("MB"), role="reference")}
+        self.assertIsNone(collector.budget_metric(control, cap), "a reference control is never the budget")
+        self.assertIsNone(collector.budget_metric({"fps": d("fps")}, cap), "no byte metric: the cap stays a sentence")
+
+    @staticmethod
+    def sized(brief: str, original_mb: float, extra: tuple[str, ...] = ()) -> dict:
+        payloads = collector.load_from_dir(str(FIXTURES))
+        payloads["run"]["taskDescription"] = brief
+        for group in sorted({m["observationGroupId"] for m in payloads["metrics"]}):
+            for key in ("model_size_mb",) + extra:
+                payloads["metrics"].append({"metricId": "m-" + key, "metricName": key, "observationGroupId": group, "mean": original_mb, "min": original_mb, "max": original_mb, "count": 1})
+        return payloads
+
+    def test_an_original_above_or_below_the_cap_still_has_its_budget(self) -> None:
+        # The common compression brief starts above its cap: FP16 at 2,600 MB against "at most 1.3 GB".
+        for original in (2600.0, 1100.0):
+            with self.subTest(original=original):
+                snap = collector.build_snapshot(self.sized("The GGUF file must be at most 1.3 GB.", original), collected_at="x")
+                size = next(m for m in snap["metrics"] if m["key"] == "model_size_mb")
+                self.assertEqual((size.get("role"), size.get("cap"), size["unit"]), ("budget", 1300.0, "MB"), "the cap in the metric's own unit")
+
+    def test_two_byte_metrics_need_the_flag_and_a_rate_is_no_cap(self) -> None:
+        two = self.sized("The GGUF file must be at most 1.3 GB.", 2600.0, ("rss_mb",))
+        roles = lambda snap: {m["key"]: m.get("role") for m in snap["metrics"] if m["key"] in ("model_size_mb", "rss_mb")}
+        self.assertEqual(roles(collector.build_snapshot(copy.deepcopy(two), collected_at="x")), {"model_size_mb": None, "rss_mb": None})
+        self.assertEqual(roles(collector.build_snapshot(copy.deepcopy(two), collected_at="x", budget_name="model_size_mb")), {"model_size_mb": "budget", "rss_mb": None})
+        rate = collector.build_snapshot(self.sized("Stream it at under 5 MB/s.", 2600.0), collected_at="x")
+        self.assertIsNone(rate["run"]["sizeCap"])
+        self.assertFalse([m for m in rate["metrics"] if m.get("role") == "budget"])
+
+    def test_two_different_caps_are_named_on_stderr(self) -> None:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            snap = collector.build_snapshot(self.sized("Peak RAM below 8 GB, and a model of at most 1.3 GB.", 2600.0), collected_at="x")
+        self.assertIsNone(snap["run"]["sizeCap"])
+        self.assertIn("2 different size limits (below 8 GB; at most 1.3 GB), so no size cap is set", err.getvalue())
+
+    def test_common_cap_wordings_are_read_and_a_throughput_is_not(self) -> None:
+        for brief, size in [("Size cap: 1.3 GB", 1_300_000_000), ("max 1.3 GB", 1_300_000_000), ("It must fit in 1.3 GB.", 1_300_000_000),
+                            ("a maximum of 2 GB", 2_000_000_000), ("capped at 500 MiB", 500 * 2**20), ("a limit of 1 GB", 1_000_000_000)]:
+            with self.subTest(brief=brief):
+                self.assertEqual(collector.size_cap(brief)["bytes"], size)
+        self.assertIsNone(collector.size_cap("a max throughput of 3 GB/s"))
+
+    def test_an_explicit_size_cap_beats_the_brief(self) -> None:
+        self.assertEqual(collector.parse_size_cap("1.3 GB"), {"bytes": 1_300_000_000, "text": "--size-cap 1.3 GB"})
+        for bad in ("1.3", "big", "1.3 GB/s"):
+            with self.subTest(value=bad), self.assertRaises(ValueError):
+                collector.parse_size_cap(bad)
+        snap = collector.build_snapshot(self.sized("Make the model small.", 2600.0), collected_at="x", size_cap_given=collector.parse_size_cap("1.3 GB"))
+        size = next(m for m in snap["metrics"] if m["key"] == "model_size_mb")
+        self.assertEqual((snap["run"]["sizeCap"]["text"], size.get("role"), size.get("cap")), ("--size-cap 1.3 GB", "budget", 1300.0))
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(collector.main(["--from-dir", str(FIXTURES), "--size-cap", "huge"]), 2)
+        self.assertIn("--size-cap 'huge': give a size with a unit", err.getvalue())
+
+    def test_each_silent_way_to_lose_the_budget_says_so(self) -> None:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            collector.build_snapshot(self.sized("Make the model small.", 2600.0), collected_at="x", budget_name="model_size_mb")
+        self.assertIn("--budget-metric model_size_mb has no size cap to apply to: none found in the brief; pass --size-cap", err.getvalue())
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            collector.build_snapshot(self.sized("The file must be at most 1.3 GB.", 2600.0, ("rss_mb",)), collected_at="x")
+        self.assertIn("the size cap (at most 1.3 GB) could apply to model_size_mb, rss_mb; pass --budget-metric to name one", err.getvalue())
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            collector.build_snapshot(self.sized("The file must be at most 1.3 GB.", 2600.0), collected_at="x")
+        self.assertEqual(err.getvalue(), "", "one byte metric and one cap: nothing to say")
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            collector.build_snapshot(self.sized("Peak RAM below 8 GB, and a model of at most 1.3 GB.", 2600.0), collected_at="x", size_cap_given=collector.parse_size_cap("1.3 GB"))
+        self.assertEqual(err.getvalue(), "", "--size-cap given: the brief's limits are not read, so there is no clash to report")
+
+    def test_a_bad_budget_metric_is_a_message_not_a_traceback(self) -> None:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = collector.main(["--from-dir", str(FIXTURES), "--budget-metric", "latency_ms"])
+        self.assertEqual(code, 2)
+        self.assertIn("--budget-metric latency_ms: not a target metric measured in a byte unit", err.getvalue())
+
+
+class ExternalReferenceTests(unittest.TestCase):
+    """--reference: a model the run's referee scored outside Discovery, carried with its source, never filled in."""
+
+    def test_a_reference_keeps_the_runs_metrics_its_gate_and_its_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            scored = Path(tmp) / "handy.json"
+            scored.write_text(json.dumps({"latency_ms": 9.5, "eligible": 0, "not_a_metric": 3, "label": "x"}), encoding="utf-8")
+            note, fails = Path(tmp) / "SOURCE.md", Path(tmp) / "fails.txt"
+            note.write_text("Copy of gbeast2 /raid/x.json", encoding="utf-8")
+            fails.write_text("nonspeech: 23 runaway clips\n", encoding="utf-8")
+            payloads = collector.load_from_dir(str(FIXTURES))
+            for group in sorted({m["observationGroupId"] for m in payloads["metrics"]}):
+                payloads["metrics"].append({"metricId": "m-el", "metricName": "eligible", "observationGroupId": group, "mean": 1.0, "min": 1.0, "max": 1.0, "count": 1})
+            specs = collector.parse_reference_specs([f"label=stock Q4_K_M,file={scored},note={note},failures={fails}"])
+            snap = collector.build_snapshot(payloads, collected_at="2026-09-02T00:00:00+00:00", gate_metric="eligible", reference_specs=specs)
+        [ref] = snap["externalReferences"]
+        self.assertEqual(ref["label"], "stock Q4_K_M")
+        self.assertEqual(ref["metrics"], {"latency_ms": 9.5, "eligible": 0.0}, "only the run's own metrics, as the file reads them")
+        self.assertTrue(ref["gateFailed"])
+        self.assertEqual(ref["failures"], ["nonspeech: 23 runaway clips"])
+        self.assertEqual(ref["source"]["file"], "handy.json", "the file name only: a published page never shows a local path")
+        self.assertEqual(len(ref["source"]["sha256"]), 64)
+        self.assertIn("gbeast2", ref["source"]["note"])
+        self.assertEqual(collector.build_snapshot(collector.load_from_dir(str(FIXTURES)), collected_at="x")["externalReferences"], [])
+
+    def test_a_bad_reference_is_refused(self) -> None:
+        for bad in ("file=/x.json", "label=a", "label=a,file=/x.json,size=3"):
+            with self.subTest(spec=bad), self.assertRaises(ValueError):
+                collector.parse_reference_specs([bad])

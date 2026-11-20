@@ -1,6 +1,6 @@
 ---
 name: discovery-visualize
-description: Collect a normalized Artemis discovery snapshot and render it as a host-native chart or report. Use when the user wants to graph, chart, plot, compare, visualize, or build a discovery report, canvas, or artifact from a discovery run.
+description: Collect a normalized Artemis discovery snapshot and render it as a host-native chart or report. Use when the user wants to graph, chart, plot, compare, visualize, or build a discovery report, interactive chart studio, canvas, or artifact from a discovery run.
 compatibility: Requires Artemis CLI 1.1.16+ (below 1.2.0) and Artemis Platform 3.1.0+.
 metadata:
   artemis-cli-min: "1.1.16"
@@ -27,7 +27,7 @@ metadata:
 ## Workflow
 
 1. Confirm authentication and the run ID.
-2. **Settle the story.** The user's prompt takes precedence: a chart, chart type, colours, versions or layout they ask for is drawn exactly as asked. When the prompt only says compare, show, chart or visualise the run, build the default, **best vs baseline**, without asking. Other stories (how the search went, what worked) come from the table under *Settle the story first* in [references/report-design.md](references/report-design.md).
+2. **Settle the story.** The user's prompt takes precedence: a chart, chart type, colours, versions or layout they ask for is drawn exactly as asked. One chart asked for by name ("only the forest plot") is that one studio card, `build_studio.py --only`; a full report or "the most important charts" is the chart studio (both in *Interactive studio*). When the prompt only says compare, show, chart or visualise the run, build the default static report, **best vs baseline**, without asking. Other stories (how the search went, what worked) come from the table under *Settle the story first* in [references/report-design.md](references/report-design.md).
 3. Collect the snapshot (do not hand-join CLI JSON):
 
 ```bash
@@ -38,9 +38,9 @@ python3 "<skill-dir>/scripts/collect_discovery.py" \
 
 Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / trade-off view and named the axes, or when one target metric and one quality metric are the obvious pair and you label it as analysis.
 
-4. Read the snapshot. Trust `webUiBest`, `perMetricWinners`, `rankings`, raw `metrics` means, `runs`, `timesBetter`, `vsBaseline` (falcon's verdict and interval) and `steering` (each steer, from the run's chat). Lead with `webUiBest`. `bestLines.lede` and `bestLines.notes` are the sentences that say so, name each measured metric whose own best differs, and flag a stored direction worth checking: put them on the page word for word, whatever page you write (`check_report.py` fails without them); if a raw winner differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent any other overall winner. If `perMetricWinners[metric].raw` is `null`, say its `reason` (no stored direction, or no change from Artemis yet) and draw no winner for it. Collect with `--from-dir` only from a folder that holds `comparison.json` from `discovery compare`.
+4. Read the snapshot. Trust `webUiBest`, `perMetricWinners`, `rankings`, raw `metrics` means, `runs`, `timesBetter`, `vsBaseline` (falcon's verdict and interval) and `steering` (each steer, from the run's chat). Lead with `webUiBest`. `bestLines.lede` and `bestLines.notes` are the sentences that say so, name each measured metric whose own best differs, and flag a stored direction worth checking (`directionChecks` holds those warnings on their own; carry each word for word too, in the chat reply when there is no Best page): put them on the page word for word, whatever page you write (`check_report.py` fails without them; the studio says it in one line); if a raw winner differs from the eligible winner, explain the failed gate and show the eligible alternative as secondary context. Do not invent any other overall winner. If `perMetricWinners[metric].raw` is `null`, say its `reason` (no stored direction, or no change from Artemis yet) and draw no winner for it. Collect with `--from-dir` only from a folder that holds `comparison.json` from `discovery compare`.
 5. Read [references/report-design.md](references/report-design.md) in full: page anatomy, the figure for each story, how to write findings, and the visual standard. The figures are kit functions ([references/report-kit.md](references/report-kit.md)); [references/component-catalog.md](references/component-catalog.md) is only for a Cursor canvas.
-6. Build the page with the kit in [references/report-kit.md](references/report-kit.md), on every host: write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. The result is one HTML file that looks the same whichever agent built it. Then read the adapter for how to hand it over:
+6. Build the page with the kit in [references/report-kit.md](references/report-kit.md), on every host: write a short page script, run `build_report.py`, then `check_report.py`, and fix everything it reports. A studio or `--only` page is checked with `check_report.py --studio` instead (see *Interactive studio*). The result is one HTML file that looks the same whichever agent built it. Then read the adapter for how to hand it over:
    - Claude Code: [references/claude-code.md](references/claude-code.md) (publish as an Artifact)
    - GitHub Copilot / VS Code: [references/copilot.md](references/copilot.md) (open in the editor's browser)
    - Cursor: [references/cursor.md](references/cursor.md) (open in the browser; a canvas only when the user wants the chart in the chat)
@@ -50,7 +50,7 @@ Add `--pareto <metric-a>,<metric-b>` only when the user asked for a Pareto / tra
 
 The data contract is in [references/data-contract.md](references/data-contract.md).
 
-## 8. Hand it over
+## Hand it over
 
 Keep the message short: the report says the rest. In this order, and nothing after the box:
 
@@ -70,6 +70,31 @@ Private until you share it from the page's Share menu. The run in Artemis: <Disc
 ````
 
 On a host without Artifacts the box says **OPEN YOUR REPORT** and the line under it is the file path, opened in the browser where the host can. Drop the "Private until…" sentence there; keep the Discovery link.
+
+## Interactive studio
+
+The static report (steps 5 and 6) is the default when the user only says compare, show, chart or visualise. Build the chart studio for a full report or the most important charts (step 2), and when the user wants to explore the run themselves: switch metrics and views, hide versions, and download any chart as PNG, SVG or CSV. Use it as well to set several Discovery runs of one project side by side as sessions. What each card draws is in [references/studio.md](references/studio.md).
+
+```bash
+python3 "<skill-dir>/scripts/build_studio.py" --snapshot /tmp/discovery-snapshot.json --output /tmp/discovery-studio.html
+python3 "<skill-dir>/scripts/check_report.py" --studio /tmp/discovery-studio.html
+```
+
+- `--snapshot` is a run snapshot, or a `--project` snapshot whose runs become sessions, oldest first (a run with no measured version is left out and named). Repeat it to put several in one picker, each with a short `--label` in the same order.
+- `--only best|ranked|forest|time|box|table|tradeoff|pareto|ai|sessions` draws that one card on a page of its own. Use it whenever the user names one chart. It exits 2 without writing a page when the data has no such chart; say why and offer the nearest one.
+- `--tradeoff X,Y` sets the two metrics the trade-off card opens on, from the collector's `tradeoffMetrics`. Use it when the lead metric is a composite or penalised objective that would squash an axis. `tradeoff` is the main card, opening on both metrics' own values (Within the cap and Artemis's % change one click away); `pareto` (under More charts) plots raw means on the collector's `--pareto` axes.
+- `--failed N:SESSION:VERSIONS` marks versions that failed a check of the user's own, outside the snapshot (N is the `--snapshot`'s position, from 1). Use it only when the user names them. `--title` sets the browser tab's title.
+- Run-specific facts come from the collector, never from the page: `--gate-metric` for the run's own gate, a size cap stated in the brief, and `--reference` for models scored outside Discovery (see *Collector flags*).
+- The page says how Best was chosen in one line and names each metric whose own best is another version, in place of `bestLines` word for word; `check_report.py --studio` checks those.
+- `check_report.py --studio` needs Chrome or Chromium; without one it fails with NOT RENDERED. Fix everything it reports. It also fails a "Better on both" corner or an axis title that disagrees with `metrics[].higherIsBetter`, and an empty Conclusion bullet.
+- **Look at it before you hand it over.** Add `--shots /tmp/studio-shots` to the check, open both pictures (desktop and phone width), and check:
+  1. each axis's better direction matches `metrics[].higherIsBetter`;
+  2. no empty bullets;
+  3. no overlapping or clipped labels;
+  4. the headline matches `webUiBest`;
+  5. every number in a title is in the snapshot.
+
+  Fix, rebuild and check again, then hand the page over as in step 8. On Claude Code, publish it with `capabilities: {downloads: true}` so the Download buttons save files.
 
 ## Recipe rules (Cursor canvas only)
 
@@ -91,9 +116,9 @@ These override any host chart default:
 - Missing observations are gaps, not zeroes. `generation_failed` versions never reached the runner.
 - Plot `mean` / `min` / `max` / `count`, and individual `runs` when present.
 - Verdicts and intervals are falcon's, in `vsBaseline` (`better`, `worse`, `noise`, `pending`), the same ones the Web UI shows; never compute statistics in the page or the conversation. Show the runs beside any verdict. Say "within the noise", not "worse", for `noise`, and "too few runs to tell" for `pending`.
-- Colour by better and worse only when the user asks for it.
+- On a page you write, colour by better and worse only when the user asks for it; the studio's colours are falcon's verdicts and stay as built.
 - Keep measured metrics, AI Metrics (`kind: quality`) and Experiment conclusions visually distinct: AI Metrics get their own figure, never the headline, the forest or a verdict.
-- Versions are numbered in the order they were made, so version order is generation order. The trajectory marks the raw winner only; plot running-best only when the user is judging search speed.
+- Versions are numbered in the order they were made, so version order is generation order. The version chart judges search progress: it draws the leader so far, and its clear/within-noise reading compares falcon's intervals (one interval wholly above the other), never a statistic computed on the page.
 - A Pareto front is an analytical view over named axes, not an Artemis verdict.
 
 ## Collector flags
@@ -103,11 +128,18 @@ These override any host chart default:
 --from-dir DIR         fixture/replay collect (run.json, versions.json, metrics.json|stats.json, experiments.json)
 --project UUID         every Discovery run in a project, one snapshot each
 --output PATH          write JSON; default stdout
---base-url URL         Web UI origin if status cannot infer it
+--base-url URL         https Web UI origin the page links to, if status cannot infer it
 --pareto a,b           optional axes; repeatable
 --cli PATH             path to the CLI binary; default `artemis` on PATH
 --config PATH          passed to every CLI call as `--config`, e.g. a runner env file
+--gate-metric KEY      the run's own 0/1 gate metric (1 = passed): a version below 1 is never ranked, a winner or on a front
+--size-cap SIZE        the run's size cap, e.g. "1.3 GB", used instead of reading one from the brief
+--budget-metric KEY    the byte-unit metric a size cap applies to; needed when the run has more than one
+--reference SPEC       label=NAME,file=PATH[,note=PATH][,failures=PATH]: a model the run's referee scored outside
+                       Discovery, as a JSON object of readings on this run's metric keys; repeatable
 ```
+
+A size cap the brief states ("at most N bytes", "under 1.3 GB", "Size cap: 1.3 GB", "max 1.3 GB", "fit in 1.3 GB", "<= 500 MiB") is read without a flag (`--size-cap` overrides it), and applies to the run's one byte-unit metric, or to the one `--budget-metric` names when there are several (otherwise none, and the collector does not guess). Fields and file formats: [references/data-contract.md](references/data-contract.md).
 
 The collector already strips logger noise before JSON and joins `observationGroupId` / `experimentId`.
 
@@ -119,4 +151,5 @@ The collector already strips logger noise before JSON and joins `observationGrou
 - [ ] Each target metric has a baseline, change and raw winner view; any raw/eligible difference is explained without making eligibility the headline.
 - [ ] Failed and missing versions are accounted for.
 - [ ] The method note or a caption says the verdicts are Artemis's own (`discovery compare`) and gives the runs per side.
+- [ ] Studio only: `check_report.py --studio --shots` passes, and both pictures were checked against the five points under *Interactive studio*.
 - [ ] Handed over with at most four lines of summary and the report link in the box, then the Discovery Web UI link.

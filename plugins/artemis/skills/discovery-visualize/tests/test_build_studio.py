@@ -1,0 +1,1455 @@
+#!/usr/bin/env python3
+"""Checks for the chart studio page and its builder, drawn in headless Chrome."""
+
+from __future__ import annotations
+
+import contextlib
+import copy
+import io
+import json
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "tests"))
+
+import build_studio  # noqa: E402
+import check_report  # noqa: E402
+import collect_discovery  # noqa: E402
+from studio_fixtures import (  # noqa: E402
+    CHROME, VISIBLE, embedded, failed_run, late, low_then_high, probed, project_snapshot, redrawable, run_snapshot, with_intervals,
+)
+
+
+class BuildTests(unittest.TestCase):
+    def test_a_run_snapshot_is_one_dataset(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        for key in ("__TITLE__", "__STUDIO_DATA__"):
+            self.assertNotIn(key, html)
+        data = embedded(html)["datasets"]
+        self.assertEqual(len(data), 1)
+        self.assertIn("snapshot", data[0])
+        self.assertTrue(data[0]["id"].startswith("r-"))
+
+    def test_tradeoff_presets_the_trade_off_axes_and_refuses_a_metric_it_cannot_draw(self) -> None:
+        snap = two_targets()
+        self.assertEqual(embedded(build_studio.build([snap], tradeoff="compile_runtime,latency_ms"))["tradeoff"], {"x": "compile_runtime", "y": "latency_ms"})
+        self.assertNotIn("tradeoff", embedded(build_studio.build([snap])))
+        for bad in ("latency_ms", "latency_ms,latency_ms", "latency_ms,no_such_metric"):
+            with self.subTest(spec=bad), self.assertRaises(ValueError):
+                build_studio.build([snap], tradeoff=bad)
+        undirected = two_targets()
+        next(m for m in undirected["metrics"] if m["key"] == "compile_runtime")["higherIsBetter"] = None
+        with self.assertRaises(ValueError):  # no stored direction: no trade-off on it
+            build_studio.build([redrawable(undirected)], tradeoff="compile_runtime,latency_ms")
+
+    def test_a_snapshot_from_before_tradeoff_metrics_is_told_to_collect_again(self) -> None:
+        old = two_targets()
+        del old["tradeoffMetrics"]  # a good two-metric run, collected before the collector wrote the list
+        ds = embedded(build_studio.build([old]))["datasets"][0]
+        self.assertIn("collect it again", build_studio.drawable("tradeoff", ds))
+        self.assertIn("needs two measured metrics", build_studio.drawable("tradeoff", embedded(build_studio.build([dict(old, tradeoffMetrics=[])]))["datasets"][0]))
+
+    def test_gate_failures_never_make_a_trade_off_drawable(self) -> None:
+        # The builder once counted gate failures that the page leaves out: --only tradeoff built, and the page drew nothing.
+        snap = two_targets()
+        compared = [v for v in snap["versions"] if (v["metrics"].get("compile_runtime") or {}).get("vsBaseline")]
+        for v in compared[1:]:
+            v["gateFailed"] = True
+        redrawable(snap)
+        ds = embedded(build_studio.build([snap]))["datasets"][0]
+        self.assertIsNotNone(build_studio.drawable("tradeoff", ds))
+        with self.assertRaises(ValueError):
+            build_studio.build([snap], tradeoff="compile_runtime,latency_ms")
+
+    def test_the_rank_in_tooltips_reads_the_view_after_it_is_prepared(self) -> None:
+        # DATA_NOW feeds "Rank N of M" in every version tooltip; set before the view's data exists, every rank is blank.
+        page = (Path(build_studio.__file__).resolve().parent.parent / "assets" / "chart-studio.html").read_text(encoding="utf-8")
+        self.assertLess(page.index("var D = useMemo(function () { return s ? prep(s, failed)"), page.index("DATA_NOW = D;"))
+
+    def test_a_project_snapshot_is_its_runs_as_sessions(self) -> None:
+        data = embedded(build_studio.build([project_snapshot(3)], labels=["Build time"]))["datasets"]
+        self.assertEqual(data[0]["label"], "Build time")
+        self.assertEqual([s["run"]["id"] for s in data[0]["sessions"]], ["run-0", "run-1", "run-2"])
+
+    def test_a_one_run_project_is_drawn_as_that_run(self) -> None:
+        data = embedded(build_studio.build([project_snapshot(1)]))["datasets"]
+        self.assertIn("snapshot", data[0])
+
+    def test_the_same_run_twice_gets_two_entries(self) -> None:
+        data = embedded(build_studio.build([run_snapshot(), run_snapshot()]))["datasets"]
+        self.assertEqual(len({d["id"] for d in data}), 2)
+
+    def test_data_cannot_close_its_script_element(self) -> None:
+        snap = run_snapshot()
+        snap["run"]["projectName"] = "A <!-- B </script><script>alert(1)</script>"
+        html = build_studio.build([snap])
+        self.assertNotIn("</script><script>alert(1)", html)
+        self.assertNotIn("<!-- B", html)
+        self.assertEqual(embedded(html)["datasets"][0]["label"], snap["run"]["projectName"])
+
+    def test_bad_snapshots_are_refused_not_crashed_on(self) -> None:
+        no_run = run_snapshot()
+        no_run["run"] = None
+        no_base = run_snapshot()
+        del no_base["baseline"]
+        no_base_metrics = run_snapshot()
+        no_base_metrics["baseline"] = {}
+        no_winners = run_snapshot()
+        del no_winners["perMetricWinners"]
+        unmeasured = run_snapshot()
+        unmeasured["metrics"] = []  # versions keep their readings, but on no metric the run defines
+        cases = [
+            ([[run_snapshot()]], "expected a collector snapshot"),
+            ([no_run], "`run` is missing or is not a JSON object"),
+            ([no_base], "`baseline` is missing"),
+            ([no_base_metrics], "`baseline.metrics` is missing"),
+            ([no_winners], "`perMetricWinners` is missing"),
+            ([dict(run_snapshot(), versions={})], "`versions` is missing or is not a list"),
+            ([dict(run_snapshot(), versions=["v1"])], "an item of `versions` is not a JSON object"),
+            ([dict(run_snapshot(), metrics=["x"])], "an item of `metrics` is not a JSON object"),
+            ([dict(project_snapshot(2), skipped=["x"])], "`skipped` is not a list of JSON objects"),
+            ([{"schemaVersion": 2, "kind": "project", "projectId": 7, "runs": [dict(run_snapshot(), versions=[{"version": 1, "metrics": {"compile_runtime": 5}}])]}], "metric reading is not a JSON object"),
+            ([unmeasured], "no measured version"),
+            ([{"schemaVersion": 2, "kind": "project", "runs": [None]}], "not a JSON object"),
+        ]
+        for snaps, message in cases:
+            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message), contextlib.redirect_stderr(io.StringIO()):
+                build_studio.build(snaps)
+
+    def test_a_run_with_readings_on_no_defined_metric_is_left_out(self) -> None:
+        project = project_snapshot(3)
+        project["runs"][0]["metrics"] = []
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            data = embedded(build_studio.build([project]))["datasets"]
+        self.assertEqual([s["run"]["id"] for s in data[0]["sessions"]], ["run-1", "run-2"])
+        self.assertIn("left out run run-0", err.getvalue())
+
+    def test_title_is_escaped(self) -> None:
+        self.assertIn("<title>A&lt;b>&amp;</title>", build_studio.build([run_snapshot()], title="A<b>&"))
+
+    def test_failed_versions_are_deduplicated_and_the_project_name_is_the_default_label(self) -> None:
+        project = project_snapshot(2)
+        for r in project["runs"]:
+            r["run"]["projectName"] = "Build time"
+        data = embedded(build_studio.build([project], failed=["1:1:2,2"]))["datasets"]
+        self.assertEqual(data[0]["correctness"], {"1": [2]})
+        # A repeat for the same session adds to it.
+        data = embedded(build_studio.build([project], failed=["1:1:2", "1:1:3"]))["datasets"]
+        self.assertEqual(data[0]["correctness"], {"1": [2, 3]})
+        self.assertEqual(data[0]["label"], "Build time")
+        project["runs"][0]["run"].pop("projectName")
+        self.assertEqual(embedded(build_studio.build([project]))["datasets"][0]["label"], "Project proj-1")
+
+    def test_failed_marks_land_on_the_named_session(self) -> None:
+        data = embedded(build_studio.build([run_snapshot(), project_snapshot(2)], failed=["2:2:3,1", "1:1:2"]))["datasets"]
+        self.assertEqual(data[1]["correctness"], {"2": [1, 3]})
+        self.assertEqual(data[0]["correctness"], {"1": [2]})
+        # A lone run stays a run: no sessions, so the page keeps the plain-run layout.
+        self.assertIn("snapshot", data[0])
+        self.assertNotIn("sessions", data[0])
+
+    def test_bad_input_is_refused_with_a_reason(self) -> None:
+        old = run_snapshot()
+        old["schemaVersion"] = 1
+        cases = [
+            ([], [], [], "at least one"),
+            ([old], [], [], "schemaVersion"),
+            ([run_snapshot()], ["a", "b"], [], "more --label"),
+            ([run_snapshot()], [], ["1-2-3"], "expected N:SESSION:VERSIONS"),
+            ([run_snapshot()], [], ["2:1:1"], "no snapshot 2"),
+            ([run_snapshot()], [], ["1:2:1"], "only session is 1"),
+            ([project_snapshot(2)], [], ["1:3:1"], "has 2 session"),
+            ([run_snapshot()], [], ["1:1:99"], "no version 99"),
+            ([failed_run()], [], [], "no measured version"),
+        ]
+        for snaps, labels, failed, message in cases:
+            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
+                build_studio.build(snaps, labels, failed)
+
+    def test_the_page_starts_in_standards_mode(self) -> None:
+        self.assertTrue(build_studio.build([run_snapshot()]).startswith("<!doctype html>"))
+
+    def test_a_run_with_no_measured_version_is_left_out_and_named(self) -> None:
+        project = project_snapshot(2)
+        project["runs"].insert(0, failed_run())
+        project["skipped"] = [{"id": "gone-run-1", "status": "failed", "reason": "no comparison"}]
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            data = embedded(build_studio.build([project], failed=["1:2:1"]))["datasets"]
+        self.assertEqual([s["run"]["id"] for s in data[0]["sessions"]], ["run-0", "run-1"])
+        # SESSION is the number the page shows, after the left-out run: session 2 is run-1.
+        self.assertEqual(data[0]["correctness"], {"2": [1]})
+        self.assertIn("left out run dead-run (failed)", err.getvalue())
+        self.assertIn("skipped run gone-run (failed): no comparison", err.getvalue())
+
+    def test_cli_writes_the_page(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            snap, out = Path(tmp) / "snap.json", Path(tmp) / "studio.html"
+            snap.write_text(json.dumps(run_snapshot()), encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()) as said:
+                self.assertEqual(build_studio.main(["--snapshot", str(snap), "--output", str(out)]), 0)
+            self.assertIn("wrote", said.getvalue())
+            self.assertIn("studio-data", out.read_text(encoding="utf-8"))
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(build_studio.main(["--snapshot", str(Path(tmp) / "missing.json"), "--output", str(out)]), 2)
+            self.assertIn("No such file", err.getvalue())
+            listed = Path(tmp) / "list.json"
+            listed.write_text("[]", encoding="utf-8")
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(build_studio.main(["--snapshot", str(listed), "--output", str(out)]), 2)
+                self.assertEqual(build_studio.main(["--snapshot", str(snap), "--output", str(Path(tmp) / "no" / "dir.html")]), 2)
+            bad = Path(tmp) / "bad.json"
+            bad.write_text("{not json", encoding="utf-8")
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(build_studio.main(["--snapshot", str(bad), "--output", str(out)]), 2)
+            self.assertIn(f"{bad} is not JSON", err.getvalue())
+            # --label and --failed reach the page through the command line.
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(build_studio.main(["--snapshot", str(snap), "--label", "Build time", "--failed", "1:1:2", "--output", str(out)]), 0)
+            data = embedded(out.read_text(encoding="utf-8"))["datasets"][0]
+            self.assertEqual((data["label"], data["correctness"]), ("Build time", {"1": [2]}))
+
+
+class PhoneAndDesktopLayoutTests(unittest.TestCase):
+    """What a phone and a desktop show: zero, Best and verdicts in view, the chosen session marked, CSV under each top."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def test_a_phone_keeps_zero_best_and_verdicts_visible_and_fits_five_groups(self) -> None:
+        project = project_snapshot(5)
+        titles = ["Use bucket_time_keys_before_probing_hash_join_partitions in query_planner.optimize",
+                  "Use BucketTimeKeysBeforeProbingHashJoinPartitionsInQueryPlannerOptimize now",
+                  "Pin a3f9c2e81b7d4f06a5e3c9b2d1f8e7a6c5b4d3e2f1a0b9c8 as the seed"]
+        for v, title in zip(project["runs"][0]["versions"], titles):
+            v["experimentTitle"] = title
+        html = build_studio.build([project])
+        got = probed(html, "p-proj-1", VISIBLE + """
+          return { ranked: texts('ranked'), wide: document.documentElement.scrollWidth, table: card('table').querySelector('table').getBoundingClientRect().width,
+                   card: card('table').getBoundingClientRect().width, inner: innerWidth, tableText: card('table').textContent };""", phone=True, more=True)
+        boxes = build_studio.build([project], only="box")
+        swipe = probed(boxes, "p-proj-1", VISIBLE + "return !!card('box').querySelector('.hint');", phone=True)
+        self.assertIn("0%", got["ranked"])
+        self.assertFalse(any("Best" in t for t in got["ranked"]), "Best is the Composite pick; one metric's chart never marks it")
+        run = build_studio.build([with_intervals(run_snapshot())], only="forest")
+        forest = probed(run, embedded(run)["datasets"][0]["id"], VISIBLE + "return texts('forest');", phone=True)
+        # A phone shows each verdict as its mark beside the change; every version keeps one.
+        self.assertTrue(any(t.endswith("▲") for t in forest) and any(t.endswith("≈") for t in forest), forest)
+        self.assertFalse(swipe, "five box groups should fit a phone with no Swipe hint")
+        self.assertEqual(got["inner"], 390)
+        self.assertLessEqual(got["wide"], 390)
+        self.assertLessEqual(got["table"], got["card"], "a long code name in a title pushed the table off the screen")
+        self.assertIn("query_\u200bplanner.\u200boptimize", got["tableText"], "a code name should break at its _ and . first")
+
+    def test_a_desktop_shows_the_verdict_wording_and_marks_the_chosen_session(self) -> None:
+        project = project_snapshot(3)
+        html = build_studio.build([project])
+        got = probed(html, "p-proj-1", VISIBLE + """
+          var theme = document.documentElement.getAttribute('data-theme');
+          var cap = [].filter.call(document.querySelectorAll('.ctl > span'), function (s) { return s.textContent === 'Theme'; })[0];
+          if (cap) cap.click();
+          var ctlTag = cap ? cap.parentNode.tagName : null;
+          var bold = [].filter.call(card('sessions').querySelectorAll('svg text tspan'), function (t) { return /^Discovery session 2$/.test(t.textContent) && +getComputedStyle(t).fontWeight >= 600; }).length;
+          return { themeAfter: document.documentElement.getAttribute('data-theme'), theme: theme, ctlTag: ctlTag, bold: bold,
+                   best: card('best').textContent, table: card('table').textContent, sessions: card('sessions').textContent };""", session=1)
+        self.assertEqual(got["themeAfter"], got["theme"], "a click on the Theme caption changed the theme")
+        self.assertEqual(got["ctlTag"], "DIV", "a button group's caption must not be a <label>")
+        self.assertGreater(got["bold"], 0, "the chosen session's label should be bold")
+        self.assertRegex(got["table"], r"\d+ of \d+ significantly improved")
+        self.assertRegex(got["sessions"], r"Discovery session 1's top( correct version)? on [^:]+: v\d")
+        self.assertNotIn("'s best", got["sessions"], "a per-metric top is never called best")
+        self.assertNotIn("Top by", got["sessions"])
+
+    def test_the_forest_log_scale_reads_one_times_at_no_change(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())], only="forest")
+        ds = embedded(html)["datasets"][0]["id"]
+        got = probed(html, ds, VISIBLE + "return { ticks: texts('forest'), log: card('forest').querySelector('.seg button[aria-pressed=true]').textContent };",
+                     act="[].filter.call(document.querySelectorAll('[data-card=\"forest\"] .seg button'), function (x) { return /^Log/.test(x.textContent); })[0].click();")
+        self.assertEqual(got["log"], "Log (×)")
+        self.assertIn("1×", got["ticks"], got)
+
+    def test_a_label_shortened_once_takes_new_text_after_a_switch(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var swapped = window.__sw, kept = window.__kp;
+          return { swapped: swapped.textContent, swappedFull: swapped.dataset.full || null, kept: kept.textContent.indexOf('Old metric with') === 0 };""", act="""
+          var svg = document.querySelector('[data-card="ranked"] svg.recharts-surface'), ns = 'http://www.w3.org/2000/svg';
+          var make = function (txt) { var t = document.createElementNS(ns, 'text'); t.setAttribute('x', 10); t.setAttribute('y', 20); t.textContent = txt; svg.appendChild(t); return t; };
+          var swapped = make('New metric'); swapped.dataset.full = 'Old metric with a long name'; swapped.dataset.short = 'Old metric with…';
+          var kept = make('Old metric with…'); kept.dataset.full = 'Old metric with a long name'; kept.dataset.short = 'Old metric with…';
+          window.__sw = swapped; window.__kp = kept;
+          window.dispatchEvent(new Event('resize'));""")
+        self.assertEqual(got["swapped"], "New metric", "the pass wrote the old label over React's new one")
+        self.assertIsNone(got["swappedFull"])
+        self.assertTrue(got["kept"])
+
+    def test_csv_keeps_every_run_under_each_runs_top(self) -> None:
+        project = project_snapshot(6)
+        per_run = len(project["runs"][0]["rankings"][project["runs"][0]["metrics"][0]["key"]])
+        self.assertGreater(per_run, 1)
+        html = build_studio.build([project])
+        got = probed(html, "p-proj-1", "return { csv: window.__csv || null };", act="""
+          window.claude = { use: function () { return Promise.resolve({ save: function (o) { window.__csv = o.data; return Promise.resolve(); } }); } };
+          var c = document.querySelector('[data-card="sessions"]');
+          var dl = [].filter.call(c.querySelectorAll('button'), function (b) { return b.textContent === 'Download'; })[0]; dl.click();
+          setTimeout(function () { var o = [].filter.call(c.querySelectorAll('button'), function (b) { return /CSV/.test(b.textContent); })[0]; if (o) o.click(); }, 100);""")
+        self.assertIsNotNone(got["csv"], "the sessions card saved no CSV")
+        self.assertEqual(len(got["csv"].strip().splitlines()) - 1, 6 * per_run, "the CSV dropped the rows Show hides")
+
+
+class LeadMetricAndTypeTests(unittest.TestCase):
+    """The lead metric, no style editing, the Own layout, text of 15px or more, and Conclusion boxes."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def test_the_page_leads_with_the_most_important_metric(self) -> None:
+        js = ("return { h1: document.querySelector('h1').textContent, best: document.querySelector('[data-card=best] .means').textContent,"
+              " panels: [].map.call(document.querySelectorAll('[data-card=best] .ptitle'), function (t) { return t.textContent; }),"
+              " reset: [].map.call(document.querySelectorAll('button'), function (b) { return b.textContent; }).filter(function (t) { return /Reset/.test(t); }) };")
+        # Without the collector's bestLines.metric (an older snapshot), the page ranks by importance itself.
+        for told in (True, False):
+            with self.subTest(bestLines_metric=told):
+                snap = low_then_high()
+                if not told:
+                    snap["bestLines"].pop("metric")
+                html = build_studio.build([snap])
+                got = probed(html, embedded(html)["datasets"][0]["id"], js)
+                self.assertIn("Latency", got["h1"], "the headline led on a low-importance metric that did not move")
+                self.assertNotIn("db size", got["h1"].lower())
+                self.assertIn("Latency", got["best"])
+                self.assertTrue(got["panels"] and got["panels"][0].startswith("Latency"), f"the Best card should show the most important metric first: {got['panels']}")
+                self.assertEqual(got["reset"], ["Reset"])
+
+    def test_no_card_offers_style_editing_and_old_edits_do_not_come_back(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        ds = embedded(html)["datasets"][0]["id"]
+        got = probed(html, ds, """
+          return { style: [].filter.call(document.querySelectorAll('button'), function (b) { return b.textContent === 'Style'; }).length,
+                   editable: document.querySelectorAll('[contenteditable]').length,
+                   colour: document.querySelectorAll('input[type=color]').length,
+                   h2: document.querySelector('[data-card=\\\"ranked\\\"] h2').textContent };""",
+                     act="")
+        self.assertEqual((got["style"], got["editable"], got["colour"]), (0, 0, 0))
+        # A browser that saved an edited title before still sees the question.
+        key = "dv-studio:v1:" + ds + ":" + embedded(html)["datasets"][0]["snapshot"]["run"]["id"] + ":ranked"
+        seeded = html.replace("<!doctype html>\n", "<!doctype html>\n<script>try { localStorage.setItem('" + key + "', JSON.stringify({ title: 'My old title', labels: { x: 'old axis' }, offV: ['v1'] })); } catch (e) {}</script>", 1)
+        again = probed(seeded, ds, "var c = document.querySelector('[data-card=\\\"ranked\\\"]'); return { text: c.textContent, v1: [].some.call(c.querySelectorAll('svg text'), function (t) { return /^v1\\b/.test(t.textContent); }) };")
+        self.assertFalse(again["v1"], "the seeded state was not read, so this test checks nothing")
+        self.assertNotIn("My old title", again["text"])
+        self.assertNotIn("old axis", again["text"])
+
+    def test_own_scale_puts_every_panel_in_one_row_on_desktop_and_two_columns_on_a_phone(self) -> None:
+        html = build_studio.build([run_snapshot()], only="box")  # few iterations: the studio leaves box plots out, their own page draws them
+        ds = embedded(html)["datasets"][0]["id"]
+        act = "var c = document.querySelector('[data-card=\\\"box\\\"]'); [].filter.call(c.querySelectorAll('.seg button'), function (b) { return b.textContent === 'Own'; })[0].click();"
+        read = "var ps = [].map.call(document.querySelectorAll('[data-card=\\\"box\\\"] .multi .panel'), function (p) { var r = p.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(p.querySelector('svg').getBoundingClientRect().width)]; }); return ps;"
+        desk = probed(html, ds, read, act=act)
+        self.assertGreater(len(desk), 2)
+        self.assertEqual(len({p[1] for p in desk}), 1, f"panels wrapped onto more than one row: {desk}")
+        self.assertTrue(all(abs(p[2] - p[3]) <= 2 for p in desk), f"a chart is narrower than its panel: {desk}")
+        phone = probed(html, ds, read, act=act, phone=True)
+        self.assertEqual(len({p[0] for p in phone}), 2, f"a phone should show two columns: {phone}")
+        # Nine groups split into rows of 5 and 4 rather than a full row and one panel alone.
+        many = run_snapshot()
+        donor = next(v for v in many["versions"] if (v["metrics"].get("latency_ms") or {}).get("runs"))
+        for n in range(6, 11):
+            many["versions"].append(dict(copy.deepcopy(donor), version=n, label=f"v{n}", id=f"ver-{n}"))
+        built = build_studio.build([many], only="box")
+        rows = probed(built, embedded(built)["datasets"][0]["id"], read, act=act)
+        per_row = [sum(1 for p in rows if p[1] == top) for top in sorted({p[1] for p in rows})]
+        self.assertEqual(sum(per_row), 9, rows)
+        self.assertEqual(sorted(per_row), [4, 5], f"rows should be as even as nine allows: {per_row}")
+
+    def test_conclusions_are_called_conclusion_and_no_text_is_under_12px(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var small = []; var walk = document.createTreeWalker(document.getElementById('root'), NodeFilter.SHOW_TEXT);
+          for (var n = walk.nextNode(); n; n = walk.nextNode()) { var el = n.parentElement; if (!n.data.trim() || !el || el.closest('[hidden]')) continue;
+            var cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+            if (parseFloat(cs.fontSize) < 12) small.push(n.data.trim().slice(0, 30) + ' ' + cs.fontSize); }
+          var heads = [].map.call(document.querySelectorAll('.means h3'), function (h) { return h.textContent; });
+          var mono = [].filter.call(document.querySelectorAll('svg text, svg tspan, table.sum td.n'), function (t) { return /Mono|monospace/.test(getComputedStyle(t).fontFamily); }).length;
+          return { small: small.slice(0, 5), heads: heads, mono: mono, old: document.getElementById('root').textContent.indexOf('What this means') };""")
+        self.assertEqual(got["small"], [])
+        self.assertTrue(got["heads"] and all(h == "Conclusion" for h in got["heads"]), got["heads"])
+        self.assertEqual(got["old"], -1)
+        self.assertEqual(got["mono"], 0, "numbers should be in the text face")
+
+    def test_a_long_rotated_axis_title_stays_inside_its_chart(self) -> None:
+        snap = run_snapshot()
+        for m in snap["metrics"]:
+            m["label"] = "host work between chunks reduction for " + m["key"]
+        html = build_studio.build([snap])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          return [].map.call(document.querySelectorAll('svg.recharts-surface'), function (svg) { var b = svg.getBoundingClientRect();
+            return [].filter.call(svg.querySelectorAll('text[transform]'), function (t) { var r = t.getBoundingClientRect(); return r.height && (r.top < b.top - 1 || r.bottom > b.bottom + 1); }).map(function (t) { return t.textContent; }); })
+            .reduce(function (a, b) { return a.concat(b); }, []);""", more=True)
+        self.assertEqual(got, [], "a rotated axis title runs past its chart")
+
+    def test_six_digit_ticks_clear_the_axis_title_on_a_phone(self) -> None:
+        snap = run_snapshot()
+
+        def scale(st: dict) -> None:
+            for k in ("mean", "min", "max", "q1", "median", "q3"):
+                if isinstance(st.get(k), (int, float)):
+                    st[k] = st[k] * 12500
+            if st.get("runs"):
+                st["runs"] = [r * 12500 if isinstance(r, (int, float)) else r for r in st["runs"]]
+        scale(snap["baseline"]["metrics"]["latency_ms"])
+        for v in snap["versions"]:
+            if v["metrics"].get("latency_ms"):
+                scale(v["metrics"]["latency_ms"])
+        html = build_studio.build([snap], only="box")
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var card = document.querySelector('[data-card="box"]'), title = card.querySelector('svg text[transform]');
+          if (!title) return { title: false };
+          var t = title.getBoundingClientRect();
+          var ticks = [].filter.call(card.querySelectorAll('.recharts-cartesian-axis-tick-label'), function (x) { return getComputedStyle(x).visibility !== 'hidden'; });
+          return { title: true, ticks: ticks.length, hit: ticks.filter(function (x) { var r = x.getBoundingClientRect(); return r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top; }).map(function (x) { return x.textContent; }) };""",
+                     phone=True, more=True)
+        self.assertTrue(got["title"])
+        self.assertGreater(got["ticks"], 1)
+        self.assertEqual(got["hit"], [], "a y tick overprints the axis title")
+
+
+class SessionNamingAndOnlyTests(unittest.TestCase):
+    """Discovery sessions are never called runs, --only draws one card, and the forest shades both sides."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def test_no_label_calls_a_discovery_session_a_run(self) -> None:
+        project = project_snapshot(3)
+        project["runs"][1]["run"]["taskDescription"] = "A different task entirely"
+        html = build_studio.build([project])
+        text = probed(html, "p-proj-1", "return document.getElementById('root').innerText;", session=1)
+        self.assertIsNone(re.search(r"\bRuns?\b \d|\bRuns in\b|\brun \d", text), "a Discovery session is labelled as a run")
+        self.assertIn("Discovery session 2", text)
+
+    def test_only_draws_one_card_with_no_switchers(self) -> None:
+        html = build_studio.build([run_snapshot()], only="forest")
+        got = probed(html, embedded(html)["datasets"][0]["id"], "return { cards: [].map.call(document.querySelectorAll('section.card'), function (c) { return c.dataset.card; }), switches: [].map.call(document.querySelectorAll('.bar .ctl > span:first-child'), function (s) { return s.textContent; }), h1: document.querySelectorAll('h1').length };")
+        self.assertEqual(got, {"cards": ["forest"], "switches": ["Theme"], "h1": 0})
+        with self.assertRaisesRegex(ValueError, "--only must be one of"):
+            build_studio.build([run_snapshot()], only="pie")
+
+    def test_the_forest_shades_the_better_side_green_and_the_worse_side_red(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())], only="forest")
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var svg = document.querySelector('[data-card="forest"] svg.recharts-surface'), zero = null;
+          var areas = [].map.call(svg.querySelectorAll('.recharts-reference-area rect, .recharts-reference-area path'), function (r) { var b = r.getBoundingClientRect(); return { left: b.left, right: b.right, fill: r.getAttribute('fill') }; });
+          var line = svg.querySelector('.recharts-reference-line line'); if (line) zero = line.getBoundingClientRect().left;
+          var first = svg.querySelector('.recharts-reference-area'), marks = svg.querySelector('.recharts-scatter'), labels = [].filter.call(svg.querySelectorAll('text'), function (t) { return /less|more|improved|regressed|difference/.test(t.textContent); });
+          var after = function (n) { return !!(first && n && (first.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)); };
+          return { areas: areas, zero: zero, behind: after(marks) && labels.length > 0 && labels.every(after) };""")
+        self.assertEqual(len(got["areas"]), 2, got)
+        left, right = sorted(got["areas"], key=lambda a: a["left"])
+        self.assertLessEqual(abs(left["right"] - got["zero"]), 1.5)
+        self.assertLessEqual(abs(right["left"] - got["zero"]), 1.5)
+        self.assertNotEqual(left["fill"], right["fill"])
+        self.assertTrue(got["behind"], "the bands should sit behind the rows and their labels")
+
+
+class ConclusionBulletTests(unittest.TestCase):
+    """Fewer words: no reading notes or method block, no "(Best)" in titles, Conclusions as bullets."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def test_the_page_carries_no_reading_notes_and_conclusions_are_bullets(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var root = document.getElementById('root');
+          return { text: root.innerText, titles: [].map.call(document.querySelectorAll('h1, section.card h2'), function (h) { return h.textContent; }),
+                   boxes: [].map.call(document.querySelectorAll('.means'), function (m) { return m.querySelectorAll('li').length; }),
+                   colours: [].map.call(document.querySelectorAll('.means li span[class^="v-"]'), function (x) { return x.className + '|' + getComputedStyle(x).color; }) };""")
+        for gone in ("How to read this", "Verdicts, changes and 95% intervals", "Versions are numbered", "Not shown for this", "stay in this browser only"):
+            self.assertNotIn(gone, got["text"])
+        self.assertFalse([t for t in got["titles"] if "(Best)" in t], got["titles"])
+        self.assertTrue(got["boxes"] and all(n >= 1 for n in got["boxes"]), f"every Conclusion should be bullets: {got['boxes']}")
+        better = {c.split("|")[1] for c in got["colours"] if c.startswith("v-better")}
+        noise = {c.split("|")[1] for c in got["colours"] if c.startswith("v-noise")}
+        self.assertTrue(better and noise and not (better & noise), got["colours"])
+
+
+class ValueAxisAndVerdictTests(unittest.TestCase):
+    """Bar charts get a value axis from zero, every Conclusion looks the same, and every verdict is said."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def test_bars_have_a_value_axis_from_zero_and_every_conclusion_looks_the_same(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var best = document.querySelector('[data-card="best"]');
+          var ticks = [].map.call(best.querySelectorAll('.recharts-yAxis .recharts-cartesian-axis-tick-value, .recharts-cartesian-axis-tick-label'), function (t) { return t.textContent; });
+          var borders = [].map.call(document.querySelectorAll('.means'), function (m) { return getComputedStyle(m).borderTopColor + ' ' + getComputedStyle(m).borderTopStyle; });
+          var top = document.querySelector('header .means li');
+          return { ticks: ticks, grid: best.querySelectorAll('.recharts-cartesian-grid-horizontal line').length, borders: borders, first: top ? top.textContent : '', chose: document.getElementById('root').innerText.indexOf('How Artemis chose Best') };""", more=True)
+        self.assertIn("0", got["ticks"], got["ticks"])
+        self.assertGreater(got["grid"], 0, "the Best card's bars need light gridlines")
+        self.assertGreater(len(got["borders"]), 2)
+        self.assertEqual(len(set(got["borders"])), 1, got["borders"])
+        self.assertEqual(got["first"], "Best = highest Composite score across all metrics.")
+        self.assertEqual(got["chose"], -1)
+
+    def test_the_forest_shows_both_bands_when_one_change_is_huge(self) -> None:
+        # This run's shape: a 99.9% gain next to a 500% regression.
+        snap = with_intervals(run_snapshot())
+        moved = [v for v in snap["versions"] if (v["metrics"].get("latency_ms") or {}).get("vsBaseline")]
+        moved[0]["metrics"]["latency_ms"]["vsBaseline"].update(improvementPct=99.9, ciLowPct=99.8, ciHighPct=99.95, verdict="better")
+        moved[-1]["metrics"]["latency_ms"]["vsBaseline"].update(improvementPct=-500.0, ciLowPct=-900.0, ciHighPct=-150.0, verdict="worse")
+        html = build_studio.build([snap], only="forest")
+        widths = probed(html, embedded(html)["datasets"][0]["id"], """
+          var rects = [].map.call(document.querySelectorAll('[data-card="forest"] .recharts-reference-area rect, [data-card="forest"] .recharts-reference-area path'), function (r) { return r.getBoundingClientRect().width; });
+          return rects;""")
+        self.assertEqual(len(widths), 2, widths)
+        # -900% is past the outlier rule's 5x, so that row is clipped at the edge; and "% better" can't pass +100% on a lower-is-better time, so the green band is small but there.
+        self.assertGreaterEqual(min(widths) / sum(widths), 0.05, f"one band is gone: {widths}")
+
+    def test_every_verdict_reaches_the_conclusion_when_the_composite_best_is_not_significant_and_the_rest_regressed(self) -> None:
+        # A real run's shape: Best at 1.4% less with an interval across 0, every other version significantly regressed.
+        snap = with_intervals(run_snapshot())
+        moved = [v for v in snap["versions"] if (v["metrics"].get("latency_ms") or {}).get("vsBaseline")]
+        self.assertGreaterEqual(len(moved), 2)
+        for best in (snap["webUiBest"], snap["bestLines"]):
+            best.update(version=moved[0]["version"], label=moved[0]["label"])
+        changes = [(1.4, -2.0, 4.0, "noise")] + [(-70.0 - 50 * i, -90.0 - 50 * i, -50.0 - 50 * i, "worse") for i in range(len(moved) - 1)]
+        for v, (pct, lo, hi, verdict) in zip(moved, changes):
+            v["metrics"]["latency_ms"]["pctBetter"] = pct
+            v["metrics"]["latency_ms"]["vsBaseline"].update(improvementPct=pct, ciLowPct=lo, ciHighPct=hi, verdict=verdict)
+            for r in snap["rankings"].get("latency_ms", []):
+                if r["version"] == v["version"]:
+                    r["pctBetter"] = pct
+        lines = """var lines = function (id) { var c = document.querySelector('[data-card="' + id + '"]'); return c ? [].map.call(c.querySelectorAll('.means li'), function (l) { return l.textContent; }) : null; };"""
+        html, forest = build_studio.build([snap]), build_studio.build([snap], only="forest")
+        got = {"table": probed(html, embedded(html)["datasets"][0]["id"], lines + "return lines('table');", more=True),
+               "forest": probed(forest, embedded(forest)["datasets"][0]["id"], lines + "return lines('forest');")}
+        worst = moved[-1]["label"]
+        for card in ("forest", "table"):
+            text = " | ".join(got[card] or [])
+            self.assertNotIn("No interval clears", text)
+            self.assertRegex(text, rf"{len(moved) - 1} of \d+ significantly regressed: {worst} ", card)
+        self.assertRegex(" | ".join(got["forest"]), rf"1 of {len(moved)} no significant difference: {moved[0]['label']} 1.4% less")
+        self.assertNotIn("Best", " | ".join(got["forest"] + got["table"]), "one metric's Conclusion never names the Composite Best")
+
+
+class BuilderRefusalAndTooltipTests(unittest.TestCase):
+    """--only refuses a chart the data lacks, the pp line is falcon's, and a box needs falcon's quartiles."""
+
+    def test_only_refuses_a_chart_the_data_cannot_draw(self) -> None:
+        snap = run_snapshot()
+        bare = copy.deepcopy(snap)  # no AI Metric: no AI chart and no second metric for the trade-off
+        bare["metrics"] = [m for m in bare["metrics"] if m["kind"] != "quality"]
+        for v in bare["versions"]:
+            v["metrics"].pop("quality_score", None)
+        for card, why in (("sessions", "one run has no sessions chart"), ("ai", "no version has an AI Metric score"), ("pareto", "no two metrics")):
+            with self.subTest(card=card), self.assertRaisesRegex(ValueError, f"--only {card}: {why}"):
+                build_studio.build([bare], only=card)
+        for card in ("ai", "pareto"):  # the full fixture has both
+            build_studio.build([snap], only=card)
+        build_studio.build([project_snapshot(2)], only="sessions")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "run.json"
+            path.write_text(json.dumps(snap), encoding="utf-8")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = build_studio.main(["--snapshot", str(path), "--only", "sessions", "--output", str(Path(tmp) / "out.html")])
+            self.assertEqual(code, 2)
+            self.assertFalse((Path(tmp) / "out.html").exists())
+            self.assertIn("--only sessions:", err.getvalue())
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_builder_refuses_exactly_the_charts_the_page_leaves_out(self) -> None:
+        # drawable() restates the page's pareto() and hasAIScores(); this holds the two together.
+        full = run_snapshot()
+        bare = copy.deepcopy(full)
+        bare["metrics"] = [m for m in bare["metrics"] if m["kind"] != "quality"]
+        for v in bare["versions"]:
+            v["metrics"].pop("quality_score", None)
+        flat = copy.deepcopy(full)
+        for v in flat["versions"]:
+            if v["metrics"].get("quality_score"):
+                v["metrics"]["quality_score"]["mean"] = 0.5
+        unscored = copy.deepcopy(full)
+        for v in unscored["versions"]:
+            if v["metrics"].get("quality_score"):
+                v["metrics"]["quality_score"]["mean"] = None
+
+        def with_axes(snap, keys):  # --pareto, built the way the collector builds it
+            snap = copy.deepcopy(snap)
+            defs = {m["key"]: m for m in snap["metrics"]}
+            snap["pareto"] = {"axes": [{"key": k, "higherIsBetter": defs[k]["higherIsBetter"], "kind": defs[k]["kind"]} for k in keys],
+                              "points": collect_discovery.pareto_front(snap["versions"], keys, defs)}
+            return snap
+        axes = with_axes(full, ["latency_ms", "compile_runtime"])
+        same = copy.deepcopy(bare)
+        for v in same["versions"]:
+            if v["metrics"].get("compile_runtime"):
+                v["metrics"]["compile_runtime"]["mean"] = 2.0
+        flat_axes = with_axes(same, ["latency_ms", "compile_runtime"])
+        no_front, no_points = copy.deepcopy(axes), copy.deepcopy(axes)
+        no_front["pareto"]["points"] = []
+        del no_points["pareto"]["points"]
+        for name, snap in (("full", full), ("bare", bare), ("flat", flat), ("unscored", unscored), ("axes", axes), ("flat axes", flat_axes),
+                           ("empty front", no_front), ("no points", no_points)):
+            html = build_studio.build([snap])
+            ds = embedded(html)["datasets"][0]
+            drawn = probed(html, ds["id"], "return [].map.call(document.querySelectorAll('section.card'), function (c) { return c.dataset.card; });", more=True)
+            for card in ("tradeoff", "pareto", "ai"):
+                with self.subTest(snapshot=name, card=card):
+                    expect = build_studio.drawable(card, ds) is None
+                    if card == "pareto" and name in ("axes", "flat axes") and build_studio.drawable("tradeoff", ds) is None:
+                        expect = False  # two measured axes: the studio shows the trade-off card instead; --only pareto still draws it
+                    self.assertEqual(card in drawn, expect, drawn)
+            if name in ("empty front", "no points"):  # left out cleanly: no card, no error message anywhere
+                self.assertNotIn("pareto", drawn)
+                self.assertEqual(probed(html, ds["id"], "return document.querySelectorAll('.err').length;", more=True), 0, name)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_a_machine_group_draws_its_runs_not_a_box_without_falcons_quartiles(self) -> None:
+        snap = run_snapshot()
+        sides = [snap["baseline"]["metrics"]["latency_ms"]] + [v["metrics"]["latency_ms"] for v in snap["versions"] if v["metrics"].get("latency_ms")]
+        for k, st in enumerate(sides):
+            st["runs"] = [{"value": 5.0 + k + i * 0.5, "runner": "box-a" if i % 2 else "box-b"} for i in range(6)]
+            st.update(min=5.0 + k, max=7.5 + k, q1=5.6 + k, median=6.2 + k, q3=6.9 + k)
+        html = build_studio.build([snap], only="box")
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var c = document.querySelector('[data-card="box"]');
+          return { rects: [].filter.call(c.querySelectorAll('svg rect'), function (r) { return /NaN/.test(r.outerHTML); }).length,
+                   lines: [].filter.call(c.querySelectorAll('svg line'), function (l) { return /NaN/.test(l.outerHTML); }).length,
+                   dots: c.querySelectorAll('svg circle').length,
+                   machine: [].some.call(c.querySelectorAll('button'), function (b) { return b.getAttribute('aria-pressed') === 'true' && /Machine/.test(b.textContent); }) };""",
+            act="[].forEach.call(document.querySelectorAll('[data-card=\"box\"] button'), function (b) { if (/^Machine$/.test(b.textContent.trim())) b.click(); });")
+        self.assertTrue(got["machine"], "the Machine grouping did not switch on")
+        self.assertEqual((got["rects"], got["lines"]), (0, 0), got)
+        self.assertGreaterEqual(got["dots"], 12)
+
+
+class BestOnlyOverallTests(unittest.TestCase):
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_best_is_marked_only_where_the_chart_is_about_the_overall_pick(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        got = probed(html, embedded(html)["datasets"][0]["id"], VISIBLE + r"""
+          var cards = ['ranked', 'forest', 'time', 'box', 'table', 'pareto', 'ai'].filter(card);
+          return { marked: cards.filter(function (id) { return /\bBest\b/.test(card(id).innerText); }),
+                   best: /\bBest\b/.test(card('best').innerText), cards: cards };""", more=True)
+        for drawn in ("ranked", "time", "table"):
+            self.assertIn(drawn, got["cards"], got)
+        self.assertEqual(got["marked"], [], "a per-metric chart marks the Composite Best")
+        forest = build_studio.build([with_intervals(run_snapshot())], only="forest")
+        self.assertNotRegex(probed(forest, embedded(forest)["datasets"][0]["id"], "return document.querySelector('[data-card=\"forest\"]').innerText;"), r"\bBest\b", "the forest marks the Composite Best")
+        self.assertTrue(got["best"], "the Is-it-better card still names Best")
+        project = build_studio.build([project_snapshot(2)])
+        sessions = probed(project, embedded(project)["datasets"][0]["id"], "return document.querySelector('[data-card=\"sessions\"]').innerText;")
+        self.assertNotRegex(sessions, r"\bBest\b", "the sessions chart marks a Composite Best")
+
+
+class OutlierAndAxisTests(unittest.TestCase):
+    """The outlier rule, no impossible axis values, even ticks, phone labels clear of marks, plain words."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    @staticmethod
+    def shop_shape() -> dict:
+        # A real run's shape: three ~98-99.9% gains on a lower-is-better time, and v4 at 517.6% more, interval 11x the rest.
+        snap = with_intervals(run_snapshot())
+        moved = [v for v in snap["versions"] if (v["metrics"].get("latency_ms") or {}).get("vsBaseline")]
+        for v, (pct, lo, hi, verdict) in zip(moved, [(99.9, 99.8, 99.95, "better"), (98.3, 98.1, 98.6, "better"), (-517.6, -1100.0, -60.0, "worse")]):
+            v["metrics"]["latency_ms"]["pctBetter"] = pct
+            v["metrics"]["latency_ms"]["vsBaseline"].update(improvementPct=pct, ciLowPct=lo, ciHighPct=hi, verdict=verdict)
+            for r in snap["rankings"]["latency_ms"]:
+                if r["version"] == v["version"]:
+                    r["pctBetter"] = pct
+        sides = [snap["baseline"]["metrics"]["latency_ms"]] + [v["metrics"]["latency_ms"] for v in moved]
+        for st, runs in zip(sides, ([9641.3, 9358.7, 9266.0, 9379.5, 9400.0], [9.0, 9.5, 10.0, 10.5, 11.0], [150.0, 160.0, 170.0, 165.0, 155.0], [57000.0, 70000.0, 81000.0, 90000.0, 99053.0])):
+            st.update(runs=runs, min=min(runs), max=max(runs), mean=sum(runs) / len(runs), count=len(runs), q1=sorted(runs)[1], median=sorted(runs)[2], q3=sorted(runs)[3])
+        return snap
+
+    TICKS = r"""
+      var axisText = function (id, axis) { return [].map.call(document.querySelectorAll('[data-card="' + id + '"] .recharts-' + axis + '-tick-labels text'), function (t) { return t.textContent.trim(); }).filter(function (t) { return /^[\u2212+-]?[\d,.]+%?$/.test(t); }); };
+      var ticks = function (id) { return axisText(id, 'xAxis'); }, yticks = function (id) { return axisText(id, 'yAxis'); };
+      var arrows = function (id) { return document.querySelectorAll('[data-card="' + id + '"] .clip-arrow').length; };
+      var txt = function (id) { return document.querySelector('[data-card="' + id + '"]').innerText; };"""
+
+    @staticmethod
+    def pct(t: str) -> float:
+        return float(t.replace("−", "-").replace("+", "").replace("%", ""))
+
+    def test_a_far_outlier_is_clipped_at_the_edge_with_its_value_and_the_axis_fits_the_rest(self) -> None:
+        html, fp = build_studio.build([self.shop_shape()]), build_studio.build([self.shop_shape()], only="forest")
+        got = probed(html, embedded(html)["datasets"][0]["id"], self.TICKS + """
+          return { ranked: ticks('ranked'), box: yticks('box'), arrows: [0, arrows('ranked'), arrows('box')],
+                   boxText: txt('box'), h1: document.querySelector('h1').textContent };""", more=True)
+        f = probed(fp, embedded(fp)["datasets"][0]["id"], self.TICKS + "return { ticks: ticks('forest'), arrows: arrows('forest'), text: txt('forest') };")
+        got.update(forest=f["ticks"], forestText=f["text"]); got["arrows"][0] = f["arrows"]
+        forest = [self.pct(t) for t in got["forest"]]
+        self.assertEqual(got["arrows"][0], 1, "the forest clips v4 at its edge")
+        self.assertGreaterEqual(min(forest), -200, f"the forest axis fits the rest, not v4: {forest}")
+        self.assertIn("517.6% more", got["forestText"], "a clipped row keeps its value")
+        self.assertEqual(got["arrows"][1], 1, "the ranked bars clip v4's 517.6% too (5.2x the rest)")
+        self.assertLess(min(self.pct(t) for t in got["ranked"]), 0, "a clipped regression keeps room on the worse side")
+        self.assertLessEqual(-min(self.pct(t) for t in got["ranked"]), 100, got["ranked"])
+        self.assertEqual(got["arrows"][2], 1, "the box card clips v4's 99,053 ms group")
+        box = [float(t.replace(",", "")) for t in got["box"]]
+        self.assertGreaterEqual(min(box), 0, f"ms can't go below 0: {box}")
+        self.assertLess(max(box), 20000, f"the box axis fits the rest: {box}")
+        self.assertIn("to 99,053", got["boxText"].replace("\\n", " "))
+
+    def test_no_axis_shows_an_impossible_value_and_ticks_step_evenly(self) -> None:
+        html, fp = build_studio.build([self.shop_shape()]), build_studio.build([self.shop_shape()], only="forest")
+        got = probed(html, embedded(html)["datasets"][0]["id"], self.TICKS + """
+          return { ranked: ticks('ranked') };""", more=True)
+        got["forest"] = probed(fp, embedded(fp)["datasets"][0]["id"], self.TICKS + "return ticks('forest');")
+        for card in ("forest", "ranked"):
+            vals = [self.pct(t) for t in got[card]]
+            with self.subTest(card=card):
+                self.assertLessEqual(max(vals), 100, f"a lower-is-better time can't be more than 100% better: {vals}")
+                steps = {round(b - a, 6) for a, b in zip(vals, vals[1:])}
+                self.assertEqual(len(steps), 1, f"one step on both sides of 0: {vals}")
+
+    def test_a_phone_forest_keeps_values_clear_of_the_marks(self) -> None:
+        html = build_studio.build([self.shop_shape()], only="forest")
+        hits = probed(html, embedded(html)["datasets"][0]["id"], """
+          var c = document.querySelector('[data-card="forest"] svg.recharts-surface'), box = function (e) { return e.getBoundingClientRect(); };
+          var marks = [].slice.call(c.querySelectorAll('.recharts-scatter-symbol circle, .recharts-scatter-symbol polygon, .recharts-errorBar line'));
+          var labels = [].filter.call(c.querySelectorAll('text'), function (t) { return /% (less|more)/.test(t.textContent); });
+          var out = []; labels.forEach(function (t) { var a = box(t); marks.forEach(function (m) { var b = box(m); if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) out.push(t.textContent); }); });
+          return { hits: out, labels: labels.length };""", phone=True)
+        self.assertGreaterEqual(hits["labels"], 3, hits)
+        self.assertEqual(hits["hits"], [], "a value covers a dot or an interval on a phone")
+
+    def test_the_trend_draws_versions_as_dots_not_a_joined_line(self) -> None:
+        html = build_studio.build([self.shop_shape()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var curve = document.querySelector('[data-card="time"] .recharts-line:not(.run-line) .recharts-line-curve');  // the dots' own line, not the leader-so-far steps
+          return { stroke: curve ? curve.getAttribute('stroke') : 'none', dots: document.querySelectorAll('[data-card="time"] .recharts-line-dots circle, [data-card="time"] .recharts-line-dots > g circle').length };""", more=True)
+        self.assertEqual(got["stroke"], "none", "independent versions are never joined into a trend line")
+        self.assertGreater(got["dots"], 0, got)
+
+    def test_conclusions_say_each_count_once_in_plain_words(self) -> None:
+        lines = """var lines = function (id) { return [].map.call(document.querySelectorAll('[data-card="' + id + '"] .means li'), function (l) { return l.textContent; }); };"""
+        html, fp = build_studio.build([self.shop_shape()]), build_studio.build([self.shop_shape()], only="forest")
+        got = {"table": probed(html, embedded(html)["datasets"][0]["id"], lines + "return lines('table');", more=True),
+               "forest": probed(fp, embedded(fp)["datasets"][0]["id"], lines + "return lines('forest');")}
+        text = " | ".join(got["forest"] + got["table"])
+        self.assertNotIn("Highest floor", text)
+        self.assertIn("Surest gain: v1, at least 99.8% less, the low end of its 95% interval", text)
+        self.assertEqual(sum("significantly improved" in l for l in got["table"]), 1, got["table"])
+
+    def test_the_headline_names_both_when_the_overall_pick_is_not_the_best_on_the_lead_metric(self) -> None:
+        snap = self.shop_shape()
+        v2 = next(v for v in snap["versions"] if v["label"] == "v2")
+        for best in (snap["webUiBest"], snap["bestLines"]):
+            best.update(version=v2["version"], label="v2")
+        snap["perMetricWinners"]["latency_ms"]["raw"].update(version=1, label="v1", pctBetter=99.9)
+        html = build_studio.build([snap])
+        h1 = probed(html, embedded(html)["datasets"][0]["id"], "return document.querySelector('h1').textContent;")
+        self.assertEqual(h1, "v2, Artemis's overall pick, takes 98.3% less time than the original on Latency (ms), significantly improved; v1 is fastest on Latency (ms) alone (99.9% less)")
+
+
+class OneCardPageTests(unittest.TestCase):
+    """A one-card page names the Best version, since it has no headline."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def test_a_one_card_page_names_the_best_version(self) -> None:
+        snap = run_snapshot()
+        html = build_studio.build([snap], only="forest")
+        text = probed(html, embedded(html)["datasets"][0]["id"], "return document.getElementById('root').innerText;")
+        self.assertIn(f"Best = highest Composite score across all metrics: {snap['bestLines']['label']}.", text)
+
+
+class IterationWordingTests(unittest.TestCase):
+    """A run is a script run and an iteration is one reading, as the Web UI says "Iterations 8"."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def test_reading_counts_say_iterations_never_runs(self) -> None:
+        snap = with_intervals(run_snapshot())
+        html = build_studio.build([snap])
+        text = probed(html, embedded(html)["datasets"][0]["id"], "return document.getElementById('root').innerText;", more=True).replace("\u00ad", "")
+        self.assertRegex(text, r"from \d+ iterations")
+        self.assertIn("Iterations", text)  # the table's column
+        boxes = build_studio.build([snap], only="box")  # few iterations: the studio leaves box plots out, their own page draws them
+        text += probed(boxes, embedded(boxes)["datasets"][0]["id"], "return document.getElementById('root').innerText;").replace("\u00ad", "")
+        self.assertIn("How spread out are the iterations on", text)
+        self.assertIsNone(re.search(r"\b\d+ runs\b|\b1 run\b|\bRuns\b", text), re.findall(r".{30}\b(?:\d+ runs|1 run|Runs)\b.{20}", text))
+
+
+class AIScoreTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def test_an_ai_score_equal_to_the_originals_reads_plain_not_like_a_verdict(self) -> None:
+        # A judged score of 0.75 against the original's 0.75 is falcon's 0%; it must not look like the amber of a verdict.
+        snap = run_snapshot()
+        scored = [v for v in snap["versions"] if (v["metrics"].get("quality_score") or {}).get("mean") is not None]
+        scored[0]["metrics"]["quality_score"]["pctBetter"] = 0.0
+        html = build_studio.build([snap])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          document.querySelectorAll('details').forEach(function (d) { d.open = true; });
+          var c = document.querySelector('[data-card="ai"]'), noise = getComputedStyle(document.documentElement).getPropertyValue('--noise').trim();
+          var fills = [].map.call(c.querySelectorAll('svg rect'), function (r) { return (r.getAttribute('fill') || '').trim(); });
+          return { zero: [].some.call(c.querySelectorAll('svg text'), function (t) { return t.textContent === '0%'; }), amber: fills.filter(function (f) { return f === noise; }).length,
+                   pills: c.querySelectorAll('svg rect[rx="11"]').length };""", act="document.querySelectorAll('details').forEach(function (d) { d.open = true; });", more=True)
+        self.assertTrue(got["zero"], got)
+        self.assertEqual((got["amber"], got["pills"]), (0, 0), "a same score is drawn plain, never in the amber of a verdict")
+
+
+class VersionLinkTests(unittest.TestCase):
+    """A ranked bar or a forest row opens that version's Code tab in Artemis, built from the snapshot's own ids only."""
+
+    BASE = "https://testing.artemis.turintech.ai/projects/proj-1/discover/run-1"
+    JS = r"""
+      var links = function (id) { return [].map.call(document.querySelectorAll('[data-card="' + id + '"] svg a'), function (a) { return { href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel'), label: a.getAttribute('aria-label') }; }); };
+      var tabbable = function (id) { return [].filter.call(document.querySelectorAll('[data-card="' + id + '"] svg a'), function (a) { return a.getAttribute('tabindex') !== '-1'; }); };
+      var a = tabbable('ranked')[0]; if (a) a.focus();
+      return { ranked: links('ranked'), forest: links('forest'), focused: !!a && document.activeElement === a,
+               stops: [tabbable('ranked').length, tabbable('forest').length], rows: [document.querySelectorAll('[data-card="ranked"] .recharts-bar-rectangle').length, document.querySelectorAll('[data-card="forest"] .recharts-scatter-symbol').length] };"""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not CHROME:
+            raise unittest.SkipTest("no Chrome")
+
+    def page(self, url, ids=True) -> dict:
+        snap = with_intervals(run_snapshot())
+        snap["run"].update(webOrigin="https://testing.artemis.turintech.ai", webUrl=url)
+        for v in snap["versions"]:
+            v["id"] = f"ver-{v['version']}" if ids else None
+        html, fp = build_studio.build([snap]), build_studio.build([snap], only="forest")
+        got, f = probed(html, embedded(html)["datasets"][0]["id"], self.JS), probed(fp, embedded(fp)["datasets"][0]["id"], self.JS)
+        got.update(forest=f["forest"], stops=[got["stops"][0], f["stops"][1]], rows=[got["rows"][0], f["rows"][1]])
+        return got
+
+    def test_a_bar_and_a_forest_row_open_the_versions_code_in_a_new_tab(self) -> None:
+        got = self.page(self.BASE)
+        self.assertTrue(got["ranked"] and got["forest"], got)
+        for link in got["ranked"] + got["forest"]:
+            self.assertRegex(link["href"], "^" + re.escape(self.BASE) + r"/versions/ver-\d+$")
+            self.assertEqual((link["target"], link["rel"]), ("_blank", "noopener"))
+            self.assertRegex(link["label"], r"^Open v\d+'s code change in Artemis \(new tab\)$")
+        self.assertTrue(got["focused"], "a version link must take keyboard focus")
+        self.assertEqual(got["stops"], got["rows"], "one Tab stop per version: its label, not its mark too")
+
+    def test_no_link_without_the_run_url_or_the_version_id(self) -> None:
+        for url, ids in ((None, True), (self.BASE, False), ("https://artemis.turintech.ai/projects/p/discover/r", True), ("http://testing.artemis.turintech.ai/projects/p/discover/r", True), ("https://testing.artemis.turintech.ai.evil.example/projects/p/discover/r", True), (self.BASE + "/versions", True)):
+            with self.subTest(url=url, ids=ids):
+                got = self.page(url, ids)
+                self.assertEqual((got["ranked"], got["forest"]), ([], []))
+                self.assertTrue(all(got["rows"]), f"a card drew no rows, so there was nothing to link: {got['rows']}")
+
+
+class TidierStudioTests(unittest.TestCase):
+    """Eoin's 17 Nov pass: one change card, box plots only when they earn it, a tidy table, one trend chart, a PDF."""
+
+    def test_the_page_offers_a_pdf_and_prints_without_its_controls(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        self.assertIn("Download PDF", html)
+        self.assertRegex(html, r"@media print \{[^}]*\{[^}]*--bg: #ffffff")
+        self.assertIn(".bar, .tools, .toast", html)
+
+    def test_the_trend_has_no_zoom_strip_and_steers_carry_no_text(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        self.assertNotIn("RC.Brush", html)
+        self.assertNotIn('value: "Steer"', html)
+
+    def test_motion_is_short_first_view_only_and_off_for_reduced_motion_and_print(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        css = html[:html.index("</style>")]
+        self.assertIn("@media (prefers-reduced-motion: reduce) { .card.playing, .card.playing *, .morph { animation: none !important; } .card.pre { opacity: 1; } }", css)
+        self.assertRegex(css, r"@media print \{[\s\S]*\*, \*::before, \*::after \{ animation: none !important; transition: none !important; \}")
+        self.assertIn(".card.pre { opacity: 1 !important; }", css, "print shows a card that was never scrolled to")
+        # Each animation's length plus its fixed delay, plus the 150ms stagger and 300ms spread a delay can add: about 700ms at most.
+        for rule in re.findall(r"animation: dv\w+ (\d+)ms[^;]*; animation-delay: calc\(var\(--rd, 0ms\)(?: \+ (\d+)ms)?", css):
+            self.assertLessEqual(int(rule[0]) + int(rule[1] or 0) + 150, 760, rule)
+        self.assertIn("firstView(ref.current", html, "a card plays once, when it first scrolls into view")
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_bar_and_forest_are_one_card_with_a_toggle_and_one_metric(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        ds = embedded(html)["datasets"][0]["id"]
+        before = probed(html, ds, "return { ranked: !!document.querySelector('[data-card=\"change\"] [data-card=\"ranked\"]'), forest: !!document.querySelector('[data-card=\"forest\"]') };")
+        self.assertEqual(before, {"ranked": True, "forest": False})
+        after = probed(html, ds, "return { ranked: !!document.querySelector('[data-card=\"ranked\"]'), forest: !!document.querySelector('[data-card=\"change\"] [data-card=\"forest\"]') };",
+                       act="[].filter.call(document.querySelectorAll('[data-card=\"change\"] .seg button'), function (b) { return b.textContent === 'Forest'; })[0].click();")
+        self.assertEqual(after, {"ranked": False, "forest": True})
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_a_run_measured_once_offers_no_forest(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """return { buttons: [].map.call(document.querySelectorAll('[data-card="change"] .seg button'), function (b) { return b.textContent; }),
+          cards: window.STUDIO_CARDS };""")
+        self.assertNotIn("Forest", got["buttons"])
+        self.assertNotIn("forest", got["cards"])
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_box_plots_are_an_extra_only_when_two_versions_have_five_iterations(self) -> None:
+        few = build_studio.build([run_snapshot()])
+        cards = "return [].map.call(document.querySelectorAll('[data-card]'), function (c) { return c.getAttribute('data-card'); });"
+        self.assertNotIn("box", probed(few, embedded(few)["datasets"][0]["id"], cards, more=True))
+        many = build_studio.build([OutlierAndAxisTests.shop_shape()])
+        ds = embedded(many)["datasets"][0]["id"]
+        self.assertNotIn("box", probed(many, ds, cards), "box plots sit under More charts, closed by default")
+        self.assertIn("box", probed(many, ds, cards, more=True))
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_table_shows_verdict_signs_with_a_key_and_the_interval_beside_the_change(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var c = document.querySelector('[data-card="table"]');
+          return { heads: [].map.call(c.querySelectorAll('th'), function (t) { return t.textContent; }), signs: [].map.call(c.querySelectorAll('td .vicon'), function (i) { return i.getAttribute('aria-label'); }),
+                   key: c.querySelector('.ikey').textContent, ci: c.querySelectorAll('td.n .ci').length };""")
+        self.assertIn("Δ% vs original", got["heads"])
+        self.assertFalse(any("95% interval" in h for h in got["heads"]), got["heads"])
+        self.assertTrue(got["signs"] and all(got["signs"]), "every sign carries its verdict in words for a screen reader")
+        for word in ("Significantly improved", "Needs more runs", "No significant difference", "Significantly regressed"):
+            self.assertIn(word, got["key"])
+        self.assertGreater(got["ci"], 0)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_trend_fits_every_version_points_at_best_and_says_which_way_is_good(self) -> None:
+        html = build_studio.build([OutlierAndAxisTests.shop_shape()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], VISIBLE + """
+          var t = texts('time');
+          return { best: t.filter(function (x) { return /^Top v\d+: /.test(x); }), up: t.some(function (x) { return /^[↑↓] (higher|lower) is better$/.test(x); }), steer: t.indexOf('Steer') >= 0,
+                   legend: card('time').querySelector('.legend') ? card('time').querySelector('.legend').textContent : '' };""", more=True)
+        self.assertEqual(len(got["best"]), 1, got)
+        self.assertTrue(got["up"], "the mean chart says which way is better in the metric's own way")
+        self.assertFalse(got["steer"], "steers are dotted lines in the legend, not text on the chart")
+        self.assertIn("Top on", got["legend"])
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_each_best_panel_gives_its_95_ci_beside_the_change(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        got = probed(html, embedded(html)["datasets"][0]["id"], "return [].map.call(document.querySelectorAll('[data-card=\"best\"] .psub .ci'), function (c) { return c.textContent; });")
+        self.assertTrue(got and all(t.startswith("(95% CI ") for t in got), got)
+
+
+def two_targets(close: bool = False) -> dict:
+    """compile_runtime as a second measured target: v2 (40, -10) and v4 (30, 0) lead; v4 edges v1 (20, -5),
+    clear of it on latency unless close, when the intervals overlap."""
+    snap = run_snapshot()
+    next(m for m in snap["metrics"] if m["key"] == "compile_runtime")["kind"] = "target"
+    for v in snap["versions"]:
+        for key in ("latency_ms", "compile_runtime"):
+            vb = ((v["metrics"].get(key) or {}).get("vsBaseline"))
+            if vb and vb.get("improvementPct") is not None:
+                half = 12 if close else 3
+                vb.update(ciLowPct=vb["improvementPct"] - half, ciHighPct=vb["improvementPct"] + half, verdict="noise" if close else "better" if vb["improvementPct"] > 3 else "worse" if vb["improvementPct"] < -3 else "noise")
+    return redrawable(snap)  # compile_runtime became a target after collecting
+
+
+@unittest.skipUnless(CHROME, "no Chrome")
+class VersionChartAnswerTests(unittest.TestCase):
+    """The version-by-version chart says its answer in the title and shows the leader's interval."""
+
+    def test_the_title_answers_when_the_search_stopped_from_falcons_intervals(self) -> None:
+        html = build_studio.build([with_intervals(run_snapshot())])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """var c = document.querySelector('[data-card="time"]');
+          return { h2: c.querySelector('h2').textContent, band: c.querySelectorAll('.lead-band path').length, legend: c.querySelector('.legend').textContent };""")
+        self.assertRegex(got["h2"], r"^(\d+ clear new leaders?, the last at v\d+|No clear new leader after v\d+)")
+        self.assertEqual(got["band"], 0, "the mean chart draws no % interval band")
+        self.assertNotIn("95% interval", got["legend"])
+
+    def test_without_intervals_the_title_makes_no_clear_claim_and_no_band_draws(self) -> None:
+        snap = run_snapshot()
+        for v in snap["versions"]:
+            for st in v["metrics"].values():
+                if isinstance(st, dict) and st.get("vsBaseline"):
+                    st["vsBaseline"].update(ciLowPct=None, ciHighPct=None)
+        html = build_studio.build([snap])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """var c = document.querySelector('[data-card="time"]');
+          return { h2: c.querySelector('h2').textContent, band: c.querySelectorAll('.lead-band path').length };""")
+        self.assertNotIn("clear", got["h2"])
+        self.assertEqual(got["band"], 0)
+
+
+class FailedRowsAndTradeOffTests(unittest.TestCase):
+    PCT = "[].filter.call(document.querySelectorAll('[data-card=tradeoff] .seg button'), function (b) { return b.textContent === '% change'; })[0].click();"  # the % change view, one click from Values
+    """The table hides failed versions behind a counted toggle; the trade-off card reads Artemis's changes on two metrics."""
+
+    def test_the_builder_draws_a_trade_off_only_with_two_compared_metrics(self) -> None:
+        one = build_studio.build([run_snapshot()])
+        self.assertIsNotNone(build_studio.drawable("tradeoff", embedded(one)["datasets"][0]))
+        two = build_studio.build([two_targets()])
+        self.assertIsNone(build_studio.drawable("tradeoff", embedded(two)["datasets"][0]))
+        with self.assertRaises(ValueError):
+            build_studio.build([run_snapshot()], only="tradeoff")
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_trade_off_keeps_no_notes_and_unticks_versions_it_cannot_place(self) -> None:
+        html = build_studio.build([two_targets()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """
+          var c = document.querySelector('[data-card="tradeoff"]');
+          return { notes: c.querySelectorAll('.missing').length, info: (c.querySelector('.info') || {}).title || '', labels: [].map.call(c.querySelectorAll('.ctl > span'), function (x) { return x.textContent; }),
+                   off: [].filter.call(c.querySelectorAll('.pop label'), function (l) { return l.querySelector('input').disabled; }).map(function (l) { return [l.textContent, l.title]; }) };""",
+                     act=self.PCT + " setTimeout(function () { [].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .tools button'), function (x) { return x.textContent === 'Versions'; })[0].click(); }, 300);")
+        self.assertEqual(got["notes"], 0, "no list of left-out versions under the chart")
+        self.assertIn("no Artemis change on both metrics", got["info"])
+        self.assertTrue({"X axis", "Y axis"} <= set(got["labels"]), got["labels"])
+        self.assertEqual(sorted(x[0] for x in got["off"]), ["v3", "v5"], got)
+        self.assertTrue(all(x[1].startswith("No Artemis change on ") for x in got["off"]), got)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_box_columns_alternate_faint_bands_and_the_trade_off_has_none(self) -> None:
+        boxes = build_studio.build([run_snapshot()], only="box")
+        got = probed(boxes, embedded(boxes)["datasets"][0]["id"], """
+          var c = document.querySelector('[data-card="box"]'), groups = c.querySelectorAll('.recharts-xAxis-tick-labels .recharts-cartesian-axis-tick').length;
+          return { groups: groups, bands: c.querySelectorAll('.col-band').length, op: [].map.call(c.querySelectorAll('.col-band path, .col-band rect'), function (r) { return r.getAttribute('fill-opacity'); }) };""")
+        self.assertGreaterEqual(got["bands"], 1, got)  # every other column of the original and the versions
+        self.assertTrue(all(o in ("0.035", "0.05") for o in got["op"]), got)
+        two = build_studio.build([two_targets()])
+        self.assertEqual(probed(two, embedded(two)["datasets"][0]["id"], "return document.querySelectorAll('[data-card=\"tradeoff\"] .col-band').length;"), 0)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_failed_versions_are_hidden_counted_and_shown_as_a_cross(self) -> None:
+        html = build_studio.build([run_snapshot()])
+        ds = embedded(html)["datasets"][0]["id"]
+        read = """var c = document.querySelector('[data-card="table"]'), b = [].filter.call(c.querySelectorAll('.tools button'), function (x) { return /failed versions/.test(x.textContent); })[0];
+          return { rows: [].map.call(c.querySelectorAll('tbody tr td:first-child'), function (t) { return t.firstChild.textContent.trim(); }), button: b ? b.textContent : null,
+                   cross: [].map.call(c.querySelectorAll('td .vicon'), function (i) { return i.getAttribute('aria-label'); }).filter(function (l) { return /^Failed/.test(l); }), key: c.querySelector('.ikey').textContent };"""
+        before = probed(html, ds, read)
+        self.assertFalse({"v3", "v5"} & set(before["rows"]), before["rows"])  # v3 failed to generate, v5 to run
+        self.assertEqual(before["button"], "Show failed versions (2)")
+        self.assertIn("Failed to run (2, hidden)", before["key"])
+        after = probed(html, ds, read, act="[].filter.call(document.querySelectorAll('[data-card=\"table\"] .tools button'), function (x) { return /failed versions/.test(x.textContent); })[0].click();")
+        self.assertTrue({"v3", "v5"} <= set(after["rows"]), after["rows"])
+        self.assertEqual(sorted(after["cross"]), ["Failed: execution failed", "Failed: generation failed"])
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_trade_off_joins_the_front_fades_the_beaten_and_spares_a_close_call(self) -> None:
+        read = """var c = document.querySelector('[data-card="tradeoff"]'); if (!c) return null;
+          return { means: [].map.call(c.querySelectorAll('.means li'), function (l) { return l.textContent; }).join(' | '),
+                   faded: [].filter.call(c.querySelectorAll('g[opacity]'), function (g) { return g.getAttribute('opacity') === '0.18'; }).length, h2: c.querySelector('h2').textContent,
+                   labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.textContent; }) };"""
+        sure = build_studio.build([two_targets()])
+        got = probed(sure, embedded(sure)["datasets"][0]["id"], read, act=self.PCT)
+        self.assertIn("On the Pareto front: v2, v4", got["means"])  # in order across, left to right: lower latency sits left
+        self.assertIn("Pareto front", got["h2"])
+        self.assertEqual(got["faded"], 1, "v1 is beaten for sure: v4 clears it on latency")
+        self.assertTrue({"v2 · Best", "v4"} <= set(got["labels"]), "every front version is labelled, Best as 'v2 · Best'")
+        self.assertIn("Original", got["labels"])
+        near = build_studio.build([two_targets(close=True)])
+        got = probed(near, embedded(near)["datasets"][0]["id"], read, act=self.PCT)
+        self.assertIn("Tied with the front (within noise): v1", got["means"])
+        self.assertEqual(got["faded"], 0, "an edge inside the intervals is never drawn as beaten")
+        one = build_studio.build([run_snapshot()])
+        self.assertIsNone(probed(one, embedded(one)["datasets"][0]["id"], read), "one measured metric: no trade-off card")
+
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_trade_off_opens_on_all_with_the_original_as_a_triangle_and_a_legend_true_to_the_chart(self) -> None:
+        html = build_studio.build([two_targets()])
+        got = probed(html, embedded(html)["datasets"][0]["id"], """var c = document.querySelector('[data-card="tradeoff"]');
+          var pressed = [].filter.call(c.querySelectorAll('.seg button'), function (b) { return b.getAttribute('aria-pressed') === 'true'; }).map(function (b) { return b.textContent; });
+          var legend = [].map.call(c.querySelectorAll('.legend button'), function (b) { var m = b.querySelector('svg'); return [b.textContent, m ? [].map.call(m.children, function (x) { return x.tagName; }).join('+') : '']; });
+          return { pressed: pressed, legend: legend, orig: c.querySelectorAll('.orig polygon').length, both: [].map.call(c.querySelectorAll('text.both'), function (t) { return t.textContent; }) };""", act=self.PCT)
+        self.assertIn("All", got["pressed"], "All is the first view; Front is the zoom")
+        self.assertEqual(got["orig"], 1, "the original is drawn as a triangle")
+        hib = {m["key"]: m["higherIsBetter"] for m in two_targets()["metrics"]}
+        arrow = {(True, True): "↗", (False, True): "↖", (True, False): "↘", (False, False): "↙"}[(hib["latency_ms"], hib["compile_runtime"])]
+        self.assertEqual(got["both"], ["Better on both " + arrow], "the corner each metric's direction gives, as in Values")
+        marks = dict(got["legend"])
+        self.assertEqual(marks.get("Original (no change on either)"), "polygon", "the legend's original is the same triangle")
+        self.assertEqual(marks.get("On the Pareto front (joined by the front line)"), "line+polygon")
+        self.assertTrue(any(k.startswith("Ring: chance of being on the front") for k in marks), marks)
+
+    @staticmethod
+    def budgeted() -> dict:
+        """latency_ms against a model size the collector marked as the budget (a stated 120 MB cap), with a sourced same-size rival."""
+        snap = run_snapshot()
+        snap["metrics"].append({"key": "model_size_mb", "label": "model size mb", "kind": "target", "higherIsBetter": False, "importance": "none",
+                                "unit": "MB", "role": "budget", "cap": 120.0})
+        snap["baseline"]["metrics"]["model_size_mb"] = {"mean": 100.0, "count": 1}
+        for i, v in enumerate(snap["versions"]):
+            if v["metrics"].get("latency_ms"):
+                size = 104.0 + 4 * i
+                v["metrics"]["model_size_mb"] = {"mean": size, "count": 1, "pctBetter": 100 - size, "vsBaseline": {"improvementPct": 100 - size, "verdict": "pending", "readings": 1}}
+        snap["externalReferences"] = [{"label": "stock rival", "metrics": {"latency_ms": 7.0, "model_size_mb": 120.0}, "gateFailed": True,
+                                       "failures": ["nonspeech: too many runaway clips"], "source": {"file": "rival.json", "sha256": "0" * 64, "note": None}}]
+        return redrawable(snap)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_every_pair_opens_on_its_values_and_a_budget_pair_offers_the_cap_view(self) -> None:
+        html = build_studio.build([self.budgeted()], tradeoff="model_size_mb,latency_ms")
+        ds = embedded(html)["datasets"][0]["id"]
+        read = """var c = document.querySelector('[data-card="tradeoff"]'); return { h2: c.querySelector('h2').textContent,
+          pressed: [].filter.call(c.querySelectorAll('.seg button'), function (b) { return b.getAttribute('aria-pressed') === 'true'; }).map(function (b) { return b.textContent; }),
+          views: [].map.call(c.querySelectorAll('.seg button'), function (b) { return b.textContent; }), text: c.textContent,
+          orig: [].map.call(c.querySelectorAll('.orig text'), function (t) { return t.textContent; }),
+          menus: [].map.call(c.querySelectorAll('select'), function (m) { return [].map.call(m.options, function (o) { return o.value; }); }),
+          labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.dataset.full || t.textContent; }) };"""  # a shortened label keeps its full text
+        got = probed(html, ds, read)
+        self.assertIn("in their own values", got["h2"])
+        self.assertEqual(got["pressed"], ["Values"])
+        self.assertEqual(got["views"], ["Values", "Within the cap", "% change"])
+        self.assertEqual(got["menus"][0].count("latency_ms") + got["menus"][1].count("model_size_mb"), 0, "neither menu offers the other axis's metric")
+        self.assertIn("Better on both ↙", got["labels"], "two lower-is-better metrics: down and left")
+        self.assertEqual(got["orig"], ["Original"], "the original sits at its real values, as a triangle")
+        self.assertTrue(any(l.startswith("Size cap, 120") for l in got["labels"]), "the cap line on the budget axis")
+        cap = probed(html, ds, read, act="[].filter.call(document.querySelectorAll('[data-card=tradeoff] .seg button'), function (b) { return b.textContent === 'Within the cap'; })[0].click();")
+        self.assertIn("within the size cap", cap["h2"])
+        self.assertTrue(any(l.startswith("Same size: stock rival") and "fails the gate (nonspeech)" in l for l in cap["labels"]), cap["labels"])
+        self.assertTrue(any(l.endswith("%") and "MB" in l for l in cap["labels"]), "each row shows its size and share of the cap")
+        plain = build_studio.build([two_targets()])
+        got = probed(plain, embedded(plain)["datasets"][0]["id"], read)
+        self.assertEqual(got["views"], ["Values", "% change"], "no budget metric: Values first, no within-the-cap view, whatever the names")
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_percent_view_plots_each_metric_its_own_way_round(self) -> None:
+        # Every version is a larger model than the original (size: lower is better). On % change it plots above the original, and
+        # the shading and "Better on both" sit down and left, where the two lower-is-better directions point; each axis says so.
+        html = build_studio.build([self.budgeted()], tradeoff="latency_ms,model_size_mb")
+        got = probed(html, embedded(html)["datasets"][0]["id"], """var c = document.querySelector('[data-card="tradeoff"]'), box = function (e) { var r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; };
+          var o = box(c.querySelector('.orig polygon')), area = c.querySelector('.both-area path, .both-area rect');
+          return { o: [(o[0] + o[2]) / 2, (o[1] + o[3]) / 2], area: area ? box(area) : null, both: [].map.call(c.querySelectorAll('text.both'), function (t) { return t.textContent; }),
+                   labels: [].map.call(c.querySelectorAll('.recharts-label'), function (t) { return t.textContent; }),
+                   marks: [].map.call(c.querySelectorAll('.tp:not(.gate) polygon'), function (p) { var b = box(p); return (b[1] + b[3]) / 2; }) };""",
+                     act="[].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .seg button'), function (b) { return b.textContent === '% change'; })[0].click();")
+        self.assertEqual(got["both"], ["Better on both ↙"])
+        self.assertTrue(any(l.endswith("% change, lower is better") for l in got["labels"]), got["labels"])
+        self.assertTrue(any(l.endswith("% change, ← lower is better") for l in got["labels"]), got["labels"])
+        ox, oy = got["o"]
+        self.assertIsNotNone(got["area"], "the better quadrant is shaded")
+        self.assertLessEqual(got["area"][2], ox + 1, "the shading sits left of the original: lower latency is better")
+        self.assertGreaterEqual(got["area"][1], oy - 1, "the shading sits below the original: a smaller model is better")
+        self.assertTrue(got["marks"] and all(y < oy for y in got["marks"]), f"every larger model plots above the original: {got['marks']} vs {oy}")
+
+    @staticmethod
+    def in_bytes() -> dict:
+        """The budget pair with the model size in bytes: ticks like 1,200,000,000 and a cap line across the plot."""
+        snap = FailedRowsAndTradeOffTests.budgeted()
+        k = 10_000_000
+        m = next(m for m in snap["metrics"] if m["key"] == "model_size_mb")
+        m.update(cap=m["cap"] * k, unit="bytes")
+        snap["baseline"]["metrics"]["model_size_mb"]["mean"] *= k
+        for v in snap["versions"]:
+            st = v["metrics"].get("model_size_mb")
+            if st:
+                st["mean"] *= k
+        snap["externalReferences"][0]["metrics"]["model_size_mb"] *= k
+        return snap
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_values_view_keeps_long_ticks_and_the_cap_label_clear(self) -> None:
+        html = build_studio.build([self.in_bytes()], tradeoff="latency_ms,model_size_mb")
+        found = [p for p in check_report.studio_render_checks(html, CHROME) if p.startswith(("LABELS OVERLAP", "LABEL HIDDEN", "LABEL CUT OFF")) and " in Trade-off" in p]
+        self.assertEqual(found, [])
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_checker_catches_a_corner_or_axis_title_against_the_metrics_direction(self) -> None:
+        html = build_studio.build([self.budgeted()], tradeoff="latency_ms,model_size_mb")
+        direction = lambda ps: [p for p in ps if p.startswith(("WRONG BETTER CORNER", "WRONG AXIS DIRECTION"))]
+        self.assertEqual(direction(check_report.studio_render_checks(html, CHROME)), [])
+        # A long metric name: the layout pass shortens the axis title with an ellipsis, and the checker reads its whole text.
+        snap = self.budgeted()
+        next(m for m in snap["metrics"] if m["key"] == "model_size_mb")["label"] = "nonspeech words per minute of the parent model size"
+        self.assertEqual(direction(check_report.studio_render_checks(build_studio.build([snap], tradeoff="latency_ms,model_size_mb"), CHROME)), [])
+        # The 19 Nov bug: a fixed up-and-right corner and "% better" axis titles on two lower-is-better metrics.
+        corner, title = 'bothText = "Better on both " + pc.arrow', '"% change, " + (sy > 0 ? "higher is better" : "lower is better")'
+        self.assertEqual((html.count(corner), html.count(title)), (1, 1))
+        found = direction(check_report.studio_render_checks(html.replace(corner, 'bothText = "Better on both \u2197"').replace(title, '"% better \u2192"'), CHROME))
+        self.assertTrue(any(p.startswith('WRONG BETTER CORNER: "Better on both \u2197"') for p in found), found)
+        self.assertTrue(any(p.startswith("WRONG AXIS DIRECTION:") and "model size" in p.lower() for p in found), found)
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_the_checker_catches_an_empty_conclusion_bullet(self) -> None:
+        html = build_studio.build([run_snapshot()]) + late("var ul = document.querySelector('[data-card=time] .means ul'); var li = document.createElement('li'); ul.appendChild(li);")
+        self.assertTrue(any(p.startswith("EMPTY BULLET:") for p in check_report.studio_render_checks(html, CHROME)))
+
+    @unittest.skipUnless(CHROME, "no Chrome")
+    def test_tooltips_rank_versions_and_the_trade_off_crosses_out_gate_failures_and_names_best(self) -> None:
+        snap = two_targets()  # v2 is a refuted experiment: it ran and is valid, so it is never crossed
+        snap["metrics"].append({"key": "gate_ok", "label": "gate ok", "kind": "target", "higherIsBetter": True, "importance": "none", "unit": None})
+        for v in snap["versions"]:  # as collect_discovery.py --gate-metric gate_ok writes it: v1 read 0, so it is out of every pick
+            v["metrics"]["gate_ok"] = {"mean": 0 if v["label"] == "v1" else 1, "count": 1, "runs": [0 if v["label"] == "v1" else 1]}
+            v["gateFailed"] = v["label"] == "v1"
+        snap["gate"] = {"metric": "gate_ok", "failed": ["v1"]}
+        snap["rankings"] = {k: [r for r in rows if r["label"] != "v1"] for k, rows in (snap.get("rankings") or {}).items()}
+        redrawable(snap)
+        html = build_studio.build([snap], tradeoff="compile_runtime,latency_ms")
+        ds = embedded(html)["datasets"][0]["id"]
+        hover = lambda sel: "var d = " + sel + "; ['mouseover', 'mousemove'].forEach(function (t) { d.dispatchEvent(new MouseEvent(t, { bubbles: true })); });"
+        tip = lambda card: "var w = document.querySelector('[data-card=\"" + card + "\"] .recharts-tooltip-wrapper'); return w ? w.innerText : '';"
+        # The tooltips as a reader sees them: a forest point (for the rank every version tooltip carries) and the gate failure's cross
+        # once its legend entry shows it. A bar's tooltip follows the pointer's position, which headless Chrome does not synthesise.
+        # Every version tooltip carries its rank. Read it where hovering works headless: a forest point (bars take the pointer's position).
+        forest = build_studio.build([snap], only="forest")
+        rank_tip = probed(forest, embedded(forest)["datasets"][0]["id"], tip("forest"), act=hover("document.querySelector('[data-card=\"forest\"] .recharts-scatter-symbol')"))
+        show_gate = "[].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .legend button'), function (b) { return /Failed the gate/.test(b.textContent); })[0].click();"
+        gate_tip = probed(html, ds, tip("tradeoff"), act=show_gate + " setTimeout(function () { " + hover("document.querySelector('[data-card=\"tradeoff\"] .gate').closest('.recharts-scatter-symbol')") + " }, 300);")
+        got = probed(html, ds, """var c = document.querySelector('[data-card="tradeoff"]'), ch = document.querySelector('[data-card="change"]'), tb = document.querySelector('[data-card="table"]');
+          return { x: c.querySelector('select').value, gate: c.querySelectorAll('.gate').length, legend: c.querySelector('.legend').textContent,
+                   change: ch.textContent, table: tb.textContent,
+                   labels: [].map.call(c.querySelectorAll('svg text'), function (t) { return t.textContent; }), means: c.querySelector('.means').textContent };""")
+        got.update(tip=rank_tip, gateTip=gate_tip)
+        self.assertRegex(got["tip"], r"Rank \d+ of \d+ on ")
+        self.assertEqual(got["x"], "compile_runtime", "--tradeoff sets the axis the card opens on")
+        self.assertEqual(got["gate"], 0, "a gate failure starts hidden; its legend entry, struck through, brings it back")
+        self.assertIn("Failed the gate", got["legend"])
+        shown = probed(html, embedded(html)["datasets"][0]["id"], "return document.querySelectorAll('[data-card=\"tradeoff\"] .gate').length;",
+                       act="[].filter.call(document.querySelectorAll('[data-card=\"tradeoff\"] .legend button'), function (b) { return /Failed the gate/.test(b.textContent); })[0].click();")
+        self.assertEqual(shown, 1, "only v1, which read 0 on the gate metric, is a cross; the refuted v2 is not")
+        self.assertIn("failed the gate: v1", got["means"])
+        self.assertRegex(got["gateTip"], r"Failed the gate \(.+ = 0\): values not usable")
+        self.assertNotIn("Rank ", got["gateTip"], "a gate failure is never ranked")
+        self.assertRegex(got["change"], r"Failed the gate \(.+ = 0\): v1\. Their values are not usable")
+        self.assertIn("failed the gate, values not usable", got["table"])
+        best = embedded(html)["datasets"][0]["snapshot"].get("bestLines") or {}
+        if best.get("label"):
+            self.assertIn(best["label"] + " · Best", got["labels"])
+
+NODE = shutil.which("node")
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class IntervalTests(unittest.TestCase):
+    """A run measured once has no 95% interval anywhere, so the studio leaves out what only intervals give, the forest first."""
+
+    @staticmethod
+    def has_intervals(snap: dict) -> bool:
+        fn = build_studio.CORE.read_text(encoding="utf-8")  # the page's own pure logic, as the builder inlines it
+        call = f"console.log(JSON.stringify(hasIntervals({json.dumps({'versions': snap['versions']})})));"
+        return json.loads(subprocess.run([NODE, "-e", fn + call], capture_output=True, text=True, timeout=60, check=True).stdout)
+
+    def test_a_run_measured_once_has_no_intervals_and_draws_no_forest(self) -> None:
+        once = run_snapshot()
+        self.assertFalse(any((m.get("vsBaseline") or {}).get("ciLowPct") is not None for v in once["versions"] for m in v["metrics"].values()))
+        self.assertFalse(self.has_intervals(once))
+        page = (Path(build_studio.__file__).resolve().parent.parent / "assets" / "chart-studio.html").read_text(encoding="utf-8")
+        # Both places that pick the forest ask first: the change card's toggle, and the cards the page reports it drew.
+        self.assertIn('view = c.view === "forest" && ci ? "forest" : "bar"', page)
+        self.assertIn('var changeView = load(scope + ":change", {}).view === "forest" && hasIntervals(D) ? "forest" : "ranked"', page)
+
+    def test_one_version_with_an_interval_keeps_the_forest(self) -> None:
+        snap = run_snapshot()
+        v = next(v for v in snap["versions"] if (v["metrics"].get("latency_ms") or {}).get("vsBaseline"))
+        v["metrics"]["latency_ms"]["vsBaseline"].update(ciLowPct=1.0, ciHighPct=9.0)
+        self.assertTrue(self.has_intervals(snap))
+        self.assertTrue(self.has_intervals(with_intervals(run_snapshot())))
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class LinkCoreTests(unittest.TestCase):
+    """Option C: a link goes only under the run's own Web UI origin, the one the collector built its URLs on."""
+
+    ORIGIN = "https://artemis.acme.example"
+
+    def href(self, fn: str, run: dict):
+        return TradeOffCoreTests.run_js(f"{fn}({json.dumps(run)})")
+
+    def test_any_https_deployment_links_its_own_run_and_project(self) -> None:
+        run = {"webOrigin": self.ORIGIN, "webUrl": self.ORIGIN + "/projects/p-1/discover/r-1/", "projectUrl": self.ORIGIN + "/projects/p-1"}
+        self.assertEqual(self.href("runHref", run), self.ORIGIN + "/projects/p-1/discover/r-1")
+        self.assertEqual(self.href("projectHref", run), self.ORIGIN + "/projects/p-1")
+        port = {"webOrigin": self.ORIGIN + ":8443", "webUrl": self.ORIGIN + ":8443/projects/p/discover/r"}
+        self.assertEqual(self.href("runHref", port), port["webUrl"])
+
+    def test_nothing_outside_the_runs_own_origin_is_linked(self) -> None:
+        url = "/projects/p/discover/r"
+        for run in ({"webUrl": "https://artemis.turintech.ai" + url},  # no origin: an older snapshot
+                    {"webOrigin": self.ORIGIN, "webUrl": "https://artemis.turintech.ai" + url},
+                    {"webOrigin": self.ORIGIN, "webUrl": self.ORIGIN + ".evil.example" + url},
+                    {"webOrigin": self.ORIGIN, "webUrl": self.ORIGIN + ":8443" + url},
+                    {"webOrigin": self.ORIGIN, "webUrl": self.ORIGIN + url + "/versions"},
+                    {"webOrigin": self.ORIGIN, "webUrl": self.ORIGIN + "/projects/p?next=https://evil.example/discover/r"},
+                    {"webOrigin": "http://artemis.acme.example", "webUrl": "http://artemis.acme.example" + url},
+                    {"webOrigin": "javascript:alert(1)//", "webUrl": "javascript:alert(1)//" + url},
+                    {"webOrigin": self.ORIGIN + "/x", "webUrl": self.ORIGIN + "/x" + url}):
+            with self.subTest(run=run):
+                self.assertIsNone(self.href("runHref", run))
+        self.assertIsNone(self.href("projectHref", {"webOrigin": self.ORIGIN, "projectUrl": self.ORIGIN + "/projects/p/discover/r"}), "the project link is the project page only")
+
+
+class TradeOffCoreTests(unittest.TestCase):
+    """The trade-off's rules on the template's own functions: what a run is comes from the collector, never from a metric's name."""
+
+    @staticmethod
+    def run_js(call: str):
+        fns = build_studio.CORE.read_text(encoding="utf-8")
+        return json.loads(subprocess.run([NODE, "-e", fns + f"console.log(JSON.stringify({call}));"], capture_output=True, text=True, timeout=60, check=True).stdout)
+
+    SIZE = {"key": "model_size_mb", "unit": "MB", "higherIsBetter": False, "role": "budget", "cap": 1319.830496}
+    WER = {"key": "pooled_wer_ratio_vs_q8", "unit": None, "higherIsBetter": False}
+
+    def test_two_lower_is_better_metrics_are_better_down_and_left(self) -> None:
+        self.assertEqual(self.run_js(f"bestCorner({json.dumps(self.SIZE)}, {json.dumps(self.WER)})"), {"x": "left", "y": "bottom", "arrow": "↙"})
+
+    def test_each_direction_sets_its_own_side(self) -> None:
+        fps = {"key": "fps", "higherIsBetter": True}
+        self.assertEqual(self.run_js(f"bestCorner({json.dumps(fps)}, {json.dumps(self.WER)})")["arrow"], "↘")
+        self.assertEqual(self.run_js(f"bestCorner({json.dumps(self.SIZE)}, {json.dumps(fps)})")["arrow"], "↖")
+        self.assertEqual(self.run_js(f"bestCorner({json.dumps(fps)}, {json.dumps(fps)})")["arrow"], "↗")
+
+    def test_the_fronts_staircase_turns_at_the_corner_both_neighbours_beat(self) -> None:
+        # Two neighbours on a front, sorted by x: one wins on x, the other on y, for every pair of directions.
+        for hx, hy, want in [(True, True, {"x": 1, "y": 2}), (False, False, {"x": 3, "y": 5}), (True, False, {"x": 1, "y": 5}), (False, True, {"x": 3, "y": 2})]:
+            with self.subTest(hib=(hx, hy)):
+                axes = [{"key": "x", "hib": hx}, {"key": "y", "hib": hy}]
+                a_wins_y = hx  # the larger x wins on x when higher is better, so the smaller x must win on y
+                a, b = ({"x": 1, "y": 5 if hy else 2}, {"x": 3, "y": 2 if hy else 5}) if a_wins_y else ({"x": 1, "y": 2 if hy else 5}, {"x": 3, "y": 5 if hy else 2})
+                corner = self.run_js(f"stairCorner({json.dumps(a)}, {json.dumps(b)}, {json.dumps(axes)})")
+                self.assertEqual(corner, want)
+                for p in (a, b):  # both neighbours are at least as good as the corner on each axis
+                    self.assertTrue(self.run_js(f"dominates({json.dumps(p)}, {json.dumps(corner)}, {json.dumps(axes)})"))
+
+    def test_every_pair_opens_on_values_and_only_the_budget_metric_adds_the_cap_view(self) -> None:
+        self.assertEqual(self.run_js(f"tradeoffViews({json.dumps(self.SIZE)}, {json.dumps(self.WER)})"), ["values", "quality", "pct"])
+        self.assertEqual(self.run_js(f"tradeoffViews({json.dumps(self.WER)}, {json.dumps(self.SIZE)})"), ["values", "quality", "pct"], "either axis")
+        # Pairs a name rule took for model compression: with no budget role there is no within-the-cap view.
+        for x, y in [("bytes_per_op", "ns_per_op"), ("payload_size_kb", "time_per_request_ms"), ("rss_mb", "error_rate"), ("model_size_mb", "pooled_wer")]:
+            with self.subTest(pair=(x, y)):
+                self.assertEqual(self.run_js(f"tradeoffViews({{key: '{x}', unit: 'MB', higherIsBetter: false}}, {{key: '{y}', higherIsBetter: false}})"), ["values", "pct"])
+
+    def test_dominance_is_one_rule_for_every_direction(self) -> None:
+        up = [{"key": "a", "hib": True}, {"key": "b", "hib": True}]
+        down = [{"key": "a", "hib": False}, {"key": "b", "hib": False}]
+        cases = [({"a": 2, "b": 2}, {"a": 1, "b": 1}, up, True), ({"a": 2, "b": 1}, {"a": 1, "b": 1}, up, True), ({"a": 1, "b": 1}, {"a": 1, "b": 1}, up, False),
+                 ({"a": 2, "b": 0}, {"a": 1, "b": 1}, up, False), ({"a": 1, "b": 1}, {"a": 2, "b": 2}, down, True), ({"a": 1, "b": 3}, {"a": 2, "b": 2}, down, False)]
+        for a, b, axes, want in cases:
+            with self.subTest(a=a, b=b, hib=axes[0]["hib"]):
+                self.assertEqual(self.run_js(f"dominates({json.dumps(a)}, {json.dumps(b)}, {json.dumps(axes)})"), want)
+        self.assertEqual(self.run_js(f"onFront([{{a: 1, b: 1}}, {{a: 1, b: 1}}, {{a: 0, b: 0}}], {json.dumps(up)})"), [True, True, False], "exact ties are both on the front")
+
+    def test_one_run_each_is_read_from_the_iterations(self) -> None:
+        v = lambda n: {"metrics": {"wer": {"vsBaseline": {"readings": n}}}}
+        self.assertTrue(self.run_js(f"measuredOnce([{json.dumps(v(1))}, {json.dumps(v(1))}], {{wer: 1}}, ['wer'])"))
+        self.assertFalse(self.run_js(f"measuredOnce([{json.dumps(v(1))}, {json.dumps(v(5))}], {{wer: 1}}, ['wer'])"), "one version run five times")
+        self.assertFalse(self.run_js(f"measuredOnce([{json.dumps(v(1))}], {{wer: 5}}, ['wer'])"), "the original run five times")
+
+    def test_a_sourced_reference_is_the_same_size_rival_and_says_it_fails_the_gate(self) -> None:
+        refs = [{"label": "stock Q4_K_M", "metrics": {"pooled_wer_ratio_vs_q8": 1.187, "model_size_mb": 1319.83, "eligible": 0}, "gateFailed": True,
+                 "failures": ["nonspeech: 23 runaway clips only the candidate has"], "source": {"file": "handy_q4km-dev.json"}},
+                {"label": "Q8_0", "metrics": {"pooled_wer_ratio_vs_q8": 1.0, "model_size_mb": 2185.03}, "gateFailed": False, "source": {"file": "q8_0-dev.json"}},
+                {"label": "unrelated", "metrics": {"latency_ms": 3}}]
+        got = self.run_js(f"tradeoffRefs({json.dumps(refs)}, 'model_size_mb', 'pooled_wer_ratio_vs_q8', {json.dumps(self.SIZE)})")
+        self.assertEqual([(r["name"], r["x"], r["y"], r["same"], r["gateFailed"], r["why"], r["file"]) for r in got],
+                         [("stock Q4_K_M", 1319.83, 1.187, True, True, "nonspeech", "handy_q4km-dev.json"), ("Q8_0", 2185.03, 1.0, False, False, None, "q8_0-dev.json")])
+        self.assertEqual(self.run_js(f"tradeoffRefs([], 'model_size_mb', 'pooled_wer_ratio_vs_q8', null)"), [])
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class ParetoChanceTests(unittest.TestCase):
+    """The studio's seeded Monte Carlo for P(on the Pareto front), run on the template's own function."""
+
+    @staticmethod
+    def chances(points: list[dict], draws: int = 2000, seed: int | None = None) -> dict:
+        fn = build_studio.CORE.read_text(encoding="utf-8")
+        call = f"console.log(JSON.stringify(paretoChances({json.dumps(points)}, {draws}, {json.dumps(seed)})));"
+        out = subprocess.run([NODE, "-e", fn + call], capture_output=True, text=True, timeout=60, check=True).stdout
+        return json.loads(out)
+
+    @staticmethod
+    def pt(x: float, y: float, half: float | None = None) -> dict:
+        return {"x": x, "y": y, "xlo": None if half is None else x - half, "xhi": None if half is None else x + half,
+                "ylo": None if half is None else y - half, "yhi": None if half is None else y + half}
+
+    def test_an_axis_turned_with_its_direction_keeps_every_chance(self) -> None:
+        # The % change view plots a lower-is-better metric with its sign turned and says lower is better: same fronts, same chances.
+        pts = [self.pt(10, 5, 4), self.pt(8, 7, 3), self.pt(2, 1, 1), self.pt(9, 6, 2)]
+        turned = [dict(p, y=-p["y"], ylo=-p["yhi"], yhi=-p["ylo"]) for p in pts]
+        axes = [{"key": "x", "hib": True}, {"key": "y", "hib": False}]
+        fn = build_studio.CORE.read_text(encoding="utf-8")
+        call = f"console.log(JSON.stringify(paretoChances({json.dumps(turned)}, 2000, null, {json.dumps(axes)})));"
+        got = json.loads(subprocess.run([NODE, "-e", fn + call], capture_output=True, text=True, timeout=60, check=True).stdout)
+        want = self.chances(pts)
+        for g, w in zip(got["p"], want["p"]):
+            self.assertAlmostEqual(g, w, delta=0.04)
+        self.assertEqual(sorted(map(tuple, got["dominated"])), sorted(map(tuple, want["dominated"])))
+        self.assertNotEqual(self.chances(turned)["p"], want["p"], "read as higher is better, the turned axis gives other chances")
+
+    def test_a_version_clearly_ahead_on_both_dominates(self) -> None:
+        got = self.chances([self.pt(10, 10, 1), self.pt(0, 0, 1)])
+        self.assertEqual(got["p"][0], 1)
+        self.assertLess(got["p"][1], 0.01)
+        self.assertEqual(got["dominated"], [[0, 1]])
+
+    def test_exact_ties_are_both_on_the_front(self) -> None:
+        got = self.chances([self.pt(5, 5), self.pt(5, 5)])
+        self.assertEqual(got, {"p": [1, 1], "dominated": []})
+
+    def test_each_better_on_one_axis_are_both_on_the_front(self) -> None:
+        got = self.chances([self.pt(10, 0, 1), self.pt(0, 10, 1)])
+        self.assertTrue(all(p > 0.99 for p in got["p"]), got)
+        self.assertEqual(got["dominated"], [])
+
+    def test_a_lead_inside_the_intervals_is_never_called_dominance(self) -> None:
+        got = self.chances([self.pt(5, 5, 10), self.pt(4, 4, 10)])
+        self.assertEqual(got["dominated"], [], "ahead on the estimates, but not in 95% of draws")
+        self.assertTrue(0.3 < got["p"][1] < 0.9, got)
+
+    def test_the_draws_are_seeded(self) -> None:
+        points = [self.pt(5, 5, 10), self.pt(4, 4, 10), self.pt(6, 2, 4)]
+        self.assertEqual(self.chances(points), self.chances(points))
+        self.assertNotEqual(self.chances(points, seed=1)["p"], self.chances(points, seed=2)["p"])
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class LeaderStepTests(unittest.TestCase):
+    """The version chart's new leaders, run on the template's own function: which versions led, and which cleared the last clear one."""
+
+    @staticmethod
+    def steps(points: list, low_wins: bool = False) -> list:
+        fn = build_studio.CORE.read_text(encoding="utf-8")
+        call = f"console.log(JSON.stringify(leaderSteps({json.dumps(points)}, {json.dumps(low_wins)})));"
+        return json.loads(subprocess.run([NODE, "-e", fn + call], capture_output=True, text=True, timeout=60, check=True).stdout)
+
+    @staticmethod
+    def pt(y, half=None):
+        return None if y is None else {"y": y, "lo": None if half is None else y - half, "hi": None if half is None else y + half}
+
+    def test_a_rise_clear_of_the_interval_is_a_numbered_new_leader(self) -> None:
+        got = self.steps([self.pt(5, 1), self.pt(3, 1), self.pt(10, 1)])
+        self.assertEqual([(s["i"], s["first"], s["clear"], s["n"], s["ref"]) for s in got], [(0, True, True, 0, None), (2, False, True, 1, 0)])
+
+    def test_a_rise_inside_the_interval_is_within_noise_and_unnumbered(self) -> None:
+        got = self.steps([self.pt(5, 2), self.pt(6, 2), self.pt(12, 2)])
+        self.assertEqual([(s["i"], s["clear"], s["n"]) for s in got], [(0, True, 0), (1, False, 0), (2, True, 1)])
+        self.assertEqual(got[2]["ref"], 0, "a clear step is measured against the last clear leader, not the noisy one before it")
+
+    def test_ties_and_gaps_are_not_new_leaders(self) -> None:
+        got = self.steps([None, self.pt(5, 1), self.pt(5, 1), None, self.pt(4, 1)])
+        self.assertEqual([s["i"] for s in got], [1])
+
+    def test_without_intervals_a_new_leader_makes_no_claim(self) -> None:
+        got = self.steps([self.pt(1), self.pt(2), self.pt(3)])
+        self.assertEqual([(s["clear"], s["n"]) for s in got], [(True, 0), (None, 1), (None, 2)])
+
+    def test_a_lower_is_better_mean_leads_downwards(self) -> None:
+        got = self.steps([{"y": 10, "lo": 0, "hi": 2}, {"y": 8, "lo": 5, "hi": 7}, {"y": 9, "lo": 9, "hi": 11}], low_wins=True)
+        self.assertEqual([(s["i"], s["clear"]) for s in got], [(0, True), (1, True)])
