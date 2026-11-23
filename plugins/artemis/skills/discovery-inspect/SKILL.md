@@ -136,7 +136,7 @@ artemis --output-format json discovery compare <run-id>
 
 This is Artemis's own verdict, the one the Web UI shows: per version and metric, the % change against the baseline, its 95% interval and a verdict (`better`, `worse`, `noise`, or `pending`), plus an overall verdict per version and the readings that would settle a `pending` one. **This is what you trust**, not the Composite score (see *Common misreads*). Report the verdicts as given; never judge noise from the spread yourself.
 
-`pending` usually means too few Benchmark runs. A metric whose `versions[].metrics[].baselineMayBeZero` is `true` (CLI 1.1.28+, also in `discovery metrics --stats` JSON; text output says the baseline "may be zero") is different: the baseline's mean may be zero, so the % change has no bound and more runs may not settle it. Say that, and don't advise rerunning. CSV output has no column for it, so read JSON.
+`pending` usually means too few Benchmark runs. A metric whose `versions[].metrics[].baselineMayBeZero` is `true` (CLI 1.1.28+, also in `discovery metrics --stats` JSON; text output says the baseline "may be zero") is different: the baseline's mean may be zero, so the % change has no bound and more runs may not settle it. Say that, and don't advise rerunning. Read it from JSON.
 
 A version's metric with `improvementPct` and `verdict` both null, while the baseline row's `value` for it is 0 or within 1e-6 of it, was measured against a baseline at zero, so the change has no percentage. Report the values and say "No % change" (the Web UI's words), and don't advise rerunning.
 
