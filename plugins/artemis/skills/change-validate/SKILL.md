@@ -67,7 +67,7 @@ Report per metric: the starting commit's value (on the `versions[]` row with `is
 |---|---|
 | `better` / `worse` | The change is faster or slower, by the improvement, with the interval |
 | `noise` | No difference could be measured. If `recommendedReadings` is set, it is the total readings per side that would settle it, counting those already taken; offer to run more pairs |
-| `pending` | Too few runs to tell. Run more pairs and compare again until each side's `readings` reaches `recommendedReadings` |
+| `pending` | Too few runs to tell. Run more pairs and compare again until each side's `readings` reaches `recommendedReadings`. If the metric's `baselineMayBeZero` (CLI 1.1.28+) is `true`, the starting commit's mean may be zero, so the change has no bound and more pairs may not settle it: say so, and do not offer more pairs |
 
 `readings` counts values, not runs: a benchmark that reports several values per run adds several per run. Compare after each pair instead of working out how many pairs are left. Check with the user before going past about 10 runs per side.
 
@@ -76,7 +76,7 @@ When `recommendedReadings` is null, `recommendedReadingsReason` says why:
 - `settled`: the verdict stands.
 - `too_small`: no reasonable number of runs would separate them; say the change makes no practical difference.
 - `no_effect`: both sides average the same; say so.
-- `no_data`: not enough readings to size it yet; run more pairs, then compare again.
+- `no_data`: not enough readings to size it yet; run more pairs, then compare again. When `baselineMayBeZero` is `true` (CLI 1.1.28+), `no_data` is because the starting commit's mean may be zero, not too few readings: say that instead, and do not run more pairs.
 
 ## 4. Readings that are not independent
 
