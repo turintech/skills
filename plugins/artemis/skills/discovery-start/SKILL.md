@@ -47,7 +47,7 @@ Otherwise confirm which runner to use before `discovery create`; do not select o
 
 Check whether the project already has a queued or running discovery:
 
-- Queuing is **per runner**: work on one runner process serializes; different runners execute concurrently. Several machines can share one runner name; see [parallel runners](FAST_TRACK.md#parallel-runners).
+- Queuing is **per runner**: work on one runner process serializes; different runners execute concurrently. Several machines can share one Python runner name; a Go runner's name is its own, and it runs more at once only with `runner.concurrent_validations` raised, one Discovery run at a time by default. See [parallel runners](FAST_TRACK.md#parallel-runners).
 - An offline runner blocks its queue indefinitely, including later work assigned to it.
 
 ```bash
