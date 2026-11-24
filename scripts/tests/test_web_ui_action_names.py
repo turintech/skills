@@ -1,4 +1,7 @@
-"""Skills name a Maintain action the way the Web UI does: False positive, never dismiss."""
+"""Skills name Web UI actions and links the way the Web UI does.
+
+False positive, never dismiss; Settings, not Project Settings.
+"""
 import pathlib
 import re
 import unittest
@@ -12,6 +15,13 @@ class WebUiActionNames(unittest.TestCase):
             for n, line in enumerate(path.read_text().splitlines(), 1):
                 with self.subTest(f"{path.relative_to(SKILLS)}:{n}"):
                     self.assertIsNone(re.search(r"\bdismiss", line, re.I), line)
+
+    def test_no_skill_says_project_settings(self):
+        # The project's settings link reads Settings since artemis-ui #4886.
+        for path in sorted(SKILLS.rglob("*.md")):
+            for n, line in enumerate(path.read_text().splitlines(), 1):
+                with self.subTest(f"{path.relative_to(SKILLS)}:{n}"):
+                    self.assertNotIn("Project Settings", line)
 
     def test_maintain_names_the_false_positive_command(self):
         text = (SKILLS / "maintain/SKILL.md").read_text()

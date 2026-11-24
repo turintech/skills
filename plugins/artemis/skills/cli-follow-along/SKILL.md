@@ -68,7 +68,7 @@ Deployments differ. On newer ones a Discovery run sits under `/discover`; on old
 **Use the link the CLI printed, when there is one.** From CLI 1.1.16 the project and issue get commands print a `Web UI` row in text output, built from the deployment and the Web UI's own routes. Open that link; use the steps below for everything else.
 
 1. Open `<deployment-base-url>/projects/<project-id>` and let it settle.
-2. Read the page's own navigation and use those links: the project's left bar (on newer deployments Overview, Agents, Maintain, Discover, Plan, Branches, Files, and Project Settings with General, Runner and Scripts, Metrics) and, inside a run, its tabs (Experiments, Versions, Metrics, and Baseline when the run has one).
+2. Read the page's own navigation and use those links: the project's left bar (on newer deployments Overview, Agents, Maintain, Discover, Branches, Files, and Settings with General, Runner and Scripts, Metrics) and, inside a run, its tabs (Experiments, Versions, Metrics, and Baseline when the run has one).
 3. Follow the link for what you want to show instead of typing a path.
 4. Reuse the paths you resolved for the rest of the session; they do not change while you work.
 
@@ -83,10 +83,9 @@ Only when the user gave you bare IDs and no page to start from, try the newer sh
 | One version | `/projects/<project-id>/discover/<run-id>/versions/<version-id>` | `/projects/<project-id>/discovery/<run-id>/versions/<version-id>` |
 | The code of a version | `/projects/<project-id>/branches/<changeset-id>/changes` | `/projects/<project-id>/changesets/<changeset-id>` |
 | A branch's script runs | `/projects/<project-id>/branches/<changeset-id>/validations` (the Scripts tab) | the changeset's Validations tab |
-| The project's runner | `/settings/project/execution?projectId=<project-id>` (Project Settings, Runner and Scripts) | `/projects/<project-id>/settings/execution`, or the project's Settings |
+| The project's runner | `/settings/project/execution?projectId=<project-id>` (Settings, Runner and Scripts) | `/projects/<project-id>/settings/execution`, or the project's Settings |
 | Maintain, with its scans under Background agents | `/projects/<project-id>/maintain` | the project's Maintain page |
 | One Maintain issue | `/projects/<project-id>/maintain/issues/id/<issue-id>` | the issue on the Maintain board |
-| One plan | `/projects/<project-id>/plan/<plan-id>` | the project's Plan page |
 | One chat | `/projects/<project-id>/agents?panelTab=<chat-id>` (its tab on the Agents page) | the project's Agents page |
 | API keys, Git | `/settings/api-keys`, `/settings/git` | same |
 

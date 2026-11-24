@@ -30,7 +30,7 @@ metadata:
 3. Open `<deployment-base-url>/projects` and read the account in the page header. Ask for the address only if the page does not show the user signed in, or shows someone else's account.
 4. Keep other people's details off screen. Never open **Users** or the **Runners** list in **Settings** (**Platform Settings** on older deployments): **Users** lists every user on admin accounts and **Runners** has an **Owner** column. **Settings** itself opens on **Skills**, so passing through it is fine. The project list's owner filter and a project's owner row show names or emails too: go around them, and say so first if a tour must pass one.
 5. Pick the tour from section 3 by the user's question. If none fits, say which tours exist and ask which is closest.
-6. Check what the tour needs before starting. For a benchmark, or a Discovery run that measures (**Benchmark Metrics** on): one of the user's own runners online (**Project Settings**, **Runner and Scripts**) and a script on the project. If one is missing, the plan starts with setting it up, and say so with one recommendation ("No runner of yours is online. I'd connect one first, about 5 minutes."), not a list of options.
+6. Check what the tour needs before starting. For a benchmark, or a Discovery run that measures (**Benchmark Metrics** on): one of the user's own runners online (**Settings**, **Runner and Scripts**) and a script on the project. If one is missing, the plan starts with setting it up, and say so with one recommendation ("No runner of yours is online. I'd connect one first, about 5 minutes."), not a list of options.
 7. Say the plan in at most four lines: the steps, what will change, on which project, and any step you will stop at (none for a read-only tour). Then ask once: "Go ahead?" That yes covers every step in the plan.
 
 ## 2. Run the tour
@@ -51,7 +51,7 @@ End with a recap the user can follow alone: the path as a short list of page and
 
 Button names are the Web UI's. Steps are goals: find each control on the page you are looking at.
 
-**Where things are.** A project's left bar has **Overview** and **Agents**, then *Workflows* (**Maintain**, **Discover**, **Plan**), *Code* (**Branches**, **Files**) and **Project Settings**, which opens its own sections: **General**, **Runner and Scripts**, **Metrics**. A dot on a settings link means "Setup incomplete". The **Get Started** card at the bottom of the bar lists what setup is left. Every page has a chat panel on the right with example prompts for that page.
+**Where things are.** A project's left bar has **Overview** and **Agents**, then *Workflows* (**Maintain**, **Discover**), *Code* (**Branches**, **Files**) and **Settings**, which opens the project's settings: **General**, **Runner and Scripts**, **Metrics**. A dot on a settings link means "Setup incomplete". The **Get Started** card at the bottom of the bar lists what setup is left. Every page has a chat panel on the right with example prompts for that page.
 
 | Tour | Steps | Changes anything |
 |---|---|---|
@@ -61,7 +61,7 @@ Button names are the Web UI's. Steps are goals: find each control on the page yo
 | Connect a machine | Go to `<deployment-base-url>/settings/runners/new` in the same tab: choose the operating system and architecture and follow the steps. When it says **New runner detected**, return through the project or **Discover**: its **View runners** and **Back to Runners** links open the **Runners** list. Both **Add new Artemis runner** links lead elsewhere: the Runner dropdown's opens a new tab, and the one on **Runner and Scripts** opens the **Runners** list, whose **Owner** column shows people's names | No, unless they run the steps |
 | Import a repository | **Projects**, **New**, **Connect Git Repository**, pick the repository, then **Create Project**. It needs a Git connection Artemis can read; the page offers one if there is none | Yes |
 | Try a sample project | **Projects**, **New**, **Open a sample Project**. Featured: Particle Life (C++), Julia Set (Java) and Shop Analytics (SQL), each with **Import project**; the project opens when the import finishes | Yes |
-| Set up a benchmark | Overview, the **Run and measure your code** card, **Setup**, **Create branch** (default name `artemis/measure`). That opens the branch's **Scripts** tab: **Ask agent** has the in-app agent write the script (agent work, a few dollars of credits), **Add manually** is free. Then **Run script**: pick the runner (the first run makes it the project's default), set **Benchmark runs**, **Run**, and read **Measurements**. A passing run becomes the branch's baseline and offers **Optimise in Discover**. Commands live in **Project Settings**, **Runner and Scripts**, under **Scripts** | Yes |
+| Set up a benchmark | Overview, the **Run and measure your code** card, **Setup**, **Create branch** (default name `artemis/measure`). That opens the branch's **Scripts** tab: **Ask agent** has the in-app agent write the script (agent work, a few dollars of credits), **Add manually** is free. Then **Run script**: pick the runner (the first run makes it the project's default), set **Benchmark runs**, **Run**, and read **Measurements**. A passing run becomes the branch's baseline and offers **Optimise in Discover**. Commands live in **Settings**, **Runner and Scripts**, under **Scripts** | Yes |
 | Start a Discovery run | Section 3a | Yes |
 
 ### 3a. Start a Discovery run
@@ -113,7 +113,7 @@ Three things to say while on Versions:
 | How do I get the code out? | The version's branch, **Create PR**; or on Versions, a row's menu: **Create PR**, **Download zip**, **Download Git patch** |
 | Can I rerun a version or the baseline? | Versions, a row's menu, **Run this version**; or **Run baseline** |
 | The run stopped; can it continue? | The run's header: **Continue** after a cancel, **Retry** after a failure, **Generate more versions** after it completes |
-| Where do I change what "better" means? | **Project Settings**, **Metrics** for direction; the run's **Metrics** tab for importance |
+| Where do I change what "better" means? | **Settings**, **Metrics** for direction; the run's **Metrics** tab for importance |
 
 ## 4. When the page does not match
 
