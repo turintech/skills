@@ -2,6 +2,8 @@ name: Check skills
 
 on:
   pull_request:
+    # edited: a PR retargeted to main re-runs, strict about the production CLI.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches:
       - main
@@ -44,6 +46,9 @@ jobs:
         env:
           # A skill that needs a newer CLI than the pin fails here rather than being skipped.
           ARTEMIS_CLI_STRICT: "1"
+          # main is what production users install, so there a skill that needs a newer CLI than
+          # .github/production-cli-version fails; develop may run ahead, so there it is a warning.
+          ARTEMIS_CLI_FLOOR_STRICT: ${{ (github.base_ref || github.ref_name) == 'main' && '1' || '' }}
         run: scripts/check-skills.sh
       - name: Check each skill against the CLI it declares as its minimum
         run: |

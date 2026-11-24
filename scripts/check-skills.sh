@@ -38,6 +38,9 @@ for ref in $(sed -n '/^## 6\. Route to the owning skill/,$p' "$SKILLS/artemis/SK
 done
 
 python3 "$ROOT/scripts/check_frontmatter.py" || fail=1
+# No skill may need a newer CLI than production runs (.github/production-cli-version): a warning,
+# or a failure with ARTEMIS_CLI_FLOOR_STRICT=1, which CI sets for main.
+python3 "$ROOT/scripts/check_cli_pin.py" --production "$ROOT/.github/production-cli-version" || fail=1
 python3 "$ROOT/scripts/check_refs.py" || fail=1
 
 # Commands and flags against a real CLI, when one is given (CI downloads the pinned release, ARTEMIS_CLI_PINNED).

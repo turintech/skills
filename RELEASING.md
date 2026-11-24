@@ -41,7 +41,7 @@ feat(discovery-start)!: require a validation script
 
 1. Develop upcoming changes on `develop`.
 2. Test against the corresponding CLI and platform candidate.
-3. Merge compatible skills into `main`.
+3. Merge compatible skills into `main`. CI on `main` fails any skill whose `artemis-cli-min` is above the CLI production runs, kept in [`.github/production-cli-version`](.github/production-cli-version). Production's real version is `ARTEMIS_CLI_VERSION` in artemis-deployment's `kubernetes/assets/environment/default.json`, which production inherits. Whoever promotes a CLI to production raises that file, in the change that follows the promotion: only after production runs the new version, never before, since raising it early lets an unchecked release through.
 4. Publish the stable `vX.Y.Z` tag. Pushing the tag publishes the GitHub Release from the annotated tag message.
 
 ```bash
