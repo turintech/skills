@@ -42,6 +42,10 @@
     return { n: x.length, min: x[0], q1: q(0.25), med: q(0.5), q3: q(0.75), max: x[x.length - 1] };
   }
 
+  // Whatever the kit works out itself, rather than reads from Artemis, says so in the studio's words (studio-core.js `here`).
+  const HERE = "Worked out on this page from Artemis's numbers";
+  function here(what) { return what + ": worked out on this page from Artemis's numbers"; }
+
   // Text width in px, so label gutters fit the labels instead of a guess.
   const ctx = document.createElement('canvas').getContext('2d');
   function textWidth(text, font) { ctx.font = font; return ctx.measureText(text || '').width; }
@@ -259,13 +263,18 @@
     return svg;
   }
 
-  /* boxes(el, groups, opts): box plots with every measurement overlaid.
-     groups: [{ label, sub, values: [], mean (from the snapshot, optional), color, fill, strong }]
+  /* boxes(el, groups, opts): box plots, the box and whiskers only: no measurement dots over or around the box (they hid it).
+     groups: [{ label, sub, values: [], mean, q1, median, q3 (falcon's, from the snapshot), color, fill, strong }]
+     The box is falcon's quartiles when the group has them; without them it is worked out here from the values, and says so.
      opts: { refs, axisLabel, valueDecimals, aria } */
   function boxes(el, groups, o = {}) {
     const rh = 50, T = 30, R = 70, W = 880;
-    const rows = groups.map(g => Object.assign({}, g, { st: stats(g.values), label: g.label + '  (n=' + (g.values || []).length + ')' }));
-    const L = gutter(rows), H = T + rows.length * rh + 44;
+    const rows = groups.map(g => {
+      const own = stats(g.values), falcon = own && g.q1 != null && g.median != null && g.q3 != null;
+      const st = falcon ? Object.assign({}, own, { q1: g.q1, med: g.median, q3: g.q3 }) : own;
+      return Object.assign({}, g, { st, here: !!own && !falcon, label: g.label + '  (n=' + (g.values || []).length + ')' });
+    });
+    const made = rows.some(r => r.here), L = gutter(rows), H = T + rows.length * rh + 44 + (made ? 20 : 0);
     const all = rows.flatMap(r => r.values || []);
     const pad = (Math.max(...all) - Math.min(...all)) * 0.05 || 0.5;
     const x = xScale([[Math.min(...all) - pad, Math.max(...all) + pad]], L, W - R);
@@ -273,7 +282,7 @@
     const yb = T + rows.length * rh - 6;
     drawXAxis(svg, x, T - 8, yb, o);
     (o.refs || []).forEach(r => refLine(svg, x, r, T, yb));
-    if (o.axisLabel) s(svg, 'text', { x: W - 8, y: H - 4, 'text-anchor': 'end', class: 'ar-sub' }, o.axisLabel);
+    if (o.axisLabel) s(svg, 'text', { x: W - 8, y: H - 4 - (made ? 20 : 0), 'text-anchor': 'end', class: 'ar-sub' }, o.axisLabel);
     const dp = o.valueDecimals != null ? o.valueDecimals : 2;
     rows.forEach((r, i) => {
       const yc = T + i * rh + 18, c = r.color || 'var(--ar-neutral)', b = r.st;
@@ -284,10 +293,10 @@
       [b.min, b.max].forEach(v => s(svg, 'line', { x1: x(v), x2: x(v), y1: yc - 6, y2: yc + 6, style: `stroke:${c};stroke-width:1.5` }));
       const box = s(svg, 'rect', { x: x(b.q1), y: yc - 13, width: Math.max(2, x(b.q3) - x(b.q1)), height: 26, rx: 3, style: r.fill ? `fill:${r.fill};stroke:${c};stroke-width:1.5` : r.color ? `fill:${c};fill-opacity:.18;stroke:${c};stroke-width:1.5` : `fill:var(--ar-neutral-soft);stroke:${c};stroke-width:1.5` });
       s(svg, 'line', { x1: x(b.med), x2: x(b.med), y1: yc - 13, y2: yc + 13, style: `stroke:${c};stroke-width:3` });
-      r.values.forEach((v, j) => s(svg, 'circle', { cx: x(v), cy: yc + ((j * 7) % 15) - 7, r: 2.8, style: `fill:${c};fill-opacity:.55` }));
       s(svg, 'text', { x: x(b.max) + 8, y: yc + 4, class: 'ar-val' }, fmt.num(b.med, dp));
-      tip(box, [r.label, 'median ' + fmt.num(b.med, dp) + (r.mean != null ? ', mean ' + fmt.num(r.mean, dp) : ''), 'middle half ' + fmt.num(b.q1, dp) + ' to ' + fmt.num(b.q3, dp), 'range ' + fmt.num(b.min, dp) + ' to ' + fmt.num(b.max, dp)]);
+      tip(box, [r.label, 'median ' + fmt.num(b.med, dp) + (r.mean != null ? ', mean ' + fmt.num(r.mean, dp) : ''), 'middle half ' + fmt.num(b.q1, dp) + ' to ' + fmt.num(b.q3, dp), 'range ' + fmt.num(b.min, dp) + ' to ' + fmt.num(b.max, dp)].concat(r.here ? [here('The box')] : []));
     });
+    if (made) s(svg, 'text', { x: L, y: H - 4, class: 'ar-note' }, here('A box drawn from the values, where Artemis sent no quartiles'));
     return svg;
   }
   const BOX_KEY = [{ glyph: 'box', text: 'box: middle half of the runs, line: median, whiskers: slowest to fastest run' }, { glyph: 'dot', text: 'one measurement' }];
@@ -501,5 +510,5 @@
   // Categorical colours for runs or groups, in a fixed order (validated for colour-vision deficiency).
   const series = i => 'var(--ar-c' + ((i % 6) + 1) + ')';
 
-  window.ArtemisReport = { h, s, fmt, stats, tip, header, footer, headline, figure, chips, bullets, rankedBars, strip, boxes, BOX_KEY, compareRuns, baselineBest, stackedBars, forest, scatter, trajectory, table, series };
+  window.ArtemisReport = { h, s, fmt, stats, HERE, here, tip, header, footer, headline, figure, chips, bullets, rankedBars, strip, boxes, BOX_KEY, compareRuns, baselineBest, stackedBars, forest, scatter, trajectory, table, series };
 })();

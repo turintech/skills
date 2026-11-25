@@ -19,20 +19,20 @@
       "metricId": "m-latency",
       "source": "worker",
       "higherIsBetter": false,
-      "importance": 0.5
+      "importance": "high"
     },
     {
       "metricId": "m-quality",
       "source": "agent",
       "higherIsBetter": true,
-      "importance": 0.3,
+      "importance": "medium",
       "description": "LLM-judged quality in [0, 1]."
     },
     {
       "metricId": "m-compile",
       "source": "worker",
       "higherIsBetter": false,
-      "importance": 0.2
+      "importance": "low"
     }
   ]
 }

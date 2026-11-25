@@ -13,7 +13,7 @@ python3 "<skill-dir>/scripts/build_report.py" --snapshot /tmp/discovery-snapshot
 python3 "<skill-dir>/scripts/check_report.py" /tmp/report.html
 ```
 
-Fix everything `check_report.py` reports before sharing. Without Chrome it runs its static checks only and says so; then open the page and look at it.
+Give the user the page's path as soon as it is built, then fix everything `check_report.py` reports before publishing. Without Chrome it runs its static checks only and says so; if it can't run or needs the user's go, say so in one line, open the page and look at it, and carry on. The check never stops the hand-over.
 
 ## The page script
 
@@ -23,7 +23,11 @@ This is the default report, best vs baseline ([report-design.md](report-design.m
 
 ```js
 const R = ArtemisReport, S = SNAPSHOT, F = R.fmt;
-const key = S.metrics.find(m => m.kind === 'target' && m.role !== 'reference').key;
+// The run's most important target leads (the metrics schema's importance: high, medium, low); ties keep snapshot order.
+const rank = m => ({ high: 0, medium: 1, low: 2 })[m.importance] ?? 3;
+// The collector names it in bestLines.metric; an older snapshot without it falls back to the same rule: a target with a direction first.
+const key = (S.bestLines && S.bestLines.metric) || S.metrics.filter(m => m.kind === 'target' && m.role !== 'reference')
+  .sort((a, b) => (a.higherIsBetter == null) - (b.higherIsBetter == null) || rank(a) - rank(b))[0].key;
 const def = S.metrics.find(m => m.key === key), unit = def.unit || '', up = def.higherIsBetter;
 const word = up ? 'faster' : 'lower';  // the metric's own word: faster, smaller, more accurate
 const worse = up ? 'slower' : 'higher';  // and for a best version that is still behind the baseline
@@ -87,12 +91,13 @@ const panels = S.metrics.filter(m => m.role !== 'reference').map(m => {
 const f1 = R.figure(page, { question: singleRun ? 'The baseline against each version, 1 run each' : panels.length > 1 ? 'The baseline against the best version, per metric' : 'The baseline against the best version' });
 R.headline(f1.top, {
   left: { k: 'Baseline', v: F.num(base.mean, 2), unit },
-  mid: { big: F.pct(up ? win.pctBetter : -win.pctBetter), small: times + (behind ? 'worse' : 'better') + ' than the baseline, as Artemis measures it' },
+  // falcon's improvementPct as given (positive is better, whichever way the metric points), as the forest prints it: never flipped.
+  mid: { big: F.pct(win.pctBetter), small: times + (behind ? 'worse' : 'better') + ' than the baseline, as Artemis measures it' },
   right: { k: 'Best version · ' + winV.label, v: F.num(winM.mean, 2), unit },
 });
 R.baselineBest(f1.chart, panels);
 f1.bullets([changed]);
-f1.caption(singleRun ? 'One run of each, so no version is confirmed better or worse: rerun the baseline and the versions you like to find out.'
+f1.caption(singleRun ? '1 run each, so no significance: no version is confirmed better or worse.'
   : 'Each panel is one metric: the baseline and ' + winV.label + ', as means. The badge is Artemis’s change, on the metric’s own aggregator, as in the Web UI.');
 
 // Figure 2: every run of the target metric, the baseline against the best version, only when the collector had each reading.
@@ -102,7 +107,7 @@ if (runsKnown) {
   R.compareRuns(fr.chart,
     { label: 'Baseline', sub: sha, runs: base.runs, mean: base.mean, color: 'var(--ar-baseline)' },
     { label: winV.label, sub: 'best version', runs: winM.runs, mean: winM.mean },
-    { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + unit + ', ' + (up ? 'higher' : 'lower') + ' is better)',
+    { pctText: 'Artemis: ' + F.pct(win.pctBetter) + (t ? '  (' + t.verdict + ')' : ''), axisLabel: key + ' (' + (unit ? unit + ', ' : '') + (up ? 'higher' : 'lower') + ' is better)',
       aria: key + ', every run: baseline mean ' + F.num(base.mean, 2) + ' against ' + winV.label + ' mean ' + F.num(winM.mean, 2) });
   const worstWin = up ? Math.min(...winM.runs) : Math.max(...winM.runs), bestBase = up ? Math.max(...base.runs) : Math.min(...base.runs);
   const clear = up ? worstWin > bestBase : worstWin < bestBase;
@@ -160,7 +165,9 @@ R.bullets(page, [
   perVersion + ' benchmark runs per version, ' + base.count + ' for the baseline, on the same runner',
   'Verdicts, % changes and 95% intervals are Artemis’s own (artemis discovery compare), as the Web UI shows them',
   fits.length >= 3 && new Set(fits).size === 1 ? 'Every scored version has the same Composite score, ' + F.num(fits[0], 2) : '',
-  byComposite ? 'Best version: the highest Composite score among the versions that scored, as the Web UI picks it; an earlier version wins a tie' : '',
+  byComposite ? 'Best version: falcon’s pick, the highest Composite score above the baseline, as the Web UI shows it; the earlier version on a tie' : '',
+  times || panels.some(p => p.badge) ? R.here('The × figures, converted from Artemis’s % change') : '',
+  S.steering.points.length ? R.here('The steers, read from the run’s chat') : '',
   ...S.steering.points.map(p => 'Steered' + (p.firstLabel ? ' before ' + p.firstLabel : ' after the last version') + ': “' + F.short(p.guidance, 120) + '”'),
   S.steering.reason ? 'Steers not shown: ' + S.steering.reason : '',
   t && t.recommendedReadings ? 'Artemis suggests ' + t.recommendedReadings + ' runs per side to settle ' + winV.label : '',
@@ -189,11 +196,12 @@ R.footer(page, {
 | `forest(el, rows, {aria, header})` | Each version's % change and 95% interval; rows `{label, sub, pct, lo, hi, verdict, n, hero, color, note}`, all from the snapshot; `n` prints beside the verdict |
 | `rankedBars(el, rows, {base, min, max, refs, tickFormat, note})` | Horizontal bars from `base`; rows `{label, sub, value, text, color, faded, strong, tip}` |
 | `strip(el, groups, {band, refs, domains, axisLabel})` | Every measurement as a dot per group; two `domains` break the axis |
-| `boxes(el, groups, {refs, axisLabel, valueDecimals})` | Box plots with every measurement overlaid; pair with `fig.key(R.BOX_KEY)` |
+| `boxes(el, groups, {refs, axisLabel, valueDecimals})` | Box plots: the box, median and whiskers (lowest to highest), with no measurement dots over them; pass each side's `q1`, `median`, `q3` from the snapshot so the box is falcon's; pair with `fig.key(R.BOX_KEY)` |
 | `scatter(el, points, {xLabel, yLabel, ratioLines})` | Points `{x, y, color, faded, shape: 'diamond', label, tip}`; `ratioLines: [{k, label, strong}]` for y = k·x |
 | `trajectory(el, points, {zero, annotations, yLabel, yFormat})` | Values in version order; `y: null` is a gap; `annotations: [{after, text}]` marks a steer |
 | `table(el, headers, rows, numericColumns)` | A plain table; put it in `<details class="ar-details">` for the full version list |
-| `stats(values)` | `{n, min, q1, med, q3, max, mean}` |
+| `stats(values)` | `{n, min, q1, med, q3, max, mean}`, worked out here: only for a box with no falcon quartiles |
+| `HERE`, `here(what)` | The one wording for anything the page works out itself: `HERE` as a tag ("Worked out on this page from Artemis's numbers"), `here(what)` as "what: worked out on this page from Artemis's numbers", the studio's words too |
 | `fmt.num / pct / times / share / short` | Number formats; `short` trims a title with an ellipsis |
 | `series(i)` | The i-th categorical colour, for runs or groups |
 
