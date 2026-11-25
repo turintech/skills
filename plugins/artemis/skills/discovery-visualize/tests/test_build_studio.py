@@ -404,7 +404,12 @@ class BuildTests(unittest.TestCase):
         self.assertIn("table.sum tbody tr:hover td { background: linear-gradient(var(--halo), var(--halo)), var(--card); }", page)
         self.assertIn("table.sum tbody tr:nth-child(even):hover td { background: linear-gradient(var(--halo), var(--halo)), var(--subtle); }", page)
         self.assertIn("table-layout: fixed;", page[page.index("table.sum { "):][:200], "fixed column widths")
-        self.assertIn('var TABLE_COLS = { version: "150px", change: "190px", verdict: "190px", runs: "84px", commit: "92px" };', page)
+        # The table fits its card at every width: no minimum width, fixed columns that leave What changed room at a 1,000px window,
+        # and the narrow table below that.
+        self.assertIn('var TABLE_COLS = { version: "140px", change: "160px", verdict: "170px", runs: "72px", commit: "84px" };', page)
+        self.assertIn("width: 100%; min-width: 0; font-size: 13px; table-layout: fixed; }", page[page.index("table.sum { "):][:200], "no minimum width wider than the card")
+        self.assertEqual(page.count("@media (max-width: 999px) { table.sum"), 2, "the narrow table below the width the fixed columns need")
+        self.assertNotIn("@media (max-width: 600px) { table.sum", page)
         self.assertIn("table.sum td.what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }", page, "a long title is cut")
         self.assertIn('<td class="wide what" title=${r.what || "no title"}>', card, "with its full text on hover")
         self.assertIn("var openTable = c.open != null ? !!c.open : true;", card, "its own view, so open")

@@ -287,7 +287,7 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(check_report.studio_render_checks(html, CHROME), [])
         css = "table.sum .wide { display: none; }"
         self.assertEqual(html.count(css), 1)
-        phone = "table.sum { min-width: 0; font-size: 13px; table-layout: auto; } table.sum col { width: auto !important; }"  # the phone rule since the table's columns got fixed widths
+        phone = "table.sum { min-width: 0; font-size: 13px; table-layout: auto; } table.sum col { width: auto !important; }"  # the narrow-table rule (below 1,000px) since the table's columns got fixed widths
         hidden = html.replace(css, "", 1).replace(phone, "", 1)
         self.assertNotEqual(hidden.count(phone), html.count(phone), "the fault must land, or the test checks nothing")
         problems = check_report.studio_render_checks(hidden, CHROME)

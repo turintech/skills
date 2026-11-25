@@ -138,7 +138,7 @@ table.sum tr.focused td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 table.sum button.vname { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 table.sum tr.focused button.vname { color: var(--accent-text); font-weight: 700; }
 table.sum input.pick { margin: 0 6px 0 0; vertical-align: -2px; }
-table.sum { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 720px; font-size: 13px; table-layout: fixed; }
+table.sum { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 0; font-size: 13px; table-layout: fixed; }
 /* As artemis-ui's Versions table: a sticky Version column with the Best badge, right-aligned numbers in the page's own face with
    tabular figures, a change in its direction's colour beside the verdict word, zebra rows and a hover, all from tokens; a long title
    is cut with its full text on hover. The card's .plot scrolls the table sideways. */
@@ -175,8 +175,8 @@ details.more-best { display: inline; }
 details.more-best > summary { display: inline; cursor: pointer; text-decoration: underline dotted; }
 details.tbl .tsum { color: var(--text-2); }
 table.sum .sub { display: none; font-size: 13px; color: var(--text-2); font-family: var(--sans); font-weight: 400; margin-top: 2px; }
-@media (max-width: 600px) { table.sum td.n:nth-child(3) { white-space: normal; } table.sum .ci { display: block; white-space: normal; } table.sum td.ic, table.sum th.ic { width: auto; white-space: normal; } }  /* on a phone the sign and word may wrap, so the table fits */
-@media (max-width: 600px) { table.sum { min-width: 0; font-size: 13px; table-layout: auto; } table.sum col { width: auto !important; } table.sum .wide { display: none; } table.sum .sub { display: block; } table.sum th { white-space: normal; } table.sum th button, table.sum td { padding: 8px 3px; } table.sum td:first-child { overflow-wrap: anywhere; } }
+@media (max-width: 999px) { table.sum td.n:nth-child(3) { white-space: normal; } table.sum .ci { display: block; white-space: normal; } table.sum td.ic, table.sum th.ic { width: auto; white-space: normal; } }  /* in the narrow table the sign and word may wrap, so the table fits */
+@media (max-width: 999px) { table.sum { min-width: 0; font-size: 13px; table-layout: auto; } table.sum col { width: auto !important; } table.sum .wide { display: none; } table.sum .sub { display: block; } table.sum th { white-space: normal; } table.sum th button, table.sum td { padding: 8px 3px; } table.sum td:first-child { overflow-wrap: anywhere; } }
 table.sum td.n, table.sum th.n { text-align: right; }
 table.sum td.n { font-variant-numeric: tabular-nums; }
 /* The chart rail (as in the platform's Graphs tab): one view at a time beside it, the open one marked aria-current. Narrower than
@@ -1606,8 +1606,10 @@ function BoxCard(props) {
 }
 
 /* ---------- 6. Summary table: every version, sortable, with CSV ---------- */
-// Column widths (the table is fixed-layout): What changed takes the rest and cuts a long title, its full text on hover.
-var TABLE_COLS = { version: "150px", change: "190px", verdict: "190px", runs: "84px", commit: "92px" };
+// Column widths (the table is fixed-layout): What changed takes the rest and cuts a long title, its full text on hover. They add up
+// to 626px, so with What changed they fit the card from a 1,000px window with the rail beside it; below that the narrow table
+// (auto layout, no What changed or Commit column) takes over, so the table never runs wider than its card.
+var TABLE_COLS = { version: "140px", change: "160px", verdict: "170px", runs: "72px", commit: "84px" };
 function SummaryCard(props) {
   var D = props.D, T = props.T, cs = useCard(props.scope, "table", { sort: { k: "version", dir: 1 } }), c = cs[0];
   var list = rankedMetrics(D), key = c.metric && D.byKey[c.metric] ? c.metric : D.primary, m = D.byKey[key];  // the one Best it marks is Artemis's Composite pick, a badge in the Version column
