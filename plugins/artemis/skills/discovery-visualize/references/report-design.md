@@ -28,7 +28,7 @@ When the prompt names no story, build the default. Do not ask first.
 
 In this order, with the kit calls from [report-kit.md](report-kit.md):
 
-1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain". The version is the Web UI's Best (`webUiBest`, the highest Composite score). The lede is `bestLines.lede`, word for word: it says how the version was chosen, names each measured metric whose own best version is another, and flags a stored direction worth checking in Settings > Metrics. A page you write yourself carries it too; `check_report.py` fails without it. Without a Web UI Best, the collector leads with the best on the target metric and the lede says why.
+1. **Title:** the finding with the % and falcon's verdict: "v5 is 10.9% faster than the baseline, a real gain". The version is the Web UI's Best (`webUiBest`, falcon's pick by the highest Composite score). The lede is `bestLines.lede`, word for word: it says how the version was chosen, names each measured metric whose own best version is another, and flags a stored direction worth checking in Settings > Metrics. A page you write yourself carries it too; `check_report.py` fails without it. Without a Web UI Best, the collector leads with the best on the target metric and the lede says why.
 2. **Chips:** falcon's verdict (the strong chip only for `better`), the 95% interval, and the runs per side.
 3. **Headline:** baseline mean, then the %, then the best version's mean.
 4. **Figure 1, `baselineBest`:** per metric, two bars: the baseline and the headline version, values on the bars, Artemis's change as the badge in the panel title, and `bestLines.notes[metric]` as the panel's note, word for word.
@@ -44,7 +44,7 @@ When the user names the chart, build that chart, in the colours they name, with 
 
 | The user asks for | Draw |
 |---|---|
-| a distribution, spread, or "how noisy" | every measurement (`strip`) below about ten per group; box plots with the points overlaid (`boxes`) from there, or whenever they ask for box plots |
+| a distribution, spread, or "how noisy" | every measurement (`strip`) below about ten per group; box plots (`boxes`: box and whiskers, no dots over them) from there, or whenever they ask for box plots |
 | two things compared (a version and the baseline, two versions) | a two-row `strip` or `boxes`, the gap between the groups labelled when they do not overlap |
 | a change over the run, or since a steer | `trajectory`, annotated at the steer |
 | a relationship between two metrics | `scatter`, with ratio lines when one is a reference |
@@ -90,7 +90,7 @@ Optional. One line when a mark needs explaining: what a mark is (mean of `n`, or
 
 **Change per version (ranked bars).** Horizontal bars of `pctBetter` (or `timesBetter`), sorted best first, from a zero line that is the baseline. Value label at each bar's end, version label on the left. The best version in the accent colour, the rest neutral. Versions with no measurement listed at the bottom as text, not as zero-length bars.
 
-**Distributions.** When the user asks to compare distributions, show every individual run until there are about ten per version; a box plot, violin or density curve drawn from three points invents a shape. Smoothed density curves need about ten runs in every group, not just most of them; below that, use box plots with the points overlaid. Mark each group's range and mean, and label the gap between the groups when they do not overlap. With enough runs, or when the user asks for them, draw box plots with every measurement overlaid: box from first to third quartile, a line at the median, whiskers from slowest to fastest run (no outliers at these sample sizes), `n` beside each label, and a small key that says how to read a box. When the run has an in-run reference (cuBLAS beside a Triton kernel), draw the same box plots for the reference: a wide reference box means the machine moved, not the code.
+**Distributions.** When the user asks to compare distributions, show every individual run until there are about ten per version; a box plot, violin or density curve drawn from three points invents a shape. Smoothed density curves need about ten runs in every group, not just most of them; below that, use box plots (box and whiskers, no dots over them; under five runs, the runs themselves as a strip). Mark each group's range and mean, and label the gap between the groups when they do not overlap. With enough runs, or when the user asks for them, draw box plots with every measurement overlaid: box from first to third quartile, a line at the median, whiskers from slowest to fastest run (no outliers at these sample sizes), `n` beside each label, and a small key that says how to read a box. When the run has an in-run reference (cuBLAS beside a Triton kernel), draw the same box plots for the reference: a wide reference box means the machine moved, not the code.
 
 **Every run against the baseline (strip plot).** One row per version, baseline first. Each individual run (`runs`) is a dot; a short tick marks the mean. A shaded band spans the baseline's min to max across the whole plot. This is the honest answer to "is it real": say how many of a version's runs fall inside the baseline band. Skip it when `count` is 1 and say so in the lede.
 
@@ -104,7 +104,7 @@ The default report ends with the Composite score per version once three or more 
 
 **AI Metrics.** Metrics with `kind: quality` are scored by the Orchestrator model from the code, not measured. Give them their own figure, after the measured ones: `rankedBars` of each version's score per metric, with the baseline as the reference line when it has a score. Caption it "Scored by the Orchestrator model from the code; a judgement, not a measurement." Never put them in the title, the headline, `forest` or a verdict, and never average them with measured metrics. When the user asks for "all metrics", show measured metrics and AI Metrics as two separate figures.
 
-**Pareto scatter.** Only for two named axes. Label the non-dominated points; caption it as an analytical view, not an Artemis verdict.
+**Pareto scatter.** Only for two named axes. Label the points on the front the snapshot stores (`fronts[a][b]`, the collector's dominance rule on falcon's means) and work none out on the page; caption it "the front over falcon's means, no claim of significance".
 
 ## 4. Visual standard
 
